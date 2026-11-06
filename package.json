@@ -1,0 +1,22 @@
+{
+  "name": "babymo-island-craft",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Baby Mo Island Craft — a cozy Ramadhan voxel adventure for kids (web, later iOS/Android via Capacitor).",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "adhan": "4.4.3",
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.170.0",
+    "typescript": "5.6.3",
+    "vite": "6.0.7"
+  }
+}
