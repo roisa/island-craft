@@ -120,6 +120,26 @@ async function run(name) {
       if (!r.placed || !r.turned || r.back !== 1 || !r.gone) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step("Ibra's ideas: toy sword shoos a beetle, cooking game, power hat", async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.modals.slice().forEach(m => m.close());
+        G.inv.slots[2] = { id: 242, n: 1 }; G.inv.sel = 2; // a toy stone sword
+        let b = null; for (let k = 0; k < 5 && !b; k++) b = G.bugs.spawn(G.player.pos);
+        if (!b) return { bug: 'none spawned' };
+        let taps = 0; while (!b.caught && taps < 15) { G.attackCd = 0; G.attackBug(b); taps++; }
+        // a furnace to cook at, and an egg
+        const w = G.world, x = 21, z = 27; let y = 100; while (y > 1 && !w.get(x, y, z)) y--; w.set(x, y + 1, z, 32);
+        G.player.pos.set(x + 1.5, y + 1, z + 0.5); G.inv.add(216, 1);
+        return { caught: b.caught, taps, swordXp: G.skillXp('sword'), eggs: G.inv.count(250), started: G.craft(G.findRecipe(250)) };
+      });
+      if (r.bug || !r.caught || !r.started) throw new Error(JSON.stringify(r));
+      // play the three rounds (whatever the timing, the food is made), then take it
+      await p.waitForSelector('.veil.on #ckGo');
+      for (let k = 0; k < 4; k++) { await g(() => document.querySelector('.veil.on #ckGo')?.click()); await p.waitForTimeout(150); }
+      const after = await g(() => { const G = __game; const rods = G.inv.count(244); G.settings.outfit.hat = 'hat_fisher'; G.buildAvatar(); G.wearHat('hat_fisher'); return { friedEggs: G.inv.count(250), cooked: G.stats.cooked, rodGift: G.inv.count(244) - rods }; });
+      if (after.friedEggs <= r.eggs || after.cooked < 1 || after.rodGift !== 1) throw new Error(JSON.stringify({ r, after }));
+      return { taps: r.taps, ...after };
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet);
         if (!a) return { skipped: true };

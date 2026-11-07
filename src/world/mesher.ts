@@ -176,6 +176,8 @@ export function meshChunk(inp: MeshInput): ChunkGeoms {
 // ---- material ------------------------------------------------------------
 export interface WorldUniforms {
   uMap: { value: THREE.DataArrayTexture };
+  /** 0..1: the miner's helmet lamp */
+  uLamp?: { value: number };
   uDay: { value: number };
   uSkyTint: { value: THREE.Color };
   uFogColor: { value: THREE.Color };
@@ -214,6 +216,7 @@ uniform float uFogNear;
 uniform float uFogFar;
 uniform float uWater;
 uniform float uUnderwater;
+uniform float uLamp;
 in vec2 vUv;
 flat in float vLayer;
 in vec3 vLight;
@@ -225,6 +228,8 @@ void main(){
   float sky = vLight.y * uDay;
   vec3 skyC = uSkyTint * sky;
   vec3 blk = vec3(1.0, 0.78, 0.48) * vLight.z * 1.15;
+  // the miner's helmet lamp: a warm light around you that fades over ~10 blocks
+  blk = max(blk, vec3(1.0, 0.86, 0.62) * uLamp * 1.1 * (1.0 - smoothstep(2.0, 13.0, vDist)));
   vec3 lit = max(skyC, blk) + vec3(0.06, 0.065, 0.085);
   vec3 col = t.rgb * lit * vLight.x;
   float a = uWater > 0.5 ? 0.78 : 1.0;

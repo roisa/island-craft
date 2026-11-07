@@ -12,7 +12,7 @@
 // Walking is phase-locked to the distance travelled, so feet don't slide.
 // Pure maths on a flat pose record, unit tested in tests/unit/animator.test.ts.
 
-export type Loco = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land' | 'swim' | 'ride' | 'fly';
+export type Loco = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land' | 'swim' | 'ride' | 'fly' | 'climb';
 export type Action = 'mine' | 'chop' | 'collect' | 'build' | 'wave' | 'celebrate' | 'drink' | 'read';
 
 /** Joint angles (radians) and the body's vertical offset (rig units). Negative x on arms/legs = forward. */
@@ -79,6 +79,12 @@ const LOCO: Record<Loco, Clip> = {
   ride: { loop: true, dur: 1, sample(c, o) {
     o.legLx = -1.3; o.legRx = -1.3; o.legLz = -0.35; o.legRz = 0.35;
     o.armLx = -0.7; o.armRx = -0.7; o.bodyY = Math.abs(sin(c.t * 5)) * 0.03 * Math.min(1, c.speed / 3);
+  } },
+  // hand over hand up a trunk, knees pushing
+  climb: { loop: true, dur: 0.7, sample(c, o) {
+    const s = sin(c.u * TAU);
+    o.armLx = -2.6 + s * 0.45; o.armRx = -2.6 - s * 0.45; o.armLz = -0.15; o.armRz = 0.15;
+    o.legLx = -0.6 - s * 0.4; o.legRx = -0.6 + s * 0.4; o.bodyX = 0.12; o.headX = -0.35;
   } },
   fly: { loop: true, dur: 1, sample(c, o) {
     const w = sin(c.t * 2 + c.seed) * 0.08;
@@ -147,7 +153,7 @@ export interface AnimInput {
   grounded: boolean;
   /** vertical velocity (blocks/s, + up) */
   vy: number;
-  swimming?: boolean; riding?: boolean; flying?: boolean;
+  swimming?: boolean; riding?: boolean; flying?: boolean; climbing?: boolean;
 }
 
 /** Thresholds shared with the tests. */
@@ -233,6 +239,7 @@ export class Animator {
   private decide(inp: AnimInput): Loco {
     if (inp.riding) return 'ride';
     if (inp.flying) return 'fly';
+    if (inp.climbing) return 'climb';
     if (inp.swimming) return 'swim';
     if (!inp.grounded) {
       if (inp.vy < FALL_VY || this.airT > FALL_AIR) return 'fall'; // a normal hop stays a jump

@@ -6,6 +6,7 @@ import '@fontsource/nunito/900.css';
 import '@fontsource/scheherazade-new/400.css';
 import '@fontsource/scheherazade-new/700.css';
 import './style.css';
+import './features.css';
 import * as THREE from 'three';
 import { tr, t2, getLang, setLang } from './i18n';
 import { buildTextureArray } from './world/atlas';
@@ -15,7 +16,7 @@ import { World } from './world/world';
 import { B, I, BLOCKS, ITEMS, LETTERS, isBlockId, isLetter, isDeco, nameOf } from './world/blocks';
 import { Player } from './game/player';
 import { Input, isTouch } from './game/input';
-import { Inventory, Recipe, Station, craft as doCraft } from './game/inventory';
+import { Inventory, Recipe, Station, craft as doCraft, RECIPES } from './game/inventory';
 import { Sky, Schedule } from './game/sky';
 import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
 import { Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
@@ -25,6 +26,9 @@ import { Animator, applyPose, type AnimInput } from './game/animator';
 import { matOf } from './game/materials';
 import { Ambient } from './game/ambient';
 import { Decor, cleanDeco, faceToward } from './game/deco';
+import { BugSwarm, type Bug } from './game/bugs';
+import { Fishing } from './game/fishing';
+import { skillLevel, hitPower, catchFor, type Skill } from './game/skills';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
@@ -33,7 +37,7 @@ import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, load
 import { QUESTS, Stats, newStats, DUAS, CALENDAR, letterReward } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
-import { Fun, Outfit, defaultOutfit, outfitItem, dressUp } from './game/fun';
+import { Fun, Outfit, defaultOutfit, outfitItem, dressUp, HAT_GIFTS } from './game/fun';
 import { Festive, PICNIC } from './game/festive';
 
 export interface Settings {
@@ -42,6 +46,10 @@ export interface Settings {
   protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean; outfitV3?: boolean;
   /** minutes of play between water breaks (0 = off) */
   water: number;
+  /** naughty beetles at dusk (parents can turn them off) */
+  beetles?: boolean;
+  /** colours picked from a photo (the photo itself is never kept) */
+  look?: { hair: number; skin: number; shirt: number; pants: number };
 }
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
 const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
@@ -50,7 +58,7 @@ const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
 const ROW = { imam: new THREE.Vector3(0.5, VILLAGE_Y + 1, -20.5), player: new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5), mo: new THREE.Vector3(2.0, VILLAGE_Y + 1, -18.5),
   others: [new THREE.Vector3(-1.0, VILLAGE_Y + 1, -18.5), new THREE.Vector3(-2.5, VILLAGE_Y + 1, -18.5), new THREE.Vector3(3.5, VILLAGE_Y + 1, -18.5)] };
 const inMasjidArea = (p: THREE.Vector3) => p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3;
-const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK]);
+const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK, I.GRILLED_FISH, I.FRIED_EGG, I.STEAK]);
 
 const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LOG]: B.PINE_LEAVES, [B.PALM_LOG]: B.PALM_LEAVES };
 
@@ -101,6 +109,9 @@ export class Game {
   private moTapAt = 0;
   ambient: Ambient | null = null;
   deco!: Decor;
+  bugs!: BugSwarm;
+  fishing!: Fishing;
+  private attackCd = 0;
   /** extra quarter turns for the next furniture / turned block you place (the rotate button) */
   placeRot = 0;
   private blockGhost!: THREE.Group;
@@ -213,11 +224,14 @@ export class Game {
     initMesherTables();
     this.uniforms = {
       uMap: { value: tex }, uDay: { value: 1 }, uSkyTint: { value: new THREE.Color(1, 1, 1) }, uFogColor: { value: new THREE.Color(0xbfe6f5) },
-      uFogNear: { value: 50 }, uFogFar: { value: 90 }, uTime: { value: 0 }, uUnderwater: { value: 0 },
+      uFogNear: { value: 50 }, uFogFar: { value: 90 }, uTime: { value: 0 }, uUnderwater: { value: 0 }, uLamp: { value: 0 },
     };
     this.gen = new Generator(this.seed);
     this.world = new World(this.gen, this.uniforms);
     this.deco = new Decor(this.scene);
+    this.bugs = new BugSwarm(this.scene, this.world);
+    this.bugs.onBump = b => this.bugBump(b);
+    this.fishing = new Fishing(this.scene);
     this.blockGhost = this.makeBlockGhost();
     if (meta) {
       this.deco.load(cleanDeco(meta.deco));
@@ -326,6 +340,12 @@ export class Game {
     const hat = outfitItem(o.hat);
     const opts = girl ? AISYAH(shirt, outfitItem(o.hijab)?.color ?? 0xf48aa3) : ADAM_HERO(shirt);
     if (!girl && (hat?.id === 'peci' || hat?.id === 'peci_gold')) opts.peci = hat.color;
+    // "my look" from a photo: only the colours are kept
+    const lk = this.settings.look;
+    if (lk) {
+      opts.skin = '#' + lk.skin.toString(16).padStart(6, '0'); opts.hair = lk.hair; opts.shirt = lk.shirt; opts.pants = lk.pants;
+      opts.shirtDark = undefined; opts.pantsBand = undefined;
+    }
     this.avatar = buildBlocky(opts);
     dressUp(this.avatar, o, girl, 0.66);
     this.scene.add(this.avatar.root);
@@ -401,6 +421,12 @@ export class Game {
     return s;
   }
   craft(r: Recipe) {
+    // cooking at the furnace: a little timing game first (the food is always made)
+    if (r.tag === 'cook' && !this.inv.creative) {
+      if (!r.ins.every(([id, n]) => this.inv.count(id) >= n) || !this.stations().has('furnace')) { SFX.error(); return false; }
+      this.ui.cookGame(r, q => this.finishCook(r, q));
+      return true;
+    }
     const ok = doCraft(this.inv, r, this.stations());
     if (ok) {
       SFX.craft(); haptic(10);
@@ -414,6 +440,21 @@ export class Game {
       this.checkQuests();
     } else SFX.error();
     return ok;
+  }
+  /** the recipe that makes `out` (first match) — used by the tests and the guide */
+  findRecipe(out: number) { return RECIPES.find(r => r.out === out)!; }
+  /** after the cooking game: use the ingredients, give the dish (+1 when perfect), practice */
+  private finishCook(r: Recipe, q: 'perfect' | 'good' | 'crispy') {
+    if (!doCraft(this.inv, r, this.stations())) return;
+    const extra = q === 'perfect' ? 1 : 0;
+    if (extra) this.inv.add(r.out, extra);
+    this.stats.cooked = (this.stats.cooked || 0) + 1;
+    if (q === 'perfect') this.stats.perfectCooks = (this.stats.perfectCooks || 0) + 1;
+    this.stats.crafted[r.out] = (this.stats.crafted[r.out] || 0) + 1;
+    this.addXp('cooking', q === 'perfect' ? 4 : q === 'good' ? 3 : 2);
+    this.ui.bumpSlot(r.out); this.anim.play('build');
+    this.kid.reward('craft', q === 'perfect' ? 3 : 1);
+    this.checkQuests(); this.saveSoon();
   }
   calendarUnlocked() { return this.ramadhan.inRamadhan ? this.ramadhan.day : Math.min(30, Math.max(1, this.stats.days.length)); }
   claimDay(n: number) {
@@ -507,6 +548,151 @@ export class Game {
   private endPrayTogether() {
     if (this.prayCamBefore !== null) { this.settings.cam = this.prayCamBefore; this.prayCamBefore = null; }
   }
+  // ---------- skills: sword (beetles), fishing, cooking, climbing ----------
+  skillXp(s: Skill) { return this.stats.skills?.[s] ?? 0; }
+  skillLv(s: Skill) { return skillLevel(this.skillXp(s)); }
+  /** add practice; says so when a level goes up */
+  addXp(s: Skill, n: number) {
+    const sk = (this.stats.skills ??= {});
+    const before = skillLevel(sk[s] ?? 0);
+    sk[s] = (sk[s] ?? 0) + n;
+    const after = skillLevel(sk[s]);
+    if (after > before) {
+      const names: Record<Skill, [string, string]> = { sword: ['⚔️ Pedang', '⚔️ Sword'], fishing: ['🎣 Memancing', '🎣 Fishing'], cooking: ['🍳 Memasak', '🍳 Cooking'], climbing: ['🌳 Memanjat', '🌳 Climbing'] };
+      const what: Record<Skill, [string, string]> = { sword: ['pukulanmu makin kuat', 'your taps are stronger'], fishing: ['ikan makin cepat menggigit', 'fish bite sooner'], cooking: ['zona hijau makin lebar', 'the green zone is wider'], climbing: ['kamu makin lincah', 'you’re nimbler'] };
+      SFX.quest(); this.ui.confetti(30);
+      this.ui.toast(tr(`${names[s][0]} naik ke level ${after}! Sekarang ${what[s][0]} ✨`, `${names[s][1]} reached level ${after}! Now ${what[s][1]} ✨`), 4000);
+    }
+  }
+  /** what a held sword adds (tier 0 = bare hands) */
+  private swordTier() { const it = ITEMS.get(this.inv.held()?.id ?? -1); return it?.tool?.kind === 'sword' ? it.tool.tier : 0; }
+  /** tap a beetle: it loses some energy; when it gives up it flies home and leaves a gift */
+  attackBug(b: Bug) {
+    if (this.attackCd > 0 || b.caught) return;
+    this.attackCd = 0.32;
+    const tier = this.swordTier(), lv = this.skillLv('sword');
+    const caught = b.hit(hitPower(tier, lv), this.player.pos);
+    this.anim.play('build'); this.mineAnim = 0.2;
+    SFX.hitMat(tier ? 'metal' : 'wool'); haptic(6);
+    this.fx.sparkle(b.pos.x, b.pos.y + 0.3, b.pos.z, 6, 0xffffff, 1.4);
+    if (!caught) return;
+    SFX.critter('chicken'); SFX.pop(3);
+    this.fx.sparkle(b.pos.x, b.pos.y + 0.4, b.pos.z, 26, b.kind === 'king' ? 0xffd874 : 0x9cf5b0, 3);
+    const ids: Record<string, number> = { crystal: I.CRYSTAL, gold: I.GOLD_INGOT, coal: I.COAL, dates: I.DATES, stick: I.STICK };
+    const from = new THREE.Vector3(b.pos.x, b.pos.y + 0.4, b.pos.z);
+    for (const [k, n] of BugSwarm.drops(b.kind, Math.random())) { this.inv.add(ids[k], n); this.collectFx(ids[k], n, from); }
+    this.stats.bugs = (this.stats.bugs || 0) + 1;
+    this.addXp('sword', b.kind === 'king' ? 10 : b.kind === 'big' ? 4 : 2);
+    this.kid.reward('pet');
+    if (this.stats.bugs === 1) this.ui.say(tr('Hore, kumbangnya pulang ke rumahnya! Kita usir dengan lembut, tidak menyakiti hewan ya 🐞💚', 'Yay, the beetle flew home! We shoo them gently — we never hurt animals 🐞💚'), 'ok', 6000);
+    else if (b.kind === 'king') this.ui.say(tr('Masya Allah, Raja Kumbang! Hadiahnya banyak 👑', 'Masha Allah, the Beetle King! What a gift 👑'), 'alright', 5000);
+    this.checkQuests(); this.saveSoon();
+  }
+  /** a beetle bumped into you: a little push and a buzz, never harm */
+  private bugBump(b: Bug) {
+    const p = this.player, dx = p.pos.x - b.pos.x, dz = p.pos.z - b.pos.z, d = Math.hypot(dx, dz) || 1;
+    p.vel.x += dx / d * 3; p.vel.z += dz / d * 3;
+    SFX.critter('goat'); haptic(15);
+    if (!this.stats.bugs && !this.bugHintShown) { this.bugHintShown = true; this.ui.say(tr('Kumbang nakal! Ketuk dia supaya terbang pulang. Pedang mainan dari meja kerja membantu ⚔️', 'A naughty beetle! Tap it so it flies home. A toy sword from the workbench helps ⚔️'), 'idea', 6000); }
+  }
+  private bugHintShown = false;
+  /** where the rod's tip is, for the fishing line */
+  private rodTip() {
+    const p = this.player, f = p.look();
+    return new THREE.Vector3(p.pos.x + f.x * 0.7 - Math.cos(p.yaw) * -0.25, p.visY + 1.55 + Math.max(0, f.y) * 0.4, p.pos.z + f.z * 0.7 + Math.sin(p.yaw) * -0.25);
+  }
+  /** a point on the water surface along the look direction (within 9 blocks) */
+  private waterAhead(): THREE.Vector3 | null {
+    // from the real head position (the camera's smoothed height can lag after stepping or teleporting)
+    const d = this.player.look(), e = new THREE.Vector3(this.player.pos.x, this.player.pos.y + 1.6, this.player.pos.z);
+    for (let s = 1; s < 10; s += 0.25) {
+      const x = e.x + d.x * s, y = e.y + d.y * s, z = e.z + d.z * s;
+      const id = this.world.get(Math.floor(x), Math.floor(y), Math.floor(z));
+      if (id === B.WATER) { let yy = Math.floor(y); while (this.world.get(Math.floor(x), yy + 1, Math.floor(z)) === B.WATER) yy++; return new THREE.Vector3(x, yy + 0.92, z); }
+      if (BLOCKS[id]?.solid) return null;
+    }
+    // looking flat across a lake: drop down to the water below a few steps ahead
+    for (let s = 2; s < 9; s += 0.5) {
+      const x = e.x + d.x * s, z = e.z + d.z * s;
+      for (let y = Math.floor(e.y); y > Math.floor(e.y) - 5; y--) { const id = this.world.get(Math.floor(x), y, Math.floor(z)); if (id === B.WATER) return new THREE.Vector3(x, y + 0.92, z); if (BLOCKS[id]?.solid) break; }
+    }
+    return null;
+  }
+  /** Use with the rod: cast, or reel in */
+  fishAction() {
+    const f = this.fishing;
+    if (f.busy) {
+      const at = f.float.clone();
+      const r = f.reel();
+      if (r === 'caught') this.landFish(at);
+      else if (r === 'early') { SFX.splash(); this.ui.toast(tr('Terlalu cepat! Tunggu pelampungnya tenggelam dulu 🎣', 'Too soon! Wait for the float to dip 🎣')); }
+      return;
+    }
+    const w = this.waterAhead();
+    if (!w) { this.ui.toast(tr('Arahkan pancingan ke air ya 🌊', 'Point the rod at some water 🌊')); return; }
+    f.cast(this.rodTip(), w, this.skillLv('fishing'), this.hasHat('hat_fisher'));
+    this.anim.play('build'); SFX.jump();
+  }
+  private fishTick(dt: number, t: number) {
+    const f = this.fishing;
+    if (this.inv.held()?.id !== I.FISHING_ROD || f.float.distanceTo(this.player.pos) > 14) { f.stop(); return; }
+    const ev = f.update(dt, t, this.rodTip());
+    if (ev === 'bite') { SFX.splash(); haptic([20, 30, 20]); this.ui.toast(tr('❗ Ada yang menggigit! Ketuk sekarang!', '❗ Something’s biting! Tap now!'), 1400); this.fx.sparkle(f.float.x, f.float.y + 0.2, f.float.z, 8, 0x8fd3ec, 1.5); }
+    if (ev === 'escaped') this.ui.toast(tr('Yah, ikannya lepas. Tunggu lagi ya 🐟', 'Aw, it got away. Wait for the next one 🐟'), 1800);
+  }
+  private landFish(at: THREE.Vector3) {
+    const kind = catchFor(this.skillLv('fishing'), this.hasHat('hat_fisher'), Math.random());
+    const loot: [number, number] = kind === 'golden' ? [I.GOLDEN_FISH, 1] : kind === 'big' ? [I.BIG_FISH, 1] : kind === 'treasure' ? (Math.random() < 0.5 ? [I.CRYSTAL, 2] : [I.GOLD_INGOT, 1]) : [I.SMALL_FISH, 1];
+    this.inv.add(loot[0], loot[1]); this.collectFx(loot[0], loot[1], at.clone().setY(at.y + 0.3));
+    this.stats.fish = (this.stats.fish || 0) + 1;
+    this.addXp('fishing', kind === 'golden' ? 8 : kind === 'big' ? 3 : 2);
+    this.anim.play('collect');
+    SFX.splash(); SFX.pickup();
+    this.fx.sparkle(at.x, at.y + 0.3, at.z, kind === 'golden' ? 40 : 14, kind === 'golden' ? 0xffd874 : 0x8fd3ec, 2.5);
+    if (kind === 'golden') { SFX.fanfare(); this.ui.confetti(60); this.kid.reward('quest'); this.ui.say(tr('MasyaAllah, IKAN EMAS! Langka sekali! ✨🐟', 'Masha Allah, a GOLDEN FISH! So rare! ✨🐟'), 'alright', 6000); }
+    else if (kind === 'treasure') this.ui.say(tr('Wah, ada harta karun nyangkut di kail! 💎', 'Wow, treasure got caught on the hook! 💎'), 'alright');
+    this.checkQuests(); this.saveSoon();
+  }
+  /** the first time a hat with a power is worn, its matching item comes with it */
+  wearHat(id: string) {
+    const gifts = HAT_GIFTS[id]; if (!gifts) return;
+    const got = (this.stats.hatGifts ??= []);
+    const item = outfitItem(id);
+    if (item?.perk) this.ui.toast(`${item.icon} ${t2(item.name)}: ${t2(item.perk)}`, 4000);
+    if (got.includes(id)) return;
+    got.push(id);
+    const at = new THREE.Vector3(this.player.pos.x, this.player.visY + 2, this.player.pos.z);
+    for (const [i, n] of gifts) { this.inv.add(i, n); this.collectFx(i, n, at); }
+    SFX.quest(); this.ui.confetti(30);
+    this.saveSoon();
+  }
+  /** wearing a hat with that id? */
+  hasHat(id: string) { return this.settings.outfit?.hat === id; }
+  /** on top of a tree for the first time: fruit, and sometimes a bird's nest to leave alone */
+  private checkTreetop() {
+    const p = this.player.pos, w = this.world;
+    let below = w.get(Math.floor(p.x), Math.floor(p.y - 0.2), Math.floor(p.z));
+    const leafTo: Record<number, [number, number][]> = { [B.OAK_LEAVES]: [[I.APPLE, 2]], [B.PALM_LEAVES]: [[I.DATES, 3]], [B.PINE_LEAVES]: [[I.STICK, 3], [B.PINE_SAPLING, 1]] };
+    // standing on the very top of a trunk with leaves around counts too
+    const LOG_TO_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PALM_LOG]: B.PALM_LEAVES, [B.PINE_LOG]: B.PINE_LEAVES };
+    if (LOG_TO_LEAF[below]) {
+      const leaf = LOG_TO_LEAF[below], y = Math.floor(p.y - 0.2);
+      let leafy = false;
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const dy of [0, 1]) if (w.get(Math.floor(p.x) + dx, y + dy, Math.floor(p.z) + dz) === leaf) leafy = true;
+      if (leafy && w.get(Math.floor(p.x), y - 3, Math.floor(p.z)) === below) below = leaf;
+    }
+    const gifts = leafTo[below]; if (!gifts) return;
+    const key = Math.floor(p.x / 4) + ',' + Math.floor(p.z / 4);
+    const tops = (this.stats.treetops ??= []);
+    if (tops.includes(key)) return;
+    tops.push(key); if (tops.length > 300) tops.shift();
+    this.give(gifts, new THREE.Vector3(p.x, p.y + 0.8, p.z));
+    this.addXp('climbing', 3); this.kid.reward('plant');
+    SFX.quest(); this.anim.play('celebrate', 1.2);
+    if (Math.random() < 0.3) this.ui.say(tr('Ssst… ada sarang burung! Rasulullah ﷺ mengajarkan kita tidak mengambil anak burung dari induknya. Kita lihat saja ya 🐦', 'Shh… a bird’s nest! The Prophet ﷺ taught us not to take baby birds from their mother. We’ll just look 🐦'), 'idea', 7000);
+    else this.ui.say(tr('Kamu sampai di puncak pohon! Ada buah segar 🍎', 'You reached the treetop! Fresh fruit 🍎'), 'ok');
+    this.checkQuests(); this.saveSoon();
+  }
   /** The whole save as a file a parent can keep. */
   async exportSave(): Promise<string> {
     await this.save();
@@ -588,6 +774,15 @@ export class Game {
     this.ui.underwater(under);
     const sc = this.schedule;
     Object.assign(this.ents.clock, { hour: this.hour, isha: sc.isha, fajr: sc.fajr, night: this.sky.night });
+    this.attackCd -= dt;
+    if (this.player && (this.player.onGround || this.player.climbing) && this.player.pos.y > 30) this.checkTreetop(); // every frame: kids keep walking and step off the top
+    if (this.uniforms.uLamp) this.uniforms.uLamp.value += ((this.hasHat('hat_miner') ? 1 : 0) - this.uniforms.uLamp.value) * Math.min(1, dt * 4);
+    if (this.bugs) {
+      const q = this.player.pos, col = this.gen.column(Math.floor(q.x), Math.floor(q.z));
+      const top = this.world.heightAt(Math.floor(q.x), Math.floor(q.z));
+      this.bugs.update(this.paused ? 0 : dt, t, q, { night: this.sky.night || (this.hour > this.schedule.maghrib - 0.6 && this.hour < this.schedule.maghrib + 2), forest: col.biome === Biome.FOREST, active: this.settings.beetles !== false && !this.prayingTogether, underground: q.y < top - 4 });
+    }
+    if (this.fishing?.busy) this.fishTick(dt, t);
     if (this.ambient) {
       this.ambient.enabled = !this.settings.lowGfx;
       const q = this.player.pos, top = this.world.chunkAt(q.x, q.z)?.hm?.[(((Math.floor(q.z) % 16) + 16) % 16) * 16 + (((Math.floor(q.x) % 16) + 16) % 16)] ?? 0;
@@ -667,17 +862,22 @@ export class Game {
       const hit = this.world.raycast(eye, dir, reach);
       const ent = this.ents.raycast(eye, dir, reach - 1, sx !== undefined ? 0.45 : 0.15);
       const entCloser = !!ent && (!hit || eye.distanceTo(ent.pos) < hit.dist + 0.6);
+      const bh = this.bugs.raycast(eye, dir, reach, sx !== undefined ? 0.4 : 0.2);
+      const bugCloser = !!bh && (!hit || bh.dist < hit.dist + 0.3);
       const dh = this.deco.raycast(eye, dir, reach);
       const decoCloser = !!dh && (!hit || dh.dist < hit.dist + 0.05) && !(entCloser && ent && eye.distanceTo(ent.pos) < dh.dist);
-      return { hit, ent, entCloser: entCloser && !decoCloser, decoHit: decoCloser ? dh : null };
+      return { hit, ent, entCloser: entCloser && !decoCloser && !bugCloser, decoHit: decoCloser && !bugCloser ? dh : null, bugHit: bugCloser ? bh!.bug : null };
     };
     const ptr = inp.pointer;
     const A = ptr ? aim(ptr.x, ptr.y) : aim();
-    const { hit, ent, entCloser, decoHit } = A;
+    const { hit, ent, entCloser, decoHit, bugHit } = A;
     this.aimDeco = decoHit;
     this.deco.select(decoHit?.d ?? null);
     this.updatePlacementPreview(hit, entCloser || !!decoHit);
-    if (decoHit) {
+    if (bugHit) {
+      this.highlight.visible = false;
+      this.ui.target(tr('Kumbang nakal 🐞 · ketuk supaya pulang', 'Naughty beetle 🐞 · tap to shoo it home'));
+    } else if (decoHit) {
       this.highlight.visible = false;
       this.ui.target(t2(nameOf(decoHit.d.id)) + tr(' · ketuk = putar, tahan = ambil', ' · tap = turn, hold = pick up'));
     } else if (hit && !entCloser) {
@@ -691,20 +891,25 @@ export class Game {
 
     // mining (hold the button / mouse, or hold a finger on a block)
     const mining = inp.mineHeld || inp.pointerMine;
-    if (mining && decoHit) { inp.mineHeld = false; inp.pointerMine = false; this.pickUpDeco(decoHit.d); }
+    if (mining && bugHit) this.attackBug(bugHit);
+    else if (mining && decoHit) { inp.mineHeld = false; inp.pointerMine = false; this.pickUpDeco(decoHit.d); }
     else if (mining && hit && !entCloser) this.mineStep(dt, hit);
     else { this.mining = null; this.ui.mineRing(0); this.crack.visible = false; }
     // a left click / tap-and-hold on a friend greets them (kids rarely find the right button)
     if (mining && entCloser && (ent instanceof Animal || ent instanceof Companion || ent instanceof Npc)) { inp.mineHeld = false; inp.pointerMine = false; this.useEntity(ent); }
     // use / place (button, right click, or a quick tap on the world)
     if (inp.takeUse()) {
-      if (decoHit && !isDeco(this.inv.held()?.id ?? -1)) this.turnDeco(decoHit.d);
+      if (this.inv.held()?.id === I.FISHING_ROD) this.fishAction();
+      else if (bugHit) this.attackBug(bugHit);
+      else if (decoHit && !isDeco(this.inv.held()?.id ?? -1)) this.turnDeco(decoHit.d);
       else if (entCloser && ent) this.useEntity(ent);
       else this.useBlock(hit);
     }
     if (inp.tapAt) {
       const T = aim(inp.tapAt.x, inp.tapAt.y); inp.tapAt = null;
-      if (T.decoHit && !isDeco(this.inv.held()?.id ?? -1)) this.turnDeco(T.decoHit.d);
+      if (this.inv.held()?.id === I.FISHING_ROD) this.fishAction();
+      else if (T.bugHit) this.attackBug(T.bugHit);
+      else if (T.decoHit && !isDeco(this.inv.held()?.id ?? -1)) this.turnDeco(T.decoHit.d);
       else if (T.entCloser && T.ent) this.useEntity(T.ent);
       else if (T.hit) this.useBlock(T.hit);
     }
@@ -771,7 +976,7 @@ export class Game {
         this.mining = { key, t: 0, need: Infinity };
         return;
       }
-      const need = this.inv.creative ? 0.18 : Math.max(0.12, def.hardness * 0.55 / tool.speed);
+      const need = this.inv.creative ? 0.18 : Math.max(0.12, def.hardness * 0.55 / tool.speed / (this.hasHat('hat_miner') ? 1.35 : 1));
       this.mining = { key, t: 0, need };
     }
     if (this.mining.need === Infinity) return;
@@ -1114,6 +1319,10 @@ export class Game {
         face, img: !!portrait, who: n.name,
         text: tr('Assalamu’alaikum, Nak! Ibu sedang menyiapkan takjil untuk tetangga. Rasulullah SAW suka berbuka dengan <b>kurma</b>. Resep takjil: <b>3 kurma + 1 susu</b>. Kurma ada di pohon kurma, susu dari sapi atau unta yang disayang. Kalau mau berbagi, bawa makanan ke sini ya! 🍽️',
           'Assalamu’alaikum, dear! I’m preparing iftar snacks for the neighbours. The Prophet (peace be upon him) liked to break his fast with <b>dates</b>. Recipe: <b>3 dates + 1 milk</b>. Dates grow on date palms, and cows or camels share milk when you’re kind. If you’d like to share, bring some food here! 🍽️'),
+        buttons: [
+          ...(this.inv.count(I.DATES) >= 3 ? [{ label: tr('🥩 Tukar 3 kurma dengan daging halal', '🥩 Trade 3 dates for halal meat'), cls: 'gold', fn: () => { this.inv.remove(I.DATES, 3); this.inv.add(I.MEAT, 1); this.collectFx(I.MEAT, 1, n.pos.clone().setY(n.pos.y + 1.2)); SFX.pickup(); this.ui.toast(tr('🥩 Daging halal untukmu. Masak di tungku ya!', '🥩 Halal meat for you. Cook it at a furnace!')); } }] : []),
+          { label: tr('Terima kasih, Bu', 'Thank you') },
+        ],
       });
     } else {
       const np = this.nextGamePrayer();
@@ -1324,7 +1533,7 @@ export class Game {
     this.stats.minY = Math.min(this.stats.minY, Math.floor(p.y));
     // saplings grow
     for (const s of [...this.saplings]) {
-      s.t += 1;
+      s.t += this.hasHat('hat_straw') ? 2 : 1; // the straw hat helps saplings grow twice as fast
       if (s.t > 100 && this.world.isLoaded(s.x, s.z) && this.world.get(s.x, s.y, s.z) === s.id) { this.growTree(s); this.saplings.splice(this.saplings.indexOf(s), 1); }
     }
     this.checkQuests();
@@ -1423,7 +1632,7 @@ export class Game {
     else { this.anim.stop('mine'); this.anim.stop('chop'); }
     const inp = this.animIn;
     inp.speed = p.speed; inp.grounded = p.onGround; inp.vy = p.vel.y;
-    inp.swimming = p.inWater && !p.onGround; inp.flying = p.flying; inp.riding = riding;
+    inp.swimming = p.inWater && !p.onGround; inp.flying = p.flying; inp.riding = riding; inp.climbing = p.climbing;
     const pose = this.anim.update(dt, t, inp);
     pose.headX += -p.pitch * 0.5;
     applyPose(a, pose);

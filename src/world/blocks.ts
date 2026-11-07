@@ -22,9 +22,12 @@ export enum I {
   DATES = 214, MILK = 215, EGG = 216, APPLE = 217, TAKJIL = 218, KOLAK = 219, BOAT = 220,
   // furniture & decorations (placed as objects, see game/deco.ts)
   PRAYER_MAT = 230, TABLE = 231, CHAIR = 232, CUSHION = 233, PLANT_POT = 234, LAMP = 235, DATES_BOWL = 236, KETUPAT = 237, RUG = 238, BOOK_STAND = 239, CRESCENT = 240,
+  // toy swords (for shooing naughty beetles), fishing and cooking
+  WOOD_SWORD = 241, STONE_SWORD = 242, IRON_SWORD = 243, FISHING_ROD = 244,
+  SMALL_FISH = 245, BIG_FISH = 246, GOLDEN_FISH = 247, MEAT = 248, GRILLED_FISH = 249, FRIED_EGG = 250, STEAK = 251,
 }
 
-export type ToolKind = 'pick' | 'axe' | 'shovel';
+export type ToolKind = 'pick' | 'axe' | 'shovel' | 'sword';
 export type Render = 'cube' | 'cross' | 'water' | 'none';
 
 export interface BlockDef {
@@ -169,6 +172,17 @@ item(I.KETUPAT, ['Hiasan Ketupat', 'Ketupat Decoration'], 'i_ketupat', { stack: 
 item(I.RUG, ['Karpet', 'Rug'], 'i_rug', { stack: 16, deco: true });
 item(I.BOOK_STAND, ['Rehal (Tempat Buku)', 'Book Stand'], 'i_book_stand', { stack: 16, deco: true });
 item(I.CRESCENT, ['Hiasan Bulan Sabit', 'Crescent Decoration'], 'i_crescent', { stack: 16, deco: true });
+item(I.WOOD_SWORD, ['Pedang Kayu Mainan', 'Toy Wooden Sword'], 'i_sword_wood', { tool: { kind: 'sword', tier: 1, speed: 1 }, stack: 1 });
+item(I.STONE_SWORD, ['Pedang Batu Mainan', 'Toy Stone Sword'], 'i_sword_stone', { tool: { kind: 'sword', tier: 2, speed: 1 }, stack: 1 });
+item(I.IRON_SWORD, ['Pedang Besi Mainan', 'Toy Iron Sword'], 'i_sword_iron', { tool: { kind: 'sword', tier: 3, speed: 1 }, stack: 1 });
+item(I.FISHING_ROD, ['Pancingan', 'Fishing Rod'], 'i_rod', { stack: 1 });
+item(I.SMALL_FISH, ['Ikan Kecil', 'Small Fish'], 'i_fish_small');
+item(I.BIG_FISH, ['Ikan Besar', 'Big Fish'], 'i_fish_big');
+item(I.GOLDEN_FISH, ['Ikan Emas', 'Golden Fish'], 'i_fish_gold', { stack: 16 });
+item(I.MEAT, ['Daging Halal', 'Halal Meat'], 'i_meat');
+item(I.GRILLED_FISH, ['Ikan Bakar', 'Grilled Fish'], 'i_fish_grilled', { food: true });
+item(I.FRIED_EGG, ['Telur Ceplok', 'Fried Egg'], 'i_egg_fried', { food: true });
+item(I.STEAK, ['Steak', 'Steak'], 'i_steak', { food: true });
 
 // ---- hijaiyah letters ---------------------------------------------------
 export interface Letter { g: string; ar: string; name: string; lat: string; }

@@ -41,9 +41,9 @@ describe('locomotion states', () => {
     run(a, 0.3, { speed: 2, grounded: false, vy: 0, flying: true }); expect(a.loco).toBe('fly');
   });
   it('every state produces finite joint values', () => {
-    expect(LOCO_STATES.length).toBe(9);
+    expect(LOCO_STATES.length).toBe(10);
     const a = new Animator(1);
-    const inputs: AnimInput[] = [ground(0), ground(3), ground(7), { speed: 0, grounded: false, vy: 5 }, { speed: 0, grounded: false, vy: -9 }, { speed: 1, grounded: false, vy: 0, swimming: true }, { speed: 1, grounded: true, vy: 0, riding: true }, { speed: 1, grounded: false, vy: 0, flying: true }];
+    const inputs: AnimInput[] = [ground(0), ground(3), ground(7), { speed: 0, grounded: false, vy: 5 }, { speed: 0, grounded: false, vy: -9 }, { speed: 1, grounded: false, vy: 0, swimming: true }, { speed: 1, grounded: true, vy: 0, riding: true }, { speed: 1, grounded: false, vy: 0, flying: true }, { speed: 1, grounded: false, vy: 3, climbing: true }];
     for (const inp of inputs) { run(a, 0.4, inp); for (const k of KEYS) expect(Number.isFinite(a.pose[k]), `${a.loco}.${k}`).toBe(true); }
   });
 });

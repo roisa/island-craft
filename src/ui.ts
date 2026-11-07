@@ -5,14 +5,16 @@ import type { Game } from './main';
 import { tr, t2, getLang, setLang } from './i18n';
 import { iconURL } from './world/atlas';
 import { B, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
-import { RECIPES, canCraft, STATION_NAME, creativeCatalog } from './game/inventory';
+import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from './game/inventory';
+import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId } from './game/prayer';
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark } from './world/landmarks';
 import { levelOf, starsFor } from './game/kid';
-import { BLUEPRINTS, blueprintCost, OUTFITS, type Blueprint } from './game/fun';
+import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
+import { guessLook, toCss, type Look } from './game/photo';
 import type { T2 } from './i18n';
 import { ic, tile, COLORS as C } from './icons';
 import { arImg } from './arabic';
@@ -359,6 +361,105 @@ export class UI {
     const s = this.g.inv.slots[i];
     return `<button class="slot ${i === this.pickSlot ? 'pick' : ''} ${i === this.g.inv.sel ? 'sel' : ''}" data-i="${i}">${s ? `<img src="${iconURL(s.id)}" alt=""><b>${this.g.inv.creative ? '' : s.n > 1 ? s.n : ''}</b>` : ''}</button>`;
   }
+  /**
+   * Make my look from a photo: pick a picture (or take one), the game guesses
+   * hair, skin, shirt and trouser colours, and you can fix any of them by
+   * tapping a colour, then tapping the photo. The photo stays on this device
+   * and is not saved — only the four colours are.
+   */
+  photoLook() {
+    const g = this.g;
+    let look: Look | null = g.settings.look ? { ...g.settings.look } : null;
+    let pick: keyof Look = 'shirt';
+    const names: Record<keyof Look, [string, string]> = { hair: ['Rambut', 'Hair'], skin: ['Kulit', 'Skin'], shirt: ['Baju', 'Shirt'], pants: ['Celana', 'Trousers'] };
+    const { el, close } = this.modal(`<div class="photoLook"><h2>📷 ${tr('Tampilanku dari foto', 'My look from a photo')}</h2>
+      <p class="plNote">🔒 ${tr('Fotonya tidak dikirim dan tidak disimpan. Hanya warnanya yang dipakai.', 'The photo is not sent anywhere and not saved. Only its colours are used.')}</p>
+      <div class="plRow"><canvas id="plC" width="160" height="200"></canvas><div class="plSw">${(Object.keys(names) as (keyof Look)[]).map(k => `<button class="sw" data-k="${k}"><i></i>${tr(names[k][0], names[k][1])}</button>`).join('')}<small>${tr('Ketuk warna, lalu ketuk fotonya untuk mengganti.', 'Tap a colour, then tap the photo to change it.')}</small></div></div>
+      <input type="file" id="plFile" accept="image/*" hidden>
+      <div class="row"><button class="btn ghost" id="plPick">🖼️ ${tr('Pilih foto', 'Choose a photo')}</button><button class="btn gold" id="plUse" disabled>✨ ${tr('Pakai tampilan ini', 'Use this look')}</button></div>
+      <button class="btn small ghost" id="plX">${tr('Batal', 'Cancel')}</button></div>`);
+    const c = $<HTMLCanvasElement>('#plC', el), x = c.getContext('2d', { willReadFrequently: true })!;
+    x.fillStyle = '#eef3f8'; x.fillRect(0, 0, c.width, c.height); x.fillStyle = '#9aa6b2'; x.font = '700 14px Nunito, sans-serif'; x.textAlign = 'center'; x.fillText('📷', 80, 96); x.fillText(tr('belum ada foto', 'no photo yet'), 80, 120);
+    const paint = () => {
+      el.querySelectorAll<HTMLElement>('.sw').forEach(b => { const k = b.dataset.k as keyof Look; (b.querySelector('i') as HTMLElement).style.background = look ? toCss(look[k]) : '#ddd'; b.classList.toggle('on', k === pick); });
+      $<HTMLButtonElement>('#plUse', el).disabled = !look;
+    };
+    paint();
+    el.querySelectorAll<HTMLElement>('.sw').forEach(b => (b.onclick = () => { pick = b.dataset.k as keyof Look; SFX.click(); paint(); }));
+    const file = $<HTMLInputElement>('#plFile', el);
+    $('#plPick', el).onclick = () => file.click();
+    file.onchange = () => {
+      const f = file.files?.[0]; if (!f) return;
+      const img = new Image(), url = URL.createObjectURL(f);
+      img.onload = () => {
+        // fit the photo into the little canvas, then read its colours
+        const s = Math.min(c.width / img.width, c.height / img.height), w = img.width * s, h = img.height * s;
+        x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height);
+        x.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
+        URL.revokeObjectURL(url);
+        const d = x.getImageData((c.width - w) / 2, (c.height - h) / 2, Math.max(1, Math.floor(w)), Math.max(1, Math.floor(h)));
+        look = guessLook(d.data, d.width, d.height);
+        SFX.pickup(); paint();
+      };
+      img.src = url;
+    };
+    c.onclick = e => {
+      if (!look) return;
+      const r = c.getBoundingClientRect(), px = x.getImageData(Math.floor((e.clientX - r.left) / r.width * c.width), Math.floor((e.clientY - r.top) / r.height * c.height), 1, 1).data;
+      look[pick] = (px[0] << 16) | (px[1] << 8) | px[2]; SFX.click(); paint();
+    };
+    $('#plUse', el).onclick = () => { if (!look) return; g.settings.look = look; g.buildAvatar(); g.saveSoon(); SFX.quest(); close(); this.toast(tr('✨ Tampilan baru dipakai!', '✨ Your new look is on!')); if ($('#vBook').classList.contains('on')) this.renderBook(); };
+    $('#plX', el).onclick = () => close();
+  }
+  /** one skill: icon, name, level and a bar to the next level */
+  private skillRow(sk: Skill) {
+    const xp = this.g.skillXp(sk), lv = skillLevel(xp), left = toNext(xp);
+    const info: Record<Skill, [string, string, string, string, string]> = {
+      sword: ['⚔️', 'Pedang', 'Sword', 'Usir kumbang nakal', 'Shoo naughty beetles'],
+      fishing: ['🎣', 'Memancing', 'Fishing', 'Pancing ikan di air', 'Catch fish in water'],
+      cooking: ['🍳', 'Memasak', 'Cooking', 'Masak di tungku', 'Cook at a furnace'],
+      climbing: ['🌳', 'Memanjat', 'Climbing', 'Panjat ke puncak pohon', 'Climb to treetops'],
+    };
+    const [icon, id, en, hid, hen] = info[sk];
+    const frac = lv >= MAX_LEVEL ? 1 : 1 - left / Math.max(1, left + (xp - [0, 8, 24, 50, 90][lv - 1]));
+    return `<div class="skill"><span class="si">${icon}</span><div><b>${tr(id, en)} <small>Lv ${lv}${lv >= MAX_LEVEL ? ' ⭐' : ''}</small></b><div class="sbar"><i style="width:${Math.round(frac * 100)}%"></i></div><small>${lv >= MAX_LEVEL ? tr('Level tertinggi!', 'Top level!') : tr(hid, hen)}</small></div></div>`;
+  }
+  /**
+   * Cooking game: a marker slides along a bar; tap when it's in the green
+   * zone. Three rounds. The food is always made — a perfect cook makes one more.
+   */
+  cookGame(r: Recipe, done: (q: 'perfect' | 'good' | 'crispy') => void) {
+    const g = this.g, zone = cookZone(g.skillLv('cooking'), g.hasHat('hat_chef'));
+    const ROUNDS = 3; let round = 0, hits = 0, t0 = performance.now(), centre = 0.3 + Math.random() * 0.4, raf = 0, finished = false;
+    const name = t2(nameOf(r.out));
+    const { el, close } = this.modal(`<div class="cook"><h2>🍳 ${tr('Memasak', 'Cooking')}: ${esc(name)}</h2>
+      <div class="cookPan"><img src="${iconURL(r.ins[0][0])}" alt="" id="ckFood"></div>
+      <p id="ckTip">${tr('Ketuk <b>Balik!</b> saat penanda ada di zona hijau', 'Tap <b>Flip!</b> when the marker is in the green zone')}</p>
+      <div class="cookBar"><span class="zone" id="ckZone"></span><span class="mark" id="ckMark"></span></div>
+      <div class="cookDots">${Array.from({ length: ROUNDS }, (_, i) => `<i data-r="${i}"></i>`).join('')}</div>
+      <div class="row"><button class="btn gold big" id="ckGo">🍳 ${tr('Balik!', 'Flip!')}</button></div></div>`, () => cancelAnimationFrame(raf), { onShow: () => { SFX.breakMat('sand'); } });
+    const zoneEl = $('#ckZone', el), mark = $('#ckMark', el), go = $<HTMLButtonElement>('#ckGo', el), tip = $('#ckTip', el), food = $<HTMLImageElement>('#ckFood', el);
+    const place = () => { zoneEl.style.left = ((centre - zone / 2) * 100) + '%'; zoneEl.style.width = (zone * 100) + '%'; };
+    place();
+    const tick = () => { const m = markerAt((performance.now() - t0) / 1000, round); mark.style.left = (m * 100) + '%'; raf = requestAnimationFrame(tick); };
+    tick();
+    go.onclick = () => {
+      if (finished) { close(); done(cookQuality(hits, ROUNDS)); return; }
+      const m = markerAt((performance.now() - t0) / 1000, round);
+      const ok = Math.abs(m - centre) <= zone / 2;
+      if (ok) { hits++; SFX.breakMat('sand'); SFX.pop(round + 2); } else SFX.error();
+      el.querySelector<HTMLElement>(`[data-r="${round}"]`)!.className = ok ? 'ok' : 'no';
+      food.classList.remove('flip'); void food.offsetWidth; food.classList.add('flip');
+      round++;
+      if (round < ROUNDS) { centre = 0.25 + Math.random() * 0.5; place(); t0 = performance.now(); tip.innerHTML = ok ? tr('Pas sekali! 👍 Lagi…', 'Just right! 👍 Again…') : tr('Hampir! Coba lagi…', 'Almost! Try again…'); return; }
+      finished = true; cancelAnimationFrame(raf);
+      const q = cookQuality(hits, ROUNDS);
+      food.src = iconURL(r.out);
+      tip.innerHTML = q === 'perfect' ? tr(`⭐ Sempurna! Kamu dapat <b>${name}</b> tambahan!`, `⭐ Perfect! You get an extra <b>${esc(name)}</b>!`) : q === 'good' ? tr(`😋 Enak! <b>${esc(name)}</b> sudah matang.`, `😋 Yummy! Your <b>${esc(name)}</b> is ready.`) : tr(`🔥 Agak gosong, tapi tetap enak! Latihan lagi ya.`, `🔥 A bit crispy, but still tasty! Keep practising.`);
+      go.innerHTML = tr('Bismillah, ambil! 😋', 'Bismillah, take it! 😋');
+      if (q === 'perfect') { SFX.fanfare(); this.confetti(40); } else SFX.quest();
+    };
+  }
   private bag(body: HTMLElement) {
     const g = this.g, inv = g.inv;
     const st = g.stations();
@@ -368,7 +469,9 @@ export class UI {
       <div class="grid" id="invGrid" style="margin-top:8px">${Array.from({ length: 9 }, (_, i) => this.slotHTML(i)).join('')}</div>
       <div class="grid" style="margin-top:6px">${Array.from({ length: 27 }, (_, i) => this.slotHTML(i + 9)).join('')}</div>
       ${inv.creative ? `<h3>${tr('🧱 Semua balok (Mode Kreatif)', '🧱 All blocks (Creative)')}</h3><p>${tr('Ketuk untuk menaruh di kotak hotbar yang dipilih.', 'Tap to put it in the selected hotbar slot.')}</p><div class="grid" id="cat">${creativeCatalog().map(id => `<button class="slot" data-c="${id}"><img src="${iconURL(id)}" alt="" title="${esc(t2(nameOf(id)))}"></button>`).join('')}</div>` : ''}
-      <button class="btn small" id="toCraft">${ic('hammer')} ${tr('Buat barang', 'Craft things')}</button>`;
+      <button class="btn small" id="toCraft">${ic('hammer')} ${tr('Buat barang', 'Craft things')}</button>
+      <h3>🏅 ${tr('Keahlianku', 'My skills')}</h3>
+      <div class="skills">${SKILLS.map(sk => this.skillRow(sk)).join('')}</div>`;
     body.querySelectorAll<HTMLElement>('[data-i]').forEach(b => (b.onclick = () => {
       const i = +b.dataset.i!;
       if (this.pickSlot < 0) { this.pickSlot = i; if (i < 9) inv.sel = i; }
@@ -412,15 +515,23 @@ export class UI {
   private wardrobeTab(body: HTMLElement) {
     const g = this.g, girl = g.settings.avatar === 'girl';
     const o = g.settings.outfit!;
-    const slots: [string, string][] = [[girl ? 'hijab' : 'hat', girl ? tr('🧕 Hijab', '🧕 Hijab') : tr('🧢 Topi', '🧢 Hats')], ['shirt', tr('👕 Baju', '👕 Shirts')], ['cape', tr('🦸 Jubah', '🦸 Capes')]];
-    body.innerHTML = `<p>${tr('Naik level untuk membuka baju baru! ⭐', 'Level up to unlock new outfits! ⭐')}</p>` + slots.map(([slot, label]) => `<h3>${label}</h3><div class="wardrobe">${OUTFITS.filter(i => i.slot === slot).map(i => {
+    // girls wear a hijab, and can put a hat with a power on top of it
+    const slots: [string, string, (i: typeof OUTFITS[number]) => boolean][] = girl
+      ? [['hijab', tr('🧕 Hijab', '🧕 Hijab'), i => i.slot === 'hijab'], ['hat', tr('🎩 Topi ajaib', '🎩 Power hats'), i => i.slot === 'hat' && (PERK_HATS.has(i.id) || i.id === 'none')], ['shirt', tr('👕 Baju', '👕 Shirts'), i => i.slot === 'shirt'], ['cape', tr('🦸 Jubah', '🦸 Capes'), i => i.slot === 'cape']]
+      : [['hat', tr('🧢 Topi (yang ✨ punya kekuatan)', '🧢 Hats (✨ ones have powers)'), i => i.slot === 'hat'], ['shirt', tr('👕 Baju', '👕 Shirts'), i => i.slot === 'shirt'], ['cape', tr('🦸 Jubah', '🦸 Capes'), i => i.slot === 'cape']];
+    body.innerHTML = `<p>${tr('Naik level untuk membuka baju baru! ⭐', 'Level up to unlock new outfits! ⭐')}</p>
+      <button class="btn small gold" id="wdPhoto">📷 ${tr('Buat tampilanku dari foto', 'Make my look from a photo')}</button>${g.settings.look ? ` <button class="btn small ghost" id="wdPhotoOff">${tr('Kembali ke warna biasa', 'Back to normal colours')}</button>` : ''}`
+      + slots.map(([slot, label, f]) => `<h3>${label}</h3><div class="wardrobe">${OUTFITS.filter(f).map(i => {
       const on = (o as any)[slot] === i.id, open = g.fun.unlocked(i);
-      return `<button class="wd ${on ? 'on' : ''} ${open ? '' : 'locked'}" data-id="${i.id}" data-slot="${slot}"><span class="e">${open ? i.icon : '🔒'}</span><span>${esc(t2(i.name))}</span>${open ? '' : `<small>Level ${i.level}</small>`}</button>`;
+      return `<button class="wd ${on ? 'on' : ''} ${open ? '' : 'locked'} ${i.perk ? 'perk' : ''}" data-id="${i.id}" data-slot="${slot}"><span class="e">${open ? i.icon : '🔒'}</span><span>${esc(t2(i.name))}</span>${open ? (i.perk ? `<small class="perkTxt">✨ ${esc(t2(i.perk))}</small>` : '') : `<small>Level ${i.level}</small>`}</button>`;
     }).join('')}</div>`).join('');
+    $('#wdPhoto', body).onclick = () => this.photoLook();
+    const off = body.querySelector<HTMLElement>('#wdPhotoOff'); if (off) off.onclick = () => { delete g.settings.look; g.buildAvatar(); g.saveSoon(); this.renderBook(); };
     body.querySelectorAll<HTMLElement>('.wd').forEach(b => (b.onclick = () => {
       const item = OUTFITS.find(i => i.id === b.dataset.id)!;
       if (!g.fun.unlocked(item)) { SFX.error(); this.toast(tr(`Terbuka di Level ${item.level} ⭐`, `Unlocks at level ${item.level} ⭐`)); return; }
       (o as any)[b.dataset.slot!] = item.id; SFX.pickup(); g.buildAvatar(); g.saveSoon(); this.renderBook();
+      if (item.slot === 'hat') g.wearHat(item.id);
     }));
   }
 
@@ -651,6 +762,7 @@ export class UI {
       <div class="set"><span>${tile('shield', C.green)}${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
       <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
+      <div class="set"><span>${tile('leaf', C.green)}${tr('Kumbang nakal saat senja (tidak bisa melukai)', 'Naughty beetles at dusk (can’t hurt)')}</span><button class="toggle ${s.beetles !== false ? 'on' : ''}" id="pBug"></button></div>
       <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
       <h3>💾 ${tr('Simpanan', 'Saved game')}</h3>
       <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
@@ -661,6 +773,7 @@ export class UI {
       <button class="btn small" id="pOk">${tr('Selesai', 'Done')}</button>`);
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
+    $('#pBug', el).onclick = e => { s.beetles = s.beetles === false; (e.currentTarget as HTMLElement).classList.toggle('on', s.beetles !== false); g.saveSoon(); };
     $<HTMLSelectElement>('#pLim', el).onchange = e => { s.playLimit = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $<HTMLSelectElement>('#pWater', el).onchange = e => { s.water = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();

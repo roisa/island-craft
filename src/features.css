@@ -1,0 +1,38 @@
+/* skills in the bag */
+.skills { display: grid; gap: 8px; margin-top: 6px; }
+.skill { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(120,120,128,.08); }
+.skill .si { font-size: 26px; width: 34px; text-align: center; }
+.skill > div { flex: 1; min-width: 0; }
+.skill b { display: block; font-size: 14px; font-weight: 900; }
+.skill b small { font-weight: 800; color: var(--gold-d); margin-left: 4px; }
+.skill > div > small { display: block; font-size: 12px; color: var(--ink-dim); }
+.sbar { height: 8px; border-radius: 99px; background: #e7e2d4; overflow: hidden; margin: 4px 0 2px; }
+.sbar i { display: block; height: 100%; background: linear-gradient(90deg, #7fd36e, #34c759); border-radius: 99px; }
+/* cooking game */
+.cook { text-align: center; }
+.cookPan { width: 120px; height: 84px; margin: 4px auto 6px; border-radius: 0 0 60px 60px; background: radial-gradient(circle at 50% 30%, #4b4f57, #23262b); display: grid; place-items: center; box-shadow: inset 0 6px 0 #5e636c; }
+.cookPan img { width: 52px; height: 52px; image-rendering: pixelated; }
+.cookPan img.flip { animation: flip .35s ease-out; }
+@keyframes flip { 0% { transform: translateY(0) rotateX(0); } 50% { transform: translateY(-26px) rotateX(180deg); } 100% { transform: translateY(0) rotateX(360deg); } }
+.cookBar { position: relative; height: 28px; border-radius: 99px; background: linear-gradient(90deg, #ffd9a8, #ffb36b 50%, #ff8a5c); margin: 8px 6px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,.15); }
+.cookBar .zone { position: absolute; top: 0; bottom: 0; background: rgba(52,199,89,.85); border-left: 3px solid #1f9a45; border-right: 3px solid #1f9a45; }
+.cookBar .mark { position: absolute; top: -4px; bottom: -4px; width: 8px; margin-left: -4px; border-radius: 4px; background: #1d2b22; box-shadow: 0 0 0 2px #fff; }
+.cookDots { display: flex; gap: 8px; justify-content: center; margin: 6px 0 4px; }
+.cookDots i { width: 16px; height: 16px; border-radius: 50%; background: #e2dccb; }
+.cookDots i.ok { background: #34c759; } .cookDots i.no { background: #ff9f0a; }
+.cook .btn.big { font-size: 20px; min-height: 56px; }
+/* wardrobe: hats with powers */
+.wd.perk { border-color: #f2c43a; }
+.wd small.perkTxt { display: block; font-size: 10.5px; line-height: 1.2; color: #8a6400; margin-top: 2px; }
+/* my look from a photo */
+.photoLook { text-align: center; }
+.plNote { font-size: 12.5px; background: #eef7ff; border-radius: 12px; padding: 6px 10px; }
+.plRow { display: flex; gap: 12px; justify-content: center; align-items: flex-start; margin: 8px 0; }
+.plRow canvas { width: 160px; height: 200px; border-radius: 14px; background: #eef3f8; cursor: crosshair; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.plSw { display: grid; gap: 6px; text-align: left; max-width: 170px; }
+.plSw .sw { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px 4px 4px; border-radius: 12px; border: 2px solid transparent; background: rgba(120,120,128,.1); font: 800 14px Nunito, sans-serif; color: inherit; }
+.plSw .sw.on { border-color: var(--gold); background: #fff6d6; }
+.plSw .sw i { width: 30px; height: 30px; border-radius: 9px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.12); }
+.plSw small { font-size: 11.5px; color: var(--ink-dim); }
+@media (max-width: 420px) { .plRow { flex-direction: column; align-items: center; } .plSw { max-width: none; grid-template-columns: 1fr 1fr; } }
+.wd small.perkTxt { background: none !important; box-shadow: none !important; padding: 0 2px !important; position: static !important; color: #8a6400 !important; font-weight: 800; text-align: center; }

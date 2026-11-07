@@ -14,13 +14,22 @@ import type { AnimalKind } from './models';
 
 // ======================= outfits =======================
 export type OutfitSlot = 'hat' | 'hijab' | 'cape' | 'shirt';
-export interface OutfitItem { id: string; slot: OutfitSlot; name: T2; icon: string; level: number; color?: number }
+export interface OutfitItem { id: string; slot: OutfitSlot; name: T2; icon: string; level: number; color?: number; perk?: T2 }
+/** hats with a power: anyone can wear them, even over a hijab */
+export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'explorer']);
+/** the matching item you get the first time you put one on */
+export const HAT_GIFTS: Record<string, [number, number][]> = { hat_straw: [[B.SAPLING, 3]], hat_fisher: [[I.FISHING_ROD, 1]], hat_miner: [[B.TORCH, 8]], hat_chef: [[I.EGG, 2], [I.MEAT, 1]], explorer: [[I.CRYSTAL, 1]] };
 export const OUTFITS: OutfitItem[] = [
   { id: 'peci', slot: 'hat', name: ['Peci Putih', 'White Peci'], icon: '🧢', level: 1, color: 0xf2f2f2 },
   { id: 'none', slot: 'hat', name: ['Tanpa Topi', 'No Hat'], icon: '🙂', level: 1 },
   { id: 'explorer', slot: 'hat', name: ['Topi Penjelajah', 'Explorer Hat'], icon: '🤠', level: 2 },
   { id: 'peci_gold', slot: 'hat', name: ['Peci Emas', 'Golden Peci'], icon: '👑', level: 3, color: 0xf1c232 },
   { id: 'turban', slot: 'hat', name: ['Sorban Hijau', 'Green Turban'], icon: '🟢', level: 6 },
+  // hats with powers (worn by both Adam and Ais; they sit on top of a hijab)
+  { id: 'hat_straw', slot: 'hat', name: ['Topi Jerami Petani', 'Farmer’s Straw Hat'], icon: '👒', level: 1, perk: ['Bibit tumbuh 2× lebih cepat', 'Saplings grow 2× faster'] },
+  { id: 'hat_fisher', slot: 'hat', name: ['Topi Pemancing', 'Fishing Hat'], icon: '🎣', level: 2, perk: ['Ikan lebih cepat menggigit, ikan emas lebih sering', 'Fish bite sooner, golden fish more often'] },
+  { id: 'hat_miner', slot: 'hat', name: ['Helm Penambang', 'Miner’s Helmet'], icon: '⛑️', level: 3, perk: ['Lampu di kepala & menggali lebih cepat', 'A head lamp & faster digging'] },
+  { id: 'hat_chef', slot: 'hat', name: ['Topi Koki', 'Chef’s Hat'], icon: '👨‍🍳', level: 3, perk: ['Zona hijau memasak lebih lebar', 'A wider green zone when cooking'] },
   { id: 'h_teal', slot: 'hijab', name: ['Hijab Toska', 'Teal Hijab'], icon: '🟦', level: 1, color: 0x2aa198 },
   { id: 'h_pink', slot: 'hijab', name: ['Hijab Merah Muda', 'Pink Hijab'], icon: '🩷', level: 1, color: 0xf48aa3 },
   { id: 'h_purple', slot: 'hijab', name: ['Hijab Ungu', 'Purple Hijab'], icon: '🟪', level: 2, color: 0x9b59b6 },
@@ -43,13 +52,36 @@ export const outfitItem = (id: string) => OUTFITS.find(o => o.id === id);
 
 /** hats & capes added on top of the avatar model */
 export function dressUp(rig: { head: THREE.Object3D; body: THREE.Group; neck?: number }, o: Outfit, girl: boolean, hs: number) {
-  const hat = !girl ? o.hat : 'none';
+  const hat = !girl || PERK_HATS.has(o.hat) ? o.hat : 'none';
   const head = rig.head;
+  if (girl && PERK_HATS.has(hat)) hs += 0.07; // sit on top of the hijab
   if (hat === 'explorer') {
     const brown = mat(0x9a6a3a), band = mat(0x5e3e25);
     const brim = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.36, 0.05, hs + 0.36), brown); brim.position.y = hs + 0.03; head.add(brim);
     const top = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.04, 0.22, hs + 0.04), brown); top.position.y = hs + 0.16; head.add(top);
     const b = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.06, 0.06, hs + 0.06), band); b.position.y = hs + 0.08; head.add(b);
+  } else if (hat === 'hat_straw') {
+    const straw = mat(0xe8c766), band = mat(0xd9483b);
+    const brim = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.5, 0.04, hs + 0.5), straw); brim.position.y = hs + 0.02; head.add(brim);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(hs - 0.02, 0.18, hs - 0.02), straw); top.position.y = hs + 0.12; head.add(top);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(hs, 0.05, hs), band); b.position.y = hs + 0.06; head.add(b);
+  } else if (hat === 'hat_fisher') {
+    const green = mat(0x5f8f4e), dark = mat(0x3e6b33);
+    const brim = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.24, 0.05, hs + 0.24), green); brim.position.y = hs - 0.0; brim.rotation.x = 0.06; head.add(brim);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.04, 0.16, hs + 0.04), green); top.position.y = hs + 0.09; head.add(top);
+    const lure = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), mat(0xf2c43a)); lure.position.set(hs / 2 + 0.03, hs + 0.1, 0.05); head.add(lure);
+    const hook = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.08, 0.02), dark); hook.position.set(hs / 2 + 0.03, hs + 0.04, 0.05); head.add(hook);
+  } else if (hat === 'hat_miner') {
+    const yellow = mat(0xf2c43a), dark = mat(0x5e4a1a);
+    const dome = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.06, 0.2, hs + 0.06), yellow); dome.position.y = hs + 0.1; head.add(dome);
+    const brim = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.12, 0.04, hs + 0.2), yellow); brim.position.set(0, hs + 0.01, 0.03); head.add(brim);
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, hs + 0.08), dark); ridge.position.y = hs + 0.22; head.add(ridge);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.05), new THREE.MeshBasicMaterial({ color: 0xfff3b0 })); lamp.position.set(0, hs + 0.12, hs / 2 + 0.05); head.add(lamp);
+  } else if (hat === 'hat_chef') {
+    const white = mat(0xfafafa);
+    const band = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.04, 0.12, hs + 0.04), white); band.position.y = hs + 0.06; head.add(band);
+    const puff = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.14, 0.26, hs + 0.14), white); puff.position.y = hs + 0.26; head.add(puff);
+    for (const [x, z] of [[-0.1, 0], [0.1, 0.05], [0, -0.1]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.16), white); b.position.set(x, hs + 0.42, z); head.add(b); }
   } else if (hat === 'turban') {
     const g = mat(0x3fa34d), w = mat(0xf4f4f0);
     for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.1 - i * 0.12, 0.1, hs + 0.1 - i * 0.12), i % 2 ? w : g); r.position.y = hs + 0.03 + i * 0.09; head.add(r); }

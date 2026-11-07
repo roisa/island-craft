@@ -70,6 +70,15 @@ export interface Recipe { out: number; n: number; ins: [number, number][]; at: S
 
 const anyLog: [number, number][] = [[B.OAK_LOG, 1]];
 export const RECIPES: Recipe[] = [
+  // toy swords, the fishing rod and cooking (cooking at the furnace plays a little timing game)
+  { out: I.WOOD_SWORD, n: 1, ins: [[B.PLANKS, 2], [I.STICK, 1]], at: 'workbench', tag: 'tool' },
+  { out: I.STONE_SWORD, n: 1, ins: [[B.COBBLE, 2], [I.STICK, 1]], at: 'workbench', tag: 'tool' },
+  { out: I.IRON_SWORD, n: 1, ins: [[I.IRON_INGOT, 2], [I.STICK, 1]], at: 'workbench', tag: 'tool' },
+  { out: I.FISHING_ROD, n: 1, ins: [[I.STICK, 3], [B.WOOL_WHITE, 1]], at: 'workbench', tag: 'tool' },
+  { out: I.GRILLED_FISH, n: 1, ins: [[I.SMALL_FISH, 1]], at: 'furnace', tag: 'cook' },
+  { out: I.GRILLED_FISH, n: 2, ins: [[I.BIG_FISH, 1]], at: 'furnace', tag: 'cook' },
+  { out: I.FRIED_EGG, n: 1, ins: [[I.EGG, 1]], at: 'furnace', tag: 'cook' },
+  { out: I.STEAK, n: 1, ins: [[I.MEAT, 1]], at: 'furnace', tag: 'cook' },
   // furniture & decorations, made at the workbench
   { out: I.TABLE, n: 1, ins: [[B.PLANKS, 4]], at: 'workbench', tag: 'deco' },
   { out: I.CHAIR, n: 1, ins: [[B.PLANKS, 2], [I.STICK, 2]], at: 'workbench', tag: 'deco' },

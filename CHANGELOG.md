@@ -5,6 +5,88 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Ibra's ideas (after playtesting)
+
+Requested by Ibra after playing. Each idea is fitted to a young player and to
+the game's "no losing" design.
+
+- **Toy swords that get stronger**
+  - Wooden, stone and iron toy swords, made at the workbench.
+  - Each tap is stronger with a better sword, and the **sword skill** levels
+    up as you use it (+15% per level, up to level 5).
+- **Naughty beetles** (`src/game/bugs.ts`), a gentle "enemy":
+  - **Small green beetles, big red ones, and a rare golden Beetle King**
+    come out at dusk and at night, and in forests by day. Never in the
+    village.
+  - They wander, come over to you and give you a little bump.
+  - They can't hurt you, and there's nothing to lose.
+  - Tap them (bare hands work, a sword works better) and they pop in
+    sparkles and **fly home**, leaving coal, sticks, dates, crystals or (for
+    the King) gold.
+  - Baby Mo explains: "we shoo them gently — we never hurt animals".
+  - Parents can turn beetles off.
+- **Fishing** (`src/game/fishing.ts`):
+  - Craft a rod (sticks + wool) and aim at water.
+  - **Use** casts the float. Wait for the nibbles, and when it dips ("❗
+    Something's biting!") tap to reel in.
+  - Catches: small fish, big fish, a rare **golden fish** or a little
+    treasure.
+  - Tapping early just pulls the float back, and a missed bite just means
+    waiting for the next.
+  - **Fishing skill:** bites come sooner, there's more time to tap and
+    golden fish appear more often.
+- **Cooking** at the furnace is now a little game:
+  - A marker slides along a bar; tap **Flip!** when it's in the green zone,
+    three rounds.
+  - **Perfect** gives an extra portion; anything else still makes the food
+    ("a bit crispy, but still tasty!").
+  - New dishes: grilled fish, fried egg, steak.
+  - **Halal meat** comes from Bu Aminah at the market (3 dates), so nobody
+    harms the friendly village animals.
+  - **Cooking skill** widens the green zone.
+- **Tree climbing:**
+  - Keep walking into a trunk to climb it, hand over hand. You push up
+    through the leaves and hop over onto the top of the canopy.
+  - The first time on each treetop: fruit (apples, dates, or sticks and a
+    pine sapling) and **climbing skill**.
+  - Sometimes a bird's nest, with a short lesson: the Prophet ﷺ taught us
+    not to take baby birds from their mother.
+- **Hats with powers.** Four new hats, and the Explorer hat. **Adam and Ais
+  can both wear them** (on Ais they sit over the hijab). The first time you
+  wear one, its matching item comes with it:
+  - 👒 **Farmer's straw hat:** saplings grow 2× faster (+3 saplings).
+  - 🎣 **Fishing hat:** quicker bites, golden fish twice as likely (+ a
+    fishing rod).
+  - ⛑️ **Miner's helmet:** a warm head lamp in caves and at night, and 35%
+    faster digging (+8 torches).
+  - 👨‍🍳 **Chef's hat:** a wider green zone when cooking (+2 eggs and halal
+    meat).
+- **My look from a photo** (Wardrobe → 📷):
+  - Pick a photo, or take one on a phone. The game finds the main colours
+    and guesses hair, skin, shirt and trousers. Tap a colour, then tap the
+    photo, to change any of them.
+  - **The photo is not sent anywhere and not saved**; only the four colours
+    are kept.
+  - "Back to normal colours" undoes it.
+- **My skills** in the Bag: sword, fishing, cooking and climbing, each with
+  its level and a bar to the next.
+- **New quests:** shoo 5 beetles, go fishing, little chef (cook 3 times),
+  climb a tree.
+- Tests:
+  - 7 unit tests for skills (levels, sword power, fishing odds, cooking
+    zone and quality) and photo colours (a test picture's hair, skin, shirt
+    and trousers come out right).
+  - The smoke test shoos a beetle with a toy sword, plays the cooking game
+    and wears the fishing hat, on all four profiles.
+  - Checked in game:
+    - a big beetle shooed in 4 taps;
+    - a cast, a bite and a catch;
+    - a perfect cook giving 2 grilled fish;
+    - a 7-block climb onto a canopy rewarded;
+    - all four hat gifts;
+    - the head lamp turning on;
+    - the photo colours read correctly.
+
 ### M9 · QA pass
 
 - **New full QA suite** (`npm run qa`, `tests/smoke/qa.mjs`). It runs on
