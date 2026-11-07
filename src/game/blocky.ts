@@ -35,6 +35,7 @@ export interface BlockyOpts {
   hijab?: number; peci?: number; beard?: string; glasses?: boolean; robe?: boolean;
   adult?: boolean; smile?: 'open' | 'soft'; lashes?: boolean; tunic?: boolean; fringe?: number; star?: string;
   shortSleeves?: boolean; polo?: boolean; beardStyle?: 'full' | 'short'; emblemSmall?: boolean; moonOnly?: boolean;
+  teen?: boolean; hoodie?: boolean; sole?: number;
 }
 
 function shade(c: number, k: number) { const col = new THREE.Color(c); col.multiplyScalar(k); return col.getHex(); }
@@ -93,6 +94,17 @@ function bodyTex(o: BlockyOpts) {
       x.beginPath(); x.moveTo(S * 0.7, 0); x.lineTo(S * 0.58, 0); x.lineTo(S * 0.53, S * 0.13); x.lineTo(S * 0.64, S * 0.1); x.closePath(); x.fill();
       x.strokeStyle = 'rgba(0,0,0,.12)'; x.lineWidth = S * 0.012; x.stroke();
     }
+    if (o.hoodie) {
+      // drawstrings, a white T-shirt at the neck, a front pocket and a shield badge
+      x.fillStyle = '#FFFFFF'; x.beginPath(); x.moveTo(S * 0.36, 0); x.lineTo(S * 0.64, 0); x.lineTo(S * 0.5, S * 0.12); x.closePath(); x.fill();
+      x.fillStyle = '#F4F4F4'; for (const sx of [0.34, 0.66]) { x.fillRect(S * (sx - 0.015), S * 0.02, S * 0.03, S * 0.26); x.beginPath(); x.arc(S * sx, S * 0.3, S * 0.03, 0, Math.PI * 2); x.fill(); }
+      x.fillStyle = 'rgba(0,0,0,.12)'; x.fillRect(S * 0.24, S * 0.7, S * 0.52, S * 0.025); x.fillRect(S * 0.24, S * 0.7, S * 0.025, S * 0.2); x.fillRect(S * 0.735, S * 0.7, S * 0.025, S * 0.2);
+      x.strokeStyle = '#FFFFFF'; x.lineWidth = S * 0.025; x.lineJoin = 'round';
+      x.beginPath(); x.moveTo(S * 0.4, S * 0.36); x.lineTo(S * 0.6, S * 0.36); x.lineTo(S * 0.6, S * 0.48); x.quadraticCurveTo(S * 0.6, S * 0.58, S * 0.5, S * 0.62); x.quadraticCurveTo(S * 0.4, S * 0.58, S * 0.4, S * 0.48); x.closePath(); x.stroke();
+      x.fillStyle = '#FFFFFF'; x.beginPath();
+      for (let i = 0; i < 10; i++) { const rr = i % 2 ? S * 0.025 : S * 0.06, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(S * 0.5 + Math.cos(a) * rr, S * 0.48 + Math.sin(a) * rr); }
+      x.fill();
+    }
     if (o.emblem === 'star') {
       const sm = o.emblemSmall ? 0.55 : 1, sx = o.emblemSmall ? 0.7 : 0.56, sy = o.emblemSmall ? 0.36 : (o.tunic ? 0.64 : 0.4);
       x.fillStyle = o.star ?? '#F7F5EF'; x.beginPath();
@@ -121,7 +133,8 @@ export function buildBlocky(o: BlockyOpts): Rig {
   const skinM = m(o.skin ?? '#F6C9A0'), hairM = m(o.hair ?? 0x5b3b2f, 0.18);
   const shirtM = m(o.shirt), darkM = m(o.shirtDark ?? shade(o.shirt, 0.55));
   const pantsM = m(o.pants ?? o.shirt), bandM = m(o.pantsBand ?? o.shirtDark ?? shade(o.shirt, 0.55));
-  const LEG = A ? 0.62 : 0.5, TORSO = A ? 0.6 : 0.5, HEAD = A ? 0.5 : 0.56, BW = A ? 0.5 : 0.46, BD = 0.27;
+  const T = !!o.teen;
+  const LEG = A ? 0.62 : T ? 0.58 : 0.5, TORSO = A ? 0.6 : T ? 0.56 : 0.5, HEAD = A ? 0.5 : T ? 0.56 : 0.56, BW = A ? 0.5 : T ? 0.48 : 0.46, BD = 0.27;
 
   // ---- legs: trousers, a darker band, white sneakers with a stripe
   const leg = (side: number) => {
@@ -130,6 +143,7 @@ export function buildBlocky(o: BlockyOpts): Rig {
     g.add(bbox(lw, LEG - 0.17, 0.25, pantsM, 0, -(LEG - 0.17) / 2));
     g.add(bbox(lw + 0.005, 0.06, 0.255, bandM, 0, -(LEG - 0.17) - 0.03));
     g.add(bbox(lw + 0.02, 0.12, 0.31, m(o.shoes ?? 0xf7f7f4), 0, -LEG + 0.06, 0.025, undefined, 0.025));
+    if (o.sole !== undefined) g.add(bbox(lw + 0.03, 0.045, 0.32, m(o.sole), 0, -LEG + 0.022, 0.025, undefined, 0.01));
     g.add(bbox(lw + 0.03, 0.03, 0.32, m(o.shoeStripe ?? 0xf7941d), 0, -LEG + 0.09, 0.025, undefined, 0.008));
     return g;
   };
@@ -138,8 +152,15 @@ export function buildBlocky(o: BlockyOpts): Rig {
   if (o.tunic) { body.add(bbox(BW + 0.1, 0.16, BD + 0.1, shirtM, 0, LEG + 0.02, 0, undefined, 0.03)); body.add(bbox(BW + 0.12, 0.04, BD + 0.12, darkM, 0, LEG - 0.07, 0, undefined, 0.01)); }
 
   // ---- torso with emblem, collar and belt
-  body.add(bbox(BW, TORSO, BD, shirtM, 0, LEG + TORSO / 2, 0, o.emblem || o.polo ? texMat(bodyTex(o)) : undefined));
-  if (!o.polo) body.add(bbox(0.16, 0.05, 0.03, m(o.collar ?? 0xf7941d), 0, LEG + TORSO - 0.03, BD / 2 + 0.005, undefined, 0.008));
+  body.add(bbox(BW, TORSO, BD, shirtM, 0, LEG + TORSO / 2, 0, o.emblem || o.polo || o.hoodie ? texMat(bodyTex(o)) : undefined));
+  if (o.hoodie) {
+    body.add(bbox(BW + 0.02, 0.08, BD + 0.02, darkM, 0, LEG + 0.07, 0, undefined, 0.02));          // ribbed hem
+    body.add(bbox(BW - 0.02, 0.04, BD - 0.02, m(0xffffff), 0, LEG + 0.01, 0, undefined, 0.01));     // T-shirt peeking out
+    body.add(bbox(BW * 0.86, 0.3, 0.16, shirtM, 0, LEG + TORSO - 0.06, -BD / 2 - 0.07, undefined, 0.05)); // hood down the back
+    body.add(bbox(BW * 0.5, 0.12, 0.1, darkM, 0, LEG + TORSO - 0.2, -BD / 2 - 0.14, undefined, 0.03));   // hood point
+    for (const sx of [-1, 1]) body.add(bbox(0.1, 0.1, BD + 0.02, shirtM, sx * BW * 0.32, LEG + TORSO + 0.02, -0.01, undefined, 0.03)); // hood edges around the neck
+  }
+  if (!o.polo && !o.hoodie) body.add(bbox(0.16, 0.05, 0.03, m(o.collar ?? 0xf7941d), 0, LEG + TORSO - 0.03, BD / 2 + 0.005, undefined, 0.008));
   if (o.belt !== undefined) body.add(bbox(BW * 0.5, 0.06, 0.03, m(o.belt), 0.02, LEG + 0.09, BD / 2 + 0.005, undefined, 0.01));
 
   // ---- backpack with straps
@@ -230,4 +251,8 @@ export const AYAH: BlockyOpts = {
   skin: '#F2C29A', shirt: 0xf5f3ee, shirtDark: 0xdcd8cf, pants: 0xe2c79a, pantsBand: 0xe2c79a, hair: 0x5a3b2e,
   beard: '#5A3B2E', beardStyle: 'short', polo: true, emblem: 'star', emblemSmall: true, star: '#24335E',
   shortSleeves: true, backpack: 0x3b3a3d, shoes: 0xf7f7f4, shoeStripe: 0xf7f7f4, adult: true,
+};
+export const ADAM: BlockyOpts = {
+  shirt: 0x2f6fde, shirtDark: 0x285fbf, pants: 0x2a62c9, pantsBand: 0x2556b2, hair: 0x4a3127,
+  hoodie: true, emblem: null, backpack: null, cuff: 0x285fbf, shoes: 0x2f6fde, sole: 0xf4f4f4, shoeStripe: 0xf4f4f4, teen: true,
 };

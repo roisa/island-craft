@@ -111,7 +111,7 @@ export class Animal extends Entity {
 }
 
 // ---- villagers ------------------------------------------------------------------
-export type NpcId = 'ustadz' | 'aminah' | 'yusuf';
+export type NpcId = 'ustadz' | 'aminah' | 'yusuf' | 'adam';
 export class Npc extends Entity {
   target: THREE.Vector3 | null = null;
   wait = 2;
