@@ -5,7 +5,7 @@ import { tr, t2, getLang, setLang } from './i18n';
 import { iconURL } from './world/atlas';
 import { B, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
 import { RECIPES, canCraft, STATION_NAME, creativeCatalog } from './game/inventory';
-import { QUESTS, CALENDAR, DUAS, Dua } from './content';
+import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId } from './game/prayer';
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
@@ -408,7 +408,7 @@ export class UI {
     const g = this.g, have = new Set(g.stats.letters);
     body.innerHTML = `<p>${tr(`Kamu sudah menemukan <b>${have.size}</b> dari 28 huruf. Ketuk huruf untuk mendengarnya.`, `You found <b>${have.size}</b> of 28 letters. Tap a letter to hear it.`)}</p>
       <div class="lgrid" style="margin-top:10px">${LETTERS.map((L, i) => have.has(i) ? `<button class="lcell" data-l="${i}"><span class="g" lang="ar" dir="rtl">${L.g}</span><span class="l">${L.name}</span></button>` : `<button class="lcell locked" data-l="${i}"><span class="g">?</span></button>`).join('')}</div>
-      <div class="row"><button class="btn gold" id="bQuiz" ${have.size < 3 ? 'disabled style="opacity:.5"' : ''}>🎯 ${tr('Tebak Huruf', 'Letter Quiz')}</button></div>
+      <div class="row"><button class="btn gold" id="bQuiz" ${have.size < 3 ? 'disabled style="opacity:.5"' : ''}>🎯 ${tr('Tebak Huruf', 'Letter Quiz')}</button><button class="btn" id="bWords">🧩 ${tr('Susun Kata', 'Word Builder')}</button></div>
       ${have.size < 3 ? `<p style="text-align:center;margin-top:6px">${tr('Temukan 3 huruf untuk membuka kuis.', 'Find 3 letters to unlock the quiz.')}</p>` : ''}`;
     body.querySelectorAll<HTMLElement>('[data-l]').forEach(b => (b.onclick = () => {
       const i = +b.dataset.l!;
@@ -416,6 +416,7 @@ export class UI {
       this.letterCard(i, false);
     }));
     const q = $('#bQuiz', body); if (have.size >= 3) q.onclick = () => this.quiz();
+    $('#bWords', body).onclick = () => this.wordGame();
   }
 
   private quests(body: HTMLElement) {
@@ -498,13 +499,10 @@ export class UI {
       <div class="row"><button class="btn ghost small" id="bHome">🏠 ${tr('Pulang ke desa', 'Back to village')}</button><button class="btn ghost small" id="bShot">📸 ${tr('Foto', 'Photo')}</button></div>
       <a class="btn ghost small" href="https://play.babymo.id/" id="bHub">⬅️ ${tr('Game Baby Mo lainnya', 'More Baby Mo games')}</a>
       <button class="btn small" id="bResume">▶️ ${tr('Lanjut main', 'Continue')}</button>
-      <details style="margin-top:14px"><summary style="font-weight:900;cursor:pointer">👨‍👩‍👧 ${tr('Untuk orang tua', 'For parents')}</summary>
-        <p style="margin-top:6px">${tr('Tidak ada iklan, tidak ada pembelian, tidak ada chat. Progres disimpan di perangkat ini. Game ini tidak punya tantangan waktu atau kalah — anak bebas menjelajah. Pengingat sholat memakai jam asli dan bisa dimatikan.', 'No ads, no purchases, no chat. Progress is stored on this device. There are no timers or losing — children explore freely. Prayer reminders use the real clock and can be turned off.')}</p>
-        <div class="set"><span>🕌 ${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="tProt"></button></div>
-        <button class="btn ghost small" id="bNew">🌍 ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
-      </details>`;
-    const flip = (id: string, k: 'sfx' | 'music' | 'moVoice' | 'protectVillage') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
-    flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice'); flip('tProt', 'protectVillage');
+      <button class="btn ghost small" id="bParents">👨‍👩‍👧 ${tr('Untuk orang tua', 'For parents')} 🔒</button>`;
+    const flip = (id: string, k: 'sfx' | 'music' | 'moVoice') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
+    flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice');
+    $('#bParents', body).onclick = () => this.parentGate(() => this.parentsPanel());
     this.bindLangSeg(body, () => { this.refreshHotbar(); this.updateHud(); this.renderBook(); g.saveSoon(); });
     $<HTMLSelectElement>('#sCam', body).onchange = e => { s.cam = (e.target as HTMLSelectElement).value as 'first' | 'third'; g.applySettings(); };
     $<HTMLSelectElement>('#sDist', body).onchange = e => { s.dist = +(e.target as HTMLSelectElement).value; g.applySettings(); };
@@ -514,7 +512,56 @@ export class UI {
     $('#bHome', body).onclick = () => { g.goHome(); this.closeBook(); };
     $('#bShot', body).onclick = () => { this.closeBook(); setTimeout(() => g.photo(), 120); };
     $('#bResume', body).onclick = () => this.closeBook();
-    $('#bNew', body).onclick = () => this.dialog({ face: '🌍', who: tr('Dunia baru', 'New world'), text: tr('Yakin? Dunia, barang, dan progres sekarang akan dihapus.', 'Are you sure? The current world, items and progress will be deleted.'), buttons: [{ label: tr('Ya, buat baru', 'Yes, start over'), cls: 'gold', fn: () => g.newWorld() }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] });
+  }
+
+  // ---------- parents ----------
+  /** a simple grown-up check: tap the right answer to an addition */
+  parentGate(ok: () => void) {
+    const a = 6 + Math.floor(Math.random() * 4), b = 5 + Math.floor(Math.random() * 4), ans = a + b;
+    const opts = [ans, ans + 2, ans - 3].sort(() => Math.random() - 0.5);
+    const { el, close } = this.modal(`<div style="text-align:center"><h2>👨‍👩‍👧 ${tr('Khusus orang tua', 'Grown-ups only')}</h2><p>${tr('Berapa', 'What is')} <b style="font-size:22px">${a} + ${b}</b>?</p><div class="row" id="pg">${opts.map(o => `<button class="btn ghost" data-v="${o}">${o}</button>`).join('')}</div><button class="btn small ghost" id="pgX">${tr('Batal', 'Cancel')}</button></div>`);
+    el.querySelectorAll<HTMLElement>('#pg button').forEach(bt => (bt.onclick = () => { close(); if (+bt.dataset.v! === ans) setTimeout(ok, 30); else this.toast(tr('Jawaban kurang tepat', 'Not quite right')); }));
+    $('#pgX', el).onclick = () => close();
+  }
+  parentsPanel() {
+    const g = this.g, s = g.settings, st = g.stats;
+    const mins = (sec?: number) => Math.round((sec || 0) / 60);
+    const lv = levelOf(st.stars || 0);
+    const learned = st.letters.slice().sort((a, b) => a - b).map(i => LETTERS[i].g).join(' ');
+    const { el, close } = this.modal(`<h2>👨‍👩‍👧 ${tr('Untuk orang tua', 'For parents')}</h2>
+      <h3>📊 ${tr('Laporan belajar', 'Learning report')}</h3>
+      <div class="report">
+        <div><b>${st.letters.length}/28</b><small>${tr('huruf ditemukan', 'letters found')}</small></div>
+        <div><b>${st.quiz || 0}</b><small>${tr('tebak huruf benar', 'quiz answers right')}</small></div>
+        <div><b>${st.words || 0}</b><small>${tr('kata disusun', 'words built')}</small></div>
+        <div><b>${st.gave + st.planted + st.jamaah + st.iftar}</b><small>${tr('kebaikan (berbagi, menanam, berjamaah, berbuka)', 'good deeds (sharing, planting, praying together, iftar)')}</small></div>
+        <div><b>${st.days.length}</b><small>${tr('hari bermain', 'days played')}</small></div>
+        <div><b>${mins(st.play?.sec)} / ${mins(st.playTotal)}</b><small>${tr('menit hari ini / total', 'minutes today / total')}</small></div>
+        <div><b>Lv ${lv}</b><small>⭐ ${st.stars || 0}</small></div>
+        <div><b>${g.questsDone.size}</b><small>${tr('misi selesai', 'quests done')}</small></div>
+      </div>
+      ${learned ? `<p style="margin-top:6px">${tr('Huruf yang sudah dikenal', 'Letters met so far')}: <span lang="ar" dir="rtl" style="font-family:var(--ar);font-size:22px">${learned}</span></p>` : ''}
+      <h3>⚙️ ${tr('Pengaturan', 'Settings')}</h3>
+      <div class="set"><span>⏰ ${tr('Batas main per hari', 'Daily play limit')}</span><select id="pLim">${[0, 20, 30, 45, 60, 90].map(n => `<option value="${n}" ${s.playLimit === n ? 'selected' : ''}>${n ? n + ' ' + tr('menit', 'min') : tr('Tanpa batas', 'No limit')}</option>`).join('')}</select></div>
+      <div class="set"><span>🕌 ${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
+      <div class="set"><span>🪶 ${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
+      <div class="set"><span>🔔 ${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
+      <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
+      <button class="btn ghost small" id="pNew">🌍 ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
+      <button class="btn small" id="pOk">${tr('Selesai', 'Done')}</button>`);
+    const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
+    tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
+    $<HTMLSelectElement>('#pLim', el).onchange = e => { s.playLimit = +(e.target as HTMLSelectElement).value; g.applySettings(); };
+    $('#pOk', el).onclick = () => close();
+    $('#pNew', el).onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia baru', 'New world'), text: tr('Yakin? Dunia, barang, dan progres sekarang akan dihapus.', 'Are you sure? The current world, items and progress will be deleted.'), speak: false, buttons: [{ label: tr('Ya, buat baru', 'Yes, start over'), cls: 'gold', fn: () => g.newWorld() }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
+  }
+  restScreen() {
+    const g = this.g;
+    const { el } = this.modal(`<div style="text-align:center"><img src="img/baby-mo-pose-01.webp" style="width:110px" alt=""><h2>😴 ${tr('Waktunya istirahat!', 'Time for a break!')}</h2>
+      <p>${tr('Kamu sudah bermain cukup lama hari ini. Baby Mo juga mau istirahat. Yuk minum air, gerakkan badan, atau bantu ayah & ibu. Sampai jumpa besok! 💚', 'You’ve played for a good while today. Baby Mo needs a rest too. Drink some water, stretch, or help mum and dad. See you tomorrow! 💚')}</p>
+      <button class="btn ghost small" id="rsMore">👨‍👩‍👧 ${tr('Orang tua: tambah 15 menit', 'Parents: add 15 minutes')}</button></div>`);
+    if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang());
+    $('#rsMore', el).onclick = () => this.parentGate(() => { if (g.stats.play) g.stats.play.sec -= 15 * 60; this.closeModal(); });
   }
 
   // ---------- modals ----------
@@ -567,6 +614,10 @@ export class UI {
       <div class="lc-right">
         <p>${tr('Ketuk untuk mendengar bunyinya dengan harakat:', 'Tap to hear it with vowel marks:')}</p>
         <div class="harakat">${marks.map(([m, v, n], k) => `<button data-k="${k}"><span class="hg" lang="ar" dir="rtl">${i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m}</span><small>${lat(v)}</small><small class="hn">${n}</small></button>`).join('')}</div>
+        ${i === 0 ? '' : `<details class="adv"><summary>${tr('⭐ Lanjutan: bacaan panjang & tanwin', '⭐ More: long vowels & tanwin')}</summary>
+          <div class="harakat small">${[[L.g + 'َا', lat('aa'), tr('panjang a', 'long a')], [L.g + 'ِي', lat('ii'), tr('panjang i', 'long i')], [L.g + 'ُو', lat('uu'), tr('panjang u', 'long u')]].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg" lang="ar" dir="rtl">${a}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
+          <div class="harakat small">${[[L.g + 'ً', lat('an'), 'tanwin'], [L.g + 'ٍ', lat('in'), 'tanwin'], [L.g + 'ٌ', lat('un'), 'tanwin']].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg" lang="ar" dir="rtl">${a}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
+        </details>`}
         <div class="row"><button class="btn ghost" id="lSay">🔊 ${esc(L.name)}</button><button class="btn" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div>
       </div></div>`);
     const sayName = () => playLetter(i, L.ar, L.name);
@@ -577,6 +628,7 @@ export class UI {
       const ar = i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + marks[k][0];
       playLetter(i, ar, lat(marks[k][1]), '-' + 'aiu'[k]);
     }));
+    el.querySelectorAll<HTMLElement>('[data-ar]').forEach(b => (b.onclick = () => Speech.say(b.dataset.ar!, b.dataset.lat!)));
     $('#lOk', el).onclick = () => close();
   }
 
@@ -605,6 +657,48 @@ export class UI {
         this.toast(tr(`Benar! Itu huruf ${L.name} ⭐`, `Correct! That's ${L.name} ⭐`));
         setTimeout(() => { close(); this.quiz(); }, 1100);
       } else { b.classList.add('wrong'); SFX.error(); this.toast(tr('Hampir! Coba lagi ya 😊', 'Almost! Try again 😊')); }
+    }));
+  }
+
+  private lastWord = -1;
+  wordGame() {
+    const g = this.g, have = new Set(g.stats.letters);
+    const avail = WORDS.map((w, i) => ({ w, i })).filter(({ w, i }) => i === 0 || w.letters.every(l => have.has(l)));
+    const pool = avail.length > 1 ? avail.filter(a => a.i !== this.lastWord) : avail;
+    const { w, i: wi } = pool[Math.floor(Math.random() * pool.length)];
+    this.lastWord = wi;
+    const extra: number[] = [];
+    const cands = [...have].filter(l => !w.letters.includes(l));
+    while (extra.length < 2 && cands.length) extra.push(cands.splice(Math.floor(Math.random() * cands.length), 1)[0]);
+    while (extra.length < 2) { const r = Math.floor(Math.random() * 28); if (!w.letters.includes(r) && !extra.includes(r)) extra.push(r); }
+    const tiles = [...w.letters, ...extra].map((l, k) => ({ l, k })).sort(() => Math.random() - 0.5);
+    const locked = WORDS.length - avail.length;
+    const { el, close } = this.modal(`<div class="wg"><h2>🧩 ${tr('Susun Kata', 'Word Builder')}</h2>
+      <div class="wg-pic">${w.icon}</div><p><b>${esc(t2(w.mean))}</b> · ${tr('baca', 'read')}: <i>${esc(w.lat)}</i></p>
+      <p style="font-size:13px">${tr('Ketuk huruf sesuai urutan, mulai dari <b>kanan</b> ➡️⬅️', 'Tap the letters in order, starting from the <b>right</b> ➡️⬅️')}</p>
+      <div class="wg-slots" dir="rtl">${w.letters.map(() => '<span class="wg-slot"></span>').join('')}</div>
+      <div class="wg-done hidden" lang="ar" dir="rtl">${w.voweled}</div>
+      <div class="wg-tiles">${tiles.map(t => `<button data-l="${t.l}" lang="ar">${LETTERS[t.l].g}</button>`).join('')}</div>
+      ${locked ? `<p style="font-size:12.5px">${tr(`Temukan lebih banyak huruf untuk membuka ${locked} kata lagi ✨`, `Find more letters to unlock ${locked} more words ✨`)}</p>` : ''}
+      <div class="row"><button class="btn ghost" id="wgSay">🔊 ${tr('Dengar', 'Listen')}</button><button class="btn ghost" id="wgClose">${tr('Selesai', 'Done')}</button><button class="btn gold hidden" id="wgNext">${tr('Kata berikutnya ▶', 'Next word ▶')}</button></div></div>`);
+    let pos = 0;
+    const slots = el.querySelectorAll<HTMLElement>('.wg-slot');
+    $('#wgSay', el).onclick = () => Speech.say(w.voweled, w.lat);
+    $('#wgClose', el).onclick = () => close();
+    $('#wgNext', el).onclick = () => { close(); setTimeout(() => this.wordGame(), 50); };
+    el.querySelectorAll<HTMLElement>('.wg-tiles button').forEach(b => (b.onclick = () => {
+      if (pos >= w.letters.length || b.classList.contains('used')) return;
+      const l = +b.dataset.l!;
+      if (l === w.letters[pos]) {
+        slots[pos].textContent = LETTERS[l].g; slots[pos].classList.add('ok'); b.classList.add('used'); pos++; SFX.click();
+        if (pos === w.letters.length) {
+          SFX.letter(); this.confetti(40);
+          $('.wg-slots', el).classList.add('hidden'); $('.wg-done', el).classList.remove('hidden');
+          $('#wgNext', el).classList.remove('hidden');
+          setTimeout(() => Speech.say(w.voweled, w.lat), 300);
+          g.stats.words = (g.stats.words || 0) + 1; g.kid.reward('quiz', 3); g.checkQuests();
+        }
+      } else { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); SFX.error(); }
     }));
   }
 

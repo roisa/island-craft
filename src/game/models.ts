@@ -50,6 +50,7 @@ function softLimb(w: number, h: number, d: number, m: THREE.Material, x: number,
 export interface Rig {
   root: THREE.Group; body: THREE.Group; head: THREE.Object3D; armL?: THREE.Object3D; armR?: THREE.Object3D; legs: THREE.Object3D[]; height: number;
   blink?: (closed: boolean) => void; hand?: THREE.Object3D;
+  hip?: number; scale?: number;
 }
 
 // ---- faces -------------------------------------------------------------------
@@ -165,7 +166,7 @@ export function buildBabyMo(): Rig {
     return l;
   };
   const legs = [leg(-1), leg(1)];
-  return { root, body, head: headG, armL: L.a, armR: R.a, legs, height: 1.55, blink: blinker(frontOf(headBox), f), hand: R.hand };
+  return { root, body, head: headG, armL: L.a, armR: R.a, legs, height: 1.55, blink: blinker(frontOf(headBox), f), hand: R.hand, hip: 0.42, scale: 1 };
 }
 
 // ---- humans (player avatar & villagers) ------------------------------------------
@@ -223,7 +224,7 @@ export function buildHuman(o: HumanOpts): Rig {
     return l;
   };
   const legs = [leg(-1), leg(1)];
-  return { root, body, head: headG, armL: L.a, armR: R.a, legs, height: (headY + hs + 0.1) * s, blink: blinker(frontOf(headBox), f), hand: R.hand };
+  return { root, body, head: headG, armL: L.a, armR: R.a, legs, height: (headY + hs + 0.1) * s, blink: blinker(frontOf(headBox), f), hand: R.hand, hip: hipY, scale: s };
 }
 
 // ---- animals -------------------------------------------------------------------
@@ -342,3 +343,33 @@ export function sparkTexture() {
     x.fillStyle = g; x.fillRect(0, 0, 32, 32);
   });
 }
+
+// ---- prayer movements (gentle, simplified) ----------------------------------------
+export type PrayerPose = 'qiyam' | 'ruku' | 'sujud' | 'julus';
+/** order of one rakaat, seconds per pose */
+export const PRAYER_CYCLE: [PrayerPose, number][] = [['qiyam', 4], ['ruku', 2.5], ['qiyam', 1.5], ['sujud', 2.5], ['julus', 1.5], ['sujud', 2.5]];
+export function poseAt(t: number): PrayerPose {
+  const total = PRAYER_CYCLE.reduce((a, [, d]) => a + d, 0);
+  let x = t % total;
+  for (const [p, d] of PRAYER_CYCLE) { if (x < d) return p; x -= d; }
+  return 'qiyam';
+}
+/** bend a human rig around the hips; legs stay put. Call every frame (it overrides walk swings). */
+export function applyPrayerPose(r: Rig, pose: PrayerPose | null) {
+  const hip = r.hip ?? 0.7, s = r.scale ?? 1;
+  const body = r.body;
+  let tilt = 0, drop = 0, leg = 0, arms = 0;
+  if (pose === 'qiyam') arms = -0.9;
+  else if (pose === 'ruku') { tilt = 1.35; arms = -1.2; }
+  else if (pose === 'sujud') { leg = 1.05; drop = hip * (1 - Math.cos(leg)); tilt = 1.95; arms = -2.5; }   // knees down, forehead to the floor
+  else if (pose === 'julus') { leg = 1.5; drop = hip * (1 - Math.cos(leg)) - 0.04; arms = -0.4; }            // sitting back on the heels
+  // rotate the body about the hip joint
+  body.rotation.x = tilt;
+  const hy = hip * s;
+  body.position.set(0, (hy - hy * Math.cos(tilt)) - drop * s, -hy * Math.sin(tilt));
+  for (const l of r.legs) { l.rotation.x = -tilt + leg; l.rotation.z = 0; }
+  if (r.armL) { r.armL.rotation.set(arms, 0, pose === 'qiyam' ? 0.5 : 0); }
+  if (r.armR) { r.armR.rotation.set(arms, 0, pose === 'qiyam' ? -0.5 : 0); }
+  r.head.rotation.x = 0;
+}
+export function clearPose(r: Rig) { r.body.rotation.x = 0; r.body.position.set(0, 0, 0); }

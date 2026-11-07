@@ -17,7 +17,7 @@ import { Input, isTouch } from './game/input';
 import { Inventory, Recipe, Station, craft as doCraft } from './game/inventory';
 import { Sky, Schedule } from './game/sky';
 import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
-import { buildHuman, Rig } from './game/models';
+import { buildHuman, Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
 import { FX } from './game/fx';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
@@ -31,7 +31,7 @@ import { Fun, Outfit, defaultOutfit, outfitItem, dressUp } from './game/fun';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean; outfit?: Outfit;
+  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean;
 }
 const SAVE_VERSION = 1;
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
@@ -51,7 +51,9 @@ export class Game {
   input: Input; inv = new Inventory(); ui: UI;
   settings: Settings = {
     sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 24, sens: 1,
-    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true,
+    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true, playLimit: 0,
+    // older/low-memory phones start in light graphics mode
+    lowGfx: ((navigator as any).deviceMemory ?? 4) <= 3 || (navigator.hardwareConcurrency ?? 8) <= 4,
   };
   kid!: Kid;
   fun!: Fun;
@@ -83,6 +85,7 @@ export class Game {
   private lastJumpTap = 0;
   private iftarDay = -1;
   private dirtySave = false;
+  private prayingPose = false;
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -265,7 +268,9 @@ export class Game {
     this.input.sensitivity = s.sens;
     this.inv.creative = s.mode === 'creative';
     if (!this.inv.creative && this.player) this.player.flying = false;
-    if (this.world) this.world.radius = s.dist;
+    if (this.world) this.world.radius = s.lowGfx ? Math.min(s.dist, 3) : s.dist;
+    this.renderer.setPixelRatio(s.lowGfx ? 1 : Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
+    this.fx.lite = s.lowGfx;
     this.camera.far = 600;
     this.ui.refreshHotbar();
     this.saveSoon();
@@ -384,6 +389,7 @@ export class Game {
     const t = performance.now() / 1000;
     this.uniforms.uTime.value = t;
     if (!this.paused) this.tick(dt, t);
+    this.watchFps(dt);
     this.ents.update(this.paused ? 0 : dt, t, this.player.pos);
     this.fx.update(dt);
     this.updateAvatar(dt, t);
@@ -396,6 +402,30 @@ export class Game {
     this.render();
   };
   private render() { this.renderer.render(this.scene, this.camera); }
+
+  /** if the phone struggles, quietly lower the view distance (max twice per session) */
+  private fps = { acc: 0, n: 0, cuts: 0 };
+  private watchFps(dt: number) {
+    if (this.paused) return;
+    const f = this.fps; f.acc += dt; f.n++;
+    if (f.acc < 5) return;
+    const avg = f.acc / f.n; f.acc = 0; f.n = 0;
+    if (avg > 1 / 22 && f.cuts < 2 && this.world.radius > 2) {
+      f.cuts++; this.settings.dist = Math.max(2, Math.min(this.settings.dist, this.world.radius) - 1); this.applySettings();
+      this.ui.toast(tr('🎮 Grafik disesuaikan supaya lancar', '🎮 Graphics adjusted to keep things smooth'));
+    }
+  }
+
+  /** daily play time & the gentle rest reminder */
+  private playTime(dt: number) {
+    const today = new Date().toDateString();
+    const pl = this.stats.play && this.stats.play.day === today ? this.stats.play : (this.stats.play = { day: today, sec: 0 });
+    pl.sec += dt; this.stats.playTotal = (this.stats.playTotal || 0) + dt;
+    const lim = this.settings.playLimit * 60;
+    if (!lim) return;
+    if (pl.sec > lim - 300 && pl.sec - dt <= lim - 300) this.ui.say(tr('5 menit lagi kita istirahat ya 😊', '5 more minutes, then we take a break 😊'), 'idea', 6000);
+    if (pl.sec >= lim && !this.ui.isOpen()) { this.save(); this.ui.restScreen(); }
+  }
 
   private tick(dt: number, t: number) {
     const inp = this.input, p = this.player;
@@ -483,6 +513,7 @@ export class Game {
     if (this.timers.real <= 0) { this.timers.real = 15; this.realReminders(); }
     this.mineAnim = Math.max(0, this.mineAnim - dt);
     this.kid.update(dt, t);
+    this.playTime(dt);
     this.fun.update(dt);
   }
 
@@ -827,7 +858,7 @@ export class Game {
       if (!ev.attended && p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3) {
         ev.attended = true; this.stats.jamaah++; this.kid.reward('jamaah');
         SFX.quest();
-        this.ui.say(tr(`Alhamdulillah, kita sholat ${prayerName(ev.p)} berjamaah! Pahalanya 27 kali lipat 🤲`, `Alhamdulillah, we prayed ${prayerName(ev.p)} together! Praying in congregation brings 27 times the reward 🤲`), 'alright', 6000);
+        this.ui.say(tr(`Ayo sholat ${prayerName(ev.p)} berjamaah! Diam di sini dan ikuti gerakan warga: berdiri, rukuk, sujud, duduk 🤲`, `Let’s pray ${prayerName(ev.p)} together! Stand still and follow the villagers: stand, bow, prostrate, sit 🤲`), 'alright', 8000);
         this.checkQuests();
       }
       if (this.crossed(ev.until)) { for (const n of this.ents.npcs) n.goPray(false, n.home); this.gameEvent = null; }
@@ -970,6 +1001,10 @@ export class Game {
     if (this.fun?.riding) { a.legs[0].rotation.set(-1.3, 0, -0.35); a.legs[1].rotation.set(-1.3, 0, 0.35); a.root.position.y -= 0.35; } else { a.legs[0].rotation.y = a.legs[0].rotation.z = 0; a.legs[1].rotation.y = a.legs[1].rotation.z = 0; }
     const cape = a.body.getObjectByName('cape'); if (cape) cape.rotation.x = 0.15 + Math.min(0.9, p.speed * 0.12) + Math.sin(t * 6) * 0.05;
     if (a.blink) { const ph = t % 4.6; a.blink(ph < 0.13); }
+    // standing still in the masjid at prayer time: pray along with the villagers
+    const inMasjid = p.pos.x > -6 && p.pos.x < 7 && p.pos.z > -26 && p.pos.z < -13 && Math.abs(p.pos.y - (VILLAGE_Y + 1)) < 3;
+    if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, poseAt(t)); this.prayingPose = true; }
+    else if (this.prayingPose) { clearPose(a); this.prayingPose = false; }
     this.updateHeld(t, sw);
   }
 

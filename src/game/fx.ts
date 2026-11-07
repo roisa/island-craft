@@ -5,6 +5,7 @@ import { heartTexture, sparkTexture } from './models';
 interface P { obj: THREE.Object3D; v: THREE.Vector3; life: number; max: number; grav: number; spin: number; fade: boolean }
 
 export class FX {
+  lite = false;
   private parts: P[] = [];
   private cube = new THREE.BoxGeometry(0.14, 0.14, 0.14);
   private cubeMats = new Map<number, THREE.MeshLambertMaterial>();
@@ -39,6 +40,7 @@ export class FX {
     for (let i = 0; i < 6; i++) setTimeout(() => this.sparkle(x + (Math.random() - 0.5) * 8, y + 4 + Math.random() * 4, z + (Math.random() - 0.5) * 8, 26, colors[i % colors.length], 5), i * 220);
   }
   private add(obj: THREE.Object3D, v: THREE.Vector3, life: number, grav: number, spin: number, fade: boolean) {
+    if (this.lite && Math.random() < 0.55) return;
     this.scene.add(obj);
     this.parts.push({ obj, v, life, max: life, grav, spin, fade });
   }

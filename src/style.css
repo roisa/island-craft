@@ -350,3 +350,24 @@ button.say { pointer-events: auto; flex: 0 0 auto; width: 38px; height: 38px; bo
 #planBar .btn { width: auto; margin: 0; }
 .pb-t b { display: block; font-size: 15px; font-weight: 900; } .pb-t small { display: block; font-size: 12.5px; font-weight: 800; color: var(--ink-dim); }
 @media (max-height: 500px) { #planBar { bottom: calc(62px + var(--safe-b)); } }
+
+.adv { margin-top: 10px; text-align: left; background: #f6f9fc; border-radius: 14px; padding: 6px 10px; }
+.adv summary { font-weight: 900; cursor: pointer; font-size: 14px; }
+.harakat.small button { width: 78px; } .harakat.small .hg { font-size: 34px; }
+.wg { text-align: center; }
+.wg-pic { font-size: 56px; line-height: 1.1; }
+.wg-slots { display: flex; gap: 8px; justify-content: center; margin: 10px 0; }
+.wg-slot { width: 64px; height: 76px; border-radius: 16px; border: 3px dashed var(--gold); background: #FFFBEF; font-family: var(--ar); font-weight: 700; font-size: 40px; line-height: 70px; color: #12261F; }
+.wg-slot.ok { border-style: solid; background: #e6f7ee; border-color: var(--green); }
+.wg-done { font-family: var(--ar); font-weight: 700; font-size: 72px; line-height: 1.7; color: var(--green-d); }
+.wg-tiles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
+.wg-tiles button { width: 62px; height: 70px; border-radius: 16px; background: #FFF6E0; border: 3px solid var(--gold); font-family: var(--ar); font-weight: 700; font-size: 38px; line-height: 1.6; color: #12261F; }
+.wg-tiles button.used { opacity: .25; }
+.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@media (max-height: 500px) { .wg-pic { font-size: 36px; } .wg-slot { width: 52px; height: 60px; font-size: 32px; line-height: 56px; } .wg-tiles button { width: 52px; height: 58px; font-size: 30px; } .wg-done { font-size: 52px; } }
+
+.report { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.report div { background: #f1f5fa; border-radius: 14px; padding: 8px 10px; }
+.report b { display: block; font-size: 20px; font-weight: 900; color: var(--green-d); }
+.report small { display: block; font-size: 12px; font-weight: 800; color: var(--ink-dim); line-height: 1.25; }

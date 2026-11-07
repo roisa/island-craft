@@ -4,7 +4,7 @@ import type { World, Chunk } from '../world/world';
 import { CS, Biome, VILLAGE_Y } from '../world/gen';
 import { B, BLOCKS } from '../world/blocks';
 import { mulberry32 } from '../world/noise';
-import { buildAnimal, buildBabyMo, buildHuman, nameTag, AnimalKind, Rig, HumanOpts } from './models';
+import { buildAnimal, buildBabyMo, buildHuman, nameTag, AnimalKind, Rig, HumanOpts, applyPrayerPose, clearPose, poseAt } from './models';
 import type { T2 } from '../i18n';
 
 export abstract class Entity {
@@ -115,6 +115,7 @@ export class Npc extends Entity {
   target: THREE.Vector3 | null = null;
   wait = 2;
   goingToMasjid = false;
+  praying = false;
   tag: THREE.Sprite;
   waving = false;
   constructor(public id: NpcId, public name: string, opts: HumanOpts, public home: THREE.Vector3, public world: World) {
@@ -146,6 +147,9 @@ export class Npc extends Entity {
       }
     }
     this.sync(t);
+    // at the masjid during prayer time: pray together, facing the qibla wall (north)
+    if (this.goingToMasjid && !this.target) { this.yaw = Math.PI; this.rig.root.rotation.y = this.yaw; applyPrayerPose(this.rig, poseAt(t)); this.praying = true; return; }
+    if (this.praying) { clearPose(this.rig); this.praying = false; }
     if (this.waving && this.rig.armR) this.rig.armR.rotation.set(-2.6 + Math.sin(t * 10) * 0.3, 0, 0.2);
     else if (this.rig.armR && !this.moving) this.rig.armR.rotation.set(0, 0, 0);
   }

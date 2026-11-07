@@ -12,6 +12,7 @@ export interface Stats {
   maxY: number; minY: number; quiz: number; days: string[]; prayersSeen: number;
   stars: number; tut?: number;
   pet?: { kind: string; name: string }; chests?: number; built?: number; rides?: number;
+  words?: number; play?: { day: string; sec: number }; playTotal?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,
@@ -54,6 +55,7 @@ export const QUESTS: Quest[] = [
   { id: 'mountain', icon: '🏔️', title: ['Puncak gunung', 'Mountain top'], desc: ['Daki gunung yang sangat tinggi!', 'Climb a really tall mountain!'], goal: s => [s.maxY >= SEA + 45 ? 1 : 0, 1], reward: [[I.GOLD_INGOT, 2]], sticker: '🏔️' },
   { id: 'builder', icon: '🏠', title: ['Arsitek cilik', 'Little architect'], desc: ['Pasang 150 balok untuk membangun rumah atau masjidmu sendiri.', 'Place 150 blocks to build your own house or masjid.'], goal: s => [Math.min(150, s.placed), 150], reward: [[B.GOLD_TILE, 8]], sticker: '🏗️' },
   { id: 'quiz', icon: '🎯', title: ['Tebak huruf', 'Letter quiz'], desc: ['Jawab benar 10 soal Tebak Huruf di 📖 Buku Huruf.', 'Answer 10 Letter Quiz questions in the 📖 Letter Book.'], goal: s => [Math.min(10, s.quiz), 10], reward: [[I.CRYSTAL, 2]], sticker: '🎯' },
+  { id: 'words', icon: '🧩', title: ['Susun kata', 'Build words'], desc: ['Main 🧩 Susun Kata di 📖 Buku Huruf. Susun 5 kata Arab!', 'Play 🧩 Word Builder in the 📖 Letter Book. Build 5 Arabic words!'], goal: s => [Math.min(5, s.words || 0), 5], reward: [[B.GOLD_TILE, 6]], sticker: '🧩' },
   { id: 'letters28', icon: '🏆', title: ['Semua 28 huruf!', 'All 28 letters!'], desc: ['Temukan seluruh huruf hijaiyah di dunia Baby Mo.', 'Find every hijaiyah letter in Baby Mo’s world.'], goal: s => [s.letters.length, 28], reward: [[B.GOLD_TILE, 16]], sticker: '🏆' },
 ];
 
@@ -109,3 +111,27 @@ export const DUAS: Record<string, Dua> = {
     mean: ['Segala puji bagi Allah yang menghidupkan kami setelah mematikan kami, dan kepada-Nya kami kembali', 'All praise is for Allah who gave us life after causing us to die, and to Him is the return'], src: 'HR. Bukhari',
   },
 };
+
+// ---- "Susun Kata" (word builder): simple words made from collected letters ----
+// `letters` are indices into LETTERS in reading order (right to left).
+export interface Word { plain: string; voweled: string; lat: string; mean: T2; icon: string; letters: number[] }
+const L = { a: 0, b: 1, t: 2, j: 4, d: 7, r: 9, z: 10, s: 11, sy: 12, sh: 13, f: 19, q: 20, k: 21, l: 22, m: 23, n: 24, w: 25, h: 26, y: 27 };
+export const WORDS: Word[] = [
+  { plain: 'باب', voweled: 'بَاب', lat: 'baab', mean: ['pintu', 'door'], icon: '🚪', letters: [L.b, L.a, L.b] },
+  { plain: 'بيت', voweled: 'بَيْت', lat: 'bait', mean: ['rumah', 'house'], icon: '🏠', letters: [L.b, L.y, L.t] },
+  { plain: 'تمر', voweled: 'تَمْر', lat: 'tamr', mean: ['kurma', 'dates'], icon: '🌴', letters: [L.t, L.m, L.r] },
+  { plain: 'قمر', voweled: 'قَمَر', lat: 'qamar', mean: ['bulan', 'moon'], icon: '🌕', letters: [L.q, L.m, L.r] },
+  { plain: 'شمس', voweled: 'شَمْس', lat: 'syams', mean: ['matahari', 'sun'], icon: '☀️', letters: [L.sy, L.m, L.s] },
+  { plain: 'نور', voweled: 'نُور', lat: 'nuur', mean: ['cahaya', 'light'], icon: '💡', letters: [L.n, L.w, L.r] },
+  { plain: 'لبن', voweled: 'لَبَن', lat: 'laban', mean: ['susu', 'milk'], icon: '🥛', letters: [L.l, L.b, L.n] },
+  { plain: 'ورد', voweled: 'وَرْد', lat: 'ward', mean: ['bunga mawar', 'rose'], icon: '🌹', letters: [L.w, L.r, L.d] },
+  { plain: 'قلم', voweled: 'قَلَم', lat: 'qalam', mean: ['pena', 'pen'], icon: '✏️', letters: [L.q, L.l, L.m] },
+  { plain: 'جمل', voweled: 'جَمَل', lat: 'jamal', mean: ['unta', 'camel'], icon: '🐪', letters: [L.j, L.m, L.l] },
+  { plain: 'سمك', voweled: 'سَمَك', lat: 'samak', mean: ['ikan', 'fish'], icon: '🐟', letters: [L.s, L.m, L.k] },
+  { plain: 'صوم', voweled: 'صَوْم', lat: 'shaum', mean: ['puasa', 'fasting'], icon: '🌙', letters: [L.sh, L.w, L.m] },
+  { plain: 'زيت', voweled: 'زَيْت', lat: 'zait', mean: ['minyak zaitun', 'olive oil'], icon: '🫒', letters: [L.z, L.y, L.t] },
+  { plain: 'فيل', voweled: 'فِيل', lat: 'fiil', mean: ['gajah', 'elephant'], icon: '🐘', letters: [L.f, L.y, L.l] },
+  { plain: 'كتاب', voweled: 'كِتَاب', lat: 'kitaab', mean: ['buku', 'book'], icon: '📖', letters: [L.k, L.t, L.a, L.b] },
+  { plain: 'مسجد', voweled: 'مَسْجِد', lat: 'masjid', mean: ['masjid', 'mosque'], icon: '🕌', letters: [L.m, L.s, L.j, L.d] },
+  { plain: 'هلال', voweled: 'هِلَال', lat: 'hilaal', mean: ['bulan sabit', 'crescent moon'], icon: '🌙', letters: [L.h, L.l, L.a, L.l] },
+];
