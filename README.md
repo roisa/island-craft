@@ -71,6 +71,8 @@ npm run dev        # http://localhost:5173
 npm run build      # static files in dist/
 ```
 
+**Play online:** https://roisa.github.io/island-craft/ — every push to `main` (or a `claude/…` branch) rebuilds the `gh-pages` branch via `.github/workflows/deploy-pages.yml`. One-time setup: Settings → Pages → Source "Deploy from a branch", branch `gh-pages`, folder `/ (root)`.
+
 The build uses relative paths, so `dist/` can be dropped into any folder, e.g.
 `babymo-app/www/island-craft/`, and linked from the hub.
 
