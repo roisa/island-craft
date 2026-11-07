@@ -491,6 +491,38 @@ const SPECS = (): Spec[] => specs ??= [
       return { y: SEA + 2, pos: [dx0, dz0], at: { dock: [rx, SEA + 2, rz] }, path };
     },
   },
+  {
+    id: 'sanctuary', icon: '🏡', name: ['Rumah Hewan', 'Animal Sanctuary'], biomes: [Biome.MEADOW, Biome.FOREST], dist: [55, 170], r: 11,
+    ok: c => c.h > SEA + 2 && c.h < SEA + 16,
+    hint: ['Kandang besar berpagar dengan jerami dan tempat minum. Hewan yang tersesat bisa tinggal di sini.', 'A big fenced home with hay and a water trough. Lost animals can live here.'],
+    fact: ['Rasulullah ﷺ bersabda bahwa berbuat baik kepada setiap makhluk hidup ada pahalanya (HR. Bukhari & Muslim). Ada hewan kecil yang tersesat di dunia ini: ketuk mereka, lalu antar ke sini!', 'The Prophet ﷺ said there is a reward for kindness to every living thing (Bukhari & Muslim). Some little animals are lost in this world: tap them, then bring them here!'],
+    loot: [[I.APPLE, 6], [I.DATES, 6], [B.WOOL_YELLOW, 6]],
+    build(b, x, y, z) {
+      foundation(b, x - 9, z - 9, x + 9, z + 9, y, B.DIRT);
+      b.box(x - 9, y, z - 9, x + 9, y, z + 9, B.GRASS);
+      b.box(x - 9, y + 1, z - 9, x + 9, y + 10, z + 9, B.AIR);
+      // a fence two blocks high, with a gate on the south side
+      for (let i = -6; i <= 6; i++) for (const [fx, fz] of [[x + i, z - 6], [x + i, z + 6], [x - 6, z + i], [x + 6, z + i]]) {
+        if (fz === z + 6 && Math.abs(fx - x) <= 1) continue;
+        const post = (fx - x) % 3 === 0 && (fz - z) % 3 === 0;
+        b.box(fx, y + 1, fz, fx, y + 2, fz, post ? B.OAK_LOG : B.PLANKS);
+      }
+      for (const dx of [-2, 2]) b.box(x + dx, y + 1, z + 6, x + dx, y + 3, z + 6, B.OAK_LOG);
+      b.box(x - 2, y + 4, z + 6, x + 2, y + 4, z + 6, B.PLANKS);
+      // a shelter with hay at the back
+      for (const [px, pz] of [[x - 5, z - 5], [x - 1, z - 5], [x - 5, z - 3], [x - 1, z - 3]]) b.box(px, y + 1, pz, px, y + 2, pz, B.OAK_LOG);
+      b.box(x - 5, y + 3, z - 5, x - 1, y + 3, z - 3, B.PLANKS);
+      b.stamp(x - 4, y + 1, z - 5, B.WOOL_YELLOW); b.stamp(x - 3, y + 1, z - 5, B.WOOL_YELLOW); b.stamp(x - 4, y + 2, z - 5, B.WOOL_YELLOW);
+      // water trough and food trough
+      b.box(x + 2, y, z - 5, x + 4, y, z - 5, B.WATER);
+      b.box(x + 3, y + 1, z + 2, x + 5, y + 1, z + 2, B.PLANKS);
+      b.stamp(x + 6, y + 3, z - 6, B.LANTERN); b.stamp(x - 6, y + 3, z - 6, B.LANTERN);
+      b.stamp(x + 3, y + 1, z + 8, B.CHEST);
+      const fl = [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE];
+      for (let i = 0; i < 10; i++) { const fx = x - 8 + Math.floor(hash3(i, 3, x, 9) * 17), fz = z + 7 + Math.floor(hash3(i, 4, z, 9) * 3); if (Math.abs(fx - x) > 2) b.stamp(fx, y + 1, fz, fl[i % 4]); }
+      return { y: y + 1, at: { pen: [x + 0.5, y + 1, z + 0.5] } };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);

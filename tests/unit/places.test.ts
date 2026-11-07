@@ -135,3 +135,23 @@ describe('raft river', () => {
     expect(Math.hypot(l.x, l.z)).toBeGreaterThan(55);
   });
 });
+
+import { lostSpots } from '../../src/game/sanctuary';
+describe('animal sanctuary', () => {
+  for (const seed of [1, 42, 777, 99999]) it(`seed ${seed}: a fenced pen, and five lost animals on dry land away from other places`, () => {
+    const g = new Generator(seed), at = stamped(g), l = g.landmarks.find(l => l.id === 'sanctuary')!;
+    const [px, py, pz] = l.at!.pen;
+    expect(at(px, py, pz)).toBe(B.AIR);
+    // the fence is two blocks high all round, except the gate
+    let fence = 0; for (let i = -6; i <= 6; i++) if (at(l.x + i, py + 1, l.z - 6) !== B.AIR) fence++;
+    expect(fence).toBe(13);
+    expect(at(l.x, py, l.z + 6)).toBe(B.AIR); // the gate
+    const spots = lostSpots(seed, (x, z) => g.column(x, z), [...g.landmarks, ...g.shrines]);
+    expect(spots.length).toBe(5);
+    expect(lostSpots(seed, (x, z) => g.column(x, z), [...g.landmarks, ...g.shrines])).toEqual(spots);
+    for (const s of spots) {
+      expect(g.column(Math.floor(s.x), Math.floor(s.z)).h).toBeGreaterThan(SEA);
+      for (const o of g.landmarks) expect(Math.hypot(o.x - s.x, o.z - s.z)).toBeGreaterThan(15);
+    }
+  });
+});

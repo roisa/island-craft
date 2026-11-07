@@ -5,6 +5,31 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Animal Sanctuary 🏡 and lost animals
+
+- **A new landmark:** a fenced pen two blocks high with a gate, a shelter
+  with hay, a water trough, a food trough and a chest.
+- **Five lost animals** wait around the world, in the same places for the
+  same world: Kapas the lamb, Belang the cat, Kiki the goat, Pipit the hen
+  and Mochi the cow. Each carries a 🥺 "Lost" tag.
+- **Rescuing one:**
+  - Tap a lost animal: it says it is lost and follows you, and the golden
+    arrow points to the sanctuary.
+  - Walk it into the pen: a welcome-home celebration, and it lives there
+    from then on (it wanders only inside the pen).
+- **Feeding:** tap a rescued animal while holding an apple, dates or milk.
+- **Animal friends list** in the quests page:
+  - Shows who is home, who is following you and who is still lost.
+  - A 🧭 button points the arrow at a lost animal.
+- **New quest:** animal helper (rescue 3).
+- **Fixed:** a following friend, such as your pet, now catches up even
+  after a long jump such as the 🏠 home button. Animals more than 90 blocks
+  away used to stop updating, so a follower was left behind.
+- **Tested:**
+  - Unit tests: the fence, the gate, and five lost spots on dry land away
+    from other places, the same for the same seed.
+  - A smoke step on all four profiles rescues an animal and feeds it.
+
 ### Raft River 🛶
 
 - **A new landmark:** a winding river traced through low ground, from a

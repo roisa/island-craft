@@ -83,6 +83,8 @@ export class Animal extends Entity {
   hop = 0;
   chunk = '';
   follow: (() => THREE.Vector3) | null = null;   // pets follow their friend
+  /** lives in a pen: wanders only inside this circle */
+  pen: { x: number; z: number; r: number } | null = null;
   tagObj?: THREE.Object3D;
   ridden = false;
   /** seconds until petting counts again (stops tap-spamming for stars) */
@@ -108,7 +110,7 @@ export class Animal extends Entity {
   }
   /** a fright: scurry a few blocks away from `from`, unless it's someone's pet or being ridden */
   startle(from: THREE.Vector3) {
-    if (this.follow || this.ridden || this.startleCd > 0 || this.kind === 'camel') return false;
+    if (this.follow || this.pen || this.ridden || this.startleCd > 0 || this.kind === 'camel') return false;
     const dx = this.pos.x - from.x, dz = this.pos.z - from.z, d = Math.hypot(dx, dz) || 1;
     const run = this.kind === 'chicken' ? 4.5 : 3.5;
     this.target = new THREE.Vector3(this.pos.x + dx / d * run + (Math.random() - 0.5) * 1.5, this.pos.y, this.pos.z + dz / d * run + (Math.random() - 0.5) * 1.5);
@@ -150,7 +152,8 @@ export class Animal extends Entity {
       this.wait -= dt;
       if (this.wait <= 0) {
         const a = Math.random() * Math.PI * 2, r = 2 + Math.random() * 5;
-        this.target = new THREE.Vector3(this.pos.x + Math.cos(a) * r, this.pos.y, this.pos.z + Math.sin(a) * r);
+        if (this.pen && !this.follow) { const rr = Math.random() * this.pen.r; this.target = new THREE.Vector3(this.pen.x + Math.cos(a) * rr, this.pos.y, this.pen.z + Math.sin(a) * rr); }
+        else this.target = new THREE.Vector3(this.pos.x + Math.cos(a) * r, this.pos.y, this.pos.z + Math.sin(a) * r);
       }
     } else {
       const dx = this.target.x - this.pos.x, dz = this.target.z - this.pos.z, d = Math.hypot(dx, dz);
@@ -491,7 +494,7 @@ export class Entities {
   update(dt: number, t: number, center: THREE.Vector3, playerSpeed = 0) {
     for (const a of this.animals) {
       const d2 = a.pos.distanceToSquared(center);
-      if (d2 > 90 * 90) continue;
+      if (d2 > 90 * 90 && !a.follow) continue; // friends who follow you always catch up, even after a long jump home
       a.sleeping = this.clock.night;
       if (d2 < 36 && a.sense(center, playerSpeed)) this.onStartle?.(a);
       a.update(dt, t);

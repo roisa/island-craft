@@ -188,8 +188,20 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       return { moved: +moved.toFixed(1), ...end };
     });
+    await step('rescue a lost animal and feed it at the sanctuary', async () => {
+      const lost = await g(() => { const G = __game; G.ui.closeAllModals(); const l = G.sanctuary.lost[0]; G.player.pos.set(l.x + 3, G.gen.column(Math.floor(l.x + 3), Math.floor(l.z)).h + 1, l.z); return l; });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(id => [...__game.ents.animals].some(a => __game.sanctuary.owns(a) === id) || (__game.ui.closeAllModals(), false), lost.id, { timeout: 20000, polling: 300 });
+      await g(id => { const G = __game; const a = G.ents.animals.find(a => G.sanctuary.owns(a) === id); G.ui.closeAllModals(); G.sanctuary.befriend(a); G.ui.closeAllModals(); const pen = G.gen.landmarks.find(l => l.id === 'sanctuary').at.pen; G.player.pos.set(pen[0], pen[1], pen[2] + 1); }, lost.id);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(id => (__game.stats.rescued || []).includes(id) || (__game.ui.closeAllModals(), false), lost.id, { timeout: 20000, polling: 300 });
+      const fed = await g(() => { const G = __game; G.ui.closeAllModals(); G.inv.add(217, 1); G.inv.sel = G.inv.slots.findIndex(s => s && s.id === 217); const a = G.ents.animals.find(a => G.sanctuary.isHome(a)); a.petCd = 0; const ok = G.sanctuary.feed(a); G.ui.closeAllModals(); G.inv.sel = Math.max(0, G.inv.slots.findIndex((s, i) => i < 9 && !s)); G.player.pos.set(0.5, 47, 3.5); return { ok, fed: G.stats.fed, rescued: G.stats.rescued }; });
+      if (!fed.ok || fed.fed !== 1) throw new Error(JSON.stringify(fed));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return fed;
+    });
     await step('pet an animal (repeated taps count once)', async () => {
-      const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet);
+      const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
         if (!a) return { skipped: true };
         const s0 = G.stats.petted; for (let i = 0; i < 4; i++) G.useEntity(a); return { kind: a.kind, counted: G.stats.petted - s0 }; });
       if (!r.skipped && r.counted !== 1) throw new Error(JSON.stringify(r));

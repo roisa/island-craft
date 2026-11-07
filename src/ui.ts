@@ -730,7 +730,11 @@ export class UI {
       <h3>${tr('Stiker kebaikan', 'Good-deed stickers')} (${g.questsDone.size}/${QUESTS.length})</h3>
       <div class="stickers">${QUESTS.map(q => `<span class="${g.questsDone.has(q.id) ? '' : 'off'}" title="${esc(t2(q.title))}">${q.sticker}</span>`).join('')}</div>
       <h3>${tr('Catatan petualangan', 'Adventure log')}</h3>
-      <p>🔤 ${g.stats.letters.length}/28 · 🧱 ${g.stats.placed} · 💕 ${g.stats.petted} · 🤲 ${g.stats.gave} · 🕌 ${g.stats.jamaah} · 🌇 ${g.stats.iftar}<br>🧭 ${g.stats.biomes.map(b => (BIOME_INFO as any)[['OCEAN', 'BEACH', 'MEADOW', 'FOREST', 'DESERT', 'SNOWY', 'MOUNTAIN', 'VILLAGE'].indexOf(b)]?.icon ?? '').join(' ')}</p>`;
+      <p>🔤 ${g.stats.letters.length}/28 · 🧱 ${g.stats.placed} · 💕 ${g.stats.petted} · 🤲 ${g.stats.gave} · 🕌 ${g.stats.jamaah} · 🌇 ${g.stats.iftar}<br>🧭 ${g.stats.biomes.map(b => (BIOME_INFO as any)[['OCEAN', 'BEACH', 'MEADOW', 'FOREST', 'DESERT', 'SNOWY', 'MOUNTAIN', 'VILLAGE'].indexOf(b)]?.icon ?? '').join(' ')}</p>
+      <h3>🐾 ${tr('Sahabat hewan', 'Animal friends')} <small>(${(g.stats.rescued || []).length}/${g.sanctuary.lost.length})</small></h3>
+      ${g.sanctuary.lost.map(l => { const home = (g.stats.rescued || []).includes(l.id), fol = g.sanctuary.following().includes(l.id);
+        return `<div class="qcard"><div class="ic">${home || fol ? l.icon : '❔'}</div><div class="tx"><b>${home || fol ? esc(l.name) : tr('Hewan yang tersesat', 'A lost animal')}</b><small>${home ? tr('Tinggal di 🏡 Rumah Hewan. Bawa apel atau kurma untuk memberinya makan!', 'Lives at the 🏡 Animal Sanctuary. Bring apples or dates to feed it!') : fol ? tr('Sedang mengikutimu ke Rumah Hewan', 'Following you to the sanctuary') : tr('Menunggu ditolong di suatu tempat…', 'Waiting for help somewhere…')}</small></div>${!home && !fol ? `<button class="btn small ${g.exploreTarget === 'lost:' + l.id ? 'gold' : 'ghost'}" data-lost="${l.id}">🧭</button>` : ''}</div>`; }).join('')}`;
+    body.querySelectorAll<HTMLElement>('[data-lost]').forEach(b => (b.onclick = () => { g.exploreTarget = 'lost:' + b.dataset.lost; SFX.click(); this.closeBook?.(); this.toast(tr('🧭 Ikuti panah emas untuk menemukan hewan yang tersesat', '🧭 Follow the golden arrow to find the lost animal')); }));
   }
 
   private ramadhanTab(body: HTMLElement) {

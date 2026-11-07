@@ -43,6 +43,7 @@ import { Festive, PICNIC } from './game/festive';
 import { Places } from './game/places';
 import { Eid, type EidMode } from './game/eid';
 import { moonPhase } from './game/moon';
+import { Sanctuary } from './game/sanctuary';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -87,6 +88,7 @@ export class Game {
   fun!: Fun;
   festive!: Festive;
   places!: Places;
+  sanctuary!: Sanctuary;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -289,6 +291,7 @@ export class Game {
     this.fun.restorePet();
     this.festive = new Festive(this);
     this.places = new Places(this);
+    this.sanctuary = new Sanctuary(this);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -408,7 +411,7 @@ export class Game {
   compass() {
     let best: { rot: number; dist: number; landmark?: string } | null = null, bd = Infinity;
     const p = this.player?.pos; if (!p) return null;
-    const lm = this.exploreTarget ? this.gen.landmarks.find(l => l.id === this.exploreTarget) : null;
+    const lm: { x: number; z: number; icon: string } | null | undefined = this.exploreTarget ? (this.sanctuary?.target(this.exploreTarget) ?? this.gen.landmarks.find(l => l.id === this.exploreTarget)) : null;
     if (lm) {
       const ta = Math.atan2(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
       return { rot: -(ta - la), dist: Math.hypot(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), landmark: lm.icon };
@@ -958,6 +961,7 @@ export class Game {
     this.fun.update(dt);
     this.festive.update(t);
     this.places.update(dt, t);
+    this.sanctuary.update(dt);
     this.eid.update(dt, t);
     if ((this.eidT -= dt) <= 0) { this.eidT = 20; this.eid.refresh(); }
     this.picnicCheck();
@@ -1273,6 +1277,8 @@ export class Game {
     }
     if (e instanceof Npc) { this.talkNpc(e); return; }
     if (e instanceof Animal) {
+      if (this.sanctuary.isLost(e)) { this.sanctuary.befriend(e); return; }
+      if (this.sanctuary.isHome(e) && this.sanctuary.feed(e)) return;
       if (held && (held.id === I.DATES || held.id === I.APPLE) && e !== this.fun.pet) { this.fun.offerAdopt(e); return; }
       if (e.kind === 'camel' && !this.fun.riding) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 2); this.fun.rideCamel(e); return; }
       if (e === this.fun.pet) { if (e.petCd > 0) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 1); return; } e.petCd = 1.5; e.cheer(); e.spin = 0.7; this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 4); SFX.pet(); SFX.critter(e.kind); this.ui.toast(tr(`💕 ${this.stats.pet!.name} senang sekali!`, `💕 ${this.stats.pet!.name} is so happy!`)); this.stats.petted++; this.checkQuests(); return; }
