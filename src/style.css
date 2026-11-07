@@ -513,3 +513,9 @@ button.say .ic { width: 19px; height: 19px; }
   .harakat .hg .arimg { width: 62px; height: auto; }
   .quizOpts button .arimg { max-width: 70px; }
 }
+
+/* character portraits */
+.choice button img.av { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 2px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+#start .logo.round { border-radius: 50%; object-fit: cover; background: #fff; box-shadow: 0 8px 20px -6px rgba(30,60,110,.4); }
+.dialog img.face[src*="-face"] { border-radius: 50%; object-fit: cover; background: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.15); }
+@media (max-height: 500px) { .choice button img.av { width: 30px; height: 30px; display: inline-block; vertical-align: middle; margin: 0 4px 0 0; } }

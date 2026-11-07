@@ -775,18 +775,19 @@ export class Game {
     this.stats.talked[n.id] = true;
     const held = this.inv.held();
     const food = held && FOOD.has(held.id);
-    const face = n.id === 'adam' ? '🧑' : n.id === 'ustadz' ? '👨' : n.id === 'aminah' ? '🧕' : '👴';
+    const portrait = n.id === 'adam' ? 'img/adam-face.webp' : '';
+    const face = n.id === 'adam' ? portrait : n.id === 'ustadz' ? '👨' : n.id === 'aminah' ? '🧕' : '👴';
     if (food) {
       const gift = [B.MOSAIC, B.GOLD_TILE, B.LANTERN, B.WOOL_PURPLE][Math.floor(Math.random() * 4)];
       this.giveFood(n.pos);
       this.inv.add(gift, 2);
-      this.ui.dialog({ face, who: n.name, text: tr(`Masya Allah, terima kasih ya! Semoga Allah membalas kebaikanmu. 🤲<br>Ini hadiah kecil untukmu: <b>${t2(nameOf(gift))} ×2</b>`, `Masha Allah, thank you! May Allah reward your kindness. 🤲<br>Here's a small gift: <b>${t2(nameOf(gift))} ×2</b>`) });
+      this.ui.dialog({ face, img: !!portrait, who: n.name, text: tr(`Masya Allah, terima kasih ya! Semoga Allah membalas kebaikanmu. 🤲<br>Ini hadiah kecil untukmu: <b>${t2(nameOf(gift))} ×2</b>`, `Masha Allah, thank you! May Allah reward your kindness. 🤲<br>Here's a small gift: <b>${t2(nameOf(gift))} ×2</b>`) });
       return;
     }
     if (n.id === 'ustadz') {
       const k = this.stats.letters.length;
       this.ui.dialog({
-        face, who: n.name,
+        face, img: !!portrait, who: n.name,
         text: k === 0 ? tr('Wa’alaikumussalam! Di dunia ini ada <b>28 huruf hijaiyah</b> yang bersinar di kuil-kuil kecil. Ikuti kompas emas, dan dengarkan bunyi setiap huruf ya.', 'Wa’alaikumussalam! There are <b>28 hijaiyah letters</b> glowing in little shrines around this world. Follow the golden compass and listen to each letter’s sound.')
           : k < 28 ? tr(`Masya Allah, kamu sudah menemukan <b>${k} huruf</b>! Mau latihan tebak huruf bersama Ayah?`, `Masha Allah, you have found <b>${k} letters</b>! Want to practise a letter quiz with me?`)
             : tr('Subhanallah! Semua 28 huruf sudah kamu temukan. Teruslah belajar sampai bisa membaca Al-Qur’an ya!', 'Subhanallah! You found all 28 letters. Keep learning until you can read the Qur’an!'),
@@ -808,21 +809,21 @@ export class Game {
       ];
       const tip = tips[Math.floor(Math.random() * tips.length)];
       this.ui.dialog({
-        face, who: n.name,
+        face, img: !!portrait, who: n.name,
         text: first ? tr('Hai adik! Kakak punya hadiah: <b>beliung kayu</b> buat menggali batu. Ayo kita bangun sesuatu yang keren bareng! 💪', 'Hey little one! I’ve got a present for you: a <b>wooden pickaxe</b> for digging stone. Let’s build something awesome together! 💪')
           : tr(tip[0], tip[1]),
         buttons: [{ label: ic('blueprint') + ' ' + tr('Lihat rancangan', 'See blueprints'), cls: 'gold', fn: () => this.ui.openBook('build') }, { label: tr('Siap, Kak!', 'Got it, Adam!') }],
       });
     } else if (n.id === 'aminah') {
       this.ui.dialog({
-        face, who: n.name,
+        face, img: !!portrait, who: n.name,
         text: tr('Assalamu’alaikum, Nak! Ibu sedang menyiapkan takjil untuk tetangga. Rasulullah SAW suka berbuka dengan <b>kurma</b>. Resep takjil: <b>3 kurma + 1 susu</b>. Kurma ada di pohon kurma, susu dari sapi atau unta yang disayang. Kalau mau berbagi, bawa makanan ke sini ya! 🍽️',
           'Assalamu’alaikum, dear! I’m preparing iftar snacks for the neighbours. The Prophet (peace be upon him) liked to break his fast with <b>dates</b>. Recipe: <b>3 dates + 1 milk</b>. Dates grow on date palms, and cows or camels share milk when you’re kind. If you’d like to share, bring some food here! 🍽️'),
       });
     } else {
       const np = this.nextGamePrayer();
       this.ui.dialog({
-        face, who: n.name,
+        face, img: !!portrait, who: n.name,
         text: tr(`Lihat matahari, Nak. <b>Subuh</b> saat fajar, <b>Dzuhur</b> saat matahari tinggi, <b>Ashar</b> sore hari, <b>Maghrib</b> saat matahari terbenam, dan <b>Isya</b> saat malam. Sekarang pukul ${this.fmtGame(this.hour)}, sholat berikutnya <b>${prayerName(np.p)}</b> pukul ${this.fmtGame(np.h)}.<br>Kakek juga suka menanam pohon — bibit yang kamu tanam akan tumbuh besar! 🌱`,
           `Look at the sun, child. <b>Fajr</b> is at dawn, <b>Dhuhr</b> when the sun is high, <b>Asr</b> in the afternoon, <b>Maghrib</b> at sunset and <b>Isha</b> at night. It’s ${this.fmtGame(this.hour)} now; next is <b>${prayerName(np.p)}</b> at ${this.fmtGame(np.h)}.<br>I love planting trees too — saplings you plant will grow tall! 🌱`),
         buttons: [{ label: ic('mosque') + tr('Jadwal sholat asli', 'Real prayer times'), cls: 'ghost', fn: () => this.ui.openBook('prayer') }, { label: tr('Terima kasih, Kek', 'Thank you, Grandpa') }],
