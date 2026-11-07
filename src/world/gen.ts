@@ -366,6 +366,8 @@ export class Generator {
     // two treasure chests to discover around the village edge
     this.stamp(-24, G + 1, -10, B.CHEST); this.stamp(24, G + 1, -2, B.CHEST);
     this.stamp(-3, G + 1, -3, B.FURNACE);
+    // the bedug drum by the masjid steps
+    this.stamp(-4, G + 1, -12, B.OAK_LOG); this.stamp(-4, G + 2, -12, B.BEDUG);
 
     // --- lantern posts
     for (const [x, z] of [[-6, -6], [6, -6], [-6, 6], [6, 6], [-3, -10], [3, -10], [-3, 16], [3, 16], [-12, 3], [12, 3], [-20, 3], [20, 3]]) {

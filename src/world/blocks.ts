@@ -10,7 +10,7 @@ export enum B {
   FLOWER_RED = 35, FLOWER_YELLOW = 36, FLOWER_BLUE = 37, FLOWER_PURPLE = 38,
   TALL_GRASS = 39, DEAD_BUSH = 40, SAPLING = 41, PALM_SAPLING = 42, BED = 43, BOOKSHELF = 44,
   WOOL_WHITE = 45, WOOL_RED = 46, WOOL_YELLOW = 47, WOOL_BLUE = 48, WOOL_PURPLE = 49, WOOL_GREEN = 50,
-  PINE_SAPLING = 51, CHEST = 52, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  PINE_SAPLING = 51, CHEST = 52, BEDUG = 53, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -116,6 +116,7 @@ blk(B.SAPLING, ['Bibit Pohon', 'Tree Sapling'], 'sapling', { ...plant, color: 0x
 blk(B.PALM_SAPLING, ['Bibit Kurma', 'Date Palm Sapling'], 'palm_sapling', { ...plant, color: 0x6aa84f });
 blk(B.PINE_SAPLING, ['Bibit Cemara', 'Pine Sapling'], 'pine_sapling', { ...plant, color: 0x2f6b45 });
 blk(B.BED, ['Kasur', 'Bed'], ['bed_top', 'bed_side', 'planks'], { color: 0xe4423a, hardness: 0.6 });
+blk(B.BEDUG, ['Bedug', 'Bedug Drum'], ['bedug_face', 'bedug_side', 'bedug_face'], { color: 0x8a5c38, hardness: Infinity });
 blk(B.CHEST, ['Peti Harta Karun', 'Treasure Chest'], ['chest_top', 'chest_side', 'chest_top', 'chest_front'], { color: 0xc49a62, hardness: Infinity });
 blk(B.BOOKSHELF, ['Rak Buku', 'Bookshelf'], ['planks', 'bookshelf', 'planks'], { color: 0xc49a62, hardness: 1.2, tool: 'axe' });
 const wool: [number, string, T2, number][] = [

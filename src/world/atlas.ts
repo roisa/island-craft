@@ -140,6 +140,8 @@ const P: Record<string, Painter> = {
   wool_blue: g => wool(g, '#2E6FE0', '#2458B8'),
   wool_purple: g => wool(g, '#9B59B6', '#7E4396'),
   wool_green: g => wool(g, '#3FA34D', '#2F8A3C'),
+  bedug_side: g => { g.fill('#8A4F2A'); for (let x = 0; x < 16; x += 3) g.rect(x, 0, 1, 16, '#6E3C1E'); g.rect(0, 1, 16, 2, '#C9A227'); g.rect(0, 13, 16, 2, '#C9A227'); for (let x = 1; x < 16; x += 3) { g.p(x, 2, '#5E3E25'); g.p(x, 14, '#5E3E25'); } },
+  bedug_face: g => { g.fill('#8A4F2A'); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const d = Math.hypot(x - 7.5, y - 7.5); if (d < 6.6) g.p(x, y, d < 2 ? '#D8BC8A' : '#EAD3A4'); else if (d < 7.6) g.p(x, y, '#C9A227'); } },
   chest_side: g => { g.fill('#A9743F'); for (let y = 0; y < 16; y += 4) g.rect(0, y, 16, 1, '#7A5129'); g.rect(0, 5, 16, 2, '#F1C232'); g.rect(0, 0, 1, 16, '#F1C232'); g.rect(15, 0, 1, 16, '#F1C232'); },
   chest_front: g => { P.chest_side(g); g.rect(6, 5, 4, 5, '#F1C232'); g.rect(7, 7, 2, 2, '#5E3E25'); },
   chest_top: g => { g.fill('#B98250'); for (let x = 0; x < 16; x += 4) g.rect(x, 0, 1, 16, '#8C5E33'); g.rect(0, 0, 16, 1, '#F1C232'); g.rect(0, 15, 16, 1, '#F1C232'); g.rect(0, 0, 1, 16, '#F1C232'); g.rect(15, 0, 1, 16, '#F1C232'); },

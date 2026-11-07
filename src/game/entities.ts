@@ -116,6 +116,8 @@ export class Npc extends Entity {
   wait = 2;
   goingToMasjid = false;
   praying = false;
+  activity: 'pray' | 'picnic' = 'pray';
+  faceTo: THREE.Vector3 | null = null;
   tag: THREE.Sprite;
   waving = false;
   constructor(public id: NpcId, public name: string, opts: HumanOpts, public home: THREE.Vector3, public world: World) {
@@ -148,14 +150,18 @@ export class Npc extends Entity {
     }
     this.sync(t);
     // at the masjid during prayer time: pray together, facing the qibla wall (north)
-    if (this.goingToMasjid && !this.target) { this.yaw = Math.PI; this.rig.root.rotation.y = this.yaw; applyPrayerPose(this.rig, poseAt(t)); this.praying = true; return; }
+    if (this.goingToMasjid && !this.target) {
+      if (this.activity === 'picnic' && this.faceTo) this.yaw = Math.atan2(this.faceTo.x - this.pos.x, this.faceTo.z - this.pos.z); else this.yaw = Math.PI;
+      this.rig.root.rotation.y = this.yaw; applyPrayerPose(this.rig, this.activity === 'picnic' ? 'julus' : poseAt(t)); this.praying = true; return;
+    }
     if (this.praying) { clearPose(this.rig); this.praying = false; }
     if (this.waving && this.rig.armR) this.rig.armR.rotation.set(-2.6 + Math.sin(t * 10) * 0.3, 0, 0.2);
     else if (this.rig.armR && !this.moving) this.rig.armR.rotation.set(0, 0, 0);
   }
   /** walk to the masjid for jama'ah prayer, or home again */
-  goPray(on: boolean, spot: THREE.Vector3) {
-    this.goingToMasjid = on;
+  goPray(on: boolean, spot: THREE.Vector3, activity: 'pray' | 'picnic' = 'pray', faceTo: THREE.Vector3 | null = null) {
+    this.goingToMasjid = on; this.activity = activity; this.faceTo = faceTo;
+    if (this.praying) { clearPose(this.rig); this.praying = false; }
     this.target = on ? spot.clone() : this.home.clone();
   }
   lookAt(p: THREE.Vector3) { this.yaw = Math.atan2(p.x - this.pos.x, p.z - this.pos.z); }

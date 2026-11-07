@@ -27,6 +27,7 @@ import { QUESTS, Stats, newStats, DUAS, CALENDAR } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
 import { Fun, Outfit, defaultOutfit, outfitItem, dressUp } from './game/fun';
+import { Festive, PICNIC } from './game/festive';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -57,6 +58,7 @@ export class Game {
   };
   kid!: Kid;
   fun!: Fun;
+  festive!: Festive;
   onLevelUp: ((lv: number) => void) | null = null;
   seed = 0;
   hour = 7.5; day = 1;
@@ -86,6 +88,7 @@ export class Game {
   private iftarDay = -1;
   private dirtySave = false;
   private prayingPose = false;
+  private picnicToMasjid = -1;
   /** last thing placed, so a mis-tap can be undone for a few seconds */
   undo: { cells: [number, number, number, number][]; refund: [number, number][]; until: number } | null = null;
 
@@ -144,7 +147,7 @@ export class Game {
     if (meta?.settings) Object.assign(this.settings, meta.settings);
     setLang(meta?.lang ?? getLang());
     this.ui.labels();
-    this.ui.showStart(!!meta, fresh => this.start(fresh ? null : meta));
+    this.ui.showStart(meta ?? null, fresh => this.start(fresh ? null : meta));
     this.loop();
   }
 
@@ -207,6 +210,7 @@ export class Game {
     this.kid = new Kid(this);
     this.fun = new Fun(this);
     this.fun.restorePet();
+    this.festive = new Festive(this);
 
     // pre-generate the area around the player
     const total = 30;
@@ -230,6 +234,7 @@ export class Game {
     this.lastHour = this.hour;
     Music.setEnabled(this.settings.music);
     this.kid.start(!meta);
+    if (meta && !this.kid.tutorialActive()) setTimeout(() => this.festive.dailyGift(), 2500);
     if (!meta) {
       setTimeout(() => this.ui.say(tr('Assalamu’alaikum! Aku Baby Mo. Ayo main bersamaku! 🌙', 'Assalamu’alaikum! I’m Baby Mo. Come and play with me! 🌙'), 'pose-05'), 700);
     } else {
@@ -344,6 +349,22 @@ export class Game {
     SFX.quest(); this.ents.mo.celebrate = 2; this.kid.reward('calendar');
     this.saveSoon();
   }
+  /** walking up to the iftar mat at Maghrib invites you to break the fast together */
+  private picnicCheck() {
+    if (!this.festive.nearPicnic() || this.stats.picnicDay === this.day || this.ui.isOpen()) return;
+    this.stats.picnicDay = this.day;
+    this.ui.dialog({
+      face: '🧕', who: 'Bu Aminah',
+      text: tr('Ayo berbuka bersama, Nak! Duduk di sini. Ini takjil untukmu 🍽️', 'Come and break the fast with us, dear! Sit here. This takjil is for you 🍽️'),
+      buttons: [{ label: tr('Bismillah 🤲', 'Bismillah 🤲'), cls: 'gold', fn: () => {
+        this.stats.iftar++; this.stats.gave++; this.kid.reward('iftar'); this.ui.confetti(30);
+        this.inv.add(I.TAKJIL, 1); this.ui.pickup(I.TAKJIL, 1);
+        this.ui.duaCard(DUAS.iftar, tr('🌇 Doa berbuka puasa', '🌇 Du’a for breaking the fast'));
+        this.checkQuests();
+      } }],
+    });
+  }
+
   setUndo(cells: [number, number, number, number][], refund: [number, number][]) {
     this.undo = { cells, refund, until: performance.now() + 6000 };
     this.ui.showUndo(true);
@@ -535,6 +556,8 @@ export class Game {
     if (this.undo && performance.now() > this.undo.until) { this.undo = null; this.ui.showUndo(false); }
     this.playTime(dt);
     this.fun.update(dt);
+    this.festive.update(t);
+    this.picnicCheck();
   }
 
   private entityName(e: unknown) {
@@ -549,6 +572,7 @@ export class Game {
     const def = BLOCKS[hit.id];
     if (!def || def.hardness === Infinity) { this.ui.mineRing(0); return; }
     if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); this.input.mineHeld = false; this.input.pointerMine = false; return; }
+    if (hit.id === B.BEDUG) { this.festive.bedug(); this.input.mineHeld = false; this.input.pointerMine = false; return; }
     if (isLetter(hit.id)) {
       const sh = this.gen.shrines.find(s => s.x === hit.x && s.y === hit.y && s.z === hit.z);
       if (sh && !this.stats.letters.includes(sh.letter)) { this.collectLetter(sh.letter, hit.x, hit.y, hit.z); return; }
@@ -664,6 +688,7 @@ export class Game {
       // interactive blocks
       if (hit.id === B.BED) { this.sleep(); return; }
       if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); return; }
+      if (hit.id === B.BEDUG) { this.festive.bedug(); return; }
       if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
       if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, tr('📚 Doa sehari-hari', '📚 Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
@@ -801,6 +826,13 @@ export class Game {
     const s = this.schedule, h = this.hour;
     const night = h >= s.isha - 0.5 || h < s.fajr - 0.5;
     if (!night) { this.ui.toast(tr('🛏️ Kasur dipakai saat malam (setelah Isya)', '🛏️ Beds are for night time (after Isha)')); return; }
+    this.ui.dialog({
+      face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo', text: tr('Mau dengar cerita dulu sebelum tidur? 📚', 'Shall I tell you a story before bed? 📚'),
+      buttons: [{ label: tr('📚 Ya, cerita!', '📚 Yes, a story!'), cls: 'gold', fn: () => this.festive.story(() => this.goToSleep()) }, { label: tr('Langsung tidur 😴', 'Just sleep 😴'), fn: () => this.goToSleep() }],
+    });
+  }
+  private goToSleep() {
+    const s = this.schedule;
     this.ui.duaCard(DUAS.sleep, tr('🌜 Doa sebelum tidur', '🌜 Du’a before sleeping'), () => {
       this.ui.sleepFade(true);
       setTimeout(() => {
@@ -860,8 +892,14 @@ export class Game {
       if (this.crossed(s[p])) {
         this.gameEvent = { p, until: (s[p] + 0.9) % 24, attended: false };
         this.stats.prayersSeen++;
-        SFX.chime();
-        for (const n of this.ents.npcs) n.goPray(true, MASJID_SPOT.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 3)));
+        SFX.drum(3); setTimeout(() => SFX.chime(), 1400);
+        if (p === 'maghrib') {
+          // iftar first: everyone sits down together on the plaza, then goes to pray
+          this.festive.setPicnic(true);
+          this.ents.npcs.forEach((n, i) => n.goPray(true, this.festive.seat(i), 'picnic', PICNIC));
+          this.gameEvent.until = (s[p] + 1.4) % 24;
+          this.picnicToMasjid = (s[p] + 0.55) % 24;
+        } else for (const n of this.ents.npcs) n.goPray(true, MASJID_SPOT.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 3)));
         const lines: Record<Prayer, [string, string]> = {
           fajr: ['Sudah Subuh! Langit mulai terang. Warga berangkat ke masjid 🕌', 'It’s Fajr! The sky is getting lighter. The villagers are heading to the masjid 🕌'],
           dhuhr: ['Waktunya Dzuhur — matahari sedang tinggi ☀️ Yuk ikut ke masjid!', 'Dhuhr time — the sun is high ☀️ Let’s go to the masjid!'],
@@ -882,7 +920,11 @@ export class Game {
         this.ui.say(tr(`Ayo sholat ${prayerName(ev.p)} berjamaah! Diam di sini dan ikuti gerakan warga: berdiri, rukuk, sujud, duduk 🤲`, `Let’s pray ${prayerName(ev.p)} together! Stand still and follow the villagers: stand, bow, prostrate, sit 🤲`), 'alright', 8000);
         this.checkQuests();
       }
-      if (this.crossed(ev.until)) { for (const n of this.ents.npcs) n.goPray(false, n.home); this.gameEvent = null; }
+      if (this.picnicToMasjid >= 0 && this.crossed(this.picnicToMasjid)) {
+        this.picnicToMasjid = -1;
+        for (const n of this.ents.npcs) n.goPray(true, MASJID_SPOT.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 3)));
+      }
+      if (this.crossed(ev.until)) { for (const n of this.ents.npcs) n.goPray(false, n.home); this.gameEvent = null; this.festive.setPicnic(false); }
     }
     this.lastHour = this.hour;
   }

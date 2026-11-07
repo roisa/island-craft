@@ -5,7 +5,7 @@ import { tr, t2, getLang, setLang } from './i18n';
 import { iconURL } from './world/atlas';
 import { B, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
 import { RECIPES, canCraft, STATION_NAME, creativeCatalog } from './game/inventory';
-import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word } from './content';
+import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId } from './game/prayer';
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
@@ -70,7 +70,7 @@ export class UI {
 <div id="confetti"></div>
 <div id="planBar" class="pill hidden"><div class="pb-t"><b id="pbName"></b><small id="pbState"></small></div><button class="btn small ghost" id="pbRot">🔄</button><button class="btn small gold" id="pbBuild">✔ <span></span></button><button class="btn small ghost" id="pbCancel">✖</button></div>
 <div class="veil" id="vBook"><div class="panel" id="book"></div></div>
-<div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div></div></div>
+<div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div><p id="loadTip"></p></div></div>
 <div id="start" class="hidden"><div class="panel" id="startPanel"></div></div>`;
     this.labels();
     $('#bMenu').onclick = () => this.openBook('settings');
@@ -111,6 +111,7 @@ export class UI {
     for (const [m, ms] of this.queued.splice(0)) { setTimeout(() => this.showToast(m, ms), d); d += ms + 300; }
   }
   private showToast(msg: string, ms: number) {
+    if (this.modals.length) { this.queued.push([msg, ms]); return; }
     const t = $('#toast'); t.textContent = msg; t.classList.add('on');
     clearTimeout(this.toastT); this.toastT = window.setTimeout(() => t.classList.remove('on'), ms);
   }
@@ -122,6 +123,8 @@ export class UI {
     clearTimeout(this.bubbleT); this.bubbleT = window.setTimeout(() => $('#bubble').classList.remove('on'), ms);
     if (this.g.settings.moVoice && !this.modals.length) Speech.talk(text, getLang());
   }
+  speak(text: string, force = false) { Speech.talk(text, getLang(), force, 1); }
+  stopSpeech() { Speech.stop(1); }
   showUndo(on: boolean) { $('#bUndo').classList.toggle('hidden', !on); }
   showHud(on: boolean) { $('#hud').classList.toggle('hidden', !on); }
   setFlying(on: boolean) { $('#bDown').classList.toggle('hidden', !on); }
@@ -591,11 +594,13 @@ export class UI {
   }
   private presentModal(m: { veil: HTMLElement; close: () => void; onShow?: () => void }) {
     m.veil.style.zIndex = String(20 + this.modals.length * 2);
+    $('#toast').classList.remove('on');
     document.body.appendChild(m.veil);
     m.veil.classList.add('on');
     this.modals.push(m);
     this.g.pause(true);
-    m.onShow?.();
+    // run after the caller has finished wiring up the pop-up
+    if (m.onShow) queueMicrotask(m.onShow);
   }
   private showNextModal() {
     if (this.modals.length) return;
@@ -745,27 +750,44 @@ export class UI {
   }
 
   // ---------- start / loading ----------
+  private tipT = 0;
   loading(p: number | null, text = '') {
     const l = $('#loading');
-    if (p === null) { l.classList.add('hidden'); return; }
-    l.classList.remove('hidden');
+    if (p === null) { l.classList.add('hidden'); clearInterval(this.tipT); this.tipT = 0; return; }
+    if (l.classList.contains('hidden')) {
+      l.classList.remove('hidden');
+      let k = Math.floor(Math.random() * LOAD_TIPS.length);
+      const show = () => { $('#loadTip').textContent = '💡 ' + t2(LOAD_TIPS[k++ % LOAD_TIPS.length]); };
+      show(); this.tipT = window.setInterval(show, 3500);
+    }
     $('#loadTxt').textContent = text || tr('Menyiapkan dunia Baby Mo…', 'Preparing Baby Mo’s world…');
     $('#loadBar').style.width = Math.round(p * 100) + '%';
   }
-  showStart(hasSave: boolean, onPlay: (fresh: boolean) => void) {
+  showStart(meta: any, onPlay: (fresh: boolean) => void) {
     const s = this.g.settings;
+    const hasSave = !!meta;
     const el = $('#startPanel');
+    let full = !hasSave;
+    const go = (fresh: boolean) => { $('#start').classList.add('hidden'); onPlay(fresh); };
     const render = () => {
-      el.innerHTML = `${this.langSeg()}<img class="logo" src="img/baby-mo-pose-05.webp" alt="Baby Mo"><h1>${tr('Dunia Baby Mo', 'Baby Mo’s World')}</h1>
+      const st = meta?.stats;
+      const name = s.avatar === 'girl' ? 'Aisyah' : 'Ibra';
+      const back = hasSave && !full ? `<div class="welcome">${tr(`Assalamu’alaikum, ${name}! 👋`, `Assalamu’alaikum, ${name}! 👋`)}</div>
+        <div class="chips center"><span class="chip on">⭐ Level ${levelOf(st?.stars || 0)}</span><span class="chip on">🔤 ${(st?.letters || []).length}/28</span>${st?.pet ? `<span class="chip on">🐾 ${esc(st.pet.name)}</span>` : ''}</div>
+        <button class="btn big" id="sPlay">▶️ ${tr('Lanjut main!', 'Keep playing!')}</button>
+        <div class="row"><button class="btn ghost small" id="sMore">⚙️ ${tr('Ganti tokoh / mode', 'Change hero / mode')}</button><button class="btn ghost small" id="sNew">🌍 ${tr('Dunia baru', 'New world')} 🔒</button></div>` : '';
+      el.innerHTML = `${this.langSeg()}<img class="logo" src="img/baby-mo-pose-05.webp" alt="Baby Mo"><h1>${tr('Dunia Baby Mo', 'Baby Mo’s World')}</h1>` + (back || `
         <div class="sub">${tr('Jelajahi hutan, gurun kurma, bukit salju & gua. Bangun masjidmu, temukan 28 huruf hijaiyah, dan sambut Ramadhan! 🌙', 'Explore forests, date deserts, snowy hills & caves. Build your masjid, find 28 hijaiyah letters and welcome Ramadan! 🌙')}</div>
         <div class="choice" id="cAv"><button data-v="boy" class="${s.avatar === 'boy' ? 'on' : ''}"><span class="e">👦</span>Ibra</button><button data-v="girl" class="${s.avatar === 'girl' ? 'on' : ''}"><span class="e">👧</span>Aisyah</button></div>
         <div class="choice" id="cMode"><button data-v="adventure" class="${s.mode === 'adventure' ? 'on' : ''}"><span class="e">🧭</span>${tr('Petualangan', 'Adventure')}<small>${tr('kumpulkan & buat barang', 'gather & craft')}</small></button><button data-v="creative" class="${s.mode === 'creative' ? 'on' : ''}"><span class="e">🧱</span>${tr('Kreatif', 'Creative')}<small>${tr('balok bebas & terbang', 'free blocks & flying')}</small></button></div>
-        <button class="btn" id="sPlay">${hasSave ? tr('▶️ Lanjutkan petualangan', '▶️ Continue adventure') : tr('▶️ Mulai bermain', '▶️ Start playing')}</button>
-        ${hasSave ? `<button class="btn ghost small" id="sNew">🌍 ${tr('Dunia baru', 'New world')}</button>` : ''}`;
-      el.querySelectorAll<HTMLElement>('#cAv button').forEach(b => (b.onclick = () => { s.avatar = b.dataset.v as 'boy' | 'girl'; render(); }));
+        <button class="btn big" id="sPlay">${hasSave ? tr('▶️ Lanjutkan petualangan', '▶️ Continue adventure') : tr('▶️ Mulai bermain', '▶️ Start playing')}</button>
+        ${hasSave ? `<button class="btn ghost small" id="sNew">🌍 ${tr('Dunia baru', 'New world')} 🔒</button>` : ''}`);
+      el.querySelectorAll<HTMLElement>('#cAv button').forEach(b => (b.onclick = () => { s.avatar = b.dataset.v as 'boy' | 'girl'; s.outfit = undefined; render(); }));
       el.querySelectorAll<HTMLElement>('#cMode button').forEach(b => (b.onclick = () => { s.mode = b.dataset.v as 'adventure' | 'creative'; render(); }));
-      $('#sPlay', el).onclick = () => { $('#start').classList.add('hidden'); onPlay(false); };
-      const n = $('#sNew', el); if (n) n.onclick = () => { $('#start').classList.add('hidden'); onPlay(true); };
+      $('#sPlay', el).onclick = () => go(false);
+      const m = el.querySelector<HTMLElement>('#sMore'); if (m) m.onclick = () => { full = true; render(); };
+      // starting over deletes everything, so only a grown-up can do it
+      const n = el.querySelector<HTMLElement>('#sNew'); if (n) n.onclick = () => this.parentGate(() => go(true));
       this.bindLangSeg(el, render);
     };
     render();

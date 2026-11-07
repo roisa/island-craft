@@ -55,6 +55,19 @@ export const SFX = {
     if (!on()) return;
     [[587, 0], [784, 0.35], [880, 0.7], [784, 1.2]].forEach(([f, d]) => { tone(f, 1.6, 'sine', 0.1, d); tone(f * 2, 1.0, 'sine', 0.025, d); });
   },
+  /** the bedug: a deep, warm drum beat */
+  drum(times = 1) {
+    if (!on()) return;
+    const c = actx(); if (!c) return;
+    for (let i = 0; i < times; i++) {
+      const t0 = c.currentTime + i * 0.42;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(120, t0); o.frequency.exponentialRampToValueAtTime(52, t0 + 0.35);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.7);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + 0.75);
+      noise(0.08, 0.12, 300, i * 0.42);
+    }
+  },
   fanfare() { if (on()) { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, i * 0.14)); } },
 };
 

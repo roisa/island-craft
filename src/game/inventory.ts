@@ -124,7 +124,7 @@ export function craft(inv: Inventory, r: Recipe, stations: Set<Station>) {
 /** Everything a creative-mode builder can pick from. */
 export function creativeCatalog(): number[] {
   const ids: number[] = [];
-  for (const b of BLOCKS) if (b && b.id !== B.WATER && b.id !== B.BEDROCK && b.id !== B.CHEST && b.letter === undefined) ids.push(b.id);
+  for (const b of BLOCKS) if (b && b.id !== B.WATER && b.id !== B.BEDROCK && b.id !== B.CHEST && b.id !== B.BEDUG && b.letter === undefined) ids.push(b.id);
   for (let i = 0; i < LETTERS.length; i++) ids.push(B.LETTER_0 + i);
   for (const id of ITEMS.keys()) ids.push(id);
   return ids;

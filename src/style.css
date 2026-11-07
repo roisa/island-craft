@@ -414,3 +414,21 @@ body.desktop #bUndo { bottom: calc(96px + var(--safe-b)); }
   .harakat button { width: 30%; }
   .lgrid { grid-template-columns: repeat(5, 1fr); }
 }
+
+/* ---------- batch 2 ---------- */
+#loadTip { max-width: 300px; margin: 14px auto 0; font-size: 14px; font-weight: 800; color: var(--ink); line-height: 1.4; min-height: 40px; padding: 0 12px; }
+.welcome { font-size: 19px; font-weight: 900; margin: 4px 0 6px; }
+.chips.center { justify-content: center; }
+.btn.big { font-size: 20px; padding: 18px; }
+.gift { text-align: center; }
+.gift .box { font-size: 92px; line-height: 1.15; cursor: pointer; display: inline-block; animation: wiggle 1.2s ease-in-out infinite; }
+.gift .box.open { animation: pk .4s ease-out; }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-8deg); } 40% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
+.gifts span { padding: 6px 12px; }
+.story { text-align: center; }
+.story .sicon { font-size: 60px; line-height: 1.1; }
+.story .spage { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.55; min-height: 96px; margin: 8px 4px; }
+.sdots { display: flex; gap: 6px; justify-content: center; margin-bottom: 4px; }
+.sdots i { width: 9px; height: 9px; border-radius: 50%; background: #d3dde8; }
+.sdots i.on { background: var(--green); }
+@media (max-height: 500px) { .story .sicon { font-size: 40px; } .story .spage { font-size: 16px; min-height: 60px; } .gift .box { font-size: 64px; } }

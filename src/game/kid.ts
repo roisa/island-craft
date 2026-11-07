@@ -126,6 +126,7 @@ export class Kid {
         if (!this.tutorialActive()) {
           g.ui.tutorial(null);
           setTimeout(() => g.ui.say(tr('Hebat! Kamu sudah siap berpetualang sendiri. Lihat ⭐ misi di kanan atas ya!', 'Amazing! You’re ready to explore on your own. Check the ⭐ quests at the top right!'), 'alright', 7000), 600);
+          setTimeout(() => g.festive.dailyGift(), 4000);
         } else this.showStep();
       }
     }
