@@ -1,6 +1,8 @@
 name: Publish game to GitHub Pages
 
-# Builds the game and publishes it to the `gh-pages` branch.
+# Tests, builds and publishes the game to the `gh-pages` branch.
+# The game is only published when the unit tests and the browser smoke test
+# pass, so a broken build never replaces the live game.
 # In the repository settings, set Pages → Source to "Deploy from a branch",
 # branch `gh-pages`, folder `/ (root)`. The game is then served at
 # https://<owner>.github.io/<repo>/
@@ -26,7 +28,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser smoke test (desktop, phone, tablet profiles)
+        run: npm run smoke
       - name: Push the build to gh-pages
         run: |
           cd dist
