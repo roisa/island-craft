@@ -21,6 +21,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,6 +37,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser smoke test (desktop, phone, tablet profiles)
         run: npm run smoke
+        timeout-minutes: 20
       - name: Push the build to gh-pages
         run: |
           cd dist

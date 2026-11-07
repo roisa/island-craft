@@ -13,6 +13,7 @@ const PROFILES = {
   android: { ...devices['Pixel 7'] },
 };
 const only = process.argv.slice(2);
+const STEP_LIMIT = +(process.env.SMOKE_STEP_LIMIT || 180000);
 const profiles = Object.keys(PROFILES).filter(k => !only.length || only.includes(k));
 
 let server, url = process.env.SMOKE_URL;
@@ -34,8 +35,10 @@ async function run(name) {
   const steps = [];
   const step = async (label, fn) => {
     const t = Date.now();
-    try { const info = await fn(); steps.push({ label, ok: true, ms: Date.now() - t, info }); }
-    catch (e) { steps.push({ label, ok: false, ms: Date.now() - t, info: String(e.message || e).split('\n')[0] }); throw e; }
+    // every step has a hard limit, and progress is printed live (useful in CI logs)
+    const limit = new Promise((_, rej) => setTimeout(() => rej(new Error(`step timed out after ${STEP_LIMIT / 1000}s`)), STEP_LIMIT));
+    try { const info = await Promise.race([fn(), limit]); steps.push({ label, ok: true, ms: Date.now() - t, info }); console.log(`[${name}] ✓ ${label} (${Date.now() - t} ms)`); }
+    catch (e) { steps.push({ label, ok: false, ms: Date.now() - t, info: String(e.message || e).split('\n')[0] }); console.log(`[${name}] ✗ ${label}: ${String(e.message || e).split('\n')[0]}`); throw e; }
   };
   const g = (fn, arg) => p.evaluate(fn, arg);
   const touch = !!PROFILES[name].hasTouch;
