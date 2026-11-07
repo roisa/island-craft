@@ -1,3 +1,4 @@
+import { ic } from './icons';
 import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/700.css';
 import '@fontsource/nunito/800.css';
@@ -384,7 +385,7 @@ export class Game {
   goHome(fx = false) {
     this.player.pos.copy(SPAWN); this.player.vel.set(0, 0, 0); this.player.visY = SPAWN.y; this.player.yaw = 0; this.player.flying = false;
     this.ents.mo.pos.set(SPAWN.x + 1.5, SPAWN.y, SPAWN.z + 1);
-    if (fx) { this.fx.sparkle(SPAWN.x, SPAWN.y + 1, SPAWN.z, 24, 0xffd874, 3); SFX.pickup(); this.ui.toast(tr('🏠 Sampai di desa!', '🏠 Home in the village!')); }
+    if (fx) { this.fx.sparkle(SPAWN.x, SPAWN.y + 1, SPAWN.z, 24, 0xffd874, 3); SFX.pickup(); this.ui.toast(ic('home') + tr('Sampai di desa!', 'Home in the village!')); }
   }
   restBreak() { this.ui.toast(tr('🤲 Selamat sholat! Game dijeda.', '🤲 Enjoy your prayer! The game is paused.'), 4000); this.ui.openBook('prayer'); }
   async newWorld() { await Save.del('meta'); await Save.del('edits'); location.reload(); }
@@ -690,7 +691,7 @@ export class Game {
       if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.BEDUG) { this.festive.bedug(); return; }
       if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
-      if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, tr('📚 Doa sehari-hari', '📚 Daily du’a')); return; }
+      if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, ic('book') + tr('Doa sehari-hari', 'Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
     }
     if (held && held.id === I.BOAT) { this.fun.tryBoat(); return; }
@@ -779,8 +780,8 @@ export class Game {
           : k < 28 ? tr(`Masya Allah, kamu sudah menemukan <b>${k} huruf</b>! Mau latihan tebak huruf bersama Ustadz?`, `Masha Allah, you have found <b>${k} letters</b>! Want to practise a letter quiz with me?`)
             : tr('Subhanallah! Semua 28 huruf sudah kamu temukan. Teruslah belajar sampai bisa membaca Al-Qur’an ya!', 'Subhanallah! You found all 28 letters. Keep learning until you can read the Qur’an!'),
         buttons: [
-          ...(k >= 3 ? [{ label: '🎯 ' + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
-          { label: '📖 ' + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
+          ...(k >= 3 ? [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
+          { label: ic('book') + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
           { label: tr('Terima kasih, Ustadz', 'Thank you, Ustadz') },
         ],
       });
@@ -796,7 +797,7 @@ export class Game {
         face, who: n.name,
         text: tr(`Lihat matahari, Nak. <b>Subuh</b> saat fajar, <b>Dzuhur</b> saat matahari tinggi, <b>Ashar</b> sore hari, <b>Maghrib</b> saat matahari terbenam, dan <b>Isya</b> saat malam. Sekarang pukul ${this.fmtGame(this.hour)}, sholat berikutnya <b>${prayerName(np.p)}</b> pukul ${this.fmtGame(np.h)}.<br>Kakek juga suka menanam pohon — bibit yang kamu tanam akan tumbuh besar! 🌱`,
           `Look at the sun, child. <b>Fajr</b> is at dawn, <b>Dhuhr</b> when the sun is high, <b>Asr</b> in the afternoon, <b>Maghrib</b> at sunset and <b>Isha</b> at night. It’s ${this.fmtGame(this.hour)} now; next is <b>${prayerName(np.p)}</b> at ${this.fmtGame(np.h)}.<br>I love planting trees too — saplings you plant will grow tall! 🌱`),
-        buttons: [{ label: '🕌 ' + tr('Jadwal sholat asli', 'Real prayer times'), cls: 'ghost', fn: () => this.ui.openBook('prayer') }, { label: tr('Terima kasih, Kek', 'Thank you, Grandpa') }],
+        buttons: [{ label: ic('mosque') + tr('Jadwal sholat asli', 'Real prayer times'), cls: 'ghost', fn: () => this.ui.openBook('prayer') }, { label: tr('Terima kasih, Kek', 'Thank you, Grandpa') }],
       });
     }
     this.checkQuests();
@@ -828,7 +829,7 @@ export class Game {
     if (!night) { this.ui.toast(tr('🛏️ Kasur dipakai saat malam (setelah Isya)', '🛏️ Beds are for night time (after Isha)')); return; }
     this.ui.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo', text: tr('Mau dengar cerita dulu sebelum tidur? 📚', 'Shall I tell you a story before bed? 📚'),
-      buttons: [{ label: tr('📚 Ya, cerita!', '📚 Yes, a story!'), cls: 'gold', fn: () => this.festive.story(() => this.goToSleep()) }, { label: tr('Langsung tidur 😴', 'Just sleep 😴'), fn: () => this.goToSleep() }],
+      buttons: [{ label: ic('book') + tr('Ya, cerita!', 'Yes, a story!'), cls: 'gold', fn: () => this.festive.story(() => this.goToSleep()) }, { label: tr('Langsung tidur 😴', 'Just sleep 😴'), fn: () => this.goToSleep() }],
     });
   }
   private goToSleep() {

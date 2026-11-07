@@ -1,3 +1,4 @@
+import { ic } from '../icons';
 // Ramadhan atmosphere in Baby Mo's village: strings of lanterns over the
 // plaza, a crescent & star on the minaret, an iftar picnic at Maghrib, the
 // bedug drum, a daily gift and bedtime stories.
@@ -151,7 +152,7 @@ export class Festive {
     const s = STORIES.find(x => !read.has(x.id)) ?? STORIES[Math.floor(Math.random() * STORIES.length)];
     let page = 0;
     const { el, close } = g.ui.modal(`<div class="story"><div class="sicon">${s.icon}</div><h2>${t2(s.title)}</h2><p class="spage" id="sPage"></p><div class="sdots" id="sDots"></div>
-      <div class="row"><button class="btn ghost" id="sSay">🔊 ${tr('Bacakan', 'Read aloud')}</button><button class="btn" id="sNext"></button></div></div>`, () => { g.ui.stopSpeech(); then?.(); }, { onShow: () => render() });
+      <div class="row"><button class="btn ghost" id="sSay">${ic('speaker')} ${tr('Bacakan', 'Read aloud')}</button><button class="btn" id="sNext"></button></div></div>`, () => { g.ui.stopSpeech(); then?.(); }, { onShow: () => render() });
     const P = el.querySelector<HTMLElement>('#sPage')!, D = el.querySelector<HTMLElement>('#sDots')!, N = el.querySelector<HTMLElement>('#sNext')!;
     const last = () => page >= s.pages.length;
     const render = () => {

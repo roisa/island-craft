@@ -432,3 +432,84 @@ body.desktop #bUndo { bottom: calc(96px + var(--safe-b)); }
 .sdots i { width: 9px; height: 9px; border-radius: 50%; background: #d3dde8; }
 .sdots i.on { background: var(--green); }
 @media (max-height: 500px) { .story .sicon { font-size: 40px; } .story .spage { font-size: 16px; min-height: 60px; } .gift .box { font-size: 64px; } }
+
+/* ================= modern iOS look (frosted "liquid glass") ================= */
+:root { --glass: rgba(255,255,255,.58); --glass-b: rgba(255,255,255,.75); --label: #1C1C1E; --label2: #6C6C70; --tint: #34C759; }
+.ic { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.24em; flex: 0 0 auto; }
+.ic .f, .ic.f { fill: currentColor; stroke: none; }
+.pill, .ibtn, .abtn {
+  background: var(--glass) !important; color: var(--label);
+  border: 1px solid var(--glass-b) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(190%) !important; backdrop-filter: blur(22px) saturate(190%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(0,0,0,.04), 0 6px 20px -8px rgba(20,40,70,.35) !important;
+}
+.ibtn { border-radius: 50% !important; }
+.ibtn .ic { width: 22px; height: 22px; stroke-width: 2.1; }
+.abtn { color: var(--label); }
+.abtn .ic { width: 30px; height: 30px; stroke-width: 2.2; }
+.abtn span { font-size: 10.5px !important; letter-spacing: .02em; color: var(--label2); }
+#bMine { color: #1C1C1E; }
+#bJump .ic { color: #0A84FF; } #bMine .ic { color: #FF9F0A; } #bUse .ic { color: #34C759; }
+.abtn.down { background: rgba(255,255,255,.88) !important; transform: scale(.92); }
+#compassArrow { background: linear-gradient(180deg, #FFD60A, #FF9F0A); color: #fff; }
+#compassArrow .ic { width: 16px; height: 16px; }
+#stars .st .ic { width: 24px; height: 24px; color: #FFCC00; filter: drop-shadow(0 1px 1px rgba(0,0,0,.15)); }
+#clock b { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+#clock b .ic { width: 15px; height: 15px; color: var(--label2); }
+#clock small .ic { width: 13px; height: 13px; color: #FF9F0A; vertical-align: -2px; }
+button.say { background: rgba(120,120,128,.14) !important; color: #0A84FF; border-radius: 50% !important; }
+button.say .ic { width: 19px; height: 19px; }
+#bUndo .ic { color: #0A84FF; }
+/* sheets */
+.panel { border-radius: 30px !important; background: rgba(250,250,252,.94) !important; -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); box-shadow: 0 30px 70px -20px rgba(0,0,0,.45) !important; }
+.veil { background: rgba(0,0,0,.28) !important; }
+.x { border-radius: 50% !important; background: rgba(120,120,128,.16) !important; color: #3C3C43; display: grid; place-items: center; }
+.x .ic { width: 16px; height: 16px; stroke-width: 2.6; }
+.tabs { background: rgba(120,120,128,.12); border-radius: 14px; padding: 3px !important; gap: 2px !important; margin-right: 46px !important; }
+.tab { background: transparent !important; color: var(--label) !important; display: inline-flex; align-items: center; gap: 5px; border-radius: 11px !important; padding: 7px 11px !important; font-size: 13px !important; }
+.tab .ic { width: 17px; height: 17px; color: var(--label2); }
+.tab.on { background: #fff !important; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.tab.on .ic { color: var(--tint); }
+.btn .ic { width: 1.15em; height: 1.15em; margin-right: 2px; }
+.btn { border-radius: 16px !important; letter-spacing: -.01em; }
+.btn.ghost { background: rgba(120,120,128,.13) !important; box-shadow: none !important; color: #0A84FF !important; }
+.btn.ghost:active { background: rgba(120,120,128,.24) !important; transform: none; }
+.set { border-bottom-color: rgba(60,60,67,.12) !important; }
+.set > span { display: flex; align-items: center; gap: 10px; }
+.tile { width: 29px; height: 29px; border-radius: 8px; display: inline-grid; place-items: center; color: #fff; flex: 0 0 auto; }
+.tile .ic { width: 18px; height: 18px; stroke-width: 2.2; }
+.toggle { width: 51px !important; height: 31px !important; background: rgba(120,120,128,.18) !important; }
+.toggle::after { width: 27px !important; height: 27px !important; top: 2px !important; left: 2px !important; box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.08) !important; }
+.toggle.on { background: #34C759 !important; } .toggle.on::after { left: 22px !important; }
+.prow .pic .ic { width: 22px; height: 22px; color: #FF9F0A; }
+.prow.next .pic .ic { color: #34C759; }
+#planBar .btn .ic { margin: 0; }
+
+/* ---------- Arabic glyph images (ink-centred) ---------- */
+.arimg { display: block; margin: 0 auto; pointer-events: none; user-select: none; }
+.lcell { min-height: 0 !important; padding: 4px 2px 6px !important; justify-content: center !important; gap: 0 !important; }
+.lcell .g { height: auto !important; line-height: 0 !important; display: block !important; }
+.lcell .g .arimg { width: 100%; max-width: 56px; height: auto; }
+.lcell .l { margin-top: 0 !important; }
+.bigLetter { padding: 0 !important; margin: 4px 0 2px !important; line-height: 0 !important; font-size: 0 !important; }
+.arname { line-height: 0; margin: 2px 0 6px; }
+.harakat button { padding: 6px 4px 8px !important; gap: 2px; justify-content: flex-start !important; height: auto !important; }
+.harakat .hg { line-height: 0 !important; display: block; }
+.harakat button small { margin-top: 4px !important; }
+.quizOpts button { min-height: 0 !important; padding: 8px 0; line-height: 0 !important; }
+.quizOpts button .arimg { width: 100%; max-width: 90px; height: auto; }
+.wg-slot { display: grid !important; place-items: center; line-height: 0 !important; }
+.wg-slot .arimg { width: 52px; height: auto; }
+.wg-tiles button { display: grid; place-items: center; line-height: 0 !important; padding: 0; }
+.wg-done { line-height: 0 !important; margin: 6px 0; }
+.wg-done .arimg { max-width: 100%; height: auto; }
+.arrow-row { display: inline-flex; flex-wrap: wrap; gap: 2px; vertical-align: middle; direction: rtl; }
+.arrow-row .arimg { display: inline-block; }
+/* scrollable tabs fade at the edge instead of being cut */
+.tabs { -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+@media (max-height: 500px) {
+  .bigLetter .arimg { width: 130px; height: auto; }
+  .harakat .hg .arimg { width: 62px; height: auto; }
+  .quizOpts button .arimg { max-width: 70px; }
+}

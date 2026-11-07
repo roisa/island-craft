@@ -12,6 +12,9 @@ import { BIOME_INFO } from './world/gen';
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, type Blueprint } from './game/fun';
 import type { T2 } from './i18n';
+import { ic, tile, COLORS as C } from './icons';
+import { arImg } from './arabic';
+const PICON: Record<string, string> = { fajr: 'sunrise', dhuhr: 'sun', asr: 'cloudsun', maghrib: 'sunset', isha: 'moon' };
 import { isTouch } from './game/input';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = document) => r.querySelector(s) as T;
@@ -33,33 +36,33 @@ export class UI {
     this.root.innerHTML = `
 <div id="hud" class="hidden">
   <div id="topbar">
-    <button class="ibtn pill" id="bMenu" aria-label="Menu">☰</button>
-    <button class="pill" id="compass"><span id="compassArrow">▲</span><span id="compassText"></span></button>
-    <button class="pill" id="stars"><span class="st">⭐</span><span class="sv"><b id="starN">0</b><small id="starLv"></small><i class="sbar"><i id="starBar"></i></i></span></button>
+    <button class="ibtn pill" id="bMenu" aria-label="Menu">${ic('menu')}</button>
+    <button class="pill" id="compass"><span id="compassArrow">${ic('arrow')}</span><span id="compassText"></span></button>
+    <button class="pill" id="stars"><span class="st">${ic('star')}</span><span class="sv"><b id="starN">0</b><small id="starLv"></small><i class="sbar"><i id="starBar"></i></i></span></button>
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
-  <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">🔊</button></div>
-  <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">🔊</button></div>
+  <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
+  <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div class="pill" id="quest"></div>
   <div id="sideBtns">
-    <button class="ibtn pill" id="bHome" aria-label="Home">🏠</button>
-    <button class="ibtn pill" id="bBag" aria-label="Bag">🎒</button>
-    <button class="ibtn pill" id="bLetters" aria-label="Letters">📖</button>
-    <button class="ibtn pill" id="bCam" aria-label="Camera">👁️</button>
+    <button class="ibtn pill" id="bHome" aria-label="Home">${ic('home')}</button>
+    <button class="ibtn pill" id="bBag" aria-label="Bag">${ic('bag')}</button>
+    <button class="ibtn pill" id="bLetters" aria-label="Letters">${ic('book')}</button>
+    <button class="ibtn pill" id="bCam" aria-label="Camera">${ic('eye')}</button>
   </div>
   <div id="crosshair"></div>
   <svg id="mineRing" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="5"/><circle id="mineArc" cx="23" cy="23" r="19" fill="none" stroke="#FFD874" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="119.4" transform="rotate(-90 23 23)"/></svg>
   <div id="target"></div>
   <div id="heldName"></div>
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
-  <button class="pill hidden" id="bUndo">↩️ <span></span></button>
+  <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <div id="desktopHint"></div>
   <div id="stick"><div id="knob"></div></div>
   <div id="actions">
-    <button class="abtn pill" id="bJump">⬆️<span></span></button>
-    <button class="abtn pill" id="bMine">⛏️<span></span></button>
-    <button class="abtn pill" id="bUse">✋<span></span></button>
-    <button class="abtn pill hidden" id="bDown">⬇️</button>
+    <button class="abtn pill" id="bJump">${ic('up')}<span></span></button>
+    <button class="abtn pill" id="bMine">${ic('pickaxe')}<span></span></button>
+    <button class="abtn pill" id="bUse">${ic('hand')}<span></span></button>
+    <button class="abtn pill hidden" id="bDown">${ic('down')}</button>
   </div>
 </div>
 <div id="underwater"></div>
@@ -68,14 +71,14 @@ export class UI {
 <div id="pickups"></div>
 <div id="starPops"></div>
 <div id="confetti"></div>
-<div id="planBar" class="pill hidden"><div class="pb-t"><b id="pbName"></b><small id="pbState"></small></div><button class="btn small ghost" id="pbRot">🔄</button><button class="btn small gold" id="pbBuild">✔ <span></span></button><button class="btn small ghost" id="pbCancel">✖</button></div>
+<div id="planBar" class="pill hidden"><div class="pb-t"><b id="pbName"></b><small id="pbState"></small></div><button class="btn small ghost" id="pbRot">${ic('rotate')}</button><button class="btn small gold" id="pbBuild">${ic('check')} <span></span></button><button class="btn small ghost" id="pbCancel">${ic('xmark')}</button></div>
 <div class="veil" id="vBook"><div class="panel" id="book"></div></div>
 <div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div><p id="loadTip"></p></div></div>
 <div id="start" class="hidden"><div class="panel" id="startPanel"></div></div>`;
     this.labels();
     $('#bMenu').onclick = () => this.openBook('settings');
     $('#bBag').onclick = () => this.openBook('bag');
-    $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: tr('🏠 Ya, pulang!', '🏠 Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: tr('⬆️ Naik ke permukaan', '⬆️ Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
+    $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: ic('home') + tr('Ya, pulang!', 'Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: ic('up') + tr('Naik ke permukaan', 'Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
     $('#stars').onclick = () => this.openBook('quests');
     $('#bUndo').onclick = () => g.doUndo();
     $('#pbRot').onclick = () => g.fun.rotatePlan();
@@ -233,11 +236,11 @@ export class UI {
     const g = this.g;
     this.updateStars();
     // clock + next in-game prayer
-    $('#clockT').textContent = '🕐 ' + fmtHour(g.hour);
+    $('#clockT').innerHTML = ic('clock') + fmtHour(g.hour);
     const np = g.nextGamePrayer();
     const rs = g.ramadhan;
     const ram = rs.inRamadhan ? tr(`🌙 Ramadhan hari ${rs.day}`, `🌙 Ramadan day ${rs.day}`) : '';
-    $('#clockP').textContent = `${PRAYER_ICON[np.p]} ${prayerName(np.p)} ${fmtHour(np.h)}` + (ram ? ' · ' + ram : '');
+    $('#clockP').innerHTML = `${ic(PICON[np.p])} ${prayerName(np.p)} ${fmtHour(np.h)}` + (ram ? ' · ' + ram : '');
     // compass
     const c = g.compass();
     if (c) {
@@ -272,12 +275,12 @@ export class UI {
     if (!this.modals.length) { this.g.pause(false); this.flushToasts(); }
   }
   renderBook() {
-    const tabs: [Tab, string][] = [
-      ['bag', tr('🎒 Tas', '🎒 Bag')], ['craft', tr('🔨 Buat', '🔨 Craft')], ['build', tr('🏗️ Rancang', '🏗️ Blueprints')], ['wardrobe', tr('👕 Baju', '👕 Outfits')], ['map', tr('🗺️ Peta', '🗺️ Map')], ['letters', tr('📖 Huruf', '📖 Letters')], ['quests', tr('⭐ Misi', '⭐ Quests')],
-      ['ramadhan', tr('🌙 Ramadhan', '🌙 Ramadan')], ['prayer', tr('🕌 Sholat', '🕌 Prayer')], ['settings', tr('⚙️ Atur', '⚙️ Settings')],
+    const tabs: [Tab, string, string][] = [
+      ['bag', 'bag', tr('Tas', 'Bag')], ['craft', 'hammer', tr('Buat', 'Craft')], ['build', 'blueprint', tr('Rancang', 'Blueprints')], ['wardrobe', 'shirt', tr('Baju', 'Outfits')], ['map', 'map', tr('Peta', 'Map')], ['letters', 'book', tr('Huruf', 'Letters')], ['quests', 'star', tr('Misi', 'Quests')],
+      ['ramadhan', 'moon', tr('Ramadhan', 'Ramadan')], ['prayer', 'mosque', tr('Sholat', 'Prayer')], ['settings', 'gear', tr('Atur', 'Settings')],
     ];
     const el = $('#book');
-    el.innerHTML = `<button class="x" id="bx">✕</button><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${k === this.tab ? 'on' : ''}" data-t="${k}">${l}</button>`).join('')}</div><div id="tabBody"></div>`;
+    el.innerHTML = `<button class="x" id="bx" aria-label="Close">${ic('xmark')}</button><div class="tabs">${tabs.map(([k, i, l]) => `<button class="tab ${k === this.tab ? 'on' : ''}" data-t="${k}">${ic(i)}<span>${l}</span></button>`).join('')}</div><div id="tabBody"></div>`;
     $('#bx', el).onclick = () => this.closeBook();
     el.querySelectorAll<HTMLElement>('.tab').forEach(b => (b.onclick = () => { this.tab = b.dataset.t as Tab; this.renderBook(); SFX.click(); }));
     const body = $('#tabBody', el);
@@ -297,7 +300,7 @@ export class UI {
       <div class="grid" id="invGrid" style="margin-top:8px">${Array.from({ length: 9 }, (_, i) => this.slotHTML(i)).join('')}</div>
       <div class="grid" style="margin-top:6px">${Array.from({ length: 27 }, (_, i) => this.slotHTML(i + 9)).join('')}</div>
       ${inv.creative ? `<h3>${tr('🧱 Semua balok (Mode Kreatif)', '🧱 All blocks (Creative)')}</h3><p>${tr('Ketuk untuk menaruh di kotak hotbar yang dipilih.', 'Tap to put it in the selected hotbar slot.')}</p><div class="grid" id="cat">${creativeCatalog().map(id => `<button class="slot" data-c="${id}"><img src="${iconURL(id)}" alt="" title="${esc(t2(nameOf(id)))}"></button>`).join('')}</div>` : ''}
-      <button class="btn small" id="toCraft">🔨 ${tr('Buat barang', 'Craft things')}</button>`;
+      <button class="btn small" id="toCraft">${ic('hammer')} ${tr('Buat barang', 'Craft things')}</button>`;
     body.querySelectorAll<HTMLElement>('[data-i]').forEach(b => (b.onclick = () => {
       const i = +b.dataset.i!;
       if (this.pickSlot < 0) { this.pickSlot = i; if (i < 9) inv.sel = i; }
@@ -410,8 +413,8 @@ export class UI {
   private letters(body: HTMLElement) {
     const g = this.g, have = new Set(g.stats.letters);
     body.innerHTML = `<p>${tr(`Kamu sudah menemukan <b>${have.size}</b> dari 28 huruf. Ketuk huruf untuk mendengarnya.`, `You found <b>${have.size}</b> of 28 letters. Tap a letter to hear it.`)}</p>
-      <div class="lgrid" style="margin-top:10px">${LETTERS.map((L, i) => have.has(i) ? `<button class="lcell" data-l="${i}"><span class="g" lang="ar" dir="rtl">${L.g}</span><span class="l">${L.name}</span></button>` : `<button class="lcell locked" data-l="${i}"><span class="g">?</span></button>`).join('')}</div>
-      <div class="row"><button class="btn gold" id="bQuiz" ${have.size < 3 ? 'disabled style="opacity:.5"' : ''}>🎯 ${tr('Tebak Huruf', 'Letter Quiz')}</button><button class="btn" id="bWords">🧩 ${tr('Susun Kata', 'Word Builder')}</button></div>
+      <div class="lgrid" style="margin-top:10px">${LETTERS.map((L, i) => have.has(i) ? `<button class="lcell" data-l="${i}"><span class="g">${arImg(L.g, { size: 34, w: 56, h: 52 })}</span><span class="l">${L.name}</span></button>` : `<button class="lcell locked" data-l="${i}"><span class="g">?</span></button>`).join('')}</div>
+      <div class="row"><button class="btn gold" id="bQuiz" ${have.size < 3 ? 'disabled style="opacity:.5"' : ''}>${ic('sparkles')} ${tr('Tebak Huruf', 'Letter Quiz')}</button><button class="btn" id="bWords">${ic('blueprint')} ${tr('Susun Kata', 'Word Builder')}</button></div>
       ${have.size < 3 ? `<p style="text-align:center;margin-top:6px">${tr('Temukan 3 huruf untuk membuka kuis.', 'Find 3 letters to unlock the quiz.')}</p>` : ''}`;
     body.querySelectorAll<HTMLElement>('[data-l]').forEach(b => (b.onclick = () => {
       const i = +b.dataset.l!;
@@ -467,11 +470,11 @@ export class UI {
     const g = this.g, t = g.realTimes, now = new Date();
     const next = PRAYERS.find(p => t[p] > now);
     body.innerHTML = `<p>${tr(`Jadwal sholat hari ini di <b>${esc(g.loc.name)}</b>:`, `Today's prayer times in <b>${esc(g.loc.name)}</b>:`)}</p>
-      <div class="ptable" style="margin-top:8px">${PRAYERS.map(p => `<div class="prow ${p === next ? 'next' : ''}"><span class="ic">${PRAYER_ICON[p]}</span><span class="nm">${prayerName(p)}</span><span class="tm">${fmtTime(t[p], g.loc.lng)}</span></div>`).join('')}</div>
+      <div class="ptable" style="margin-top:8px">${PRAYERS.map(p => `<div class="prow ${p === next ? 'next' : ''}"><span class="pic">${ic(PICON[p])}</span><span class="nm">${prayerName(p)}</span><span class="tm">${fmtTime(t[p], g.loc.lng)}</span></div>`).join('')}</div>
       ${next ? `<p style="margin-top:8px;text-align:center">${tr('Sholat berikutnya', 'Next prayer')}: <b>${prayerName(next)}</b> · ${tr('sekitar', 'in about')} ${Math.max(1, Math.round((+t[next] - +now) / 60000))} ${tr('menit lagi', 'minutes')}</p>` : ''}
-      <div class="set"><span>📍 ${tr('Kota', 'City')}</span><select id="selCity"><option value="">${esc(g.loc.name)}</option>${CITIES.map((c, i) => `<option value="${i}">${c.i} ${c.n}</option>`).join('')}<option value="gps">📡 ${tr('Pakai lokasiku', 'Use my location')}</option></select></div>
-      <div class="set"><span>🧮 ${tr('Metode', 'Method')}</span><select id="selMethod">${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
-      <div class="set"><span>🔔 ${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
+      <div class="set"><span>${tile('map', C.red)}${tr('Kota', 'City')}</span><select id="selCity"><option value="">${esc(g.loc.name)}</option>${CITIES.map((c, i) => `<option value="${i}">${c.i} ${c.n}</option>`).join('')}<option value="gps">${ic('map')} ${tr('Pakai lokasiku', 'Use my location')}</option></select></div>
+      <div class="set"><span>${tile('clock', C.indigo)}${tr('Metode', 'Method')}</span><select id="selMethod">${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
+      <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
       <h3>${tr('Di dalam game', 'Inside the game')}</h3>
       <p>${tr('Matahari di dunia Baby Mo mengikuti jadwal di atas: fajar saat Subuh, terbenam saat Maghrib. Saat waktu sholat tiba di game, warga desa berjalan ke masjid — kamu boleh ikut!', 'The sun in Baby Mo’s world follows this schedule: dawn at Fajr, sunset at Maghrib. When it is prayer time in the game, villagers walk to the masjid — you can join them!')}</p>
       <p style="font-size:11.5px;margin-top:6px">${tr('Waktu dihitung otomatis di perangkat, dan bisa berbeda beberapa menit dari jadwal masjid setempat.', 'Times are calculated on the device and may differ a few minutes from your local masjid.')}</p>`;
@@ -490,19 +493,19 @@ export class UI {
     const g = this.g, s = g.settings;
     const tog = (id: string, on: boolean, label: string) => `<div class="set"><span>${label}</span><button class="toggle ${on ? 'on' : ''}" id="${id}"></button></div>`;
     body.innerHTML = `
-      ${tog('tSfx', s.sfx, tr('🔊 Efek suara', '🔊 Sound effects'))}
-      ${tog('tMusic', s.music, tr('🎵 Musik', '🎵 Music'))}
-      ${tog('tVoice', s.moVoice, tr('🗣️ Baby Mo membacakan teks (suara HP)', '🗣️ Baby Mo reads text aloud (device voice)'))}
-      <div class="set"><span>🌐 ${tr('Bahasa', 'Language')}</span>${this.langSeg()}</div>
-      <div class="set"><span>👁️ ${tr('Kamera', 'Camera')}</span><select id="sCam"><option value="third" ${s.cam === 'third' ? 'selected' : ''}>${tr('Orang ketiga', 'Third person')}</option><option value="first" ${s.cam === 'first' ? 'selected' : ''}>${tr('Orang pertama', 'First person')}</option></select></div>
-      <div class="set"><span>🗺️ ${tr('Jarak pandang', 'View distance')}</span><select id="sDist">${[3, 4, 5, 6, 8].map(n => `<option value="${n}" ${s.dist === n ? 'selected' : ''}>${n * 16} m</option>`).join('')}</select></div>
-      <div class="set"><span>🕐 ${tr('Panjang 1 hari di game', 'Length of a game day')}</span><select id="sDay">${[12, 24, 48].map(n => `<option value="${n}" ${s.dayMinutes === n ? 'selected' : ''}>${n} ${tr('menit', 'min')}</option>`).join('')}<option value="0" ${s.dayMinutes === 0 ? 'selected' : ''}>${tr('Ikuti jam asli', 'Follow the real clock')}</option></select></div>
-      <div class="set"><span>🖐️ ${tr('Kepekaan geser', 'Look sensitivity')}</span><input type="range" id="sSens" min="0.4" max="2" step="0.1" value="${s.sens}"></div>
-      <div class="set"><span>🎮 ${tr('Mode', 'Mode')}</span><select id="sMode"><option value="adventure" ${s.mode === 'adventure' ? 'selected' : ''}>${tr('Petualangan', 'Adventure')}</option><option value="creative" ${s.mode === 'creative' ? 'selected' : ''}>${tr('Kreatif (balok tak terbatas, terbang)', 'Creative (unlimited blocks, fly)')}</option></select></div>
-      <div class="row"><button class="btn ghost small" id="bHome">🏠 ${tr('Pulang ke desa', 'Back to village')}</button><button class="btn ghost small" id="bShot">📸 ${tr('Foto', 'Photo')}</button></div>
-      <a class="btn ghost small" href="https://play.babymo.id/" id="bHub">⬅️ ${tr('Game Baby Mo lainnya', 'More Baby Mo games')}</a>
-      <button class="btn small" id="bResume">▶️ ${tr('Lanjut main', 'Continue')}</button>
-      <button class="btn ghost small" id="bParents">👨‍👩‍👧 ${tr('Untuk orang tua', 'For parents')} 🔒</button>`;
+      ${tog('tSfx', s.sfx, tile('speaker', C.pink) + tr('Efek suara', 'Sound effects'))}
+      ${tog('tMusic', s.music, tile('music', C.red) + tr('Musik', 'Music'))}
+      ${tog('tVoice', s.moVoice, tile('bubble', C.green) + tr('Baby Mo membacakan teks', 'Baby Mo reads text aloud'))}
+      <div class="set"><span>${tile('globe', C.blue)}${tr('Bahasa', 'Language')}</span>${this.langSeg()}</div>
+      <div class="set"><span>${tile('camera', C.gray)}${tr('Kamera', 'Camera')}</span><select id="sCam"><option value="third" ${s.cam === 'third' ? 'selected' : ''}>${tr('Orang ketiga', 'Third person')}</option><option value="first" ${s.cam === 'first' ? 'selected' : ''}>${tr('Orang pertama', 'First person')}</option></select></div>
+      <div class="set"><span>${tile('eye', C.teal)}${tr('Jarak pandang', 'View distance')}</span><select id="sDist">${[3, 4, 5, 6, 8].map(n => `<option value="${n}" ${s.dist === n ? 'selected' : ''}>${n * 16} m</option>`).join('')}</select></div>
+      <div class="set"><span>${tile('sun', C.orange)}${tr('Panjang 1 hari di game', 'Length of a game day')}</span><select id="sDay">${[12, 24, 48].map(n => `<option value="${n}" ${s.dayMinutes === n ? 'selected' : ''}>${n} ${tr('menit', 'min')}</option>`).join('')}<option value="0" ${s.dayMinutes === 0 ? 'selected' : ''}>${tr('Ikuti jam asli', 'Follow the real clock')}</option></select></div>
+      <div class="set"><span>${tile('hand', C.pink)}${tr('Kepekaan geser', 'Look sensitivity')}</span><input type="range" id="sSens" min="0.4" max="2" step="0.1" value="${s.sens}"></div>
+      <div class="set"><span>${tile('game', C.purple)}${tr('Mode', 'Mode')}</span><select id="sMode"><option value="adventure" ${s.mode === 'adventure' ? 'selected' : ''}>${tr('Petualangan', 'Adventure')}</option><option value="creative" ${s.mode === 'creative' ? 'selected' : ''}>${tr('Kreatif (balok tak terbatas, terbang)', 'Creative (unlimited blocks, fly)')}</option></select></div>
+      <div class="row"><button class="btn ghost small" id="bHome">${ic('home')} ${tr('Pulang ke desa', 'Back to village')}</button><button class="btn ghost small" id="bShot">${ic('camera')} ${tr('Foto', 'Photo')}</button></div>
+      <a class="btn ghost small" href="https://play.babymo.id/" id="bHub">${ic('back')} ${tr('Game Baby Mo lainnya', 'More Baby Mo games')}</a>
+      <button class="btn small" id="bResume">${ic('play')} ${tr('Lanjut main', 'Continue')}</button>
+      <button class="btn ghost small" id="bParents">${ic('family')} ${tr('Untuk orang tua', 'For parents')} ${ic('lock')}</button>`;
     const flip = (id: string, k: 'sfx' | 'music' | 'moVoice') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
     flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice');
     $('#bParents', body).onclick = () => this.parentGate(() => this.parentsPanel());
@@ -522,7 +525,7 @@ export class UI {
   parentGate(ok: () => void) {
     const a = 6 + Math.floor(Math.random() * 4), b = 5 + Math.floor(Math.random() * 4), ans = a + b;
     const opts = [ans, ans + 2, ans - 3].sort(() => Math.random() - 0.5);
-    const { el, close } = this.modal(`<div style="text-align:center"><h2>👨‍👩‍👧 ${tr('Khusus orang tua', 'Grown-ups only')}</h2><p>${tr('Berapa', 'What is')} <b style="font-size:22px">${a} + ${b}</b>?</p><div class="row" id="pg">${opts.map(o => `<button class="btn ghost" data-v="${o}">${o}</button>`).join('')}</div><button class="btn small ghost" id="pgX">${tr('Batal', 'Cancel')}</button></div>`, undefined, { now: true });
+    const { el, close } = this.modal(`<div style="text-align:center"><h2>${ic('family')} ${tr('Khusus orang tua', 'Grown-ups only')}</h2><p>${tr('Berapa', 'What is')} <b style="font-size:22px">${a} + ${b}</b>?</p><div class="row" id="pg">${opts.map(o => `<button class="btn ghost" data-v="${o}">${o}</button>`).join('')}</div><button class="btn small ghost" id="pgX">${tr('Batal', 'Cancel')}</button></div>`, undefined, { now: true });
     el.querySelectorAll<HTMLElement>('#pg button').forEach(bt => (bt.onclick = () => { close(); if (+bt.dataset.v! === ans) setTimeout(ok, 30); else this.toast(tr('Jawaban kurang tepat', 'Not quite right')); }));
     $('#pgX', el).onclick = () => close();
   }
@@ -531,7 +534,7 @@ export class UI {
     const mins = (sec?: number) => Math.round((sec || 0) / 60);
     const lv = levelOf(st.stars || 0);
     const learned = st.letters.slice().sort((a, b) => a - b).map(i => LETTERS[i].g).join(' ');
-    const { el, close } = this.modal(`<h2>👨‍👩‍👧 ${tr('Untuk orang tua', 'For parents')}</h2>
+    const { el, close } = this.modal(`<h2>${ic('family')} ${tr('Untuk orang tua', 'For parents')}</h2>
       <h3>📊 ${tr('Laporan belajar', 'Learning report')}</h3>
       <div class="report">
         <div><b>${st.letters.length}/28</b><small>${tr('huruf ditemukan', 'letters found')}</small></div>
@@ -543,14 +546,14 @@ export class UI {
         <div><b>Lv ${lv}</b><small>⭐ ${st.stars || 0}</small></div>
         <div><b>${g.questsDone.size}</b><small>${tr('misi selesai', 'quests done')}</small></div>
       </div>
-      ${learned ? `<p style="margin-top:6px">${tr('Huruf yang sudah dikenal', 'Letters met so far')}: <span lang="ar" dir="rtl" style="font-family:var(--ar);font-size:22px">${learned}</span></p>` : ''}
-      <h3>⚙️ ${tr('Pengaturan', 'Settings')}</h3>
-      <div class="set"><span>⏰ ${tr('Batas main per hari', 'Daily play limit')}</span><select id="pLim">${[0, 20, 30, 45, 60, 90].map(n => `<option value="${n}" ${s.playLimit === n ? 'selected' : ''}>${n ? n + ' ' + tr('menit', 'min') : tr('Tanpa batas', 'No limit')}</option>`).join('')}</select></div>
-      <div class="set"><span>🕌 ${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
-      <div class="set"><span>🪶 ${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
-      <div class="set"><span>🔔 ${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
+      ${learned ? `<p style="margin-top:6px">${tr('Huruf yang sudah dikenal', 'Letters met so far')}: <span class="arrow-row">${st.letters.slice().sort((a, b) => a - b).map(i => arImg(LETTERS[i].g, { size: 24, w: 30, h: 34 })).join('')}</span></p>` : ''}
+      <h3>${ic('gear')} ${tr('Pengaturan', 'Settings')}</h3>
+      <div class="set"><span>${tile('timer', C.orange)}${tr('Batas main per hari', 'Daily play limit')}</span><select id="pLim">${[0, 20, 30, 45, 60, 90].map(n => `<option value="${n}" ${s.playLimit === n ? 'selected' : ''}>${n ? n + ' ' + tr('menit', 'min') : tr('Tanpa batas', 'No limit')}</option>`).join('')}</select></div>
+      <div class="set"><span>${tile('shield', C.green)}${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
+      <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
+      <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
       <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
-      <button class="btn ghost small" id="pNew">🌍 ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
+      <button class="btn ghost small" id="pNew">${ic('globe')} ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
       <button class="btn small" id="pOk">${tr('Selesai', 'Done')}</button>`);
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
@@ -562,7 +565,7 @@ export class UI {
     const g = this.g;
     const { el } = this.modal(`<div style="text-align:center"><img src="img/baby-mo-pose-01.webp" style="width:110px" alt=""><h2>😴 ${tr('Waktunya istirahat!', 'Time for a break!')}</h2>
       <p>${tr('Kamu sudah bermain cukup lama hari ini. Baby Mo juga mau istirahat. Yuk minum air, gerakkan badan, atau bantu ayah & ibu. Sampai jumpa besok! 💚', 'You’ve played for a good while today. Baby Mo needs a rest too. Drink some water, stretch, or help mum and dad. See you tomorrow! 💚')}</p>
-      <button class="btn ghost small" id="rsMore">👨‍👩‍👧 ${tr('Orang tua: tambah 15 menit', 'Parents: add 15 minutes')}</button></div>`, undefined, { now: true, onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang()); } });
+      <button class="btn ghost small" id="rsMore">${ic('family')} ${tr('Orang tua: tambah 15 menit', 'Parents: add 15 minutes')}</button></div>`, undefined, { now: true, onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang()); } });
     $('#rsMore', el).onclick = () => this.parentGate(() => { if (g.stats.play) g.stats.play.sec -= 15 * 60; this.closeModal(); });
   }
 
@@ -624,7 +627,7 @@ export class UI {
   }
 
   duaCard(d: Dua, title: string, then?: () => void) {
-    const { el, close } = this.modal(`<div class="dua"><h2>${esc(title)}</h2><div class="ar" lang="ar" dir="rtl">${d.ar}</div><div class="lat">${esc(d.lat)}</div><div class="mean">“${esc(t2(d.mean))}”</div>${d.src ? `<div class="src">${esc(d.src)}</div>` : ''}<div class="row"><button class="btn ghost" id="dSay">🔊 ${tr('Dengar', 'Listen')}</button><button class="btn" id="dOk">${tr('Aamiin 🤲', 'Ameen 🤲')}</button></div></div>`, then);
+    const { el, close } = this.modal(`<div class="dua"><h2>${esc(title)}</h2><div class="ar" lang="ar" dir="rtl">${d.ar}</div><div class="lat">${esc(d.lat)}</div><div class="mean">“${esc(t2(d.mean))}”</div>${d.src ? `<div class="src">${esc(d.src)}</div>` : ''}<div class="row"><button class="btn ghost" id="dSay">${ic('speaker')} ${tr('Dengar', 'Listen')}</button><button class="btn" id="dOk">${tr('Aamiin 🤲', 'Ameen 🤲')}</button></div></div>`, then);
     $('#dSay', el).onclick = () => Speech.say(d.ar, d.lat);
     $('#dOk', el).onclick = () => close();
   }
@@ -638,17 +641,17 @@ export class UI {
     const { el, close } = this.modal(`<div class="lcard">
       <div class="lc-left">
         ${isNew ? `<div class="lnew">✨ ${tr('HURUF BARU DITEMUKAN!', 'NEW LETTER FOUND!')} (${this.g.stats.letters.length}/28)</div>` : ''}
-        <div class="bigLetter" lang="ar" dir="rtl">${L.g}</div>
-        <h2 class="lname">${esc(L.name)}</h2><div class="arname" lang="ar" dir="rtl">${L.ar}</div>
+        <div class="bigLetter">${arImg(L.g, { size: 110, w: 170, h: 150 })}</div>
+        <h2 class="lname">${esc(L.name)}</h2><div class="arname">${arImg(L.ar, { size: 34, w: 140, h: 52, color: '#0B8A4A' })}</div>
       </div>
       <div class="lc-right">
         <p>${tr('Ketuk untuk mendengar bunyinya dengan harakat:', 'Tap to hear it with vowel marks:')}</p>
-        <div class="harakat">${marks.map(([m, v, n], k) => `<button data-k="${k}"><span class="hg" lang="ar" dir="rtl">${i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m}</span><small>${lat(v)}</small><small class="hn">${n}</small></button>`).join('')}</div>
+        <div class="harakat">${marks.map(([m, v, n], k) => `<button data-k="${k}"><span class="hg">${arImg(i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m, { size: 46, w: 76, h: 76 })}</span><small>${lat(v)}</small><small class="hn">${n}</small></button>`).join('')}</div>
         ${i === 0 ? '' : `<details class="adv"><summary>${tr('⭐ Lanjutan: bacaan panjang & tanwin', '⭐ More: long vowels & tanwin')}</summary>
-          <div class="harakat small">${[[L.g + 'َا', lat('aa'), tr('panjang a', 'long a')], [L.g + 'ِي', lat('ii'), tr('panjang i', 'long i')], [L.g + 'ُو', lat('uu'), tr('panjang u', 'long u')]].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg" lang="ar" dir="rtl">${a}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
-          <div class="harakat small">${[[L.g + 'ً', lat('an'), 'tanwin'], [L.g + 'ٍ', lat('in'), 'tanwin'], [L.g + 'ٌ', lat('un'), 'tanwin']].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg" lang="ar" dir="rtl">${a}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
+          <div class="harakat small">${[[L.g + 'َا', lat('aa'), tr('panjang a', 'long a')], [L.g + 'ِي', lat('ii'), tr('panjang i', 'long i')], [L.g + 'ُو', lat('uu'), tr('panjang u', 'long u')]].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg">${arImg(a, { size: 38, w: 70, h: 64 })}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
+          <div class="harakat small">${[[L.g + 'ً', lat('an'), 'tanwin'], [L.g + 'ٍ', lat('in'), 'tanwin'], [L.g + 'ٌ', lat('un'), 'tanwin']].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg">${arImg(a, { size: 38, w: 70, h: 64 })}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
         </details>`}
-        <div class="row"><button class="btn ghost" id="lSay">🔊 ${esc(L.name)}</button><button class="btn" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div>
+        <div class="row"><button class="btn ghost" id="lSay">${ic('speaker')} ${esc(L.name)}</button><button class="btn" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div>
       </div></div>`, () => Speech.stop(2), { onShow: () => setTimeout(sayName, 150) });
     $('#lSay', el).onclick = sayName;
     el.querySelectorAll<HTMLElement>('[data-k]').forEach(b => (b.onclick = () => {
@@ -668,9 +671,9 @@ export class UI {
     const opts = [...pool].sort(() => Math.random() - 0.5);
     const L = LETTERS[ans];
     const say = () => playLetter(ans, L.ar, L.name);
-    const { el, close } = this.modal(`<div style="text-align:center"><h2>🎯 ${tr('Tebak Huruf', 'Letter Quiz')}</h2><p>${tr('Dengarkan, lalu ketuk huruf yang benar!', 'Listen, then tap the right letter!')}</p>
-      <button class="btn gold" id="qSay">🔊 ${tr('Dengar lagi', 'Listen again')}</button>
-      <div class="quizOpts">${opts.map(o => `<button data-o="${o}"><span lang="ar" dir="rtl">${LETTERS[o].g}</span></button>`).join('')}</div>
+    const { el, close } = this.modal(`<div style="text-align:center"><h2>${ic('sparkles')} ${tr('Tebak Huruf', 'Letter Quiz')}</h2><p>${tr('Dengarkan, lalu ketuk huruf yang benar!', 'Listen, then tap the right letter!')}</p>
+      <button class="btn gold" id="qSay">${ic('speaker')} ${tr('Dengar lagi', 'Listen again')}</button>
+      <div class="quizOpts">${opts.map(o => `<button data-o="${o}">${arImg(LETTERS[o].g, { size: 56, w: 90, h: 90 })}</button>`).join('')}</div>
       <p style="margin-top:8px">${tr('Benar', 'Correct')}: ${g.stats.quiz}</p>
       <div class="row"><button class="btn ghost" id="qClose">${tr('Selesai', 'Done')}</button></div></div>`, undefined, { onShow: () => setTimeout(say, 250) });
     $('#qSay', el).onclick = say;
@@ -700,14 +703,14 @@ export class UI {
     while (extra.length < 2) { const r = Math.floor(Math.random() * 28); if (!w.letters.includes(r) && !extra.includes(r)) extra.push(r); }
     const tiles = [...w.letters, ...extra].map((l, k) => ({ l, k })).sort(() => Math.random() - 0.5);
     const locked = WORDS.length - avail.length;
-    const { el, close } = this.modal(`<div class="wg"><h2>🧩 ${tr('Susun Kata', 'Word Builder')}</h2>
+    const { el, close } = this.modal(`<div class="wg"><h2>${ic('book')} ${tr('Susun Kata', 'Word Builder')}</h2>
       <div class="wg-pic">${w.icon}</div><p><b>${esc(t2(w.mean))}</b> · ${tr('baca', 'read')}: <i>${esc(w.lat)}</i></p>
       <p style="font-size:13px">${tr('Ketuk huruf sesuai urutan, mulai dari <b>kanan</b> ➡️⬅️', 'Tap the letters in order, starting from the <b>right</b> ➡️⬅️')}</p>
       <div class="wg-slots" dir="rtl">${w.letters.map(() => '<span class="wg-slot"></span>').join('')}</div>
-      <div class="wg-done hidden" lang="ar" dir="rtl">${w.voweled}</div>
-      <div class="wg-tiles">${tiles.map(t => `<button data-l="${t.l}" lang="ar">${LETTERS[t.l].g}</button>`).join('')}</div>
+      <div class="wg-done hidden">${arImg(w.voweled, { size: 70, w: 280, h: 110, color: '#0B8A4A' })}</div>
+      <div class="wg-tiles">${tiles.map(t => `<button data-l="${t.l}">${arImg(LETTERS[t.l].g, { size: 34, w: 54, h: 56 })}</button>`).join('')}</div>
       ${locked ? `<p style="font-size:12.5px">${tr(`Temukan lebih banyak huruf untuk membuka ${locked} kata lagi ✨`, `Find more letters to unlock ${locked} more words ✨`)}</p>` : ''}
-      <div class="row"><button class="btn ghost" id="wgSay">🔊 ${tr('Dengar', 'Listen')}</button><button class="btn ghost" id="wgClose">${tr('Selesai', 'Done')}</button><button class="btn gold hidden" id="wgNext">${tr('Kata berikutnya ▶', 'Next word ▶')}</button></div></div>`);
+      <div class="row"><button class="btn ghost" id="wgSay">${ic('speaker')} ${tr('Dengar', 'Listen')}</button><button class="btn ghost" id="wgClose">${tr('Selesai', 'Done')}</button><button class="btn gold hidden" id="wgNext">${tr('Kata berikutnya ▶', 'Next word ▶')}</button></div></div>`);
     let pos = 0;
     const slots = el.querySelectorAll<HTMLElement>('.wg-slot');
     $('#wgSay', el).onclick = () => Speech.say(w.voweled, w.lat);
@@ -717,7 +720,7 @@ export class UI {
       if (pos >= w.letters.length || b.classList.contains('used')) return;
       const l = +b.dataset.l!;
       if (l === w.letters[pos]) {
-        slots[pos].textContent = LETTERS[l].g; slots[pos].classList.add('ok'); b.classList.add('used'); pos++; SFX.click();
+        slots[pos].innerHTML = arImg(LETTERS[l].g, { size: 34, w: 56, h: 64 }); slots[pos].classList.add('ok'); b.classList.add('used'); pos++; SFX.click();
         if (pos === w.letters.length) {
           SFX.letter(); this.confetti(40);
           $('.wg-slots', el).classList.add('hidden'); $('.wg-done', el).classList.remove('hidden');
@@ -774,14 +777,14 @@ export class UI {
       const name = s.avatar === 'girl' ? 'Aisyah' : 'Ibra';
       const back = hasSave && !full ? `<div class="welcome">${tr(`Assalamu’alaikum, ${name}! 👋`, `Assalamu’alaikum, ${name}! 👋`)}</div>
         <div class="chips center"><span class="chip on">⭐ Level ${levelOf(st?.stars || 0)}</span><span class="chip on">🔤 ${(st?.letters || []).length}/28</span>${st?.pet ? `<span class="chip on">🐾 ${esc(st.pet.name)}</span>` : ''}</div>
-        <button class="btn big" id="sPlay">▶️ ${tr('Lanjut main!', 'Keep playing!')}</button>
-        <div class="row"><button class="btn ghost small" id="sMore">⚙️ ${tr('Ganti tokoh / mode', 'Change hero / mode')}</button><button class="btn ghost small" id="sNew">🌍 ${tr('Dunia baru', 'New world')} 🔒</button></div>` : '';
+        <button class="btn big" id="sPlay">${ic('play')} ${tr('Lanjut main!', 'Keep playing!')}</button>
+        <div class="row"><button class="btn ghost small" id="sMore">${ic('gear')} ${tr('Ganti tokoh / mode', 'Change hero / mode')}</button><button class="btn ghost small" id="sNew">${ic('globe')} ${tr('Dunia baru', 'New world')} ${ic('lock')}</button></div>` : '';
       el.innerHTML = `${this.langSeg()}<img class="logo" src="img/baby-mo-pose-05.webp" alt="Baby Mo"><h1>${tr('Dunia Baby Mo', 'Baby Mo’s World')}</h1>` + (back || `
         <div class="sub">${tr('Jelajahi hutan, gurun kurma, bukit salju & gua. Bangun masjidmu, temukan 28 huruf hijaiyah, dan sambut Ramadhan! 🌙', 'Explore forests, date deserts, snowy hills & caves. Build your masjid, find 28 hijaiyah letters and welcome Ramadan! 🌙')}</div>
         <div class="choice" id="cAv"><button data-v="boy" class="${s.avatar === 'boy' ? 'on' : ''}"><span class="e">👦</span>Ibra</button><button data-v="girl" class="${s.avatar === 'girl' ? 'on' : ''}"><span class="e">👧</span>Aisyah</button></div>
         <div class="choice" id="cMode"><button data-v="adventure" class="${s.mode === 'adventure' ? 'on' : ''}"><span class="e">🧭</span>${tr('Petualangan', 'Adventure')}<small>${tr('kumpulkan & buat barang', 'gather & craft')}</small></button><button data-v="creative" class="${s.mode === 'creative' ? 'on' : ''}"><span class="e">🧱</span>${tr('Kreatif', 'Creative')}<small>${tr('balok bebas & terbang', 'free blocks & flying')}</small></button></div>
-        <button class="btn big" id="sPlay">${hasSave ? tr('▶️ Lanjutkan petualangan', '▶️ Continue adventure') : tr('▶️ Mulai bermain', '▶️ Start playing')}</button>
-        ${hasSave ? `<button class="btn ghost small" id="sNew">🌍 ${tr('Dunia baru', 'New world')} 🔒</button>` : ''}`);
+        <button class="btn big" id="sPlay">${hasSave ? ic('play') + tr('Lanjutkan petualangan', 'Continue adventure') : ic('play') + tr('Mulai bermain', 'Start playing')}</button>
+        ${hasSave ? `<button class="btn ghost small" id="sNew">${ic('globe')} ${tr('Dunia baru', 'New world')} ${ic('lock')}</button>` : ''}`);
       el.querySelectorAll<HTMLElement>('#cAv button').forEach(b => (b.onclick = () => { s.avatar = b.dataset.v as 'boy' | 'girl'; s.outfit = undefined; render(); }));
       el.querySelectorAll<HTMLElement>('#cMode button').forEach(b => (b.onclick = () => { s.mode = b.dataset.v as 'adventure' | 'creative'; render(); }));
       $('#sPlay', el).onclick = () => go(false);

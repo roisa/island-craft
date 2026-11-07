@@ -1,3 +1,4 @@
+import { ic } from '../icons';
 // Things that make the game easy and joyful for young children:
 // a step-by-step tutorial, a golden beacon that shows where to go, stars &
 // levels with celebrations, a rescue when you're stuck, and protection for
@@ -240,8 +241,8 @@ export class Kid {
       text: tr('Sepertinya kamu terjebak. Mau aku bantu? 🤗', 'Looks like you’re stuck. Shall I help you? 🤗'),
       speak: true,
       buttons: [
-        { label: tr('⬆️ Naik ke atas', '⬆️ Go up to the surface'), cls: 'gold', fn: () => this.rescueUp() },
-        { label: tr('🏠 Pulang ke desa', '🏠 Back to the village'), fn: () => g.goHome(true) },
+        { label: ic('up') + tr('Naik ke atas', 'Go up to the surface'), cls: 'gold', fn: () => this.rescueUp() },
+        { label: ic('home') + tr('Pulang ke desa', 'Back to the village'), fn: () => g.goHome(true) },
         { label: tr('Tidak usah', 'No thanks'), cls: 'ghost' },
       ],
     });
