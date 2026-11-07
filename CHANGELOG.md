@@ -5,6 +5,62 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Feedback batch: water break, saying hi, letter rewards, praying together
+
+Requested after playing V2 M4.
+
+- **Water break with proof**
+  - Every 20 minutes of play (parents can set 15, 20, 30 or 45 minutes, or
+    turn it off), Baby Mo brings a glass of water. The child is asked to drink
+    a real glass and then tap the glass on screen.
+  - An **"Are you sure you drank it?"** check comes first, with "Yes, I drank
+    it!" and "Not yet, I'll go get it". Only "Yes" counts.
+  - Then the glass tips and empties, three gulps play and a happy "ahh", and
+    Baby Mo and the player's avatar both drink in the game world. Baby Mo
+    holds a real glass that empties as he sips.
+  - The reward (+3 stars) comes after the drink, so a level-up can't
+    interrupt it. "Remind me in 5 minutes" is offered.
+  - The daily-limit rest screen has the same drink button.
+  - Glasses drunk are counted in the parents' report.
+- **Saying hi to Baby Mo is easy to find**
+  - A big bouncing **👋 Hi!** button floats over Baby Mo's head until you've
+    greeted him once. Tapping it says hi.
+  - A left click or tap-and-hold on Baby Mo or a villager now greets them
+    too; before, only right-click or the Use button did.
+  - The tutorial text points to the button.
+  - The tutorial card has a **Skip ›** button, so no step can keep it on
+    screen for the rest of the game.
+- **A reward for every hijaiyah letter**
+  - Each letter gives a small gift (dates, lanterns, apples, gold tiles,
+    takjil…). The gift flies from the shrine into the bag and is shown on
+    the letter card.
+  - The card also shows the way to the next treasure chest, e.g.
+    "●●●○ 1 more letter → 🗝️ treasure chest!".
+  - Every 4 letters (4, 8, … 28) a **treasure chest** opens with something
+    special: crystals, a stone pickaxe and torches, lanterns, a boat, an iron
+    pickaxe and more. It comes with extra stars, a fanfare and confetti.
+- **Praying together**
+  - The jama'ah is now a proper row: Ayah Ibrahim leads in front as imam,
+    with Bu Aminah, Kakek Yusuf, a place for you and **Baby Mo** behind him.
+  - When you're in the masjid at prayer time, Baby Mo walks to his place and
+    prays: standing, bowing, prostrating and sitting, in time with the
+    villagers.
+  - A **🤲 Pray together** button appears near the masjid at prayer time. It
+    puts Adam or Ais next to Baby Mo, facing the qibla, and Adam or Ais copy
+    the movements.
+  - While praying together, the camera sits just behind the row so you see
+    yourself and Baby Mo side by side. The tutorial card and crosshair hide.
+    Walking away gives your own camera back.
+- Tests: 3 unit tests for letter rewards; 7 animator actions including the
+  new *drink*. Checked in game on the iPhone profile:
+  - Hi button visible and greeting completes the tutorial step; Skip
+    advances.
+  - Letter 1 gave 3 dates; letter 4 opened the chest (+2 crystals).
+  - Water: the "are you sure" check appears; "Not yet" counts nothing;
+    "Yes" counts 1 and both Baby Mo and the player drink.
+  - Praying together: button shown, camera moved, and Baby Mo, the player
+    and all three villagers pray.
+
 ### M4 · Interaction quality
 
 - **Materials** (`src/game/materials.ts`): every block now belongs to one of

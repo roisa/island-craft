@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // All DOM UI: HUD, the tabbed book (bag & crafting, letters, quests, Ramadhan,
 // prayer times, settings), dialogs, du'a and letter cards, start & loading screens.
 import type { Game } from './main';
@@ -5,7 +6,7 @@ import { tr, t2, getLang, setLang } from './i18n';
 import { iconURL } from './world/atlas';
 import { B, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
 import { RECIPES, canCraft, STATION_NAME, creativeCatalog } from './game/inventory';
-import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS } from './content';
+import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId } from './game/prayer';
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
@@ -42,7 +43,8 @@ export class UI {
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
   <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
-  <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button></div>
+  <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button><button class="skip" id="tutSkip">${tr('Lewati', 'Skip')} ›</button></div>
+  <button id="moHi" class="hidden" aria-label="Say hi">👋 <span>${tr('Hai!', 'Hi!')}</span></button>
   <div class="pill" id="quest"></div>
   <div id="sideBtns">
     <button class="ibtn pill" id="bHome" aria-label="Home">${ic('home')}</button>
@@ -56,6 +58,7 @@ export class UI {
   <div id="heldName"></div>
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
+  <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
   <div id="desktopHint"></div>
   <div id="stick"><div id="knob"></div></div>
   <div id="actions">
@@ -86,6 +89,9 @@ export class UI {
     $('#pbCancel').onclick = () => g.fun.cancelPlan();
     $('#bubbleSay').onclick = () => Speech.talk($('#bubbleTxt').textContent || '', getLang(), true, 1);
     $('#tutSay').onclick = () => Speech.talk($('#tutTxt').textContent || '', getLang(), true, 1);
+    $('#tutSkip').onclick = () => { SFX.click(); this.g.kid.skipStep(); };
+    $('#moHi').onclick = e => { e.stopPropagation(); this.g.useEntity(this.g.ents.mo); };
+    $('#bPray').onclick = e => { e.stopPropagation(); this.g.prayTogether(); };
     $('#bLetters').onclick = () => this.openBook('letters');
     $('#bCam').onclick = () => g.toggleCamera();
     $('#quest').onclick = () => this.openBook('quests');
@@ -179,6 +185,25 @@ export class UI {
     if (st.hint) { const t = document.querySelector(st.hint); if (t && getComputedStyle(t).display !== 'none') t.classList.add('pulse'); }
     if (this.g.settings.moVoice) setTimeout(() => { if (!this.modals.length) Speech.talk(st.text, getLang()); }, 400);
   }
+  /** the big 👋 button floating over Baby Mo until you've said hi once */
+  private hiV = new THREE.Vector3();
+  /** the "Pray together" button shows near the masjid at prayer time */
+  updatePray() {
+    const show = this.g.canPrayTogether() && !this.g.prayingTogether && !this.modals.length;
+    $('#bPray').classList.toggle('hidden', !show);
+  }
+  updateMoHi() {
+    const g = this.g, el = $('#moHi'), mo = g.ents?.mo;
+    let show = !!mo && !g.stats.talked.mo && !this.modals.length && !g.paused;
+    if (show) {
+      const v = this.hiV.set(mo.pos.x, mo.pos.y + mo.rig.height + 0.55, mo.pos.z);
+      show = v.distanceTo(g.player.pos) < 14;
+      v.project(g.camera);
+      show &&= v.z < 1 && Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.95;
+      if (show) { el.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; el.style.top = ((1 - v.y) / 2 * innerHeight) + 'px'; }
+    }
+    el.classList.toggle('hidden', !show);
+  }
   starPop(n: number) {
     const el = h(`<div class="spop">+${n} ⭐</div>`);
     $('#starPops').appendChild(el);
@@ -206,6 +231,26 @@ export class UI {
       box.appendChild(c);
       setTimeout(() => c.remove(), 2400);
     }
+  }
+  /** gift for this letter + how many more until the next treasure chest */
+  private letterRewardStrip(r: ReturnType<typeof letterReward>) {
+    const n = this.g.stats.letters.length;
+    const prevAt = r.next ? r.next.at - 4 : 24;
+    const dots = r.treasure ? '' : r.next ? Array.from({ length: 4 }, (_, k) => `<i class="${prevAt + k + 1 <= n ? 'on' : ''}"></i>`).join('') : '';
+    const gift = `<span class="lgift"><img src="${iconURL(r.gift[0])}" alt="">+${r.gift[1]} ${esc(t2(nameOf(r.gift[0])))}</span>`;
+    const next = r.treasure
+      ? `<b class="lnext">${r.treasure.icon} ${tr('Peti harta terbuka!', 'Treasure chest unlocked!')}</b>`
+      : r.next ? `<span class="lnext"><span class="ldots">${dots}</span>${r.toNext === 1 ? tr(`1 huruf lagi → ${r.next.icon} peti harta!`, `1 more letter → ${r.next.icon} treasure chest!`) : tr(`${r.toNext} huruf lagi → ${r.next.icon} peti harta`, `${r.toNext} more letters → ${r.next.icon} treasure chest`)}</span>` : '';
+    return `<div class="lreward">${gift}${next}</div>`;
+  }
+  /** a treasure chest opens every 4 letters */
+  treasure(t: Treasure) {
+    const { el, close } = this.modal(`<div class="lvup treasure"><div class="burst">${t.icon}</div><div class="lvn">${tr('PETI HARTA!', 'TREASURE!')}</div><h2>${esc(t2(t.title))}</h2>
+      <p>${tr(`Kamu sudah menemukan ${t.at} huruf hijaiyah. Masya Allah! Ini isinya:`, `You have found ${t.at} hijaiyah letters. Masha Allah! Look inside:`)}</p>
+      <div class="gifts">${t.gifts.map(([id, n]) => `<span><img src="${iconURL(id)}" alt="">×${n} <small>${esc(t2(nameOf(id)))}</small></span>`).join('')}</div>
+      ${t.at < 28 ? `<p>${tr(`Peti berikutnya di huruf ke-${t.at + 4}. Terus cari ya!`, `The next chest is at letter ${t.at + 4}. Keep looking!`)}</p>` : ''}
+      <button class="btn gold" id="trOk">${tr('Alhamdulillah! 🎉', 'Alhamdulillah! 🎉')}</button></div>`, undefined, { onShow: () => { this.confetti(90); SFX.fanfare(); if (this.g.settings.moVoice) Speech.talk(tr('Wah, peti harta! Hebat sekali!', 'Wow, a treasure chest! Amazing!'), getLang()); } });
+    $('#trOk', el).onclick = () => close();
   }
   levelUp(lv: number, title: T2, gifts: [number, number][]) {
     const { el, close } = this.modal(`<div class="lvup"><div class="burst">⭐</div><div class="lvn">LEVEL ${lv}!</div><h2>${esc(t2(title))}</h2>
@@ -552,10 +597,12 @@ export class UI {
         <div><b>${mins(st.play?.sec)} / ${mins(st.playTotal)}</b><small>${tr('menit hari ini / total', 'minutes today / total')}</small></div>
         <div><b>Lv ${lv}</b><small>⭐ ${st.stars || 0}</small></div>
         <div><b>${g.questsDone.size}</b><small>${tr('misi selesai', 'quests done')}</small></div>
+        <div><b>💧 ${st.water || 0}</b><small>${tr('gelas air saat istirahat minum', 'glasses of water at water breaks')}</small></div>
       </div>
       ${learned ? `<p style="margin-top:6px">${tr('Huruf yang sudah dikenal', 'Letters met so far')}: <span class="arrow-row">${st.letters.slice().sort((a, b) => a - b).map(i => arImg(LETTERS[i].g, { size: 24, w: 30, h: 34 })).join('')}</span></p>` : ''}
       <h3>${ic('gear')} ${tr('Pengaturan', 'Settings')}</h3>
       <div class="set"><span>${tile('timer', C.orange)}${tr('Batas main per hari', 'Daily play limit')}</span><select id="pLim">${[0, 20, 30, 45, 60, 90].map(n => `<option value="${n}" ${s.playLimit === n ? 'selected' : ''}>${n ? n + ' ' + tr('menit', 'min') : tr('Tanpa batas', 'No limit')}</option>`).join('')}</select></div>
+      <div class="set"><span>${tile('drop', C.blue)}${tr('Pengingat minum air', 'Water break reminder')}</span><select id="pWater">${[0, 15, 20, 30, 45].map(n => `<option value="${n}" ${(s.water ?? 20) === n ? 'selected' : ''}>${n ? tr(`tiap ${n} menit`, `every ${n} min`) : tr('Mati', 'Off')}</option>`).join('')}</select></div>
       <div class="set"><span>${tile('shield', C.green)}${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
       <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
@@ -570,6 +617,7 @@ export class UI {
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
     $<HTMLSelectElement>('#pLim', el).onchange = e => { s.playLimit = +(e.target as HTMLSelectElement).value; g.applySettings(); };
+    $<HTMLSelectElement>('#pWater', el).onchange = e => { s.water = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();
     $('#pExp', el).onclick = async () => {
       const blob = new Blob([await g.exportSave()], { type: 'application/json' });
@@ -590,11 +638,60 @@ export class UI {
     });
     $('#pNew', el).onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia baru', 'New world'), text: tr('Yakin? Dunia, barang, dan progres sekarang akan dihapus.', 'Are you sure? The current world, items and progress will be deleted.'), speak: false, buttons: [{ label: tr('Ya, buat baru', 'Yes, start over'), cls: 'gold', fn: () => g.newWorld() }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
   }
+  /**
+   * Water break: Baby Mo brings a glass of water. The child goes and drinks a
+   * real glass, then taps the glass; an "are you sure?" check comes first, and
+   * only then the glass empties with gulps (and Baby Mo drinks in the world).
+   */
+  waterBreak(fromRest = false) {
+    const g = this.g;
+    const glass = `<button class="wglass" id="wGlass" aria-label="${tr('Gelas air', 'Glass of water')}"><svg viewBox="0 0 80 110" aria-hidden="true">
+        <defs><clipPath id="wcl"><path d="M14 10 L66 10 L59 100 Q58 104 54 104 L26 104 Q22 104 21 100 Z"/></clipPath></defs>
+        <g clip-path="url(#wcl)"><rect id="wLevel" x="0" y="26" width="80" height="84" fill="#5bb8e8"/><rect x="0" y="26" width="80" height="6" fill="#8fd3ec" id="wTop"/></g>
+        <path d="M14 10 L66 10 L59 100 Q58 104 54 104 L26 104 Q22 104 21 100 Z" fill="none" stroke="#9fc7dd" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M22 18 L25 92" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/></svg>
+      <span>${tr('Ketuk kalau sudah minum', 'Tap when you’ve had a drink')}</span></button>`;
+    const { el, close } = this.modal(`<div class="water"><div class="wrow"><img src="img/baby-mo-ok.webp" alt="" class="wmo">${glass}</div>
+      <h2 id="wTitle">💧 ${tr('Waktunya minum air!', 'Water break!')}</h2>
+      <p id="wText">${tr('Baby Mo haus! Yuk ambil segelas air putih dan minum sampai habis. Kalau sudah, ketuk gelasnya.', 'Baby Mo is thirsty! Go get a glass of water and drink it all up. When you’re done, tap the glass.')}</p>
+      <div class="row" id="wBtns">${fromRest ? '' : `<button class="btn ghost small" id="wLater">${tr('Ingatkan 5 menit lagi', 'Remind me in 5 minutes')}</button>`}</div></div>`,
+      undefined, { now: fromRest, onShow: () => { SFX.pour(); if (g.settings.moVoice) Speech.talk(tr('Waktunya minum air! Ambil segelas air putih ya.', 'Water break! Go and get a glass of water.'), getLang(), false, 1); } });
+    const title = $('#wTitle', el), text = $('#wText', el), btns = $('#wBtns', el);
+    const later = el.querySelector<HTMLElement>('#wLater');
+    if (later) later.onclick = () => { g.snoozeWater(); close(); };
+    const ask = () => {
+      SFX.click();
+      title.textContent = tr('🤔 Kamu yakin sudah minum?', '🤔 Are you sure you drank it?');
+      text.textContent = tr('Jujur ya! Allah Maha Melihat 😊 Sudah minum segelas air sampai habis?', 'Be honest! 😊 Did you really drink a whole glass of water?');
+      btns.innerHTML = `<button class="btn gold" id="wYes">💧 ${tr('Ya, sudah minum!', 'Yes, I drank it!')}</button><button class="btn ghost" id="wNo">${tr('Belum, aku ambil dulu', 'Not yet, I’ll go get it')}</button>`;
+      if (g.settings.moVoice) Speech.talk(tr('Kamu yakin sudah minum?', 'Are you sure you drank it?'), getLang(), true, 1);
+      $('#wYes', el).onclick = drink;
+      $('#wNo', el).onclick = () => {
+        SFX.click();
+        title.textContent = tr('👍 Oke, Baby Mo tunggu ya!', '👍 Okay, Baby Mo will wait!');
+        text.textContent = tr('Ambil segelas air putih, minum pelan-pelan, lalu ketuk gelasnya lagi.', 'Get a glass of water, drink it slowly, then tap the glass again.');
+        btns.innerHTML = '';
+      };
+    };
+    let done = false;
+    const drink = () => {
+      if (done) return; done = true;
+      btns.innerHTML = '';
+      title.textContent = tr('😋 Glek… glek… glek…', '😋 Gulp… gulp… gulp…');
+      text.textContent = tr('Alhamdulillah! Segar sekali!', 'Alhamdulillah! So refreshing!');
+      el.querySelector('.water')!.classList.add('drinking');
+      SFX.gulp(); this.confetti(30);
+      setTimeout(() => { close(); g.drankWater(); }, 2300);
+    };
+    $('#wGlass', el).onclick = () => { if (!done) ask(); };
+  }
   restScreen() {
     const g = this.g;
     const { el } = this.modal(`<div style="text-align:center"><img src="img/baby-mo-pose-01.webp" style="width:110px" alt=""><h2>😴 ${tr('Waktunya istirahat!', 'Time for a break!')}</h2>
       <p>${tr('Kamu sudah bermain cukup lama hari ini. Baby Mo juga mau istirahat. Yuk minum air, gerakkan badan, atau bantu ayah & ibu. Sampai jumpa besok! 💚', 'You’ve played for a good while today. Baby Mo needs a rest too. Drink some water, stretch, or help mum and dad. See you tomorrow! 💚')}</p>
+      <button class="btn" id="rsWater">💧 ${tr('Minum air dulu bareng Baby Mo', 'Drink some water with Baby Mo')}</button>
       <button class="btn ghost small" id="rsMore">${ic('family')} ${tr('Orang tua: tambah 15 menit', 'Parents: add 15 minutes')}</button></div>`, undefined, { now: true, onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang()); } });
+    $('#rsWater', el).onclick = () => this.waterBreak(true);
     $('#rsMore', el).onclick = () => this.parentGate(() => { if (g.stats.play) g.stats.play.sec -= 15 * 60; this.closeModal(); });
   }
 
@@ -661,7 +758,7 @@ export class UI {
     $('#dOk', el).onclick = () => close();
   }
 
-  letterCard(i: number, isNew: boolean) {
+  letterCard(i: number, isNew: boolean, reward?: ReturnType<typeof letterReward>) {
     const L = LETTERS[i];
     const sayName = () => playLetter(i, L.ar, L.name);
     const marks: [string, string, string][] = [['َ', 'a', 'Fathah'], ['ِ', 'i', 'Kasrah'], ['ُ', 'u', 'Dhammah']];
@@ -674,6 +771,7 @@ export class UI {
         <h2 class="lname">${esc(L.name)}</h2><div class="arname">${arImg(L.ar, { size: 34, w: 140, h: 52, color: '#0B8A4A' })}</div>
       </div>
       <div class="lc-right">
+        ${isNew && reward ? this.letterRewardStrip(reward) : ''}
         <p>${tr('Ketuk untuk mendengar bunyinya dengan harakat:', 'Tap to hear it with vowel marks:')}</p>
         <div class="harakat">${marks.map(([m, v, n], k) => `<button data-k="${k}"><span class="hg">${arImg(i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m, { size: 46, w: 76, h: 76 })}</span><small>${lat(v)}</small><small class="hn">${n}</small></button>`).join('')}</div>
         ${i === 0 ? '' : `<details class="adv"><summary>${tr('⭐ Lanjutan: bacaan panjang & tanwin', '⭐ More: long vowels & tanwin')}</summary>

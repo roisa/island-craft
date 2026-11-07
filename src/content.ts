@@ -14,6 +14,8 @@ export interface Stats {
   pet?: { kind: string; name: string }; chests?: number; built?: number; rides?: number;
   words?: number; play?: { day: string; sec: number }; playTotal?: number;
   bedug?: number; giftDay?: string; stories?: string[]; picnicDay?: number;
+  /** glasses of water drunk at a water break */
+  water?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,
@@ -215,3 +217,28 @@ export const STORIES: Story[] = [
     lesson: ['Bulan sabit menandai awal bulan Hijriah, termasuk Ramadhan.', 'The crescent moon marks the start of a Hijri month, like Ramadan.'],
   },
 ];
+
+// ---------- rewards for finding hijaiyah letters ----------
+// Every letter brings a small gift; every 4th letter opens a treasure chest
+// with something special, so there is always a next goal in sight.
+export const LETTER_GIFTS: [number, number][] = [
+  [I.DATES, 3], [B.LANTERN, 1], [I.APPLE, 2], [B.GOLD_TILE, 3], [B.MOSAIC, 3], [B.WOOL_PURPLE, 4], [I.MILK, 1],
+  [B.FLOWER_RED, 3], [B.GLASS, 4], [I.TAKJIL, 1], [B.MARBLE, 4], [B.WOOL_YELLOW, 4], [I.DATES, 3], [B.LANTERN, 2],
+];
+export interface Treasure { at: number; icon: string; title: T2; gifts: [number, number][] }
+export const LETTER_TREASURES: Treasure[] = [
+  { at: 4, icon: '🗝️', title: ['Peti Huruf Pertama', 'First Letter Chest'], gifts: [[I.CRYSTAL, 2], [B.GOLD_TILE, 6], [I.KOLAK, 1]] },
+  { at: 8, icon: '🎒', title: ['Peti Penjelajah', 'Explorer’s Chest'], gifts: [[I.STONE_PICK, 1], [B.TORCH, 8], [I.CRYSTAL, 2]] },
+  { at: 12, icon: '🏮', title: ['Peti Lentera', 'Lantern Chest'], gifts: [[B.LANTERN, 6], [B.MOSAIC, 10], [I.GOLD_INGOT, 2]] },
+  { at: 16, icon: '⛵', title: ['Peti Pelaut', 'Sailor’s Chest'], gifts: [[I.BOAT, 1], [I.CRYSTAL, 3], [I.TAKJIL, 2]] },
+  { at: 20, icon: '💎', title: ['Peti Kristal', 'Crystal Chest'], gifts: [[I.CRYSTAL, 6], [B.GOLD_TILE, 12], [I.IRON_PICK, 1]] },
+  { at: 24, icon: '🕌', title: ['Peti Masjid', 'Masjid Chest'], gifts: [[B.MARBLE, 20], [B.GOLD_TILE, 16], [B.LANTERN, 8]] },
+  { at: 28, icon: '🏆', title: ['Peti Juara Hijaiyah', 'Hijaiyah Champion Chest'], gifts: [[I.CRYSTAL, 10], [I.GOLD_INGOT, 6], [I.KOLAK, 3]] },
+];
+/** What finding letter number `count` (1..28) gives, and how far the next chest is. */
+export function letterReward(count: number): { gift: [number, number]; treasure: Treasure | null; next: Treasure | null; toNext: number } {
+  const gift = LETTER_GIFTS[(count - 1) % LETTER_GIFTS.length];
+  const treasure = LETTER_TREASURES.find(t => t.at === count) ?? null;
+  const next = LETTER_TREASURES.find(t => t.at > count) ?? null;
+  return { gift, treasure, next, toNext: next ? next.at - count : 0 };
+}

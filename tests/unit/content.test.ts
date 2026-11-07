@@ -43,3 +43,19 @@ describe('quests', () => {
     expect(have).toBe(need);
   });
 });
+
+describe('letter rewards', async () => {
+  const { letterReward, LETTER_TREASURES } = await import('../../src/content');
+  it('every letter from 1 to 28 gives a real gift', () => {
+    for (let n = 1; n <= 28; n++) { const r = letterReward(n); expect(isBlockId(r.gift[0]) || ITEMS.has(r.gift[0]), `${n}`).toBe(true); expect(r.gift[1]).toBeGreaterThan(0); }
+  });
+  it('opens a treasure chest every 4 letters, ending with the 28th', () => {
+    const at = [] as number[];
+    for (let n = 1; n <= 28; n++) if (letterReward(n).treasure) at.push(n);
+    expect(at).toEqual([4, 8, 12, 16, 20, 24, 28]);
+    for (const t of LETTER_TREASURES) for (const [id, k] of t.gifts) { expect(isBlockId(id) || ITEMS.has(id)).toBe(true); expect(k).toBeGreaterThan(0); }
+  });
+  it('always says how many letters until the next chest', () => {
+    expect(letterReward(1).toNext).toBe(3); expect(letterReward(4).toNext).toBe(4); expect(letterReward(27).toNext).toBe(1); expect(letterReward(28).next).toBeNull();
+  });
+});

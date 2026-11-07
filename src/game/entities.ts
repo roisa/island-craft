@@ -230,6 +230,9 @@ export class Npc extends Entity {
 // ---- Baby Mo ---------------------------------------------------------------------
 export class Companion extends Entity {
   celebrate = 0;
+  /** jama'ah: a place in the prayer row; Baby Mo walks there and prays with the villagers */
+  prayAt: THREE.Vector3 | null = null;
+  praying = false;
   tag: THREE.Sprite;
   constructor(public world: World, public follow: () => { pos: THREE.Vector3; yaw: number; fp?: boolean }) {
     super(buildBlocky(BABY_MO));
@@ -240,6 +243,8 @@ export class Companion extends Entity {
   }
   update(dt: number, t: number) {
     const f = this.follow();
+    if (this.prayAt) return this.prayUpdate(dt, t);
+    if (this.praying) { clearPose(this.rig); this.praying = false; }
     const ang = f.yaw + (f.fp ? -2.65 : 2.3), dist = f.fp ? 3.6 : 1.8; // in first person stay ahead-left where you can see him
     const tx = f.pos.x + Math.sin(ang) * dist, tz = f.pos.z + Math.cos(ang) * dist;
     const dx = tx - this.pos.x, dz = tz - this.pos.z, d = Math.hypot(dx, dz);
@@ -264,8 +269,58 @@ export class Companion extends Entity {
       const want = Math.atan2(f.pos.x - this.pos.x, f.pos.z - this.pos.z);
       this.yaw += (want - this.yaw) * Math.min(1, dt * 3);
     }
-    if (this.celebrate > 0) { this.celebrate -= dt; this.anim!.play('celebrate'); } else this.anim!.stop('celebrate');
+    // drinking water comes first; a celebration waits until the glass is empty
+    if (this.celebrate > 0 && this.glassT <= 0) { this.celebrate -= dt; this.anim!.play('celebrate'); } else this.anim!.stop('celebrate');
+    this.glassTick(dt);
     this.sync(t, dt);
+  }
+  private glass: THREE.Object3D | null = null;
+  private glassT = 0;
+  /** a glass of water in Baby Mo's hand for a few seconds (water break) */
+  holdGlass(secs: number) {
+    if (!this.glass) {
+      const g = new THREE.Group();
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.06, 0.2, 12, 1, true), new THREE.MeshLambertMaterial({ color: 0xe8f6ff, transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.058, 0.15, 12), new THREE.MeshLambertMaterial({ color: 0x5bb8e8, transparent: true, opacity: 0.85 }));
+      water.position.y = -0.02; water.name = 'water';
+      g.add(cup, water); g.position.set(0, -0.06, 0.06); g.rotation.x = Math.PI / 2;
+      this.glass = g;
+    }
+    (this.rig.hand ?? this.rig.armR ?? this.rig.root).add(this.glass);
+    const w = this.glass.getObjectByName('water')!; w.scale.y = 1; w.position.y = -0.02;
+    this.glassT = secs;
+  }
+  private glassTick(dt: number) {
+    if (!this.glass || this.glassT <= 0) return;
+    this.glassT -= dt;
+    const w = this.glass.getObjectByName('water')!;
+    const k = Math.max(0.05, Math.min(1, (this.glassT - 0.4) / 2.4)); // empties while sipping
+    w.scale.y = k; w.position.y = -0.02 - (1 - k) * 0.075;
+    if (this.glassT <= 0) this.glass.removeFromParent();
+  }
+  /** walk to the prayer spot, then follow the same prayer movements as the villagers */
+  private prayUpdate(dt: number, t: number) {
+    const sp = this.prayAt!;
+    const dx = sp.x - this.pos.x, dz = sp.z - this.pos.z, d = Math.hypot(dx, dz);
+    this.celebrate = 0; this.anim!.stop('celebrate');
+    if (d > 12) { this.pos.copy(sp); }
+    if (d > 0.15 && d <= 12) {
+      if (this.praying) { clearPose(this.rig); this.praying = false; }
+      const step = Math.min(d, 3.2 * dt);
+      this.pos.x += dx / d * step; this.pos.z += dz / d * step;
+      const gy = groundY(this.world, this.pos.x, this.pos.y, this.pos.z);
+      if (gy !== null) this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10);
+      this.yaw = Math.atan2(dx, dz);
+      this.moving = true;
+      this.sync(t, dt);
+      return;
+    }
+    this.moving = false;
+    this.yaw = Math.PI; // facing the qibla wall, like the villagers
+    this.sync(t, dt);
+    this.rig.root.rotation.y = this.yaw;
+    applyPrayerPose(this.rig, poseAt(t));
+    this.praying = true;
   }
 }
 

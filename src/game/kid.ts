@@ -16,8 +16,8 @@ import { Animal } from './entities';
 import { TITLES, starsFor, levelOf, titleOf } from './levels';
 export { TITLES, starsFor, levelOf, titleOf };
 
-export type KidEvent = 'letter' | 'quest' | 'pet' | 'give' | 'plant' | 'jamaah' | 'iftar' | 'sahur' | 'craft' | 'place' | 'biome' | 'calendar' | 'quiz' | 'tutorial';
-const STARS: Record<KidEvent, number> = { letter: 5, quest: 10, pet: 1, give: 3, plant: 2, jamaah: 5, iftar: 5, sahur: 3, craft: 1, place: 0, biome: 3, calendar: 3, quiz: 1, tutorial: 3 };
+export type KidEvent = 'letter' | 'quest' | 'pet' | 'give' | 'plant' | 'jamaah' | 'iftar' | 'sahur' | 'craft' | 'place' | 'biome' | 'calendar' | 'quiz' | 'tutorial' | 'water';
+const STARS: Record<KidEvent, number> = { letter: 5, quest: 10, pet: 1, give: 3, plant: 2, jamaah: 5, iftar: 5, sahur: 3, craft: 1, place: 0, biome: 3, calendar: 3, quiz: 1, tutorial: 3, water: 3 };
 
 // ---------- tutorial ----------
 interface Step { icon: string; text: T2; hint?: string; done: (k: Kid) => boolean; target?: (k: Kid) => THREE.Vector3 | null }
@@ -27,7 +27,7 @@ const STEPS: Step[] = [
     text: isTouch ? ['Geser joystick untuk berjalan ke Baby Mo', 'Move the joystick to walk to Baby Mo'] : ['Tekan W A S D untuk berjalan ke Baby Mo', 'Press W A S D to walk to Baby Mo'],
     done: k => k.walked > 4, target: k => k.g.ents.mo.pos.clone(),
   },
-  { icon: '👋', hint: '#bUse', text: isTouch ? ['Ketuk Baby Mo untuk menyapa!', 'Tap Baby Mo to say hi!'] : ['Arahkan ke Baby Mo, lalu klik kanan untuk menyapa!', 'Aim at Baby Mo and right-click to say hi!'], done: k => !!k.g.stats.talked.mo, target: k => k.g.ents.mo.pos.clone() },
+  { icon: '👋', hint: '#moHi', text: isTouch ? ['Ketuk tombol 👋 di atas Baby Mo untuk menyapa!', 'Tap the 👋 button above Baby Mo to say hi!'] : ['Klik Baby Mo atau tombol 👋 di atasnya untuk menyapa!', 'Click Baby Mo or the 👋 button above him to say hi!'], done: k => !!k.g.stats.talked.mo, target: k => k.g.ents.mo.pos.clone() },
   { icon: '👀', text: isTouch ? ['Geser layar untuk melihat sekeliling', 'Swipe the screen to look around'] : ['Klik layar, lalu gerakkan mouse untuk melihat', 'Click the screen, then move the mouse to look around'], done: k => k.turned > 2.2 },
   {
     icon: '🌴', hint: '#bMine',
@@ -68,6 +68,17 @@ export class Kid {
   }
 
   get step() { return this.g.stats.tut ?? 0; }
+  /** the "say hi" step: the floating 👋 button over Baby Mo is shown */
+  get helloStep() { return this.tutorialActive() && STEPS[this.step].icon === '👋'; }
+  /** the skip button on the tutorial card: move on without the reward */
+  skipStep() {
+    if (!this.tutorialActive()) return;
+    this.g.stats.tut = this.step + 1;
+    if (!this.tutorialActive()) this.g.ui.tutorial(null); else this.showStep();
+    this.g.saveSoon();
+  }
+  /** skip everything that's left (offered after a skip) */
+  skipAll() { this.g.stats.tut = STEPS.length; this.g.ui.tutorial(null); this.g.saveSoon(); }
   tutorialActive() { return this.step < STEPS.length; }
 
   /** called once after loading: players with progress skip the tutorial */

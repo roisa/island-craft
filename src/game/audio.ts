@@ -140,6 +140,20 @@ export const SFX = {
     else if (kind === 'cat') glide(620 * v, 900 * v, 0.28, 'triangle', 0.04, 0, 6);
     else if (kind === 'camel') glide(200 * v, 160 * v, 0.4, 'sawtooth', 0.025, 0, 7);
   },
+  /** three soft gulps, then a happy "ahh" */
+  gulp() {
+    if (!on()) return;
+    const c = actx(); if (!c) return;
+    for (let i = 0; i < 3; i++) {
+      const t0 = c.currentTime + i * 0.42, o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(vary(260, 0.05), t0); o.frequency.exponentialRampToValueAtTime(110, t0 + 0.16);
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.22, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + 0.25);
+      noise(0.08, 0.05, 700, i * 0.42 + 0.05, 'bandpass', 3);
+    }
+    [523, 659, 784].forEach((f, i) => tone(f, 0.22, 'sine', 0.09, 1.35 + i * 0.07));
+  },
+  pour() { if (on()) { noise(0.7, 0.07, 1800, 0, 'bandpass', 1.5); [880, 988, 1175].forEach((f, i) => tone(f, 0.1, 'sine', 0.03, 0.15 + i * 0.18)); } },
   hitMat(m: string) { if (on() && throttle('hit', 60)) snd(m).hit(); },
   breakMat(m: string) { if (on()) snd(m).brk(); },
   placeMat(m: string) { if (on() && throttle('place', 50)) snd(m).place(); },

@@ -13,7 +13,7 @@
 // Pure maths on a flat pose record, unit tested in tests/unit/animator.test.ts.
 
 export type Loco = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land' | 'swim' | 'ride' | 'fly';
-export type Action = 'mine' | 'chop' | 'collect' | 'build' | 'wave' | 'celebrate';
+export type Action = 'mine' | 'chop' | 'collect' | 'build' | 'wave' | 'celebrate' | 'drink';
 
 /** Joint angles (radians) and the body's vertical offset (rig units). Negative x on arms/legs = forward. */
 export interface Pose {
@@ -113,6 +113,12 @@ const ACT: Record<Action, ActionClip> = {
   build: { loop: false, dur: 0.3, fadeIn: 0.04, fadeOut: 0.1, mask: UPPER, sample(c, o) {
     const k = bump(c.u, 0.35);
     o.armRx = -0.4 - 1.1 * k; o.armRz = 0.05; o.armLx = -0.2 * k; o.bodyY_rot = -0.1 * k;
+  } },
+  // a glass to the mouth, head tipped back, three little sips
+  drink: { loop: true, dur: 0.9, fadeIn: 0.25, fadeOut: 0.3, mask: [...UPPER, 'headY'], sample(c, o) {
+    const sip = sin(c.u * TAU) * 0.08;
+    o.armRx = -2.15 + sip; o.armRy = 0; o.armRz = -0.55; o.armLx = -0.1; o.armLz = -0.08;
+    o.headX = -0.32 - sip; o.headY = 0; o.bodyY_rot = 0; o.bodyZ = 0;
   } },
   wave: { loop: true, dur: 0.6, fadeIn: 0.15, fadeOut: 0.2, mask: ['armRx', 'armRy', 'armRz', 'headY'], sample(c, o) {
     o.armRx = -2.7; o.armRz = 0.25 + sin(c.u * TAU) * 0.35; o.armRy = 0; o.headY = 0.1;

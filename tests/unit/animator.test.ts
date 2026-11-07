@@ -70,7 +70,7 @@ describe('blending', () => {
 });
 
 describe('actions', () => {
-  it('has all the interaction clips', () => { expect(ACTIONS.sort()).toEqual(['build', 'celebrate', 'chop', 'collect', 'mine', 'wave'].sort()); });
+  it('has all the interaction clips', () => { expect(ACTIONS.sort()).toEqual(['build', 'celebrate', 'chop', 'collect', 'drink', 'mine', 'wave'].sort()); });
   it('mining keeps the legs walking (upper-body mask)', () => {
     const a = new Animator(1), b = new Animator(1);
     a.play('mine');

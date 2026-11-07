@@ -28,7 +28,7 @@ import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
 import { SAVE_VERSION, chooseSave, cleanEdits, makeExport, parseExport, type SaveMeta, type Edits } from './game/persist';
 import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
-import { QUESTS, Stats, newStats, DUAS, CALENDAR } from './content';
+import { QUESTS, Stats, newStats, DUAS, CALENDAR, letterReward } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
 import { Fun, Outfit, defaultOutfit, outfitItem, dressUp } from './game/fun';
@@ -38,9 +38,16 @@ export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
   protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean; outfitV3?: boolean;
+  /** minutes of play between water breaks (0 = off) */
+  water: number;
 }
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
 const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
+// the jama'ah row, facing the qibla wall (north): Ayah Ibrahim leads in front,
+// the others stand in a straight row behind him with places for you and Baby Mo
+const ROW = { imam: new THREE.Vector3(0.5, VILLAGE_Y + 1, -20.5), player: new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5), mo: new THREE.Vector3(2.0, VILLAGE_Y + 1, -18.5),
+  others: [new THREE.Vector3(-1.0, VILLAGE_Y + 1, -18.5), new THREE.Vector3(-2.5, VILLAGE_Y + 1, -18.5), new THREE.Vector3(3.5, VILLAGE_Y + 1, -18.5)] };
+const inMasjidArea = (p: THREE.Vector3) => p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3;
 const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK]);
 
 const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LOG]: B.PINE_LEAVES, [B.PALM_LOG]: B.PALM_LEAVES };
@@ -56,7 +63,7 @@ export class Game {
   input: Input; inv = new Inventory(); ui: UI;
   settings: Settings = {
     sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 24, sens: 1,
-    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true, playLimit: 0,
+    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true, playLimit: 0, water: 20,
     // older/low-memory phones start in light graphics mode
     lowGfx: ((navigator as any).deviceMemory ?? 4) <= 3 || (navigator.hardwareConcurrency ?? 8) <= 4,
   };
@@ -443,6 +450,42 @@ export class Game {
     await Save.del('meta'); await Save.del('edits'); await Save.del('backup');
     location.reload();
   }
+  /** called when the child confirms they really drank: Baby Mo and you both drink in the world */
+  drankWater() {
+    this.stats.water = (this.stats.water || 0) + 1;
+    this.waterSec = 0;
+    setTimeout(() => this.kid.reward('water'), 3400); // after the drink, so a level-up can't interrupt it
+    const mo = this.ents.mo;
+    mo.holdGlass(3.2); mo.anim?.play('drink', 3.2);
+    this.anim.play('drink', 3.2);
+    this.fx.sparkle(mo.pos.x, mo.pos.y + 1.6, mo.pos.z, 14, 0x8fd3ec, 1.6);
+    SFX.gulp();
+    setTimeout(() => this.ui.say(tr('Ahh, segar! Air putih bikin badan sehat dan kuat 💧💪', 'Ahh, so fresh! Water keeps your body healthy and strong 💧💪'), 'ok', 5000), 1500);
+    this.saveSoon();
+  }
+  /** "remind me in 5 minutes" */
+  snoozeWater() { this.waterSec = Math.max(0, (this.settings.water || 20) * 60 - 300); }
+  /** places in the prayer row: Ayah Ibrahim leads as imam */
+  private rowSpot(id: string, i: number) { return (id === 'ustadz' ? ROW.imam : ROW.others[i % ROW.others.length]).clone(); }
+  private prayCamBefore: 'first' | 'third' | null = null;
+  get prayingTogether() { return this.prayCamBefore !== null; }
+  /** can the "Pray together" button be offered right now? */
+  canPrayTogether() { return !!this.gameEvent && this.picnicToMasjid < 0 && this.player.pos.distanceTo(MASJID_SPOT) < 22 && !this.fun?.riding; }
+  /** step into the row next to Baby Mo, facing the qibla, with the camera behind you so you can follow along */
+  prayTogether() {
+    if (!this.canPrayTogether()) return;
+    const p = this.player;
+    p.pos.copy(ROW.player); p.vel.set(0, 0, 0); p.visY = p.pos.y; p.yaw = 0; p.pitch = -0.25; p.flying = false;
+    if (this.prayCamBefore === null) this.prayCamBefore = this.settings.cam;
+    this.settings.cam = 'third';
+    this.ents.mo.prayAt = ROW.mo; this.ents.mo.pos.copy(ROW.mo);
+    SFX.chime();
+    this.ui.say(tr('Bismillah. Diam dulu ya, lalu ikuti Baby Mo: berdiri, rukuk, sujud, lalu duduk 🤲', 'Bismillah. Stay still and copy Baby Mo: stand, bow, prostrate, then sit 🤲'), 'alright', 4500);
+  }
+  /** walking off (or the prayer ending) gives you your own camera back */
+  private endPrayTogether() {
+    if (this.prayCamBefore !== null) { this.settings.cam = this.prayCamBefore; this.prayCamBefore = null; }
+  }
   /** The whole save as a file a parent can keep. */
   async exportSave(): Promise<string> {
     await this.save();
@@ -542,7 +585,15 @@ export class Game {
   }
 
   /** daily play time & the gentle rest reminder */
+  /** play seconds since the last water break */
+  private waterSec = 0;
   private playTime(dt: number) {
+    // water break: every N minutes of play Baby Mo brings a glass of water
+    const every = (this.settings.water ?? 20) * 60;
+    if (every > 0 && !this.paused) {
+      this.waterSec += dt;
+      if (this.waterSec >= every && !this.ui.isOpen() && !this.kid.tutorialActive() && !this.prayingTogether) { this.waterSec = 0; this.ui.waterBreak(); }
+    }
     const today = new Date().toDateString();
     const pl = this.stats.play && this.stats.play.day === today ? this.stats.play : (this.stats.play = { day: today, sec: 0 });
     pl.sec += dt; this.stats.playTotal = (this.stats.playTotal || 0) + dt;
@@ -604,7 +655,8 @@ export class Game {
     const mining = inp.mineHeld || inp.pointerMine;
     if (mining && hit && !entCloser) this.mineStep(dt, hit);
     else { this.mining = null; this.ui.mineRing(0); this.crack.visible = false; }
-    if (mining && entCloser && ent instanceof Animal) { inp.mineHeld = false; inp.pointerMine = false; this.useEntity(ent); }
+    // a left click / tap-and-hold on a friend greets them (kids rarely find the right button)
+    if (mining && entCloser && (ent instanceof Animal || ent instanceof Companion || ent instanceof Npc)) { inp.mineHeld = false; inp.pointerMine = false; this.useEntity(ent); }
     // use / place (button, right click, or a quick tap on the world)
     if (inp.takeUse()) {
       if (entCloser && ent) this.useEntity(ent);
@@ -638,6 +690,7 @@ export class Game {
     if (this.timers.real <= 0) { this.timers.real = 15; this.realReminders(); }
     this.mineAnim = Math.max(0, this.mineAnim - dt);
     this.kid.update(dt, t);
+    this.ui.updateMoHi(); this.ui.updatePray();
     if (this.undo && performance.now() > this.undo.until) { this.undo = null; this.ui.showUndo(false); }
     this.playTime(dt);
     this.fun.update(dt);
@@ -839,7 +892,7 @@ export class Game {
     this.checkQuests();
   }
 
-  private useEntity(e: unknown) {
+  useEntity(e: unknown) {
     const held = this.inv.held();
     if (e instanceof Companion) {
       const now = performance.now();
@@ -992,7 +1045,16 @@ export class Game {
     SFX.letter(); haptic([15, 40, 15]); this.kid.reward('letter'); this.ui.confetti(40);
     this.fx.sparkle(x + 0.5, y + 0.5, z + 0.5, 30, 0xffd874, 3);
     this.ents.mo.celebrate = 2.5;
-    this.ui.letterCard(i, true);
+    // every letter brings a gift; every 4th one a treasure chest (shown after the letter card)
+    const rw = letterReward(this.stats.letters.length);
+    const from = new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5);
+    this.inv.add(rw.gift[0], rw.gift[1]); this.collectFx(rw.gift[0], rw.gift[1], from);
+    this.ui.letterCard(i, true, rw);
+    if (rw.treasure) {
+      for (const [id, n] of rw.treasure.gifts) this.inv.add(id, n);
+      this.kid.reward('letter', 3);
+      this.ui.treasure(rw.treasure);
+    }
     if (this.stats.letters.length === 28) {
       SFX.fanfare(); this.fx.fireworks(this.player.pos.x, this.player.pos.y + 3, this.player.pos.z);
       setTimeout(() => this.ui.say(tr('Subhanallah! Kamu menemukan SEMUA 28 huruf hijaiyah! 🏆', 'Subhanallah! You found ALL 28 hijaiyah letters! 🏆'), 'alright', 7000), 800);
@@ -1037,7 +1099,7 @@ export class Game {
           this.ents.npcs.forEach((n, i) => n.goPray(true, this.festive.seat(i), 'picnic', PICNIC));
           this.gameEvent.until = (s[p] + 1.4) % 24;
           this.picnicToMasjid = (s[p] + 0.55) % 24;
-        } else for (const n of this.ents.npcs) n.goPray(true, MASJID_SPOT.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 3)));
+        } else this.ents.npcs.forEach((n, i) => n.goPray(true, this.rowSpot(n.id, i)));
         const lines: Record<Prayer, [string, string]> = {
           fajr: ['Sudah Subuh! Langit mulai terang. Warga berangkat ke masjid 🕌', 'It’s Fajr! The sky is getting lighter. The villagers are heading to the masjid 🕌'],
           dhuhr: ['Waktunya Dzuhur — matahari sedang tinggi ☀️ Yuk ikut ke masjid!', 'Dhuhr time — the sun is high ☀️ Let’s go to the masjid!'],
@@ -1052,17 +1114,20 @@ export class Game {
     if (this.gameEvent) {
       const ev = this.gameEvent;
       const p = this.player.pos;
-      if (!ev.attended && p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3) {
+      if (!ev.attended && inMasjidArea(p)) {
         ev.attended = true; this.stats.jamaah++; this.kid.reward('jamaah');
         SFX.quest();
-        this.ui.say(tr(`Ayo sholat ${prayerName(ev.p)} berjamaah! Diam di sini dan ikuti gerakan warga: berdiri, rukuk, sujud, duduk 🤲`, `Let’s pray ${prayerName(ev.p)} together! Stand still and follow the villagers: stand, bow, prostrate, sit 🤲`), 'alright', 8000);
+        this.ui.say(tr(`Ayo sholat ${prayerName(ev.p)} berjamaah! Tekan 🤲 Sholat bersama, lalu ikuti gerakan Baby Mo: berdiri, rukuk, sujud, duduk.`, `Let’s pray ${prayerName(ev.p)} together! Press 🤲 Pray together and copy Baby Mo: stand, bow, prostrate, sit.`), 'alright', 8000);
         this.checkQuests();
       }
       if (this.picnicToMasjid >= 0 && this.crossed(this.picnicToMasjid)) {
         this.picnicToMasjid = -1;
-        for (const n of this.ents.npcs) n.goPray(true, MASJID_SPOT.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 3)));
+        this.ents.npcs.forEach((n, i) => n.goPray(true, this.rowSpot(n.id, i)));
       }
-      if (this.crossed(ev.until)) { for (const n of this.ents.npcs) n.goPray(false, n.home); this.gameEvent = null; this.festive.setPicnic(false); }
+      // Baby Mo joins the row whenever you're in the masjid during prayer time (not during the iftar picnic)
+      const prayingNow = this.picnicToMasjid < 0;
+      this.ents.mo.prayAt = prayingNow && inMasjidArea(p) ? ROW.mo : null;
+      if (this.crossed(ev.until)) { for (const n of this.ents.npcs) n.goPray(false, n.home); this.gameEvent = null; this.festive.setPicnic(false); this.ents.mo.prayAt = null; this.endPrayTogether(); }
     }
     this.lastHour = this.hour;
   }
@@ -1169,6 +1234,15 @@ export class Game {
   // ---------- camera & avatar ----------
   private updateCamera() {
     const p = this.player, eye = p.eye(), dir = p.look();
+    document.body.classList.toggle('praying-together', this.prayingTogether);
+    if (this.prayingTogether && this.prayingPose) {
+      // praying together: look at you and Baby Mo from just behind the row, a little above
+      // so every movement (stand, bow, prostrate, sit) is easy to see and copy
+      const mid = new THREE.Vector3(p.pos.x + 0.75, p.visY, p.pos.z);
+      this.camera.position.set(mid.x + 1.0, mid.y + 2.4, mid.z + 3.4);
+      this.camera.lookAt(mid.x, mid.y + 1.25, mid.z - 1.0);
+      return;
+    }
     if (this.settings.cam === 'first') {
       this.camera.position.copy(eye);
     } else {
@@ -1207,7 +1281,8 @@ export class Game {
     const cape = a.body.getObjectByName('cape'); if (cape) cape.rotation.x = 0.15 + Math.min(0.9, p.speed * 0.12) + Math.sin(t * 6) * 0.05;
     if (a.blink) { const ph = t % 4.6; a.blink(ph < 0.13); }
     // standing still in the masjid at prayer time: pray along with the villagers
-    const inMasjid = p.pos.x > -6 && p.pos.x < 7 && p.pos.z > -26 && p.pos.z < -13 && Math.abs(p.pos.y - (VILLAGE_Y + 1)) < 3;
+    const inMasjid = inMasjidArea(p.pos);
+    if (this.prayCamBefore !== null && (p.speed > 1 || !inMasjid)) this.endPrayTogether();
     if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, poseAt(t)); this.prayingPose = true; }
     else if (this.prayingPose) { clearPose(a); this.prayingPose = false; }
     this.updateHeld(t, sw);
