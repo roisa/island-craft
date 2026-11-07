@@ -5,6 +5,31 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Full-screen app on phones (Add to Home Screen)
+
+So the browser bars do not cover the game on iPhone and other phones.
+
+- **Installable app**
+  - `public/manifest.webmanifest`: full-screen display, green theme,
+    Baby Mo icons (192, 512 and a maskable icon).
+  - Apple meta tags in `index.html`: full screen from the Home Screen,
+    a see-through status bar and a 180px touch icon.
+- **Offline cache** (`public/sw.js`)
+  - Pages load from the network first, with the cache as a fallback.
+  - Game files come from the cache first, so an installed game opens fast
+    and still works without internet.
+  - Old caches are cleared when a new version arrives.
+- **Start screen help** (`src/install.ts`, `ui.ts`)
+  - On iPhone/iPad Safari: a card that shows the steps (Share, then
+    "Add to Home Screen"). It can be closed and stays closed.
+  - On Android/Chrome: an "Install as app" button.
+  - On a computer: a "Full screen" button.
+  - Nothing is shown once the game is already opened as an app.
+- **Tested:** 95 unit tests; the smoke suite on desktop, iPhone, iPad and
+  Android profiles. In iPhone emulation the card shows, the manifest loads,
+  the icon is served and the service worker registers. Not tested on a
+  real iPhone, because the sandbox only has Chromium.
+
 ### Ibra's ideas (after playtesting)
 
 Requested by Ibra after playing. Each idea is fitted to a young player and to

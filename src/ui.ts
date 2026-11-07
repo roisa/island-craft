@@ -15,6 +15,7 @@ import type { Landmark } from './world/landmarks';
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
 import { guessLook, toCss, type Look } from './game/photo';
+import { isInstalled, isIOS, canPrompt, promptInstall, canFullscreen, toggleFullscreen, hintDismissed, dismissHint, onInstallChange } from './install';
 import type { T2 } from './i18n';
 import { ic, tile, COLORS as C } from './icons';
 import { arImg } from './arabic';
@@ -1051,6 +1052,27 @@ export class UI {
     $('#loadTxt').textContent = text || tr('Menyiapkan dunia Baby Mo…', 'Preparing Baby Mo’s world…');
     $('#loadBar').style.width = Math.round(p * 100) + '%';
   }
+  /** how to play full screen: Home Screen steps on iPhone/iPad, an install button on Android, or a fullscreen button */
+  private installHint(el: HTMLElement, render: () => void) {
+    if (isInstalled()) return;
+    let html = '';
+    if (isIOS() && !hintDismissed()) {
+      const share = `<svg class="shareIc" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 17.5 10H16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+      html = `<div class="installCard"><button class="x" id="instX" aria-label="${tr('Tutup', 'Close')}">✕</button>
+        <b>📲 ${tr('Main layar penuh, tanpa bar browser', 'Play full screen, no browser bars')}</b>
+        <ol><li>${tr(`Ketuk ${share} <b>Bagikan</b> di Safari`, `Tap ${share} <b>Share</b> in Safari`)}</li><li>${tr('Pilih <b>Tambah ke Layar Utama</b>', 'Choose <b>Add to Home Screen</b>')}</li><li>${tr('Buka <b>Baby Mo</b> dari layar utama 🎉', 'Open <b>Baby Mo</b> from your Home Screen 🎉')}</li></ol>
+        <small>${tr('Progres tetap tersimpan. Pakai Safari ya (bukan Chrome) di iPhone.', 'Your progress is kept. Use Safari (not Chrome) on iPhone.')}</small></div>`;
+    } else if (canPrompt()) {
+      html = `<button class="btn ghost small installBtn" id="instGo">📲 ${tr('Pasang sebagai aplikasi (layar penuh)', 'Install as an app (full screen)')}</button>`;
+    } else if (canFullscreen()) {
+      html = `<button class="btn ghost small installBtn" id="instFull">⛶ ${tr('Layar penuh', 'Full screen')}</button>`;
+    }
+    if (!html) return;
+    el.insertAdjacentHTML('beforeend', html);
+    el.querySelector<HTMLElement>('#instX')?.addEventListener('click', () => { dismissHint(); render(); });
+    el.querySelector<HTMLElement>('#instGo')?.addEventListener('click', async () => { await promptInstall(); render(); });
+    el.querySelector<HTMLElement>('#instFull')?.addEventListener('click', () => toggleFullscreen());
+  }
   showStart(meta: any, onPlay: (fresh: boolean) => void) {
     const s = this.g.settings;
     const hasSave = !!meta;
@@ -1077,7 +1099,9 @@ export class UI {
       // starting over deletes everything, so only a grown-up can do it
       const n = el.querySelector<HTMLElement>('#sNew'); if (n) n.onclick = () => this.parentGate(() => go(true));
       this.bindLangSeg(el, render);
+      this.installHint(el, render);
     };
+    onInstallChange(() => render());
     render();
     $('#start').classList.remove('hidden');
   }

@@ -36,3 +36,13 @@
 .plSw small { font-size: 11.5px; color: var(--ink-dim); }
 @media (max-width: 420px) { .plRow { flex-direction: column; align-items: center; } .plSw { max-width: none; grid-template-columns: 1fr 1fr; } }
 .wd small.perkTxt { background: none !important; box-shadow: none !important; padding: 0 2px !important; position: static !important; color: #8a6400 !important; font-weight: 800; text-align: center; }
+/* playing full screen: Home Screen hint on iPhone/iPad, install / fullscreen button elsewhere */
+.installCard { position: relative; margin: 12px auto 0; max-width: 360px; text-align: left; background: #eef7ff; border: 2px solid #b9dcf7; border-radius: 16px; padding: 10px 34px 10px 12px; font-size: 13.5px; }
+.installCard b { font-weight: 900; }
+.installCard ol { margin: 6px 0 4px 18px; padding: 0; display: grid; gap: 3px; }
+.installCard small { display: block; color: var(--ink-dim); font-size: 12px; }
+.installCard .x { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(0,0,0,.06); font-size: 14px; cursor: pointer; }
+.shareIc { width: 18px; height: 18px; vertical-align: -3px; color: #0a84ff; }
+.installBtn { margin-top: 10px; }
+/* installed as an app: the status bar is see-through, so keep the sky colour behind it */
+@media (display-mode: standalone), (display-mode: fullscreen) { html, body { background: #1FA971; } }
