@@ -94,6 +94,7 @@ export class Kid {
     const p = this.g.player.pos;
     this.g.fx.fireworks(p.x, p.y + 2, p.z);
     this.g.ents.mo.celebrate = 3;
+    this.g.anim.play('celebrate', 2);
     const gifts: [number, number][] = [[B.LANTERN, 2], [B.GOLD_TILE, 4 + lv], [B.MOSAIC, 4 + lv]];
     for (const [id, k] of gifts) this.g.inv.add(id, k);
     this.g.onLevelUp?.(lv);

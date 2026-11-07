@@ -58,6 +58,7 @@ async function run(name) {
       await g(() => { const G = __game; G.ui.closeAllModals?.(); G.player.pos.set(0.5, 47, 3.5); G.player.yaw = 0; G.player.pitch = 0; });
       await p.waitForTimeout(400);
       const a = await g(() => [__game.player.pos.x, __game.player.pos.z]);
+      let anim;
       if (touch) {
         const box = await p.locator('#stick').boundingBox();
         const cdp = await ctx.newCDPSession(p);
@@ -65,12 +66,14 @@ async function run(name) {
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [c] });
         for (let i = 1; i <= 5; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: c.x, y: c.y - i * 10 }] });
         await p.waitForTimeout(1200);
+        anim = await g(() => __game.anim.loco);
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      } else { await p.keyboard.down('KeyW'); await p.waitForTimeout(1200); await p.keyboard.up('KeyW'); }
+      } else { await p.keyboard.down('KeyW'); await p.waitForTimeout(1200); anim = await g(() => __game.anim.loco); await p.keyboard.up('KeyW'); }
+      if (anim !== 'walk' && anim !== 'run') throw new Error('avatar animation while walking: ' + anim);
       const b = await g(() => [__game.player.pos.x, __game.player.pos.z]);
       const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
       if (d < 0.5) throw new Error('player did not move: ' + d.toFixed(2));
-      return { moved: +d.toFixed(2) };
+      return { moved: +d.toFixed(2), anim };
     });
     await step('mine a block (hold mine)', async () => {
       // stand on top of solid ground and look straight down at it
@@ -84,6 +87,7 @@ async function run(name) {
       });
       await p.waitForTimeout(500);
       await g(() => { __game.input.mineHeld = true; });
+      await p.waitForFunction(() => __game.anim.action === 'mine', null, { timeout: 5000 });
       await p.waitForFunction(y => __game.world.get(20, y, 20) === 0, spot.y, { timeout: 15000 });
       await g(() => { __game.input.mineHeld = false; });
       await p.waitForTimeout(300);

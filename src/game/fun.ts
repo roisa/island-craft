@@ -290,7 +290,7 @@ export class Fun {
         g.stats.placed += cs.length;
         g.stats.built = (g.stats.built || 0) + 1;
         g.setUndo(cs.map(([x, y, z, id]) => [o.x + x, o.y + y, o.z + z, id] as [number, number, number, number]), refund);
-        SFX.fanfare(); g.ui.confetti(60); g.ents.mo.celebrate = 3;
+        SFX.fanfare(); g.ui.confetti(60); g.ents.mo.celebrate = 3; g.anim.play('celebrate', 2);
         g.fx.sparkle(o.x + 0.5, o.y + 3, o.z - 1.5, 40, 0xffd874, 4);
         g.kid.reward('quest', 2);
         g.ui.say(tr(`Masya Allah, ${t2(bp.name)} jadi! Keren sekali 🏗️`, `Masha Allah, your ${t2(bp.name)} is finished! So cool 🏗️`), 'alright', 6000);

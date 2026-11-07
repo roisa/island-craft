@@ -5,6 +5,48 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M3 · Animation system
+
+- **New animator** (`src/game/animator.ts`) for every humanoid: the player's
+  avatar, Baby Mo and the villagers. It has two layers.
+  - **Locomotion:** idle (breathing, looking around), walk, run (with a
+    forward lean), jump, fall, land (a short crouch on landing), swim
+    (breaststroke with flutter kicks), ride and fly. Every state change is
+    cross-faded.
+  - **Actions on top:**
+    - *mine*: an overhead strike, shown while the mine button is held.
+    - *chop*: a sideways swing with a body twist. It plays automatically
+      when the target is a tree trunk.
+    - *build*: a reach forward when a block is placed.
+    - *collect*: a scoop when items are picked up away from mining, e.g.
+      milk, eggs, chests and gifts.
+    - *wave*: villagers waving.
+    - *celebrate*: a hop with both arms up. It plays for a new letter, a
+      level-up and a finished blueprint.
+
+    Actions mask the upper body, so the character can chop while walking.
+    Celebrate takes over the whole body.
+- **No foot sliding:** the walk and run cycles advance with the distance
+  actually travelled.
+- **Smooth transitions:** a cross-fade always starts from the pose currently
+  on screen, so an interrupted fade (jump straight into fall) can't snap.
+  The unit tests found that snap in the first version.
+- **Bending at the hip:** leaning (run, collect, swim) pivots at the hip, the
+  same way the prayer poses do. The feet stay planted, and a test checks
+  this.
+- **Prayer poses unchanged:** villagers' jama'ah, the picnic sitting pose and
+  the player praying in the masjid still override the animator, as before.
+- **Honest scope:** the characters are rigid jointed blocks, not skinned
+  meshes. The clips are parametric pose functions, not keyframe files.
+- **Cost:** 1.6 µs per character per frame, measured in Node.
+- Tests: 13 unit tests covering state transitions, a normal hop vs a real
+  fall, joint continuity across every transition, distance-locked cadence,
+  masks, one-shot and looping actions, and hip pivoting. The smoke test now
+  checks the avatar is in the walk or run state while walking, and in the
+  mine action while digging. Checked in game: walking, jumping, chopping the
+  village palm, swimming in a pool, villagers praying in the masjid and
+  waving.
+
 ### M2 · Save v2
 
 - **Versioned saves with migrations** (`src/game/persist.ts`). The save is now

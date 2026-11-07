@@ -21,6 +21,7 @@ import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
 import { Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
 import { buildBlocky, ADAM_HERO, AISYAH, AYAH } from './game/blocky';
 import { FX } from './game/fx';
+import { Animator, applyPose, type AnimInput } from './game/animator';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
@@ -82,6 +83,10 @@ export class Game {
   private crackTex: THREE.CanvasTexture[] = [];
   private mining: { key: string; t: number; need: number } | null = null;
   private mineAnim = 0;
+  /** the player's avatar animator (third person) */
+  readonly anim = new Animator(1.7);
+  private animIn: AnimInput = { speed: 0, grounded: true, vy: 0 };
+  private mineKind: 'mine' | 'chop' = 'mine';
   private gameEvent: { p: Prayer; until: number; attended: boolean } | null = null;
   private lastHour = 0;
   private remindersShown = new Set<string>();
@@ -670,6 +675,7 @@ export class Game {
     if (this.mining.need === Infinity) return;
     this.mining.t += dt;
     this.mineAnim = 0.25;
+    this.mineKind = LOG_LEAF[hit.id] !== undefined ? 'chop' : 'mine';
     if (Math.floor(this.mining.t / 0.22) !== Math.floor((this.mining.t - dt) / 0.22)) SFX.hit(def.hardness < 0.5);
     const prog = this.mining.t / this.mining.need;
     this.ui.mineRing(prog);
@@ -751,6 +757,7 @@ export class Game {
       this.ui.pickup(d, n);
     }
     if (drops.length) SFX.pickup();
+    if (drops.length && !this.mining && this.mineAnim <= 0) this.anim.play('collect');
     this.checkQuests();
   }
 
@@ -792,6 +799,7 @@ export class Game {
     this.stats.placedIds[held.id] = (this.stats.placedIds[held.id] || 0) + 1;
     SFX.place(); haptic(6);
     this.mineAnim = 0.2;
+    this.anim.play('build');
     this.checkQuests();
   }
 
@@ -935,6 +943,7 @@ export class Game {
   private collectLetter(i: number, x: number, y: number, z: number) {
     if (this.stats.letters.includes(i)) return;
     this.stats.letters.push(i);
+    this.anim.play('celebrate', 1.6);
     this.world.set(x, y, z, B.AIR);
     this.inv.add(B.LETTER_0 + i, 1);
     SFX.letter(); haptic([15, 40, 15]); this.kid.reward('letter'); this.ui.confetti(40);
@@ -1140,14 +1149,18 @@ export class Game {
     const p = this.player;
     a.root.position.set(p.pos.x, p.visY, p.pos.z);
     a.root.rotation.y = p.yaw + Math.PI;
-    const moving = p.speed > 0.5 && (p.onGround || p.inWater);
-    const sw = moving ? Math.sin(t * 10) * 0.7 * Math.min(1, p.speed / 4) : 0;
-    a.legs[0].rotation.x = sw; a.legs[1].rotation.x = -sw;
-    if (a.armL) a.armL.rotation.x = -sw * 0.8;
-    if (a.armR) a.armR.rotation.x = this.mineAnim > 0 ? -1.6 + Math.sin(t * 22) * 0.6 : sw * 0.8;
-    a.head.rotation.x = -p.pitch * 0.5;
-    if (p.flying) { a.legs[0].rotation.x = 0.2; a.legs[1].rotation.x = 0.2; }
-    if (this.fun?.riding) { a.legs[0].rotation.set(-1.3, 0, -0.35); a.legs[1].rotation.set(-1.3, 0, 0.35); a.root.position.y -= 0.35; } else { a.legs[0].rotation.y = a.legs[0].rotation.z = 0; a.legs[1].rotation.y = a.legs[1].rotation.z = 0; }
+    const riding = !!this.fun?.riding;
+    // the action layer: mine/chop while digging (held), build on place, collect, celebrate
+    if (this.mining && this.mineAnim > 0) { this.anim.stop(this.mineKind === 'chop' ? 'mine' : 'chop'); this.anim.play(this.mineKind); }
+    else { this.anim.stop('mine'); this.anim.stop('chop'); }
+    const inp = this.animIn;
+    inp.speed = p.speed; inp.grounded = p.onGround; inp.vy = p.vel.y;
+    inp.swimming = p.inWater && !p.onGround; inp.flying = p.flying; inp.riding = riding;
+    const pose = this.anim.update(dt, t, inp);
+    pose.headX += -p.pitch * 0.5;
+    applyPose(a, pose);
+    if (riding) a.root.position.y -= 0.35;
+    const sw = this.anim.loco === 'walk' || this.anim.loco === 'run' ? pose.armRx : 0;
     const cape = a.body.getObjectByName('cape'); if (cape) cape.rotation.x = 0.15 + Math.min(0.9, p.speed * 0.12) + Math.sin(t * 6) * 0.05;
     if (a.blink) { const ph = t % 4.6; a.blink(ph < 0.13); }
     // standing still in the masjid at prayer time: pray along with the villagers

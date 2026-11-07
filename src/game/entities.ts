@@ -6,6 +6,7 @@ import { B, BLOCKS } from '../world/blocks';
 import { mulberry32 } from '../world/noise';
 import { buildAnimal, nameTag, AnimalKind, Rig, applyPrayerPose, clearPose, poseAt } from './models';
 import { buildBlocky, BlockyOpts, BABY_MO } from './blocky';
+import { Animator, applyPose, type AnimInput } from './animator';
 import type { T2 } from '../i18n';
 
 export abstract class Entity {
@@ -14,14 +15,29 @@ export abstract class Entity {
   walk = 0;           // walk animation phase
   moving = false;
   radius = 0.5;
+  /** humanoids get the full animator; animals keep the simple leg swing */
+  anim: Animator | null = null;
+  swimming = false;
+  private last = new THREE.Vector3(NaN, 0, 0);
+  private animIn: AnimInput = { speed: 0, grounded: true, vy: 0 };
   constructor(public rig: Rig) { }
   abstract update(dt: number, t: number): void;
   private blinkSeed = Math.random() * 10;
-  sync(t: number) {
+  sync(t: number, dt = 1 / 60) {
     const r = this.rig;
     if (r.blink) { const ph = (t + this.blinkSeed) % 4.2; r.blink(ph < 0.13 || (ph > 0.3 && ph < 0.42 && this.blinkSeed > 6)); }
     r.root.position.copy(this.pos);
     r.root.rotation.y = this.yaw;
+    if (this.anim) {
+      // speed from the actual movement this frame, so the stride matches the ground
+      const d = Number.isNaN(this.last.x) || dt <= 0 ? 0 : Math.hypot(this.pos.x - this.last.x, this.pos.z - this.last.z) / dt;
+      const inp = this.animIn;
+      inp.speed = d > 20 ? 0 : d; // teleports don't count
+      inp.grounded = true; inp.vy = 0; inp.swimming = this.swimming;
+      this.last.copy(this.pos);
+      applyPose(r, this.anim.update(dt, t, inp));
+      return;
+    }
     const sw = this.moving ? Math.sin(this.walk) * 0.6 : 0;
     r.legs.forEach((l, i) => (l.rotation.x = (i % 2 === (i < 2 ? 0 : 1) ? sw : -sw)));
     if (r.armL) r.armL.rotation.x = -sw * 0.8;
@@ -123,6 +139,7 @@ export class Npc extends Entity {
   waving = false;
   constructor(public id: NpcId, public name: string, opts: BlockyOpts, public home: THREE.Vector3, public world: World) {
     super(buildBlocky(opts));
+    this.anim = new Animator();
     this.pos.copy(home);
     this.tag = nameTag(name, '#FFD874');
     this.tag.position.y = this.rig.height + 0.32;
@@ -149,15 +166,14 @@ export class Npc extends Entity {
         this.moving = true; this.walk += dt * 8;
       }
     }
-    this.sync(t);
+    if (this.waving) this.anim!.play('wave'); else this.anim!.stop('wave');
+    this.sync(t, dt);
     // at the masjid during prayer time: pray together, facing the qibla wall (north)
     if (this.goingToMasjid && !this.target) {
       if (this.activity === 'picnic' && this.faceTo) this.yaw = Math.atan2(this.faceTo.x - this.pos.x, this.faceTo.z - this.pos.z); else this.yaw = Math.PI;
       this.rig.root.rotation.y = this.yaw; applyPrayerPose(this.rig, this.activity === 'picnic' ? 'julus' : poseAt(t)); this.praying = true; return;
     }
-    if (this.praying) { clearPose(this.rig); this.praying = false; }
-    if (this.waving && this.rig.armR) this.rig.armR.rotation.set(-2.6 + Math.sin(t * 10) * 0.3, 0, 0.2);
-    else if (this.rig.armR && !this.moving) this.rig.armR.rotation.set(0, 0, 0);
+    if (this.praying) { clearPose(this.rig); this.praying = false; this.sync(t, 0); }
   }
   /** walk to the masjid for jama'ah prayer, or home again */
   goPray(on: boolean, spot: THREE.Vector3, activity: 'pray' | 'picnic' = 'pray', faceTo: THREE.Vector3 | null = null) {
@@ -171,10 +187,10 @@ export class Npc extends Entity {
 // ---- Baby Mo ---------------------------------------------------------------------
 export class Companion extends Entity {
   celebrate = 0;
-  swimming = false;
   tag: THREE.Sprite;
   constructor(public world: World, public follow: () => { pos: THREE.Vector3; yaw: number; fp?: boolean }) {
     super(buildBlocky(BABY_MO));
+    this.anim = new Animator();
     this.tag = nameTag('Baby Mo', '#9BF29A');
     this.tag.position.y = this.rig.height + 0.2;
     this.rig.root.add(this.tag);
@@ -205,14 +221,8 @@ export class Companion extends Entity {
       const want = Math.atan2(f.pos.x - this.pos.x, f.pos.z - this.pos.z);
       this.yaw += (want - this.yaw) * Math.min(1, dt * 3);
     }
-    this.sync(t);
-    if (this.swimming && this.rig.armL && this.rig.armR) { this.rig.armL.rotation.x = -2.4 + Math.sin(t * 6) * 0.5; this.rig.armR.rotation.x = -2.4 - Math.sin(t * 6) * 0.5; }
-    if (this.celebrate > 0) {
-      this.celebrate -= dt;
-      this.rig.root.position.y += Math.abs(Math.sin(t * 9)) * 0.35;
-      this.rig.root.rotation.y = this.yaw + Math.sin(t * 8) * 0.6;
-      if (this.rig.armL) this.rig.armL.rotation.x = -2.8; if (this.rig.armR) this.rig.armR.rotation.x = -2.8;
-    }
+    if (this.celebrate > 0) { this.celebrate -= dt; this.anim!.play('celebrate'); } else this.anim!.stop('celebrate');
+    this.sync(t, dt);
   }
 }
 
