@@ -590,3 +590,9 @@ body.desktop #bRot { bottom: calc(110px + var(--safe-b)); right: 20px; }
 .jr .jok { color: #1fa971; font-weight: 900; font-size: 18px; }
 .jr .btn { width: auto; margin: 0; white-space: nowrap; }
 .discovery .dfact { background: #fff8e0; border-radius: 14px; padding: 10px 12px; text-align: left; font-weight: 700; }
+/* QA fixes: letters not found yet ("?") must stay big enough to tap, and the map zoom buttons too */
+.lcell { min-height: 58px !important; }
+.lcell.locked .g { line-height: 1.2 !important; font-size: 24px; }
+.mapZoom .btn, #book .row .btn.small[data-z] { min-height: 40px; }
+/* small buttons inside pop-ups stay comfortably tappable on phones */
+.panel .btn.small, #book .btn.small { min-height: 36px; }

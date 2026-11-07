@@ -5,6 +5,37 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M9 · QA pass
+
+- **New full QA suite** (`npm run qa`, `tests/smoke/qa.mjs`). It runs on
+  five profiles: desktop, iPhone landscape, **iPhone portrait**, iPad and
+  Android, and goes through:
+  - boot, and the say-hi tutorial step with its 👋 button;
+  - hijaiyah letters: card, harakat sounds, gift, and the treasure at 4;
+  - letter quiz, and spelling a whole word in the word builder;
+  - du'a card;
+  - all ten book tabs;
+  - Ramadhan calendar;
+  - prayer times, including that changing the method changes them;
+  - prayer time in the game: villagers go to the masjid and you pray
+    together with Baby Mo;
+  - the Maghrib iftar picnic, bedug and bedtime story;
+  - the water break with its "are you sure?" check;
+  - the parents gate and panel;
+  - switching language, the HUD fitting the screen, and no console errors.
+- **Layout checks at every step:** no sideways scrolling, pop-ups fit the
+  screen, buttons at least 30 px, images drawn.
+- **Result:** all checks pass on all five profiles. Full table in
+  `docs/QA_REPORT.md`.
+- **Found and fixed:**
+  - The "?" tiles for letters not yet found had collapsed to 14 px tall on
+    every device.
+  - Small buttons were only 29 px tall on phones ("Back to village",
+    "Photo", map zoom).
+- **Honest limits:** device profiles are emulated in Chromium. Real
+  iPhone/iPad Safari and Android still need a hand check (list in the
+  report).
+
 ### M8 · Performance
 
 Measured in headless Chromium with a software GPU, desktop 1100×680, a new

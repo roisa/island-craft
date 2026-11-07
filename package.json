@@ -10,7 +10,8 @@
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "smoke": "node tests/smoke/smoke.mjs"
+    "smoke": "node tests/smoke/smoke.mjs",
+    "qa": "node tests/smoke/qa.mjs"
   },
   "dependencies": {
     "@fontsource/nunito": "^5.2.7",
