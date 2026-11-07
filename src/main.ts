@@ -26,11 +26,12 @@ import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, load
 import { QUESTS, Stats, newStats, DUAS, CALENDAR } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
+import { Fun, Outfit, defaultOutfit, outfitItem, dressUp } from './game/fun';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean;
+  protectVillage: boolean; outfit?: Outfit;
 }
 const SAVE_VERSION = 1;
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
@@ -53,6 +54,7 @@ export class Game {
     mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true,
   };
   kid!: Kid;
+  fun!: Fun;
   onLevelUp: ((lv: number) => void) | null = null;
   seed = 0;
   hour = 7.5; day = 1;
@@ -198,6 +200,8 @@ export class Game {
     this.scene.add(this.ents.mo.rig.root);
     this.buildAvatar();
     this.kid = new Kid(this);
+    this.fun = new Fun(this);
+    this.fun.restorePet();
 
     // pre-generate the area around the player
     const total = 30;
@@ -242,9 +246,14 @@ export class Game {
 
   buildAvatar() {
     if (this.avatar) this.scene.remove(this.avatar.root);
-    this.avatar = this.settings.avatar === 'girl'
-      ? buildHuman({ skin: '#E8B892', shirt: 0xff8fb3, pants: 0x6b5ca5, hijab: 0x2aa198, robe: true, lashes: true, kid: true, scale: 0.9, trim: 0xf6dd6e })
-      : buildHuman({ skin: '#E8B892', shirt: 0x2e8e86, pants: 0x35406b, hair: 0x3a2a1e, peci: 0xf2f2f2, kid: true, scale: 0.9, trim: 0xffffff });
+    const girl = this.settings.avatar === 'girl';
+    const o = this.settings.outfit ??= defaultOutfit(girl);
+    const shirt = outfitItem(o.shirt)?.color ?? (girl ? 0xff8fb3 : 0x2e8e86);
+    const hat = outfitItem(o.hat);
+    this.avatar = girl
+      ? buildHuman({ skin: '#E8B892', shirt, pants: 0x6b5ca5, hijab: outfitItem(o.hijab)?.color ?? 0x2aa198, robe: true, lashes: true, kid: true, scale: 0.9, trim: 0xf6dd6e })
+      : buildHuman({ skin: '#E8B892', shirt, pants: 0x35406b, hair: 0x3a2a1e, peci: hat?.id === 'peci' || hat?.id === 'peci_gold' ? hat.color : undefined, kid: true, scale: 0.9, trim: 0xffffff });
+    dressUp(this.avatar, o, girl, 0.6);
     this.scene.add(this.avatar.root);
     this.heldId = -1;
   }
@@ -395,7 +404,8 @@ export class Game {
     inp.lookDX = inp.lookDY = 0;
     if (inp.wheel) { this.inv.sel = (this.inv.sel + Math.sign(inp.wheel) + 9) % 9; inp.wheel = 0; this.ui.refreshHotbar(); this.ui.flashHeld(); }
     const ax = inp.axis();
-    p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
+    if (this.fun.riding && (inp.takeUse() || inp.tapAt)) { inp.tapAt = null; this.fun.dismount(); }
+    if (!this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
     this.ui.setFlying(p.flying);
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }
 
@@ -473,6 +483,7 @@ export class Game {
     if (this.timers.real <= 0) { this.timers.real = 15; this.realReminders(); }
     this.mineAnim = Math.max(0, this.mineAnim - dt);
     this.kid.update(dt, t);
+    this.fun.update(dt);
   }
 
   private entityName(e: unknown) {
@@ -486,6 +497,7 @@ export class Game {
     const key = hit.x + ',' + hit.y + ',' + hit.z;
     const def = BLOCKS[hit.id];
     if (!def || def.hardness === Infinity) { this.ui.mineRing(0); return; }
+    if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); this.input.mineHeld = false; this.input.pointerMine = false; return; }
     if (isLetter(hit.id)) {
       const sh = this.gen.shrines.find(s => s.x === hit.x && s.y === hit.y && s.z === hit.z);
       if (sh && !this.stats.letters.includes(sh.letter)) { this.collectLetter(sh.letter, hit.x, hit.y, hit.z); return; }
@@ -600,10 +612,12 @@ export class Game {
     if (hit) {
       // interactive blocks
       if (hit.id === B.BED) { this.sleep(); return; }
+      if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
       if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, tr('📚 Doa sehari-hari', '📚 Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
     }
+    if (held && held.id === I.BOAT) { this.fun.tryBoat(); return; }
     if (held && FOOD.has(held.id)) { this.eat(); return; }
     if (!hit || !held || !isBlockId(held.id)) { if (!hit && !held) return; if (held && !isBlockId(held.id) && !FOOD.has(held.id)) this.ui.toast(tr('Pegang balok untuk dipasang 🧱', 'Hold a block to place it 🧱')); return; }
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
@@ -645,6 +659,9 @@ export class Game {
     }
     if (e instanceof Npc) { this.talkNpc(e); return; }
     if (e instanceof Animal) {
+      if (held && (held.id === I.DATES || held.id === I.APPLE) && e !== this.fun.pet) { this.fun.offerAdopt(e); return; }
+      if (e.kind === 'camel' && !this.fun.riding) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 2); this.fun.rideCamel(e); return; }
+      if (e === this.fun.pet) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 4); SFX.pet(); e.hop = 0.5; this.ui.toast(tr(`💕 ${this.stats.pet!.name} senang sekali!`, `💕 ${this.stats.pet!.name} is so happy!`)); this.stats.petted++; this.checkQuests(); return; }
       e.hop = 0.5; e.target = null; e.wait = 2;
       this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 3);
       SFX.pet(); haptic(10);
@@ -950,6 +967,8 @@ export class Game {
     if (a.armR) a.armR.rotation.x = this.mineAnim > 0 ? -1.6 + Math.sin(t * 22) * 0.6 : sw * 0.8;
     a.head.rotation.x = -p.pitch * 0.5;
     if (p.flying) { a.legs[0].rotation.x = 0.2; a.legs[1].rotation.x = 0.2; }
+    if (this.fun?.riding) { a.legs[0].rotation.set(-1.3, 0, -0.35); a.legs[1].rotation.set(-1.3, 0, 0.35); a.root.position.y -= 0.35; } else { a.legs[0].rotation.y = a.legs[0].rotation.z = 0; a.legs[1].rotation.y = a.legs[1].rotation.z = 0; }
+    const cape = a.body.getObjectByName('cape'); if (cape) cape.rotation.x = 0.15 + Math.min(0.9, p.speed * 0.12) + Math.sin(t * 6) * 0.05;
     if (a.blink) { const ph = t % 4.6; a.blink(ph < 0.13); }
     this.updateHeld(t, sw);
   }

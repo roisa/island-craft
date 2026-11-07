@@ -140,6 +140,9 @@ const P: Record<string, Painter> = {
   wool_blue: g => wool(g, '#2E6FE0', '#2458B8'),
   wool_purple: g => wool(g, '#9B59B6', '#7E4396'),
   wool_green: g => wool(g, '#3FA34D', '#2F8A3C'),
+  chest_side: g => { g.fill('#A9743F'); for (let y = 0; y < 16; y += 4) g.rect(0, y, 16, 1, '#7A5129'); g.rect(0, 5, 16, 2, '#F1C232'); g.rect(0, 0, 1, 16, '#F1C232'); g.rect(15, 0, 1, 16, '#F1C232'); },
+  chest_front: g => { P.chest_side(g); g.rect(6, 5, 4, 5, '#F1C232'); g.rect(7, 7, 2, 2, '#5E3E25'); },
+  chest_top: g => { g.fill('#B98250'); for (let x = 0; x < 16; x += 4) g.rect(x, 0, 1, 16, '#8C5E33'); g.rect(0, 0, 16, 1, '#F1C232'); g.rect(0, 15, 16, 1, '#F1C232'); g.rect(0, 0, 1, 16, '#F1C232'); g.rect(15, 0, 1, 16, '#F1C232'); },
   // items (UI icons only)
   i_stick: g => { g.clear(); for (let i = 0; i < 11; i++) g.p(3 + i, 13 - i, i % 2 ? '#7B5131' : '#96683F'); },
   i_pick_wood: g => tool(g, '#C49A62', '#8F6A3E', 'pick'),
@@ -160,6 +163,7 @@ const P: Record<string, Painter> = {
   i_egg: g => { g.clear(); for (let y = 3; y < 14; y++) for (let x = 3; x < 13; x++) if (((x - 8) / 4.2) ** 2 + ((y - 8.5) / 5.2) ** 2 < 1) g.p(x, y, '#FFF4E0'); g.p(6, 6, '#FFFFFF'); },
   i_apple: g => { g.clear(); for (let y = 4; y < 14; y++) for (let x = 3; x < 13; x++) if (Math.hypot(x - 8, y - 9) < 5) g.p(x, y, '#E4423A'); g.p(8, 3, '#7B5131'); g.p(9, 2, '#4F9E48'); g.p(6, 6, '#FF9A8F'); },
   i_takjil: g => { g.clear(); g.rect(1, 11, 14, 2, '#F2EFE8'); g.rect(2, 13, 12, 1, '#C9C3B5'); for (const x of [3, 6, 9]) { g.rect(x, 8, 2, 3, '#8B4A1F'); } g.rect(11, 4, 3, 7, '#FFFFFF'); g.rect(11, 6, 3, 2, '#4C8DFF'); },
+  i_boat: g => { g.clear(); g.rect(1, 9, 14, 3, '#A9743F'); g.rect(3, 12, 10, 2, '#8C5E33'); g.rect(1, 8, 2, 1, '#8C5E33'); g.rect(13, 8, 2, 1, '#8C5E33'); g.rect(7, 2, 1, 7, '#7B5131'); g.rect(8, 3, 4, 4, '#F2F2F2'); g.rect(8, 7, 3, 1, '#F2F2F2'); },
   i_kolak: g => { g.clear(); g.rect(2, 8, 12, 5, '#F4C430'); g.rect(2, 7, 12, 1, '#FFFFFF'); g.rect(3, 6, 10, 1, '#E4423A'); g.rect(7, 4, 2, 2, '#E4423A'); g.rect(2, 13, 12, 1, '#C78A1E'); },
 };
 

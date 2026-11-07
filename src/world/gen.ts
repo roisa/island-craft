@@ -146,6 +146,7 @@ export class Generator {
     // glowing crystals on deep cave floors
     for (let z = 0; z < CS; z++) for (let x = 0; x < CS; x++) for (let y = 3; y < SEA - 12; y++) {
       if (d[idx(x, y, z)] === B.STONE && d[idx(x, y + 1, z)] === B.AIR && hash3(ox + x, y, oz + z, this.seed + 77) < 0.018) d[idx(x, y, z)] = B.CRYSTAL_ORE;
+      else if (y > 8 && d[idx(x, y, z)] === B.STONE && d[idx(x, y + 1, z)] === B.AIR && d[idx(x, y + 2, z)] === B.AIR && hash3(ox + x, y, oz + z, this.seed + 99) < 0.0012) d[idx(x, y + 1, z)] = B.CHEST;
     }
   }
 
@@ -244,6 +245,12 @@ export class Generator {
         const th = 1 + Math.floor(rnd() * 3);
         for (let y = 0; y < th; y++) set(x, y0 + y, z, B.CACTUS, true);
       }
+    }
+
+    // a treasure chest here and there on the surface
+    if (center.biome !== Biome.VILLAGE && center.biome !== Biome.OCEAN && rnd() < 0.09) {
+      const x = 2 + Math.floor(rnd() * 12), z = 2 + Math.floor(rnd() * 12), c = cols[z * CS + x];
+      if (c.h > SEA && c.h + 2 < H && at(x, c.h + 1, z) === B.AIR) set(x, c.h + 1, z, B.CHEST);
     }
 
     // ground plants
@@ -356,6 +363,8 @@ export class Generator {
 
     // --- a workbench & furnace on the plaza so crafting can start right away
     this.stamp(3, G + 1, -3, B.WORKBENCH);
+    // two treasure chests to discover around the village edge
+    this.stamp(-24, G + 1, -10, B.CHEST); this.stamp(24, G + 1, -2, B.CHEST);
     this.stamp(-3, G + 1, -3, B.FURNACE);
 
     // --- lantern posts

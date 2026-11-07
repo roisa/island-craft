@@ -337,3 +337,16 @@ button.say { pointer-events: auto; flex: 0 0 auto; width: 38px; height: 38px; bo
   #sideBtns .ibtn { width: 36px; height: 36px; font-size: 16px; border-radius: 11px; }
   #bubble { max-width: 40vw; left: 56%; }
 }
+
+.bpi { font-size: 34px; width: 44px; text-align: center; }
+.wardrobe { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.wd { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 16px; background: #f1f5fa; font-weight: 900; font-size: 13px; border: 3px solid transparent; }
+.wd .e { font-size: 30px; }
+.wd.on { border-color: var(--green); background: #e6f7ee; }
+.wd.locked { opacity: .55; }
+.wd small { font-size: 11px; color: var(--gold-d); }
+#planBar { position: fixed; left: 50%; bottom: calc(84px + var(--safe-b)); transform: translateX(-50%); z-index: 8; display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border: 3px solid var(--green); }
+#planBar.bad { border-color: #e88; }
+#planBar .btn { width: auto; margin: 0; }
+.pb-t b { display: block; font-size: 15px; font-weight: 900; } .pb-t small { display: block; font-size: 12.5px; font-weight: 800; color: var(--ink-dim); }
+@media (max-height: 500px) { #planBar { bottom: calc(62px + var(--safe-b)); } }

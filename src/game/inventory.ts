@@ -89,6 +89,7 @@ export const RECIPES: Recipe[] = [
   { out: I.IRON_SHOVEL, n: 1, ins: [[I.IRON_INGOT, 1], [I.STICK, 2]], at: 'workbench' },
   { out: B.FURNACE, n: 1, ins: [[B.COBBLE, 8]], at: 'workbench' },
   { out: B.LANTERN, n: 2, ins: [[B.GLASS, 1], [B.TORCH, 1], [I.STICK, 2]], at: 'workbench', tag: 'deco' },
+  { out: I.BOAT, n: 1, ins: [[B.PLANKS, 5]], at: 'workbench', tag: 'deco' },
   { out: B.BED, n: 1, ins: [[B.WOOL_WHITE, 3], [B.PLANKS, 3]], at: 'workbench', tag: 'deco' },
   { out: B.BOOKSHELF, n: 1, ins: [[B.PLANKS, 6]], at: 'workbench', tag: 'deco' },
   { out: B.SANDSTONE, n: 4, ins: [[B.SAND, 4]], at: 'workbench' },
@@ -123,7 +124,7 @@ export function craft(inv: Inventory, r: Recipe, stations: Set<Station>) {
 /** Everything a creative-mode builder can pick from. */
 export function creativeCatalog(): number[] {
   const ids: number[] = [];
-  for (const b of BLOCKS) if (b && b.id !== B.WATER && b.id !== B.BEDROCK && b.letter === undefined) ids.push(b.id);
+  for (const b of BLOCKS) if (b && b.id !== B.WATER && b.id !== B.BEDROCK && b.id !== B.CHEST && b.letter === undefined) ids.push(b.id);
   for (let i = 0; i < LETTERS.length; i++) ids.push(B.LETTER_0 + i);
   for (const id of ITEMS.keys()) ids.push(id);
   return ids;

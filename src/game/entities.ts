@@ -63,6 +63,9 @@ export class Animal extends Entity {
   sheared = false;
   hop = 0;
   chunk = '';
+  follow: (() => THREE.Vector3) | null = null;   // pets follow their friend
+  tagObj?: THREE.Object3D;
+  ridden = false;
   constructor(public kind: AnimalKind, public world: World) {
     super(buildAnimal(kind));
     this.radius = kind === 'chicken' || kind === 'cat' ? 0.45 : kind === 'camel' ? 0.9 : 0.7;
@@ -70,6 +73,12 @@ export class Animal extends Entity {
   update(dt: number, t: number) {
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.hop = Math.max(0, this.hop - dt);
+    if (this.ridden) return; // moved by the rider
+    if (this.follow) {
+      const f = this.follow(), d = Math.hypot(f.x - this.pos.x, f.z - this.pos.z);
+      if (d > 18 || Math.abs(f.y - this.pos.y) > 6) { this.pos.set(f.x - 1.5, f.y, f.z + 1.5); this.target = null; }
+      else if (d > 3) { this.target = new THREE.Vector3(f.x + (this.pos.x - f.x) / d * 2, f.y, f.z + (this.pos.z - f.z) / d * 2); this.wait = 0; }
+    }
     if (!this.target) {
       this.moving = false;
       this.wait -= dt;
@@ -81,10 +90,10 @@ export class Animal extends Entity {
       const dx = this.target.x - this.pos.x, dz = this.target.z - this.pos.z, d = Math.hypot(dx, dz);
       if (d < 0.3) { this.target = null; this.wait = 2 + Math.random() * 5; }
       else {
-        const sp = (this.kind === 'chicken' || this.kind === 'cat' ? 1.4 : this.kind === 'camel' ? 1.1 : 1.0) * dt;
+        const sp = (this.follow ? 4.2 : this.kind === 'chicken' || this.kind === 'cat' ? 1.4 : this.kind === 'camel' ? 1.1 : 1.0) * dt;
         const nx = this.pos.x + dx / d * sp, nz = this.pos.z + dz / d * sp;
         const gy = groundY(this.world, nx, this.pos.y, nz);
-        if (gy === null || Math.abs(gy - this.pos.y) > 1.1) { this.target = null; this.wait = 1 + Math.random() * 2; }
+        if (gy === null || Math.abs(gy - this.pos.y) > 1.1) { if (this.follow) { this.pos.x = nx; this.pos.z = nz; const sy = waterSurface(this.world, nx, this.pos.y, nz); if (sy !== null) this.pos.y = sy - 0.5; } else { this.target = null; this.wait = 1 + Math.random() * 2; } }
         else { this.pos.x = nx; this.pos.z = nz; this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10); }
         const want = Math.atan2(dx, dz);
         let diff = want - this.yaw; while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;

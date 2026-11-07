@@ -10,6 +10,7 @@ import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HI
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
 import { levelOf, starsFor } from './game/kid';
+import { BLUEPRINTS, blueprintCost, OUTFITS, type Blueprint } from './game/fun';
 import type { T2 } from './i18n';
 import { isTouch } from './game/input';
 
@@ -17,7 +18,7 @@ const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = docum
 const h = (html: string) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild as HTMLElement; };
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-export type Tab = 'bag' | 'craft' | 'map' | 'letters' | 'quests' | 'ramadhan' | 'prayer' | 'settings';
+export type Tab = 'bag' | 'craft' | 'build' | 'wardrobe' | 'map' | 'letters' | 'quests' | 'ramadhan' | 'prayer' | 'settings';
 interface Btn { label: string; cls?: string; fn?: () => void; keep?: boolean }
 
 export class UI {
@@ -67,6 +68,7 @@ export class UI {
 <div id="pickups"></div>
 <div id="starPops"></div>
 <div id="confetti"></div>
+<div id="planBar" class="pill hidden"><div class="pb-t"><b id="pbName"></b><small id="pbState"></small></div><button class="btn small ghost" id="pbRot">🔄</button><button class="btn small gold" id="pbBuild">✔ <span></span></button><button class="btn small ghost" id="pbCancel">✖</button></div>
 <div class="veil" id="vBook"><div class="panel" id="book"></div></div>
 <div class="veil" id="vModal"><div class="panel" id="modal"></div></div>
 <div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div></div></div>
@@ -76,6 +78,9 @@ export class UI {
     $('#bBag').onclick = () => this.openBook('bag');
     $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: tr('🏠 Ya, pulang!', '🏠 Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: tr('⬆️ Naik ke permukaan', '⬆️ Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
     $('#stars').onclick = () => this.openBook('quests');
+    $('#pbRot').onclick = () => g.fun.rotatePlan();
+    $('#pbBuild').onclick = () => g.fun.build();
+    $('#pbCancel').onclick = () => g.fun.cancelPlan();
     $('#bubbleSay').onclick = () => Speech.talk($('#bubbleTxt').textContent || '', getLang(), true);
     $('#tutSay').onclick = () => Speech.talk($('#tutTxt').textContent || '', getLang(), true);
     $('#bCraft').onclick = () => this.openBook('craft');
@@ -192,6 +197,7 @@ export class UI {
     const { el, close } = this.modal(`<div class="lvup"><div class="burst">⭐</div><div class="lvn">LEVEL ${lv}!</div><h2>${esc(t2(title))}</h2>
       <p>${tr('Hebat sekali! Ini hadiah untukmu:', 'Awesome! Here are your presents:')}</p>
       <div class="gifts">${gifts.map(([id, n]) => `<span><img src="${iconURL(id)}" alt="">×${n}</span>`).join('')}</div>
+      ${(() => { const girl = this.g.settings.avatar === 'girl'; const nw = OUTFITS.filter(i => i.level === lv && (girl ? i.slot !== 'hat' : i.slot !== 'hijab')); return nw.length ? `<p><b>${tr('Baju baru terbuka:', 'New outfits unlocked:')}</b> ${nw.map(i => i.icon + ' ' + esc(t2(i.name))).join(', ')} — ${tr('lihat di 👕 Baju', 'see 👕 Outfits')}</p>` : ''; })()}
       <button class="btn gold" id="lvOk">${tr('Yeay! 🎉', 'Yay! 🎉')}</button></div>`);
     $('#lvOk', el).onclick = () => close();
     if (this.g.settings.moVoice) Speech.talk(tr(`Hebat! Kamu naik ke level ${lv}!`, `Amazing! You reached level ${lv}!`), getLang());
@@ -264,7 +270,7 @@ export class UI {
   }
   renderBook() {
     const tabs: [Tab, string][] = [
-      ['bag', tr('🎒 Tas', '🎒 Bag')], ['craft', tr('🔨 Buat', '🔨 Craft')], ['map', tr('🗺️ Peta', '🗺️ Map')], ['letters', tr('📖 Huruf', '📖 Letters')], ['quests', tr('⭐ Misi', '⭐ Quests')],
+      ['bag', tr('🎒 Tas', '🎒 Bag')], ['craft', tr('🔨 Buat', '🔨 Craft')], ['build', tr('🏗️ Rancang', '🏗️ Blueprints')], ['wardrobe', tr('👕 Baju', '👕 Outfits')], ['map', tr('🗺️ Peta', '🗺️ Map')], ['letters', tr('📖 Huruf', '📖 Letters')], ['quests', tr('⭐ Misi', '⭐ Quests')],
       ['ramadhan', tr('🌙 Ramadhan', '🌙 Ramadan')], ['prayer', tr('🕌 Sholat', '🕌 Prayer')], ['settings', tr('⚙️ Atur', '⚙️ Settings')],
     ];
     const el = $('#book');
@@ -272,7 +278,7 @@ export class UI {
     $('#bx', el).onclick = () => this.closeBook();
     el.querySelectorAll<HTMLElement>('.tab').forEach(b => (b.onclick = () => { this.tab = b.dataset.t as Tab; this.renderBook(); SFX.click(); }));
     const body = $('#tabBody', el);
-    ({ bag: () => this.bag(body), craft: () => this.craftTab(body), map: () => this.mapTab(body), letters: () => this.letters(body), quests: () => this.quests(body), ramadhan: () => this.ramadhanTab(body), prayer: () => this.prayer(body), settings: () => this.settingsTab(body) })[this.tab]();
+    ({ bag: () => this.bag(body), craft: () => this.craftTab(body), build: () => this.buildTab(body), wardrobe: () => this.wardrobeTab(body), map: () => this.mapTab(body), letters: () => this.letters(body), quests: () => this.quests(body), ramadhan: () => this.ramadhanTab(body), prayer: () => this.prayer(body), settings: () => this.settingsTab(body) })[this.tab]();
   }
 
   private slotHTML(i: number) {
@@ -316,6 +322,45 @@ export class UI {
       row.querySelector('button')!.onclick = () => { if (g.craft(r)) this.renderBook(); };
       list.appendChild(row);
     }
+  }
+
+  private buildTab(body: HTMLElement) {
+    const g = this.g;
+    body.innerHTML = `<p>${tr('Pilih rancangan, lalu lihat bayangan hijaunya di depanmu. Ketuk ✔ untuk membangun — balok-baloknya tersusun sendiri!', 'Pick a blueprint and see its green outline in front of you. Tap ✔ to build — the blocks put themselves together!')}</p><div class="bps" id="bps"></div>`;
+    const list = $('#bps', body);
+    for (const bp of BLUEPRINTS) {
+      const cost = blueprintCost(bp), miss = g.fun.missing(bp);
+      const row = h(`<div class="recipe ${miss.length ? '' : 'ok'}"><div class="bpi">${bp.icon}</div><div class="nm">${esc(t2(bp.name))}<small>${esc(t2(bp.desc))}</small><div class="ins">${g.inv.creative ? `<span>${tr('Gratis (Kreatif)', 'Free (Creative)')}</span>` : cost.map(([id, n]) => `<span class="${g.inv.count(id) >= n ? '' : 'miss'}"><img src="${iconURL(id)}" alt="">${n}</span>`).join('')}</div></div><button>${tr('Pilih', 'Choose')}</button></div>`);
+      row.querySelector('button')!.onclick = () => { this.closeBook(); g.fun.startPlan(bp); };
+      list.appendChild(row);
+    }
+  }
+  private wardrobeTab(body: HTMLElement) {
+    const g = this.g, girl = g.settings.avatar === 'girl';
+    const o = g.settings.outfit!;
+    const slots: [string, string][] = [[girl ? 'hijab' : 'hat', girl ? tr('🧕 Hijab', '🧕 Hijab') : tr('🧢 Topi', '🧢 Hats')], ['shirt', tr('👕 Baju', '👕 Shirts')], ['cape', tr('🦸 Jubah', '🦸 Capes')]];
+    body.innerHTML = `<p>${tr('Naik level untuk membuka baju baru! ⭐', 'Level up to unlock new outfits! ⭐')}</p>` + slots.map(([slot, label]) => `<h3>${label}</h3><div class="wardrobe">${OUTFITS.filter(i => i.slot === slot).map(i => {
+      const on = (o as any)[slot] === i.id, open = g.fun.unlocked(i);
+      return `<button class="wd ${on ? 'on' : ''} ${open ? '' : 'locked'}" data-id="${i.id}" data-slot="${slot}"><span class="e">${open ? i.icon : '🔒'}</span><span>${esc(t2(i.name))}</span>${open ? '' : `<small>Level ${i.level}</small>`}</button>`;
+    }).join('')}</div>`).join('');
+    body.querySelectorAll<HTMLElement>('.wd').forEach(b => (b.onclick = () => {
+      const item = OUTFITS.find(i => i.id === b.dataset.id)!;
+      if (!g.fun.unlocked(item)) { SFX.error(); this.toast(tr(`Terbuka di Level ${item.level} ⭐`, `Unlocks at level ${item.level} ⭐`)); return; }
+      (o as any)[b.dataset.slot!] = item.id; SFX.pickup(); g.buildAvatar(); g.saveSoon(); this.renderBook();
+    }));
+  }
+
+  // ---------- blueprint placing bar ----------
+  planBar(bp: Blueprint | null) {
+    const el = $('#planBar');
+    el.classList.toggle('hidden', !bp);
+    $('#tut').classList.toggle('hidden', !!bp || !this.g.kid.tutorialActive());
+    if (bp) { $('#pbName').textContent = bp.icon + ' ' + t2(bp.name); $('#pbBuild span').textContent = tr('Bangun', 'Build'); }
+  }
+  planState(ok: boolean) {
+    const t = ok ? tr('Tempatnya pas! Ketuk ✔', 'Looks good! Tap ✔') : tr('Terhalang — geser sedikit', 'Blocked — move a little');
+    const e = $('#pbState'); if (e.textContent !== t) e.textContent = t;
+    $('#planBar').classList.toggle('bad', !ok);
   }
 
   private mapZoom = 1;
