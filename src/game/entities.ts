@@ -21,7 +21,7 @@ export abstract class Entity {
   anim: Animator | null = null;
   swimming = false;
   private last = new THREE.Vector3(NaN, 0, 0);
-  private animIn: AnimInput = { speed: 0, grounded: true, vy: 0 };
+  protected animIn: AnimInput = { speed: 0, grounded: true, vy: 0 };
   constructor(public rig: Rig) { }
   abstract update(dt: number, t: number): void;
   private blinkSeed = Math.random() * 10;
@@ -328,8 +328,12 @@ export class Companion extends Entity {
     this.tag.position.y = this.rig.height + 0.2;
     this.rig.root.add(this.tag);
   }
+  /** sitting on something that moves (the raft): Baby Mo rides along */
+  seat: { pos: THREE.Vector3; yaw: number } | null = null;
   update(dt: number, t: number) {
     const f = this.follow();
+    if (this.seat) { this.pos.copy(this.seat.pos); this.yaw = this.seat.yaw; this.animIn.riding = true; this.swimming = false; this.sync(t, dt); return; }
+    this.animIn.riding = false;
     if (this.prayAt) return this.prayUpdate(dt, t);
     if (this.praying) { clearPose(this.rig); this.praying = false; }
     const ang = f.yaw + (f.fp ? -2.65 : 2.3), dist = f.fp ? 3.6 : 1.8; // in first person stay ahead-left where you can see him

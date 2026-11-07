@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import type { Game } from '../main';
 import { tr, t2, type T2 } from '../i18n';
 import { B, I, BLOCKS, nameOf } from '../world/blocks';
-import { H, VILLAGE_Y } from '../world/gen';
+import { H, SEA, VILLAGE_Y } from '../world/gen';
 import { Animal, groundY, waterSurface } from './entities';
 import { nameTag, mat } from './models';
 import { SFX, haptic } from './audio';
@@ -201,7 +201,7 @@ const PET_NAMES = ['Kiko', 'Mimi', 'Bobo', 'Lulu', 'Pipo', 'Coco', 'Momo', 'Nana
 
 export class Fun {
   pet: Animal | null = null;
-  riding: { kind: 'boat' | 'camel'; obj: THREE.Object3D; animal?: Animal; vx: number; vz: number } | null = null;
+  riding: { kind: 'boat' | 'camel' | 'raft'; obj: THREE.Object3D; animal?: Animal; vx: number; vz: number; path?: [number, number][]; cum?: number[]; s?: number; seg?: number; fxT?: number } | null = null;
   // blueprint placement
   plan: { bp: Blueprint; rot: number; manual: number; origin: THREE.Vector3; ok: boolean } | null = null;
   private ghost: THREE.Group = new THREE.Group();
@@ -386,6 +386,35 @@ export class Fun {
     add(0.08, 1.6, 0.08, dark, 0, 0.9, -0.5); add(0.05, 0.9, 0.7, white, 0, 1.1, -0.15);
     return grp;
   }
+  /** float down the river on the raft from the dock, all by itself; Baby Mo sits behind you */
+  raftRide(path: [number, number][]) {
+    const g = this.g;
+    if (this.riding || path.length < 2) return;
+    const raft = new THREE.Group(), logC = [0xb08a55, 0xa47e4b, 0xbc9660];
+    for (let i = 0; i < 5; i++) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.26, 2.3), mat(logC[i % 3])); l.position.x = (i - 2) * 0.34; raft.add(l); }
+    for (const z of [-0.8, 0.8]) { const r = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.28, 0.08), mat(0xe8d9a8)); r.position.z = z; raft.add(r); }
+    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.3, 0.06), mat(0x7a5129)); pole.position.set(0.6, 0.75, -0.9); raft.add(pole);
+    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.3, 0.45), mat(0x2aa198)); flag.position.set(0.6, 1.25, -0.68); raft.add(flag);
+    g.scene.add(raft);
+    const cum = [0];
+    for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
+    this.riding = { kind: 'raft', obj: raft, vx: 0, vz: 0, path, cum, s: 0, seg: 0, fxT: 0 };
+    g.player.flying = false;
+    g.ents.mo.seat = { pos: new THREE.Vector3(), yaw: 0 };
+    SFX.splash();
+    g.ui.toast(tr('🛶 Rakit mengalir ke laut! Ketuk ✋ kapan saja untuk turun', '🛶 Floating down to the sea! Tap ✋ any time to hop off'), 4000);
+    g.stats.rides = (g.stats.rides || 0) + 1;
+    g.checkQuests();
+  }
+  private raftEnd() {
+    const g = this.g;
+    g.stats.raftRides = (g.stats.raftRides || 0) + 1;
+    if (g.stats.raftRides === 1) { g.kid.reward('quest', 0.5); g.ui.confetti(40); }
+    SFX.fanfare();
+    g.ui.say(tr('Yeay, kita sampai di ujung sungai! Seru sekali! 🌊', 'Yay, we reached the end of the river! That was fun! 🌊'), 'alright');
+    this.dismount();
+    g.checkQuests(); g.saveSoon();
+  }
   rideCamel(a: Animal) {
     if (this.riding) return;
     a.target = null; a.ridden = true;
@@ -411,6 +440,7 @@ export class Fun {
       if (gy !== null) { spot = new THREE.Vector3(x + 0.5, gy, z + 0.5); break outer; }
     }
     if (r.kind === 'boat' && !spot) { g.ui.toast(tr('Dekati daratan dulu untuk turun 🏝️', 'Get closer to land to step off 🏝️')); return; }
+    if (r.kind === 'raft') { g.scene.remove(r.obj); g.ents.mo.seat = null; }
     if (r.kind === 'boat') { g.scene.remove(r.obj); g.inv.add(I.BOAT, 1); }
     if (r.animal) { r.animal.ridden = false; }
     if (spot) { p.copy(spot); g.player.visY = spot.y; }
@@ -422,6 +452,7 @@ export class Fun {
   rideStep(dt: number): boolean {
     const r = this.riding; if (!r) return false;
     const g = this.g, pl = g.player, ax = g.input.axis();
+    if (r.kind === 'raft') return this.raftStep(dt);
     const sp = r.kind === 'boat' ? 6.5 : 7.5;
     let fx = ax.fx, fz = ax.fz; const len = Math.hypot(fx, fz); if (len > 1) { fx /= len; fz /= len; }
     const s = Math.sin(pl.yaw), c = Math.cos(pl.yaw);
@@ -449,6 +480,27 @@ export class Fun {
     }
     pl.vel.set(0, 0, 0); pl.visY = pl.pos.y; pl.onGround = true;
     pl.speed = 0;
+    return true;
+  }
+
+  private raftStep(dt: number): boolean {
+    const r = this.riding!, g = this.g, pl = g.player, path = r.path!, cum = r.cum!;
+    r.s! += dt * 2.6;
+    const total = cum[cum.length - 1];
+    if (r.s! >= total - 0.3) { this.raftEnd(); return true; }
+    let i = r.seg!; while (i < cum.length - 2 && cum[i + 1] < r.s!) i++; r.seg = i;
+    const t = (r.s! - cum[i]) / Math.max(0.001, cum[i + 1] - cum[i]);
+    const [ax, az] = path[i], [bx, bz] = path[i + 1];
+    const x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+    const want = Math.atan2(bx - ax, bz - az);
+    let d = want - r.obj.rotation.y; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+    r.obj.rotation.y += d * Math.min(1, dt * 2);
+    const y = SEA + 0.75 + Math.sin(performance.now() / 600) * 0.04;
+    r.obj.position.set(x, y, z);
+    pl.pos.set(x + Math.sin(r.obj.rotation.y) * 0.45, y + 0.13, z + Math.cos(r.obj.rotation.y) * 0.45);
+    pl.vel.set(0, 0, 0); pl.visY = pl.pos.y; pl.onGround = true; pl.speed = 0;
+    const seat = g.ents.mo.seat; if (seat) { seat.pos.set(x - Math.sin(r.obj.rotation.y) * 0.6, y + 0.13, z - Math.cos(r.obj.rotation.y) * 0.6); seat.yaw = r.obj.rotation.y; }
+    if (!g.settings.lowGfx && (r.fxT = (r.fxT ?? 0) - dt) <= 0) { r.fxT = 0.35; const sd = Math.random() < 0.5 ? 1 : -1; g.fx.sparkle(x + Math.cos(r.obj.rotation.y) * 0.95 * sd, SEA + 0.95, z - Math.sin(r.obj.rotation.y) * 0.95 * sd, 2, 0xdff4ff, 0.8); }
     return true;
   }
 

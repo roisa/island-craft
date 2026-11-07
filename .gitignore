@@ -6,3 +6,4 @@ dev
 # QA run output (npm run qa)
 qa-results.json
 qa-*.png
+tests/smoke/_*.mjs

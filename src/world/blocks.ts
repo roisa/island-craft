@@ -14,7 +14,9 @@ export enum B {
   // the reef, the stargazing hill
   CORAL_PINK = 54, CORAL_ORANGE = 55, CORAL_PURPLE = 56, SEA_GRASS = 57, CORAL_FAN = 58, CLAM = 59, TELESCOPE = 60,
   // the volcano island
-  BASALT = 61, MAGMA = 62, OBSIDIAN = 63, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  BASALT = 61, MAGMA = 62, OBSIDIAN = 63,
+  // the river
+  RAFT_DOCK = 64, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -144,6 +146,7 @@ blk(B.TELESCOPE, ['Teropong Bintang', 'Telescope'], 'telescope', { ...plant, col
 blk(B.BASALT, ['Batu Gunung Api', 'Basalt'], 'basalt', { color: 0x4a4a52, hardness: 2.4, tool: 'pick' });
 blk(B.MAGMA, ['Batu Magma Hangat', 'Warm Magma Rock'], 'magma', { color: 0xff7a1a, hardness: Infinity, light: 1 });
 blk(B.OBSIDIAN, ['Obsidian', 'Obsidian'], 'obsidian', { color: 0x2a1f3d, hardness: 4, tool: 'pick', tier: 3 });
+blk(B.RAFT_DOCK, ['Rakit Sungai', 'River Raft'], ['raft_top', 'raft_side', 'raft_side'], { color: 0xb08a55, hardness: Infinity });
 const wool: [number, string, T2, number][] = [
   [B.WOOL_WHITE, 'wool_white', ['Wol Putih', 'White Wool'], 0xf2f2f2],
   [B.WOOL_RED, 'wool_red', ['Wol Merah', 'Red Wool'], 0xe4423a],

@@ -123,3 +123,15 @@ describe('volcano island', () => {
     expect(chests).toBe(1);
   });
 });
+
+describe('raft river', () => {
+  for (const seed of [1, 42, 777, 99999]) it(`seed ${seed}: water all along the path, a raft at the dock`, () => {
+    const g = new Generator(seed), at = stamped(g), l = g.landmarks.find(l => l.id === 'river')!;
+    expect(l.path!.length).toBeGreaterThan(40);
+    for (const [x, z] of l.path!) expect(at(x, SEA, z), `${x},${z}`).toBe(B.WATER);
+    const [dx, dy, dz] = l.at!.dock;
+    expect(at(dx, dy, dz)).toBe(B.RAFT_DOCK);
+    expect(Math.hypot(l.path![0][0] - dx, l.path![0][1] - dz)).toBeLessThan(4);
+    expect(Math.hypot(l.x, l.z)).toBeGreaterThan(55);
+  });
+});

@@ -22,9 +22,12 @@ export interface Landmark {
   at?: Record<string, [number, number, number]>;
   /** what its treasure chest holds (instead of a random gift) */
   loot?: [number, number][];
+  /** a route through it (the river, from its source to the sea) */
+  path?: [number, number][];
 }
 export interface Spot { id: string; icon: string; name: T2; fact: T2; x: number; y: number; z: number; r: number }
-type Built = number | { y: number; spots?: Spot[]; at?: Record<string, [number, number, number]> };
+type Built = number | { y: number; spots?: Spot[]; at?: Record<string, [number, number, number]>; path?: [number, number][]; pos?: [number, number] };
+type Taken = { x: number; z: number; r: number }[];
 
 /** what a landmark builder can do with the generator */
 export interface Builder {
@@ -40,10 +43,14 @@ type Spec = Omit<Landmark, 'x' | 'y' | 'z'> & {
   /** min / max distance from the village */
   dist: [number, number];
   /** returns the y used for the discovery point (and any secret spots) */
-  build(b: Builder, x: number, y: number, z: number): Built;
+  build(b: Builder, x: number, y: number, z: number, plan?: any): Built;
+  /** look ahead before choosing a spot (e.g. trace a river); null means try somewhere else */
+  plan?: (b: Builder, x: number, z: number, taken: Taken) => unknown | null;
   loot?: [number, number][];
   /** when no fitting spot exists in this world, build it on any dry land rather than leave it out */
   loose?: boolean;
+  /** biomes to try in a second search when the first finds nothing (only then: old worlds don't change) */
+  relaxed?: Biome[];
 };
 
 /** fill from the ground up to y (so buildings never float over a dip) */
@@ -395,6 +402,95 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    id: 'river', icon: '🛶', name: ['Sungai Rakit', 'Raft River'], biomes: [Biome.BEACH], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.BEACH, Biome.SNOWY, Biome.DESERT, Biome.MOUNTAIN], dist: [60, 260], r: 10,
+    ok: c => c.h >= SEA - 1 && c.h <= SEA,
+    hint: ['Ada sungai yang mengalir dari padang rumput ke laut. Di hulunya ada dermaga dengan rakit!', 'A river flows from the meadows to the sea. At its start is a little dock with a raft!'],
+    fact: ['Sungai membawa air hujan dari bukit ke laut. Allah berfirman: “Dia menurunkan air dari langit, lalu mengalirlah air di lembah-lembah menurut ukurannya” (QS Ar-Ra’d: 17). Ketuk rakit untuk berlayar sampai ke laut!', 'Rivers carry rainwater from the hills down to the sea. Allah says: “He sends down water from the sky, and valleys flow, each according to its measure” (Ar-Ra‘d 13:17). Tap the raft to float all the way to the sea!'],
+    loot: [[I.BIG_FISH, 2], [I.FISHING_ROD, 1], [B.LANTERN, 3]],
+    plan(b, x, z, taken) {
+      // from the mouth on the beach, walk inland over low, gentle ground
+      let ang = 0, best = -1;
+      for (let k = 0; k < 16; k++) {
+        const a = k / 16 * Math.PI * 2, c = b.column(Math.round(x + Math.cos(a) * 8), Math.round(z + Math.sin(a) * 8));
+        if (c.biome !== Biome.OCEAN && c.h >= SEA + 1 && c.h <= SEA + 12 && c.h > best) { best = c.h; ang = a; }
+      }
+      if (best < 0) return null;
+      const sea = ang + Math.PI;
+      const pts: [number, number][] = [];
+      let px = x, pz = z;
+      for (let i = 0; i < 80; i++) {
+        let pick: [number, number, number] | null = null, ps = Infinity;
+        for (const da of [0, 0.3, -0.3, 0.6, -0.6]) {
+          const a = ang + da + Math.sin(i * 0.33) * 0.12, nx = px + Math.cos(a) * 1.5, nz = pz + Math.sin(a) * 1.5;
+          const c = b.column(Math.round(nx), Math.round(nz));
+          if (c.biome === Biome.OCEAN || c.biome === Biome.VILLAGE || c.h < SEA - 1 || c.h > SEA + 12) continue;
+          if (Math.hypot(nx, nz) < 50 || taken.some(t => Math.hypot(t.x - nx, t.z - nz) < t.r + 10)) continue;
+          const score = c.h + Math.abs(da) * 2.5;
+          if (score < ps) { ps = score; pick = [nx, nz, a]; }
+        }
+        if (!pick) break;
+        [px, pz, ang] = pick; pts.push([px, pz]);
+      }
+      if (pts.length < 40) return null;
+      pts.reverse(); // the source first, flowing down to the mouth
+      // the dock sits just upstream of the source: it must keep clear of other places too
+      const [s0x, s0z] = pts[0], [s3x, s3z] = pts[3], l0 = Math.hypot(s0x - s3x, s0z - s3z) || 1;
+      const dkx = s0x + (s0x - s3x) / l0 * 4.2, dkz = s0z + (s0z - s3z) / l0 * 4.2;
+      if (Math.hypot(dkx, dkz) < 55 || taken.some(t => Math.hypot(t.x - dkx, t.z - dkz) < t.r + 14)) return null;
+      pts.push([x, z]);
+      for (let k = 1; k <= 6; k++) pts.push([x + Math.cos(sea) * k * 1.5, z + Math.sin(sea) * k * 1.5]); // out into the sea
+      return pts.map(([a, c]) => [Math.round(a * 10) / 10, Math.round(c * 10) / 10]);
+    },
+    build(b, _x, _y, _z, path: [number, number][]) {
+      // distance from every nearby column to the river's centre line
+      const near = new Map<string, number>();
+      const mark = (px: number, pz: number, rr: number) => {
+        for (let dx = -rr; dx <= rr; dx++) for (let dz = -rr; dz <= rr; dz++) {
+          const X = Math.round(px) + dx, Z = Math.round(pz) + dz, d = Math.hypot(X + 0.5 - px, Z + 0.5 - pz), k = X + ',' + Z;
+          if (d <= rr && d < (near.get(k) ?? 99)) near.set(k, d);
+        }
+      };
+      for (let i = 0; i + 1 < path.length; i++) {
+        const [ax, az] = path[i], [bx, bz] = path[i + 1];
+        for (let t = 0; t < 1; t += 0.34) mark(ax + (bx - ax) * t, az + (bz - az) * t, 4);
+      }
+      const [sx, sz] = path[0];
+      // a round pond at the source, and one where it ends (in the sea it just joins the water; inland it's a lake)
+      for (const [cx, cz] of [path[0], path[path.length - 1]]) for (let dx = -6; dx <= 6; dx++) for (let dz = -6; dz <= 6; dz++) { const X = Math.round(cx) + dx, Z = Math.round(cz) + dz, d = Math.hypot(X + 0.5 - cx, Z + 0.5 - cz) - 1.8; if (d < 4 && d < (near.get(X + ',' + Z) ?? 99)) near.set(X + ',' + Z, Math.max(0, d)); }
+      for (const [k, d] of near) {
+        const [X, Z] = k.split(',').map(Number), h = b.column(X, Z).h;
+        if (d <= 1.7) {
+          for (let yy = Math.min(h, SEA - 2) - 2; yy < SEA - 2; yy++) b.stamp(X, yy, Z, B.DIRT);
+          b.stamp(X, SEA - 2, Z, hash3(X, 0, Z, 51) < 0.2 ? B.GRAVEL : B.SAND);
+          b.box(X, SEA - 1, Z, X, SEA, Z, B.WATER);
+          b.box(X, SEA + 1, Z, X, Math.max(h, SEA) + 8, Z, B.AIR);
+        } else {
+          const top = SEA + Math.min(3, Math.floor(d - 0.7));
+          for (let yy = Math.min(h, top) - 2; yy <= top; yy++) b.stamp(X, yy, Z, yy === top ? B.GRASS : B.DIRT);
+          b.box(X, top + 1, Z, X, Math.max(h, top) + 8, Z, B.AIR);
+          if (d > 2.5 && hash3(X, 5, Z, 53) < 0.08) b.stamp(X, top + 1, Z, hash3(X, 6, Z, 53) < 0.5 ? B.TALL_GRASS : B.FLOWER_BLUE);
+        }
+      }
+      // lanterns along the banks
+      for (let i = 6; i < path.length - 8; i += 12) {
+        const [ax, az] = path[i], [bx, bz] = path[i + 1], len = Math.hypot(bx - ax, bz - az) || 1, side = i % 24 ? 1 : -1;
+        const lx = Math.round(ax - (bz - az) / len * 3.2 * side), lz = Math.round(az + (bx - ax) / len * 3.2 * side);
+        const top = SEA + 2; b.stamp(lx, top + 1, lz, B.OAK_LOG); b.stamp(lx, top + 2, lz, B.LANTERN);
+      }
+      // the dock behind the pond, with the raft and a chest
+      const [nx, nz] = path[3], dl = Math.hypot(nx - sx, nz - sz) || 1, ux = (sx - nx) / dl, uz = (sz - nz) / dl;
+      const dx0 = Math.round(sx + ux * 4.2), dz0 = Math.round(sz + uz * 4.2);
+      b.box(dx0 - 1, SEA + 1, dz0 - 1, dx0 + 1, SEA + 1, dz0 + 1, B.PLANKS);
+      b.box(dx0 - 1, SEA + 2, dz0 - 1, dx0 + 1, SEA + 9, dz0 + 1, B.AIR);
+      const rx = Math.round(sx + ux * 2.6), rz = Math.round(sz + uz * 2.6);
+      b.stamp(rx, SEA + 1, rz, B.PLANKS);
+      b.stamp(rx, SEA + 2, rz, B.RAFT_DOCK);
+      b.stamp(dx0 + 1, SEA + 2, dz0 + 1, B.CHEST);
+      b.stamp(dx0 - 1, SEA + 2, dz0 + 1, B.LANTERN);
+      return { y: SEA + 2, pos: [dx0, dz0], at: { dock: [rx, SEA + 2, rz] }, path };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
@@ -410,6 +506,7 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
   for (const s of SPECS()) {
     let spot: { x: number; z: number; h: number } | null = null;
     let fallback: { x: number; z: number; h: number } | null = null;
+    let plan: unknown = undefined;
     const a0 = rnd() * Math.PI * 2;
     for (let k = 0; k < 220 && !spot; k++) {
       const a = a0 + k * 2.39996, d = s.dist[0] + (s.dist[1] - s.dist[0]) * ((k * 0.618 + rnd() * 0.3) % 1);
@@ -417,19 +514,38 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
       if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18)) continue;
       const c = b.column(x, z);
       const fits = s.ok ? s.ok(c) : true;
-      if (fits && s.biomes.includes(c.biome)) spot = { x, z, h: c.h };
+      if (fits && s.biomes.includes(c.biome)) {
+        if (s.plan) { const pl = s.plan(b, x, z, taken); if (!pl) continue; plan = pl; }
+        spot = { x, z, h: c.h };
+      }
       else if ((fits || (s.loose && c.h < SEA + 20)) && !fallback && c.biome !== Biome.OCEAN && c.biome !== Biome.VILLAGE) fallback = { x, z, h: c.h };
+    }
+    if (!spot && s.relaxed) {
+      for (let k = 0; k < 220 && !spot; k++) {
+        const a = a0 + k * 2.39996, d = s.dist[0] + (s.dist[1] - s.dist[0]) * ((k * 0.618 + rnd() * 0.3) % 1);
+        const x = Math.round(Math.cos(a) * d), z = Math.round(Math.sin(a) * d);
+        if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18)) continue;
+        const c = b.column(x, z);
+        if (!s.relaxed.includes(c.biome) || c.h > SEA + 8) continue;
+        if (s.plan) { const pl = s.plan(b, x, z, taken); if (!pl) continue; plan = pl; }
+        spot = { x, z, h: c.h };
+      }
     }
     // no fitting biome nearby in this world: still build it on any dry spot so every world has all of them
     spot ??= fallback;
     if (!spot) continue;
-    const built = s.build(b, spot.x, spot.h, spot.z);
+    if (s.plan && plan === undefined) continue; // a river with nowhere to flow is left out rather than squeezed in
+    const built = s.build(b, spot.x, spot.h, spot.z, plan);
     const y = typeof built === 'number' ? built : built.y;
     const l: Landmark = { id: s.id, icon: s.icon, name: s.name, hint: s.hint, fact: s.fact, x: spot.x, y, z: spot.z, r: s.r };
-    if (typeof built !== 'number') { if (built.spots) l.spots = built.spots; if (built.at) l.at = built.at; }
+    if (typeof built !== 'number') {
+      if (built.spots) l.spots = built.spots; if (built.at) l.at = built.at;
+      if (built.pos) { l.x = built.pos[0]; l.z = built.pos[1]; }
+      if (built.path) { l.path = built.path; for (let i = 0; i < built.path.length; i += 5) taken.push({ x: built.path[i][0], z: built.path[i][1], r: 4 }); }
+    }
     if (s.loot) l.loot = s.loot;
     out.push(l);
-    taken.push({ x: spot.x, z: spot.z, r: 12 });
+    taken.push({ x: l.x, z: l.z, r: 12 });
   }
   return out;
 }

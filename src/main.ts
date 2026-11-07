@@ -977,6 +977,7 @@ export class Game {
     if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); this.input.mineHeld = false; this.input.pointerMine = false; return; }
     if (hit.id === B.BEDUG) { this.festive.bedug(); this.input.mineHeld = false; this.input.pointerMine = false; return; }
     if (hit.id === B.TELESCOPE) { this.input.mineHeld = false; this.input.pointerMine = false; this.ui.telescope(); return; }
+    if (hit.id === B.RAFT_DOCK) { this.input.mineHeld = false; this.input.pointerMine = false; this.startRaft(); return; }
     if (isLetter(hit.id)) {
       const sh = this.gen.shrines.find(s => s.x === hit.x && s.y === hit.y && s.z === hit.z);
       if (sh && !this.stats.letters.includes(sh.letter)) { this.collectLetter(sh.letter, hit.x, hit.y, hit.z); return; }
@@ -1214,6 +1215,7 @@ export class Game {
       if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.BEDUG) { this.festive.bedug(); return; }
       if (hit.id === B.TELESCOPE) { this.ui.telescope(); return; }
+      if (hit.id === B.RAFT_DOCK) { this.startRaft(); return; }
       if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
       if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS).filter(k => k !== 'takbir'); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, ic('book') + tr('Doa sehari-hari', 'Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
@@ -1358,6 +1360,11 @@ export class Game {
       });
     }
     this.checkQuests();
+  }
+  /** tapping the raft at the river's dock */
+  startRaft() {
+    const r = this.gen.landmarks.find(l => l.id === 'river');
+    if (r?.path) this.fun.raftRide(r.path);
   }
   private fmtGame(h: number) { const hh = Math.floor(h) % 24, mm = Math.floor((h % 1) * 60); return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); }
 

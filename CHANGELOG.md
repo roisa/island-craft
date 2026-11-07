@@ -5,6 +5,30 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Raft River 🛶
+
+- **A new landmark:** a winding river traced through low ground, from a
+  pond inland down to the sea.
+  - It ends in a lake when there is no beach in reach.
+  - Every world gets one: checked on 300 seeds.
+- **The route is planned before anything is built,** so it avoids the
+  village, the letter shrines and the other places.
+- **The banks** are terraced grass with flowers, and lanterns stand along
+  the way.
+- **The dock** at the source has a raft block and a chest (fish, a fishing
+  rod and lanterns).
+- **Tap the raft** and it floats down the whole river by itself.
+  - Baby Mo sits on the raft behind you, with little splashes at the
+    sides.
+  - Tap ✋ to hop off any time; at the end you step onto the bank.
+- **New quest:** down the river.
+- **Tested:**
+  - Unit tests on 4 seeds: water along the whole path, the raft at the
+    dock.
+  - A smoke step that rides the raft, checks it moves, Baby Mo is seated,
+    and the ride ends and counts.
+  - The saved-positions test confirms no older place moved.
+
 ### Volcano Island 🌋
 
 - A new landmark far out at sea (12 in total), reached by boat.

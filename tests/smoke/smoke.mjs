@@ -175,6 +175,19 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       return { spot: 'pearl_cave', cons, ...f };
     });
+    await step('raft ride down the river', async () => {
+      const r = await g(() => { const G = __game; G.ui.closeAllModals(); const l = G.gen.landmarks.find(l => l.id === 'river'); G.player.pos.set(l.at.dock[0] + 0.5, l.at.dock[1], l.at.dock[2] + 0.5); G.startRaft(); return { riding: G.fun.riding?.kind, mo: !!G.ents.mo.seat }; });
+      if (r.riding !== 'raft' || !r.mo) throw new Error(JSON.stringify(r));
+      await p.waitForTimeout(1500);
+      const moved = await g(() => __game.fun.riding?.s ?? 0);
+      if (!(moved > 0.5)) throw new Error('raft did not move: ' + moved);
+      await g(() => { const R = __game.fun.riding; R.s = R.cum[R.cum.length - 1] - 1; });
+      await p.waitForFunction(() => !__game.fun.riding || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 });
+      const end = await g(() => { const G = __game; G.ui.closeAllModals(); const out = { rides: G.stats.raftRides, seat: G.ents.mo.seat }; G.player.pos.set(0.5, 47, 3.5); return out; });
+      if (end.rides !== 1 || end.seat) throw new Error(JSON.stringify(end));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return { moved: +moved.toFixed(1), ...end };
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet);
         if (!a) return { skipped: true };

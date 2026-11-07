@@ -162,6 +162,8 @@ const P: Record<string, Painter> = {
   basalt: g => { g.noise('#4A4A52', ['#3E3E46', '#55555E', '#44444C'], 0.5); for (let i = 0; i < 4; i++) { const y = 2 + i * 4; for (let x = 0; x < 16; x++) if (g.rnd() < 0.7) g.p(x, y, '#35353C'); } },
   magma: g => { g.fill('#3A1E14'); for (let i = 0; i < 9; i++) { let x = Math.floor(g.rnd() * 16), y = Math.floor(g.rnd() * 16); for (let k = 0; k < 6; k++) { g.p(x, y, k < 2 ? '#FFD45E' : '#FF7A1A'); x = (x + (g.rnd() < 0.5 ? 1 : 15)) % 16; y = (y + (g.rnd() < 0.6 ? 1 : 0)) % 16; } } for (let i = 0; i < 6; i++) g.p(Math.floor(g.rnd() * 16), Math.floor(g.rnd() * 16), '#FFF1B0'); },
   obsidian: g => { g.noise('#221A33', ['#2A1F3D', '#1A1428', '#33284A'], 0.5); for (let i = 0; i < 5; i++) { const x = Math.floor(g.rnd() * 14), y = Math.floor(g.rnd() * 14); g.p(x, y, '#7E5FB8'); g.p(x + 1, y + 1, '#5A4390'); } },
+  raft_top: g => { g.fill('#8C6A40'); for (let x = 0; x < 16; x += 4) { g.rect(x, 0, 3, 16, g.pick(['#B08A55', '#A47E4B', '#BC9660'])); g.rect(x, 0, 1, 16, '#C9A36D'); } g.rect(0, 3, 16, 1, '#E8D9A8'); g.rect(0, 12, 16, 1, '#E8D9A8'); },
+  raft_side: g => { g.fill('#6E5232'); for (let x = 0; x < 16; x += 4) { g.rect(x, 4, 3, 8, '#A47E4B'); g.p(x + 1, 7, '#5E3E25'); } g.rect(0, 4, 16, 1, '#E8D9A8'); },
   i_stick: g => { g.clear(); for (let i = 0; i < 11; i++) g.p(3 + i, 13 - i, i % 2 ? '#7B5131' : '#96683F'); },
   i_pick_wood: g => tool(g, '#C49A62', '#8F6A3E', 'pick'),
   i_pick_stone: g => tool(g, '#9DA4AB', '#6E757C', 'pick'),
