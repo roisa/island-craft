@@ -267,7 +267,7 @@ export class Entities {
   }
 
   /** nearest entity hit by a ray */
-  raycast(o: THREE.Vector3, dir: THREE.Vector3, maxDist: number): Entity | null {
+  raycast(o: THREE.Vector3, dir: THREE.Vector3, maxDist: number, pad = 0): Entity | null {
     let best: Entity | null = null, bd = maxDist;
     const all: Entity[] = [...this.animals, ...this.npcs, ...(this.mo ? [this.mo] : [])];
     const c = new THREE.Vector3();
@@ -277,7 +277,7 @@ export class Entities {
       const tca = oc.dot(dir);
       if (tca < 0 || tca > bd + e.radius) continue;
       const d2 = oc.lengthSq() - tca * tca;
-      const r = Math.max(e.radius, e.rig.height * 0.45);
+      const r = Math.max(e.radius, e.rig.height * 0.45) + pad;
       if (d2 > r * r) continue;
       const th = tca - Math.sqrt(r * r - d2);
       if (th < bd) { bd = th; best = e; }

@@ -44,7 +44,6 @@ export class UI {
   <div id="sideBtns">
     <button class="ibtn pill" id="bHome" aria-label="Home">🏠</button>
     <button class="ibtn pill" id="bBag" aria-label="Bag">🎒</button>
-    <button class="ibtn pill" id="bCraft" aria-label="Craft">🔨</button>
     <button class="ibtn pill" id="bLetters" aria-label="Letters">📖</button>
     <button class="ibtn pill" id="bCam" aria-label="Camera">👁️</button>
   </div>
@@ -53,6 +52,7 @@ export class UI {
   <div id="target"></div>
   <div id="heldName"></div>
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
+  <button class="pill hidden" id="bUndo">↩️ <span></span></button>
   <div id="desktopHint"></div>
   <div id="stick"><div id="knob"></div></div>
   <div id="actions">
@@ -70,7 +70,6 @@ export class UI {
 <div id="confetti"></div>
 <div id="planBar" class="pill hidden"><div class="pb-t"><b id="pbName"></b><small id="pbState"></small></div><button class="btn small ghost" id="pbRot">🔄</button><button class="btn small gold" id="pbBuild">✔ <span></span></button><button class="btn small ghost" id="pbCancel">✖</button></div>
 <div class="veil" id="vBook"><div class="panel" id="book"></div></div>
-<div class="veil" id="vModal"><div class="panel" id="modal"></div></div>
 <div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div></div></div>
 <div id="start" class="hidden"><div class="panel" id="startPanel"></div></div>`;
     this.labels();
@@ -78,12 +77,12 @@ export class UI {
     $('#bBag').onclick = () => this.openBook('bag');
     $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: tr('🏠 Ya, pulang!', '🏠 Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: tr('⬆️ Naik ke permukaan', '⬆️ Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
     $('#stars').onclick = () => this.openBook('quests');
+    $('#bUndo').onclick = () => g.doUndo();
     $('#pbRot').onclick = () => g.fun.rotatePlan();
     $('#pbBuild').onclick = () => g.fun.build();
     $('#pbCancel').onclick = () => g.fun.cancelPlan();
-    $('#bubbleSay').onclick = () => Speech.talk($('#bubbleTxt').textContent || '', getLang(), true);
-    $('#tutSay').onclick = () => Speech.talk($('#tutTxt').textContent || '', getLang(), true);
-    $('#bCraft').onclick = () => this.openBook('craft');
+    $('#bubbleSay').onclick = () => Speech.talk($('#bubbleTxt').textContent || '', getLang(), true, 1);
+    $('#tutSay').onclick = () => Speech.talk($('#tutTxt').textContent || '', getLang(), true, 1);
     $('#bLetters').onclick = () => this.openBook('letters');
     $('#bCam').onclick = () => g.toggleCamera();
     $('#quest').onclick = () => this.openBook('quests');
@@ -95,6 +94,7 @@ export class UI {
   labels() {
     $('#bJump span').textContent = tr('LOMPAT', 'JUMP');
     $('#bMine span').textContent = tr('GALI', 'MINE');
+    $('#bUndo span').textContent = tr('Batal pasang', 'Undo');
     $('#bUse span').textContent = tr('PAKAI', 'USE');
     $('#desktopHint').textContent = tr('WASD jalan · Spasi lompat · Klik kiri gali · Klik kanan pakai/pasang · E tas · R buat · M peta · V kamera',
       'WASD move · Space jump · Left click mine · Right click use/place · E bag · R craft · M map · V camera');
@@ -103,7 +103,7 @@ export class UI {
   // ---------- small HUD helpers ----------
   private queued: [string, number][] = [];
   toast(msg: string, ms = 2400) {
-    if ($('#vModal').classList.contains('on')) { this.queued.push([msg, ms]); return; }
+    if (this.modals.length) { this.queued.push([msg, ms]); return; }
     this.showToast(msg, ms);
   }
   flushToasts() {
@@ -114,13 +114,15 @@ export class UI {
     const t = $('#toast'); t.textContent = msg; t.classList.add('on');
     clearTimeout(this.toastT); this.toastT = window.setTimeout(() => t.classList.remove('on'), ms);
   }
-  say(text: string, pose: 'idea' | 'ok' | 'alright' | 'pose-05' = 'idea', ms = 5200) {
+  say(text: string, pose: 'idea' | 'ok' | 'alright' | 'pose-05' = 'idea', ms?: number) {
+    ms = ms ?? Math.min(7000, 2600 + text.length * 45);
     $<HTMLImageElement>('#bubble img').src = `img/baby-mo-${pose}.webp`;
     $('#bubbleTxt').textContent = text;
     $('#bubble').classList.add('on');
     clearTimeout(this.bubbleT); this.bubbleT = window.setTimeout(() => $('#bubble').classList.remove('on'), ms);
-    if (this.g.settings.moVoice) Speech.talk(text, getLang());
+    if (this.g.settings.moVoice && !this.modals.length) Speech.talk(text, getLang());
   }
+  showUndo(on: boolean) { $('#bUndo').classList.toggle('hidden', !on); }
   showHud(on: boolean) { $('#hud').classList.toggle('hidden', !on); }
   setFlying(on: boolean) { $('#bDown').classList.toggle('hidden', !on); }
   underwater(on: boolean) { $('#underwater').style.display = on ? 'block' : 'none'; }
@@ -155,14 +157,14 @@ export class UI {
   tutorial(st: { icon: string; text: string; n: number; of: number; hint?: string } | null) {
     document.querySelectorAll('.pulse').forEach(e => e.classList.remove('pulse'));
     const el = $('#tut');
-    if (!st) { el.classList.add('hidden'); return; }
-    el.classList.remove('hidden');
+    if (!st) { el.classList.add('hidden'); document.body.classList.remove('tut-on'); return; }
+    el.classList.remove('hidden'); document.body.classList.add('tut-on');
     $('#tutIcon').textContent = st.icon;
     $('#tutN').textContent = tr(`Langkah ${st.n} dari ${st.of}`, `Step ${st.n} of ${st.of}`);
     $('#tutTxt').textContent = st.text;
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     if (st.hint) { const t = document.querySelector(st.hint); if (t && getComputedStyle(t).display !== 'none') t.classList.add('pulse'); }
-    if (this.g.settings.moVoice) setTimeout(() => Speech.talk(st.text, getLang()), 400);
+    if (this.g.settings.moVoice) setTimeout(() => { if (!this.modals.length) Speech.talk(st.text, getLang()); }, 400);
   }
   starPop(n: number) {
     const el = h(`<div class="spop">+${n} ⭐</div>`);
@@ -193,14 +195,12 @@ export class UI {
     }
   }
   levelUp(lv: number, title: T2, gifts: [number, number][]) {
-    this.confetti(80);
     const { el, close } = this.modal(`<div class="lvup"><div class="burst">⭐</div><div class="lvn">LEVEL ${lv}!</div><h2>${esc(t2(title))}</h2>
       <p>${tr('Hebat sekali! Ini hadiah untukmu:', 'Awesome! Here are your presents:')}</p>
       <div class="gifts">${gifts.map(([id, n]) => `<span><img src="${iconURL(id)}" alt="">×${n}</span>`).join('')}</div>
       ${(() => { const girl = this.g.settings.avatar === 'girl'; const nw = OUTFITS.filter(i => i.level === lv && (girl ? i.slot !== 'hat' : i.slot !== 'hijab')); return nw.length ? `<p><b>${tr('Baju baru terbuka:', 'New outfits unlocked:')}</b> ${nw.map(i => i.icon + ' ' + esc(t2(i.name))).join(', ')} — ${tr('lihat di 👕 Baju', 'see 👕 Outfits')}</p>` : ''; })()}
-      <button class="btn gold" id="lvOk">${tr('Yeay! 🎉', 'Yay! 🎉')}</button></div>`);
+      <button class="btn gold" id="lvOk">${tr('Yeay! 🎉', 'Yay! 🎉')}</button></div>`, undefined, { onShow: () => { this.confetti(80); if (this.g.settings.moVoice) Speech.talk(tr(`Hebat! Kamu naik ke level ${lv}!`, `Amazing! You reached level ${lv}!`), getLang()); } });
     $('#lvOk', el).onclick = () => close();
-    if (this.g.settings.moVoice) Speech.talk(tr(`Hebat! Kamu naik ke level ${lv}!`, `Amazing! You reached level ${lv}!`), getLang());
   }
 
   /** "+2 🌴 Dates" pop-ups stacking in the corner; repeats of the same item merge. */
@@ -239,7 +239,7 @@ export class UI {
     const c = g.compass();
     if (c) {
       $('#compassArrow').style.transform = `rotate(${c.rot}rad)`;
-      $('#compassText').innerHTML = `${tr('Huruf', 'Letter')} ${g.stats.letters.length}/28 · ${Math.round(c.dist)} m<small>${tr('Ikuti panah emas ✨', 'Follow the golden arrow ✨')}</small>`;
+      $('#compassText').innerHTML = `<b>${g.stats.letters.length}/28</b> · ${Math.round(c.dist)} m<small>${tr('Ikuti panah emas ✨', 'Follow the golden arrow ✨')}</small>`;
     } else {
       $('#compassArrow').style.transform = '';
       $('#compassText').innerHTML = `🏆 28/28<small>${tr('Semua huruf ditemukan!', 'All letters found!')}</small>`;
@@ -256,7 +256,7 @@ export class UI {
   }
 
   // ---------- book ----------
-  isOpen() { return $('#vBook').classList.contains('on') || $('#vModal').classList.contains('on') || !$('#start').classList.contains('hidden'); }
+  isOpen() { return $('#vBook').classList.contains('on') || this.modals.length > 0 || !$('#start').classList.contains('hidden'); }
   openBook(tab: Tab = this.tab) {
     this.tab = tab; this.pickSlot = -1;
     $('#vBook').classList.add('on');
@@ -266,7 +266,7 @@ export class UI {
   }
   closeBook() {
     $('#vBook').classList.remove('on');
-    if (!$('#vModal').classList.contains('on')) { this.g.pause(false); this.flushToasts(); }
+    if (!this.modals.length) { this.g.pause(false); this.flushToasts(); }
   }
   renderBook() {
     const tabs: [Tab, string][] = [
@@ -519,7 +519,7 @@ export class UI {
   parentGate(ok: () => void) {
     const a = 6 + Math.floor(Math.random() * 4), b = 5 + Math.floor(Math.random() * 4), ans = a + b;
     const opts = [ans, ans + 2, ans - 3].sort(() => Math.random() - 0.5);
-    const { el, close } = this.modal(`<div style="text-align:center"><h2>👨‍👩‍👧 ${tr('Khusus orang tua', 'Grown-ups only')}</h2><p>${tr('Berapa', 'What is')} <b style="font-size:22px">${a} + ${b}</b>?</p><div class="row" id="pg">${opts.map(o => `<button class="btn ghost" data-v="${o}">${o}</button>`).join('')}</div><button class="btn small ghost" id="pgX">${tr('Batal', 'Cancel')}</button></div>`);
+    const { el, close } = this.modal(`<div style="text-align:center"><h2>👨‍👩‍👧 ${tr('Khusus orang tua', 'Grown-ups only')}</h2><p>${tr('Berapa', 'What is')} <b style="font-size:22px">${a} + ${b}</b>?</p><div class="row" id="pg">${opts.map(o => `<button class="btn ghost" data-v="${o}">${o}</button>`).join('')}</div><button class="btn small ghost" id="pgX">${tr('Batal', 'Cancel')}</button></div>`, undefined, { now: true });
     el.querySelectorAll<HTMLElement>('#pg button').forEach(bt => (bt.onclick = () => { close(); if (+bt.dataset.v! === ans) setTimeout(ok, 30); else this.toast(tr('Jawaban kurang tepat', 'Not quite right')); }));
     $('#pgX', el).onclick = () => close();
   }
@@ -559,33 +559,57 @@ export class UI {
     const g = this.g;
     const { el } = this.modal(`<div style="text-align:center"><img src="img/baby-mo-pose-01.webp" style="width:110px" alt=""><h2>😴 ${tr('Waktunya istirahat!', 'Time for a break!')}</h2>
       <p>${tr('Kamu sudah bermain cukup lama hari ini. Baby Mo juga mau istirahat. Yuk minum air, gerakkan badan, atau bantu ayah & ibu. Sampai jumpa besok! 💚', 'You’ve played for a good while today. Baby Mo needs a rest too. Drink some water, stretch, or help mum and dad. See you tomorrow! 💚')}</p>
-      <button class="btn ghost small" id="rsMore">👨‍👩‍👧 ${tr('Orang tua: tambah 15 menit', 'Parents: add 15 minutes')}</button></div>`);
-    if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang());
+      <button class="btn ghost small" id="rsMore">👨‍👩‍👧 ${tr('Orang tua: tambah 15 menit', 'Parents: add 15 minutes')}</button></div>`, undefined, { now: true, onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang()); } });
     $('#rsMore', el).onclick = () => this.parentGate(() => { if (g.stats.play) g.stats.play.sec -= 15 * 60; this.closeModal(); });
   }
 
   // ---------- modals ----------
-  modal(html: string, onClose?: () => void) {
-    const v = $('#vModal'), m = $('#modal');
-    m.innerHTML = html;
-    v.classList.add('on'); this.modalStack++;
-    this.g.pause(true);
+  /**
+   * Pop-ups take turns: if one is already showing, a new one waits in line
+   * until it closes (so a level-up never covers a letter card). `now` shows it
+   * on top immediately (used for a parent check opened from another pop-up).
+   */
+  private modals: { veil: HTMLElement; close: () => void }[] = [];
+  private modalQueue: { veil: HTMLElement; close: () => void; onShow?: () => void }[] = [];
+  modal(html: string, onClose?: () => void, opts: { now?: boolean; onShow?: () => void } = {}) {
+    const veil = h(`<div class="veil"><div class="panel">${html}</div></div>`);
+    const el = veil.firstElementChild as HTMLElement;
+    let closed = false;
     const close = () => {
-      v.classList.remove('on');
-      if (!$('#vBook').classList.contains('on')) { this.g.pause(false); this.flushToasts(); }
+      if (closed) return; closed = true;
+      veil.remove();
+      const i = this.modals.findIndex(m => m.veil === veil); if (i >= 0) this.modals.splice(i, 1);
+      const q = this.modalQueue.findIndex(m => m.veil === veil); if (q >= 0) this.modalQueue.splice(q, 1);
       onClose?.();
+      if (!this.modals.length && this.modalQueue.length) setTimeout(() => this.showNextModal(), 220);
+      else if (!this.modals.length && !$('#vBook').classList.contains('on')) { this.g.pause(false); this.flushToasts(); }
     };
-    (m as any)._close = close;
-    return { el: m, close };
+    const entry = { veil, close, onShow: opts.onShow };
+    if (this.modals.length && !opts.now) this.modalQueue.push(entry);
+    else this.presentModal(entry);
+    return { el, close };
   }
-  closeModal() { const m = $('#modal') as any; if ($('#vModal').classList.contains('on')) m._close?.(); }
+  private presentModal(m: { veil: HTMLElement; close: () => void; onShow?: () => void }) {
+    m.veil.style.zIndex = String(20 + this.modals.length * 2);
+    document.body.appendChild(m.veil);
+    m.veil.classList.add('on');
+    this.modals.push(m);
+    this.g.pause(true);
+    m.onShow?.();
+  }
+  private showNextModal() {
+    if (this.modals.length) return;
+    const m = this.modalQueue.shift();
+    if (m) this.presentModal(m);
+  }
+  closeModal() { this.modals[this.modals.length - 1]?.close(); }
+  closeAllModals() { this.modalQueue.length = 0; while (this.modals.length) this.modals[this.modals.length - 1].close(); }
 
   dialog(o: { face: string; who: string; text: string; buttons?: Btn[]; img?: boolean; speak?: boolean }) {
     const btns = o.buttons ?? [{ label: tr('Oke!', 'Okay!') }];
-    const { el, close } = this.modal(`<div class="dialog">${o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div style="flex:1"><div class="who">${esc(o.who)}</div><div class="say" id="dTxt">${o.text}</div></div><button class="say" id="dSpeak" aria-label="Listen">🔊</button></div><div id="dbtns"></div>`, () => Speech.stop());
+    const { el, close } = this.modal(`<div class="dialog">${o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div style="flex:1"><div class="who">${esc(o.who)}</div><div class="say" id="dTxt">${o.text}</div></div><button class="say" id="dSpeak" aria-label="Listen">🔊</button></div><div id="dbtns"></div>`, () => Speech.stop(1), { onShow: () => { if (o.speak !== false && this.g.settings.moVoice) setTimeout(() => Speech.talk(plain(), getLang(), false, 1), 150); } });
     const plain = () => ($('#dTxt', el).textContent || '');
-    $('#dSpeak', el).onclick = () => Speech.talk(plain(), getLang(), true);
-    if (o.speak !== false && this.g.settings.moVoice) setTimeout(() => Speech.talk(plain(), getLang()), 150);
+    $('#dSpeak', el).onclick = () => Speech.talk(plain(), getLang(), true, 1);
     const wrap = $('#dbtns', el);
     for (const b of btns) {
       const e = h(`<button class="btn ${b.cls ?? ''}">${b.label}</button>`);
@@ -602,6 +626,7 @@ export class UI {
 
   letterCard(i: number, isNew: boolean) {
     const L = LETTERS[i];
+    const sayName = () => playLetter(i, L.ar, L.name);
     const marks: [string, string, string][] = [['َ', 'a', 'Fathah'], ['ِ', 'i', 'Kasrah'], ['ُ', 'u', 'Dhammah']];
     const base = i === 0 ? 'ا' : L.g;
     const lat = (v: string) => (i === 0 ? v : L.lat === "'" ? "'" + v : L.lat + v);
@@ -619,9 +644,7 @@ export class UI {
           <div class="harakat small">${[[L.g + 'ً', lat('an'), 'tanwin'], [L.g + 'ٍ', lat('in'), 'tanwin'], [L.g + 'ٌ', lat('un'), 'tanwin']].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg" lang="ar" dir="rtl">${a}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
         </details>`}
         <div class="row"><button class="btn ghost" id="lSay">🔊 ${esc(L.name)}</button><button class="btn" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div>
-      </div></div>`);
-    const sayName = () => playLetter(i, L.ar, L.name);
-    sayName();
+      </div></div>`, () => Speech.stop(2), { onShow: () => setTimeout(sayName, 150) });
     $('#lSay', el).onclick = sayName;
     el.querySelectorAll<HTMLElement>('[data-k]').forEach(b => (b.onclick = () => {
       const k = +b.dataset.k!;
@@ -639,13 +662,12 @@ export class UI {
     while (pool.size < 3) pool.add(Math.floor(Math.random() * 28));
     const opts = [...pool].sort(() => Math.random() - 0.5);
     const L = LETTERS[ans];
+    const say = () => playLetter(ans, L.ar, L.name);
     const { el, close } = this.modal(`<div style="text-align:center"><h2>🎯 ${tr('Tebak Huruf', 'Letter Quiz')}</h2><p>${tr('Dengarkan, lalu ketuk huruf yang benar!', 'Listen, then tap the right letter!')}</p>
       <button class="btn gold" id="qSay">🔊 ${tr('Dengar lagi', 'Listen again')}</button>
       <div class="quizOpts">${opts.map(o => `<button data-o="${o}"><span lang="ar" dir="rtl">${LETTERS[o].g}</span></button>`).join('')}</div>
       <p style="margin-top:8px">${tr('Benar', 'Correct')}: ${g.stats.quiz}</p>
-      <div class="row"><button class="btn ghost" id="qClose">${tr('Selesai', 'Done')}</button></div></div>`);
-    const say = () => playLetter(ans, L.ar, L.name);
-    setTimeout(say, 250);
+      <div class="row"><button class="btn ghost" id="qClose">${tr('Selesai', 'Done')}</button></div></div>`, undefined, { onShow: () => setTimeout(say, 250) });
     $('#qSay', el).onclick = say;
     $('#qClose', el).onclick = () => close();
     let done = false;

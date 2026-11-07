@@ -269,6 +269,7 @@ export class Fun {
     if (miss.length) { SFX.error(); g.ui.toast(tr('Bahannya belum cukup: ', 'Not enough materials: ') + miss.map(([id, n]) => `${t2(nameOf(id))} ×${n}`).join(', '), 4500); return; }
     if (!g.inv.creative) for (const [id, n] of blueprintCost(p.bp)) g.inv.remove(id, n);
     const o = p.origin.clone();
+    const refund = g.inv.creative ? [] : blueprintCost(p.bp);
     const cs = this.cells().sort((a, b) => a[1] - b[1] || (a[0] * a[0] + a[2] * a[2]) - (b[0] * b[0] + b[2] * b[2]));
     const bp = p.bp;
     this.cancelPlan();
@@ -286,6 +287,7 @@ export class Fun {
         this.building = false;
         g.stats.placed += cs.length;
         g.stats.built = (g.stats.built || 0) + 1;
+        g.setUndo(cs.map(([x, y, z, id]) => [o.x + x, o.y + y, o.z + z, id] as [number, number, number, number]), refund);
         SFX.fanfare(); g.ui.confetti(60); g.ents.mo.celebrate = 3;
         g.fx.sparkle(o.x + 0.5, o.y + 3, o.z - 1.5, 40, 0xffd874, 4);
         g.kid.reward('quest', 2);

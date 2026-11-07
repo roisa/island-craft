@@ -107,11 +107,17 @@ export const Speech = {
     };
     load(); speechSynthesis.onvoiceschanged = load; setTimeout(load, 800);
   },
-  stop() { this.seq++; try { speechSynthesis.cancel(); } catch { /* ignore */ } },
+  /** priority of what is speaking now: 0 Baby Mo chatter, 1 dialogs & 🔊 buttons, 2 letters / du'a */
+  prio: -1, until: 0,
+  busy(p: number) { return this.prio > p && performance.now() < this.until && ('speechSynthesis' in window) && speechSynthesis.speaking; },
+  mark(p: number, text: string) { this.prio = p; this.until = performance.now() + 900 + text.length * 90; },
+  /** stop speech; with a level, only stop what is at or below that level */
+  stop(level = 9) { if (this.prio > level && performance.now() < this.until) return; this.seq++; this.prio = -1; try { speechSynthesis.cancel(); } catch { /* ignore */ } },
   /** Speak Arabic text if an Arabic voice exists, otherwise the Latin reading. */
   say(ar: string, latin: string) {
     if (!('speechSynthesis' in window)) return;
     this.stop();
+    this.mark(2, latin);
     const u = new SpeechSynthesisUtterance(this.ar ? ar : latin);
     const v = this.ar || this.id;
     if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'ar-SA';
@@ -119,13 +125,15 @@ export const Speech = {
     try { speechSynthesis.speak(u); } catch { /* ignore */ }
   },
   /** Speech in the UI language (Baby Mo talking). Uses a matching device voice; `force` tries any voice. */
-  talk(text: string, lang: 'id' | 'en', force = false) {
+  talk(text: string, lang: 'id' | 'en', force = false, prio = 0) {
     if (!('speechSynthesis' in window)) return;
+    if (this.busy(prio)) return;   // never talk over a letter or du'a
     const v = lang === 'id' ? this.id : this.voices.find(x => /^en/i.test(x.lang)) || null;
     if (!v && !force) return;
     this.stop();
     const clean = text.replace(/<[^>]+>/g, ' ').replace(/[^\p{L}\p{N}\s,.!?'’-]/gu, '').replace(/\s+/g, ' ').trim();
     if (!clean) return;
+    this.mark(prio, clean);
     const u = new SpeechSynthesisUtterance(clean);
     if (v) { u.voice = v; u.lang = v.lang; } else u.lang = lang === 'id' ? 'id-ID' : 'en-US';
     u.rate = 0.95; u.pitch = 1.25;
@@ -142,6 +150,7 @@ const recorded = new Map<string, boolean>();
 export function playLetter(i: number, ar: string, latin: string, variant = '') {
   const file = `audio/hijaiyah/${i}${variant}.mp3`;
   if (recorded.get(file) === false) { Speech.say(ar, latin); return; }
+  Speech.stop(); Speech.mark(2, latin);
   const a = new Audio(file);
   a.onerror = () => { recorded.set(file, false); Speech.say(ar, latin); };
   a.play().then(() => recorded.set(file, true)).catch(() => { recorded.set(file, false); Speech.say(ar, latin); });

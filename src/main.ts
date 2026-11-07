@@ -86,6 +86,8 @@ export class Game {
   private iftarDay = -1;
   private dirtySave = false;
   private prayingPose = false;
+  /** last thing placed, so a mis-tap can be undone for a few seconds */
+  undo: { cells: [number, number, number, number][]; refund: [number, number][]; until: number } | null = null;
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -342,6 +344,22 @@ export class Game {
     SFX.quest(); this.ents.mo.celebrate = 2; this.kid.reward('calendar');
     this.saveSoon();
   }
+  setUndo(cells: [number, number, number, number][], refund: [number, number][]) {
+    this.undo = { cells, refund, until: performance.now() + 6000 };
+    this.ui.showUndo(true);
+  }
+  doUndo() {
+    const u = this.undo; if (!u) return;
+    this.undo = null; this.ui.showUndo(false);
+    let removed = 0;
+    for (const [x, y, z, id] of u.cells) if (this.world.get(x, y, z) === id) { this.world.set(x, y, z, B.AIR); removed++; }
+    for (const [id, n] of u.refund) this.inv.add(id, n);
+    this.stats.placed = Math.max(0, this.stats.placed - removed);
+    this.saplings = this.saplings.filter(s => !u.cells.some(([x, y, z]) => s.x === x && s.y === y && s.z === z));
+    SFX.pickup();
+    const [x, y, z] = u.cells[0]; this.fx.sparkle(x + 0.5, y + 0.5, z + 0.5, 10, 0xffffff, 1.5);
+  }
+
   goHome(fx = false) {
     this.player.pos.copy(SPAWN); this.player.vel.set(0, 0, 0); this.player.visY = SPAWN.y; this.player.yaw = 0; this.player.flying = false;
     this.ents.mo.pos.set(SPAWN.x + 1.5, SPAWN.y, SPAWN.z + 1);
@@ -367,6 +385,7 @@ export class Game {
     if (code === 'KeyM') this.ui.openBook('map');
     if (code === 'KeyR') this.ui.openBook('craft');
     if (code === 'KeyV' || code === 'F5') this.toggleCamera();
+    if (code === 'KeyZ' && this.undo) this.doUndo();
     if (code === 'KeyF' && this.inv.creative) this.toggleFly();
     if (code === 'Space') this.jumpTap();
   }
@@ -459,7 +478,7 @@ export class Game {
       }
       const reach = sx !== undefined ? 6.5 : 5.5;
       const hit = this.world.raycast(eye, dir, reach);
-      const ent = this.ents.raycast(eye, dir, reach - 1);
+      const ent = this.ents.raycast(eye, dir, reach - 1, sx !== undefined ? 0.45 : 0.15);
       const entCloser = !!ent && (!hit || eye.distanceTo(ent.pos) < hit.dist + 0.6);
       return { hit, ent, entCloser };
     };
@@ -513,6 +532,7 @@ export class Game {
     if (this.timers.real <= 0) { this.timers.real = 15; this.realReminders(); }
     this.mineAnim = Math.max(0, this.mineAnim - dt);
     this.kid.update(dt, t);
+    if (this.undo && performance.now() > this.undo.until) { this.undo = null; this.ui.showUndo(false); }
     this.playTime(dt);
     this.fun.update(dt);
   }
@@ -668,6 +688,7 @@ export class Game {
       }
     }
     this.world.set(x, y, z, held.id);
+    this.setUndo([[x, y, z, held.id]], this.inv.creative ? [] : [[held.id, 1]]);
     this.inv.useHeld();
     this.stats.placed++;
     if (this.stats.placed % 20 === 0) { this.kid.reward('quest', 0.2); }
