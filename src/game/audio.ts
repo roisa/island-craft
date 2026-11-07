@@ -118,14 +118,17 @@ export const Speech = {
     u.rate = this.rate; u.pitch = 1.05;
     try { speechSynthesis.speak(u); } catch { /* ignore */ }
   },
-  /** Plain speech in the UI language (Baby Mo talking), only if a matching voice exists. */
-  talk(text: string, lang: 'id' | 'en') {
+  /** Speech in the UI language (Baby Mo talking). Uses a matching device voice; `force` tries any voice. */
+  talk(text: string, lang: 'id' | 'en', force = false) {
     if (!('speechSynthesis' in window)) return;
-    const v = lang === 'id' ? this.id : this.voices.find(x => /^en/i.test(x.lang));
-    if (!v) return;
+    const v = lang === 'id' ? this.id : this.voices.find(x => /^en/i.test(x.lang)) || null;
+    if (!v && !force) return;
     this.stop();
-    const u = new SpeechSynthesisUtterance(text.replace(/[^\p{L}\p{N}\s,.!?'-]/gu, ''));
-    u.voice = v; u.lang = v.lang; u.rate = 0.95; u.pitch = 1.25;
+    const clean = text.replace(/<[^>]+>/g, ' ').replace(/[^\p{L}\p{N}\s,.!?'’-]/gu, '').replace(/\s+/g, ' ').trim();
+    if (!clean) return;
+    const u = new SpeechSynthesisUtterance(clean);
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = lang === 'id' ? 'id-ID' : 'en-US';
+    u.rate = 0.95; u.pitch = 1.25;
     try { speechSynthesis.speak(u); } catch { /* ignore */ }
   },
 };

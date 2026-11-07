@@ -10,10 +10,11 @@ export interface Stats {
   letters: number[]; petted: number; milk: number; eggs: number; wool: number; gave: number; planted: number;
   slept: number; jamaah: number; iftar: number; sahur: number; ate: number; biomes: string[]; talked: Record<string, boolean>;
   maxY: number; minY: number; quiz: number; days: string[]; prayersSeen: number;
+  stars: number; tut?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,
-  slept: 0, jamaah: 0, iftar: 0, sahur: 0, ate: 0, biomes: [], talked: {}, maxY: 0, minY: 999, quiz: 0, days: [], prayersSeen: 0,
+  slept: 0, jamaah: 0, iftar: 0, sahur: 0, ate: 0, biomes: [], talked: {}, maxY: 0, minY: 999, quiz: 0, days: [], prayersSeen: 0, stars: 0,
 });
 
 const sum = (r: Record<number, number>, ids: number[]) => ids.reduce((a, id) => a + (r[id] || 0), 0);

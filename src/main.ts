@@ -25,10 +25,12 @@ import * as Save from './game/save';
 import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
 import { QUESTS, Stats, newStats, DUAS, CALENDAR } from './content';
 import { UI } from './ui';
+import { Kid } from './game/kid';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
+  protectVillage: boolean;
 }
 const SAVE_VERSION = 1;
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
@@ -47,9 +49,11 @@ export class Game {
   gen!: Generator; world!: World; sky!: Sky; ents!: Entities; fx: FX; player!: Player;
   input: Input; inv = new Inventory(); ui: UI;
   settings: Settings = {
-    sfx: true, music: true, moVoice: false, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 24, sens: 1,
-    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag',
+    sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 24, sens: 1,
+    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true,
   };
+  kid!: Kid;
+  onLevelUp: ((lv: number) => void) | null = null;
   seed = 0;
   hour = 7.5; day = 1;
   stats: Stats = newStats();
@@ -193,6 +197,7 @@ export class Game {
     this.ents.mo.pos.set(this.player.pos.x + 1.5, this.player.pos.y, this.player.pos.z + 1);
     this.scene.add(this.ents.mo.rig.root);
     this.buildAvatar();
+    this.kid = new Kid(this);
 
     // pre-generate the area around the player
     const total = 30;
@@ -215,10 +220,9 @@ export class Game {
     this.running = true;
     this.lastHour = this.hour;
     Music.setEnabled(this.settings.music);
+    this.kid.start(!meta);
     if (!meta) {
-      setTimeout(() => this.ui.say(tr('Assalamu’alaikum! Aku Baby Mo. Selamat datang di desaku! 🌙', 'Assalamu’alaikum! I’m Baby Mo. Welcome to my village! 🌙'), 'pose-05'), 700);
-      setTimeout(() => this.ui.say(tr('Ada 28 huruf hijaiyah tersembunyi di dunia ini. Ikuti kompas emas di atas ya! ✨', 'There are 28 hijaiyah letters hidden in this world. Follow the golden compass at the top! ✨'), 'idea'), 7000);
-      setTimeout(() => this.ui.say(isTouch ? tr('Joystick untuk jalan, geser layar untuk melihat. Tahan jari di balok untuk menggali, ketuk untuk memasang!', 'Joystick to walk, swipe to look. Hold your finger on a block to mine it, tap to place!') : tr('Klik layar dulu, lalu WASD untuk jalan dan mouse untuk melihat!', 'Click the screen, then use WASD to walk and the mouse to look!'), 'ok'), 13500);
+      setTimeout(() => this.ui.say(tr('Assalamu’alaikum! Aku Baby Mo. Ayo main bersamaku! 🌙', 'Assalamu’alaikum! I’m Baby Mo. Come and play with me! 🌙'), 'pose-05'), 700);
     } else {
       setTimeout(() => this.ui.say(tr('Assalamu’alaikum, selamat datang kembali! 😊', 'Assalamu’alaikum, welcome back! 😊'), 'pose-05'), 600);
     }
@@ -309,6 +313,7 @@ export class Game {
     if (ok) {
       SFX.craft(); haptic(10);
       this.stats.crafted[r.out] = (this.stats.crafted[r.out] || 0) + 1;
+      this.kid.reward('craft');
       this.ui.toast(tr('✨ Berhasil membuat ', '✨ Made ') + t2(nameOf(r.out)) + (r.n > 1 ? ' ×' + r.n : ''));
       this.checkQuests();
     } else SFX.error();
@@ -320,10 +325,14 @@ export class Game {
     const c = CALENDAR[n - 1];
     this.claimed.add(n);
     this.inv.add(c.reward[0], c.reward[1]);
-    SFX.quest(); this.ents.mo.celebrate = 2;
+    SFX.quest(); this.ents.mo.celebrate = 2; this.kid.reward('calendar');
     this.saveSoon();
   }
-  goHome() { this.player.pos.copy(SPAWN); this.player.vel.set(0, 0, 0); this.player.visY = SPAWN.y; this.player.yaw = 0; }
+  goHome(fx = false) {
+    this.player.pos.copy(SPAWN); this.player.vel.set(0, 0, 0); this.player.visY = SPAWN.y; this.player.yaw = 0; this.player.flying = false;
+    this.ents.mo.pos.set(SPAWN.x + 1.5, SPAWN.y, SPAWN.z + 1);
+    if (fx) { this.fx.sparkle(SPAWN.x, SPAWN.y + 1, SPAWN.z, 24, 0xffd874, 3); SFX.pickup(); this.ui.toast(tr('🏠 Sampai di desa!', '🏠 Home in the village!')); }
+  }
   restBreak() { this.ui.toast(tr('🤲 Selamat sholat! Game dijeda.', '🤲 Enjoy your prayer! The game is paused.'), 4000); this.ui.openBook('prayer'); }
   async newWorld() { await Save.del('meta'); await Save.del('edits'); location.reload(); }
   photo() {
@@ -463,6 +472,7 @@ export class Game {
     if (this.timers.tip <= 0) { this.timers.tip = 80 + Math.random() * 60; this.moTip(); }
     if (this.timers.real <= 0) { this.timers.real = 15; this.realReminders(); }
     this.mineAnim = Math.max(0, this.mineAnim - dt);
+    this.kid.update(dt, t);
   }
 
   private entityName(e: unknown) {
@@ -481,6 +491,10 @@ export class Game {
       if (sh && !this.stats.letters.includes(sh.letter)) { this.collectLetter(sh.letter, hit.x, hit.y, hit.z); return; }
     }
     if (!this.mining || this.mining.key !== key) {
+      if (this.kid.isProtected(hit.x, hit.y, hit.z)) {
+        this.ui.say(tr('Ini bangunan desa, jangan dirusak ya. Yuk bangun rumah atau masjidmu sendiri! 🕌', 'This is a village building, let’s keep it nice. Build your own house or masjid instead! 🕌'), 'ok', 4500);
+        SFX.error(); this.mining = { key, t: 0, need: Infinity }; return;
+      }
       const tool = this.inv.toolSpeed(def.tool, 0);
       if (def.tier && !this.inv.creative && tool.tier < def.tier) {
         if (!this.mining || this.mining.key !== key) {
@@ -604,13 +618,14 @@ export class Game {
       if ((held.id === B.SAPLING || held.id === B.PALM_SAPLING || held.id === B.PINE_SAPLING)) {
         if (![B.GRASS, B.DIRT, B.SNOW_GRASS, B.SAND].includes(below)) { this.ui.toast(tr('Tanam bibit di tanah atau rumput ya 🌱', 'Plant saplings on dirt or grass 🌱')); return; }
         this.saplings.push({ x, y, z, id: held.id, t: 0 });
-        this.stats.planted++;
+        this.stats.planted++; this.kid.reward('plant');
         this.ui.say(tr('Masya Allah, pohonnya nanti tumbuh! Menanam pohon itu sedekah 🌱', 'Masha Allah, it will grow into a tree! Planting trees is a good deed 🌱'), 'ok');
       }
     }
     this.world.set(x, y, z, held.id);
     this.inv.useHeld();
     this.stats.placed++;
+    if (this.stats.placed % 20 === 0) { this.kid.reward('quest', 0.2); }
     this.stats.placedIds[held.id] = (this.stats.placedIds[held.id] || 0) + 1;
     SFX.place(); haptic(6);
     this.mineAnim = 0.2;
@@ -633,7 +648,7 @@ export class Game {
       e.hop = 0.5; e.target = null; e.wait = 2;
       this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 3);
       SFX.pet(); haptic(10);
-      this.stats.petted++;
+      this.stats.petted++; this.kid.reward('pet');
       if (e.cooldown <= 0) {
         if (e.kind === 'cow' || e.kind === 'camel' || e.kind === 'goat') { this.inv.add(I.MILK, 1); this.stats.milk++; e.cooldown = 60; this.ui.toast(tr(`🥛 ${t2(ANIMAL_NAME[e.kind])} memberi susu. Terima kasih!`, `🥛 The ${t2(ANIMAL_NAME[e.kind]).toLowerCase()} shared some milk. Thank you!`)); }
         else if (e.kind === 'chicken') { this.inv.add(I.EGG, 1); this.stats.eggs++; e.cooldown = 45; this.ui.toast(tr('🥚 Ayam memberi telur!', '🥚 The chicken laid an egg!')); }
@@ -644,7 +659,7 @@ export class Game {
     }
   }
   private giveFood(at: THREE.Vector3) {
-    this.inv.useHeld(); this.stats.gave++;
+    this.inv.useHeld(); this.stats.gave++; this.kid.reward('give'); this.ui.confetti(20);
     this.fx.hearts(at.x, at.y + 2, at.z, 5); SFX.quest();
     this.checkQuests();
   }
@@ -703,11 +718,11 @@ export class Game {
     const isIftar = h >= s.maghrib && h < s.maghrib + 1.5;
     const isSahur = h >= s.fajr - 2 && h < s.fajr;
     if (isIftar) {
-      this.stats.iftar++;
+      this.stats.iftar++; this.kid.reward('iftar');
       if (this.iftarDay !== this.day) { this.iftarDay = this.day; this.ui.duaCard(DUAS.iftar, tr('🌇 Doa berbuka puasa', '🌇 Du’a for breaking the fast')); }
       this.ui.toast(tr('🌙 Selamat berbuka! Alhamdulillah', '🌙 Happy iftar! Alhamdulillah'));
     } else if (isSahur) {
-      this.stats.sahur++;
+      this.stats.sahur++; this.kid.reward('sahur');
       this.ui.toast(tr('🍚 Sahur yang berkah! Bismillah', '🍚 A blessed suhoor! Bismillah'));
     } else this.ui.toast(tr(`😋 Bismillah… ${t2(nameOf(held.id))} enak! Alhamdulillah`, `😋 Bismillah… yummy ${t2(nameOf(held.id))}! Alhamdulillah`));
     this.checkQuests();
@@ -735,7 +750,7 @@ export class Game {
     this.stats.letters.push(i);
     this.world.set(x, y, z, B.AIR);
     this.inv.add(B.LETTER_0 + i, 1);
-    SFX.letter(); haptic([15, 40, 15]);
+    SFX.letter(); haptic([15, 40, 15]); this.kid.reward('letter'); this.ui.confetti(40);
     this.fx.sparkle(x + 0.5, y + 0.5, z + 0.5, 30, 0xffd874, 3);
     this.ents.mo.celebrate = 2.5;
     this.ui.letterCard(i, true);
@@ -755,7 +770,7 @@ export class Game {
         this.questsDone.add(q.id);
         if (silent) continue;
         for (const [id, n] of q.reward) this.inv.add(id, n);
-        SFX.quest(); haptic([10, 30, 10]);
+        SFX.quest(); haptic([10, 30, 10]); this.kid.reward('quest'); this.ui.confetti(36);
         this.ents.mo.celebrate = 2;
         this.fx.sparkle(this.player.pos.x, this.player.pos.y + 2, this.player.pos.z, 20, 0x9bf29a, 2.5);
         const rw = q.reward.map(([id, n]) => `${t2(nameOf(id))} ×${n}`).join(', ');
@@ -793,7 +808,7 @@ export class Game {
       const ev = this.gameEvent;
       const p = this.player.pos;
       if (!ev.attended && p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3) {
-        ev.attended = true; this.stats.jamaah++;
+        ev.attended = true; this.stats.jamaah++; this.kid.reward('jamaah');
         SFX.quest();
         this.ui.say(tr(`Alhamdulillah, kita sholat ${prayerName(ev.p)} berjamaah! Pahalanya 27 kali lipat 🤲`, `Alhamdulillah, we prayed ${prayerName(ev.p)} together! Praying in congregation brings 27 times the reward 🤲`), 'alright', 6000);
         this.checkQuests();
@@ -825,6 +840,7 @@ export class Game {
     const bn = Biome[col.biome];
     if (!this.stats.biomes.includes(bn)) {
       this.stats.biomes.push(bn);
+      if (this.stats.biomes.length > 1) this.kid.reward('biome');
       const info = BIOME_INFO[col.biome];
       if (this.stats.biomes.length > 1) {
         this.ui.toast(`${info.icon} ${tr('Tempat baru', 'New place')}: ${tr(info.id, info.en)}!`, 3500);

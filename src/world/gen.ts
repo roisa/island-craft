@@ -378,12 +378,26 @@ export class Generator {
 
   private placeShrines() {
     const rnd = mulberry32(this.seed ^ 0x5eed);
+    // the first four letters wait right in the village, so the very first
+    // discoveries come within a minute; the rest spread outward gently
+    const VILLAGE_SPOTS = [[-7, 1], [7, -1], [-8, 20], [12, -16]];
     for (let i = 0; i < LETTERS.length; i++) {
       const ang = i * 2.39996 + rnd() * 0.3;
-      let rad = 44 + i * 7.6;
+      let rad = 40 + (i - 4) * 6.8;
       let x = 0, z = 0, c: Column | null = null;
+      if (i < VILLAGE_SPOTS.length) {
+        [x, z] = VILLAGE_SPOTS[i];
+        const h = VILLAGE_Y;
+        this.box(x - 1, h + 1, z - 1, x + 1, h + 4, z + 1, B.AIR);
+        this.box(x - 1, h, z - 1, x + 1, h, z + 1, B.COBBLE);
+        this.stamp(x, h + 1, z, B.MOSAIC);
+        this.stamp(x, h + 2, z, B.LETTER_0 + i);
+        for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) this.stamp(x + dx, h + 1, z + dz, B.TORCH);
+        this.shrines.push({ letter: i, x, y: h + 2, z });
+        continue;
+      }
       for (let k = 0; k < 40; k++) {
-        const r = Math.max(42, rad + (k % 2 ? -1 : 1) * Math.ceil(k / 2) * 5);
+        const r = Math.max(38, rad + (k % 2 ? -1 : 1) * Math.ceil(k / 2) * 5);
         const a = ang + (k > 20 ? (k - 20) * 0.15 : 0);
         x = Math.round(Math.cos(a) * r); z = Math.round(Math.sin(a) * r);
         c = this.column(x, z);

@@ -9,6 +9,8 @@ import { QUESTS, CALENDAR, DUAS, Dua } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId } from './game/prayer';
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
+import { levelOf, starsFor } from './game/kid';
+import type { T2 } from './i18n';
 import { isTouch } from './game/input';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = document) => r.querySelector(s) as T;
@@ -32,11 +34,14 @@ export class UI {
   <div id="topbar">
     <button class="ibtn pill" id="bMenu" aria-label="Menu">☰</button>
     <button class="pill" id="compass"><span id="compassArrow">▲</span><span id="compassText"></span></button>
+    <button class="pill" id="stars"><span class="st">⭐</span><span class="sv"><b id="starN">0</b><small id="starLv"></small><i class="sbar"><i id="starBar"></i></i></span></button>
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
-  <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div></div>
+  <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">🔊</button></div>
+  <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">🔊</button></div>
   <div class="pill" id="quest"></div>
   <div id="sideBtns">
+    <button class="ibtn pill" id="bHome" aria-label="Home">🏠</button>
     <button class="ibtn pill" id="bBag" aria-label="Bag">🎒</button>
     <button class="ibtn pill" id="bCraft" aria-label="Craft">🔨</button>
     <button class="ibtn pill" id="bLetters" aria-label="Letters">📖</button>
@@ -60,6 +65,8 @@ export class UI {
 <div id="sleepFade"></div>
 <div id="toast"></div>
 <div id="pickups"></div>
+<div id="starPops"></div>
+<div id="confetti"></div>
 <div class="veil" id="vBook"><div class="panel" id="book"></div></div>
 <div class="veil" id="vModal"><div class="panel" id="modal"></div></div>
 <div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div></div></div>
@@ -67,6 +74,10 @@ export class UI {
     this.labels();
     $('#bMenu').onclick = () => this.openBook('settings');
     $('#bBag').onclick = () => this.openBook('bag');
+    $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: tr('🏠 Ya, pulang!', '🏠 Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: tr('⬆️ Naik ke permukaan', '⬆️ Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
+    $('#stars').onclick = () => this.openBook('quests');
+    $('#bubbleSay').onclick = () => Speech.talk($('#bubbleTxt').textContent || '', getLang(), true);
+    $('#tutSay').onclick = () => Speech.talk($('#tutTxt').textContent || '', getLang(), true);
     $('#bCraft').onclick = () => this.openBook('craft');
     $('#bLetters').onclick = () => this.openBook('letters');
     $('#bCam').onclick = () => g.toggleCamera();
@@ -135,6 +146,57 @@ export class UI {
       b.textContent = sl && (sl.n > 1 || inv.creative) ? (inv.creative ? '∞' : String(sl.n)) : '';
     }
   }
+  // ---------- kid-friendly feedback ----------
+  tutorial(st: { icon: string; text: string; n: number; of: number; hint?: string } | null) {
+    document.querySelectorAll('.pulse').forEach(e => e.classList.remove('pulse'));
+    const el = $('#tut');
+    if (!st) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    $('#tutIcon').textContent = st.icon;
+    $('#tutN').textContent = tr(`Langkah ${st.n} dari ${st.of}`, `Step ${st.n} of ${st.of}`);
+    $('#tutTxt').textContent = st.text;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    if (st.hint) { const t = document.querySelector(st.hint); if (t && getComputedStyle(t).display !== 'none') t.classList.add('pulse'); }
+    if (this.g.settings.moVoice) setTimeout(() => Speech.talk(st.text, getLang()), 400);
+  }
+  starPop(n: number) {
+    const el = h(`<div class="spop">+${n} ⭐</div>`);
+    $('#starPops').appendChild(el);
+    setTimeout(() => el.remove(), 1400);
+    const s = $('#stars'); s.classList.remove('bump'); void s.offsetWidth; s.classList.add('bump');
+    this.updateStars();
+  }
+  updateStars() {
+    const st = this.g.stats.stars || 0, lv = levelOf(st);
+    const a = starsFor(lv), b = starsFor(lv + 1);
+    $('#starN').textContent = String(st);
+    $('#starLv').textContent = tr(`Level ${lv}`, `Level ${lv}`);
+    $('#starBar').style.width = Math.round((st - a) / (b - a) * 100) + '%';
+  }
+  confetti(n = 30) {
+    const box = $('#confetti');
+    const colors = ['#FFD874', '#FF6F91', '#8FD3EC', '#7FC8A9', '#B388FF', '#3FD08C', '#FF9F4D'];
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('i');
+      c.style.left = (10 + Math.random() * 80) + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      c.style.setProperty('--dx', ((Math.random() - 0.5) * 40) + 'vw');
+      c.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+      box.appendChild(c);
+      setTimeout(() => c.remove(), 2400);
+    }
+  }
+  levelUp(lv: number, title: T2, gifts: [number, number][]) {
+    this.confetti(80);
+    const { el, close } = this.modal(`<div class="lvup"><div class="burst">⭐</div><div class="lvn">LEVEL ${lv}!</div><h2>${esc(t2(title))}</h2>
+      <p>${tr('Hebat sekali! Ini hadiah untukmu:', 'Awesome! Here are your presents:')}</p>
+      <div class="gifts">${gifts.map(([id, n]) => `<span><img src="${iconURL(id)}" alt="">×${n}</span>`).join('')}</div>
+      <button class="btn gold" id="lvOk">${tr('Yeay! 🎉', 'Yay! 🎉')}</button></div>`);
+    $('#lvOk', el).onclick = () => close();
+    if (this.g.settings.moVoice) Speech.talk(tr(`Hebat! Kamu naik ke level ${lv}!`, `Amazing! You reached level ${lv}!`), getLang());
+  }
+
   /** "+2 🌴 Dates" pop-ups stacking in the corner; repeats of the same item merge. */
   private pick = new Map<number, { el: HTMLElement; n: number; t: number }>();
   pickup(id: number, n: number) {
@@ -160,6 +222,7 @@ export class UI {
 
   updateHud() {
     const g = this.g;
+    this.updateStars();
     // clock + next in-game prayer
     $('#clockT').textContent = '🕐 ' + fmtHour(g.hour);
     const np = g.nextGamePrayer();
@@ -176,7 +239,7 @@ export class UI {
       $('#compassText').innerHTML = `🏆 28/28<small>${tr('Semua huruf ditemukan!', 'All letters found!')}</small>`;
     }
     // quest tracker
-    const q = g.activeQuests()[0];
+    const q = g.kid?.tutorialActive() ? undefined : g.activeQuests()[0];
     const qe = $('#quest');
     if (q) {
       const [a, b] = q.goal(g.stats);
@@ -380,7 +443,7 @@ export class UI {
     body.innerHTML = `
       ${tog('tSfx', s.sfx, tr('🔊 Efek suara', '🔊 Sound effects'))}
       ${tog('tMusic', s.music, tr('🎵 Musik', '🎵 Music'))}
-      ${tog('tVoice', s.moVoice, tr('🗣️ Baby Mo bicara (suara HP)', '🗣️ Baby Mo speaks (device voice)'))}
+      ${tog('tVoice', s.moVoice, tr('🗣️ Baby Mo membacakan teks (suara HP)', '🗣️ Baby Mo reads text aloud (device voice)'))}
       <div class="set"><span>🌐 ${tr('Bahasa', 'Language')}</span>${this.langSeg()}</div>
       <div class="set"><span>👁️ ${tr('Kamera', 'Camera')}</span><select id="sCam"><option value="third" ${s.cam === 'third' ? 'selected' : ''}>${tr('Orang ketiga', 'Third person')}</option><option value="first" ${s.cam === 'first' ? 'selected' : ''}>${tr('Orang pertama', 'First person')}</option></select></div>
       <div class="set"><span>🗺️ ${tr('Jarak pandang', 'View distance')}</span><select id="sDist">${[3, 4, 5, 6, 8].map(n => `<option value="${n}" ${s.dist === n ? 'selected' : ''}>${n * 16} m</option>`).join('')}</select></div>
@@ -392,10 +455,11 @@ export class UI {
       <button class="btn small" id="bResume">▶️ ${tr('Lanjut main', 'Continue')}</button>
       <details style="margin-top:14px"><summary style="font-weight:900;cursor:pointer">👨‍👩‍👧 ${tr('Untuk orang tua', 'For parents')}</summary>
         <p style="margin-top:6px">${tr('Tidak ada iklan, tidak ada pembelian, tidak ada chat. Progres disimpan di perangkat ini. Game ini tidak punya tantangan waktu atau kalah — anak bebas menjelajah. Pengingat sholat memakai jam asli dan bisa dimatikan.', 'No ads, no purchases, no chat. Progress is stored on this device. There are no timers or losing — children explore freely. Prayer reminders use the real clock and can be turned off.')}</p>
+        <div class="set"><span>🕌 ${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="tProt"></button></div>
         <button class="btn ghost small" id="bNew">🌍 ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
       </details>`;
-    const flip = (id: string, k: 'sfx' | 'music' | 'moVoice') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
-    flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice');
+    const flip = (id: string, k: 'sfx' | 'music' | 'moVoice' | 'protectVillage') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
+    flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice'); flip('tProt', 'protectVillage');
     this.bindLangSeg(body, () => { this.refreshHotbar(); this.updateHud(); this.renderBook(); g.saveSoon(); });
     $<HTMLSelectElement>('#sCam', body).onchange = e => { s.cam = (e.target as HTMLSelectElement).value as 'first' | 'third'; g.applySettings(); };
     $<HTMLSelectElement>('#sDist', body).onchange = e => { s.dist = +(e.target as HTMLSelectElement).value; g.applySettings(); };
@@ -424,9 +488,12 @@ export class UI {
   }
   closeModal() { const m = $('#modal') as any; if ($('#vModal').classList.contains('on')) m._close?.(); }
 
-  dialog(o: { face: string; who: string; text: string; buttons?: Btn[]; img?: boolean }) {
+  dialog(o: { face: string; who: string; text: string; buttons?: Btn[]; img?: boolean; speak?: boolean }) {
     const btns = o.buttons ?? [{ label: tr('Oke!', 'Okay!') }];
-    const { el, close } = this.modal(`<div class="dialog">${o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div><div class="who">${esc(o.who)}</div><div class="say">${o.text}</div></div></div><div id="dbtns"></div>`);
+    const { el, close } = this.modal(`<div class="dialog">${o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div style="flex:1"><div class="who">${esc(o.who)}</div><div class="say" id="dTxt">${o.text}</div></div><button class="say" id="dSpeak" aria-label="Listen">🔊</button></div><div id="dbtns"></div>`, () => Speech.stop());
+    const plain = () => ($('#dTxt', el).textContent || '');
+    $('#dSpeak', el).onclick = () => Speech.talk(plain(), getLang(), true);
+    if (o.speak !== false && this.g.settings.moVoice) setTimeout(() => Speech.talk(plain(), getLang()), 150);
     const wrap = $('#dbtns', el);
     for (const b of btns) {
       const e = h(`<button class="btn ${b.cls ?? ''}">${b.label}</button>`);
@@ -489,7 +556,7 @@ export class UI {
       if (done) return;
       const o = +b.dataset.o!;
       if (o === ans) {
-        done = true; b.classList.add('right'); SFX.letter(); g.stats.quiz++; g.checkQuests();
+        done = true; b.classList.add('right'); SFX.letter(); g.stats.quiz++; g.kid.reward('quiz'); this.confetti(14); g.checkQuests();
         this.toast(tr(`Benar! Itu huruf ${L.name} ⭐`, `Correct! That's ${L.name} ⭐`));
         setTimeout(() => { close(); this.quiz(); }, 1100);
       } else { b.classList.add('wrong'); SFX.error(); this.toast(tr('Hampir! Coba lagi ya 😊', 'Almost! Try again 😊')); }
