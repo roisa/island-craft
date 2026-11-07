@@ -168,12 +168,27 @@ function letterPainter(i: number): Painter {
     const x = g.x, s = TILE;
     const gr = x.createLinearGradient(0, 0, s, s); gr.addColorStop(0, '#FFF9E8'); gr.addColorStop(1, '#FBE7B8');
     x.fillStyle = gr; x.fillRect(0, 0, s, s);
-    x.strokeStyle = '#E0B84D'; x.lineWidth = s * 0.08; x.strokeRect(x.lineWidth / 2, x.lineWidth / 2, s - x.lineWidth, s - x.lineWidth);
-    x.fillStyle = '#12261F'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = 'bold ' + Math.round(s * 0.62) + 'px "Scheherazade New","Traditional Arabic","Amiri","Noto Naskh Arabic",serif';
-    x.fillText(LETTERS[i].g, s / 2, s * 0.47);
-    x.fillStyle = '#1FA971'; x.font = 'bold ' + Math.round(s * 0.14) + 'px system-ui,sans-serif';
-    x.fillText(LETTERS[i].name.split(' ')[0].toUpperCase(), s / 2, s * 0.87);
+    // name band at the bottom, kept separate from the glyph area
+    const band = Math.round(s * 0.2);
+    x.fillStyle = '#1FA971'; x.fillRect(0, s - band, s, band);
+    x.strokeStyle = '#E0B84D'; x.lineWidth = s * 0.07; x.strokeRect(x.lineWidth / 2, x.lineWidth / 2, s - x.lineWidth, s - x.lineWidth);
+    // fit the glyph inside the area above the band, using its real ink box
+    const glyph = LETTERS[i].g;
+    const m = s * 0.12, top = m, bottom = s - band - s * 0.05, availH = bottom - top, availW = s - 2 * m;
+    let size = s * 0.8;
+    x.font = `700 ${size}px "Scheherazade New","Noto Naskh Arabic","Amiri","Traditional Arabic",serif`;
+    let mt = x.measureText(glyph);
+    const h0 = mt.actualBoundingBoxAscent + mt.actualBoundingBoxDescent, w0 = mt.actualBoundingBoxLeft + mt.actualBoundingBoxRight;
+    size *= Math.min(availH / h0, availW / w0);
+    x.font = `700 ${size}px "Scheherazade New","Noto Naskh Arabic","Amiri","Traditional Arabic",serif`;
+    mt = x.measureText(glyph);
+    const h = mt.actualBoundingBoxAscent + mt.actualBoundingBoxDescent, w = mt.actualBoundingBoxLeft + mt.actualBoundingBoxRight;
+    x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.direction = 'rtl';
+    x.fillStyle = '#12261F';
+    x.fillText(glyph, m + (availW - w) / 2 + mt.actualBoundingBoxLeft, top + (availH - h) / 2 + mt.actualBoundingBoxAscent);
+    x.direction = 'ltr'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = '#FFFFFF'; x.font = `800 ${Math.round(band * 0.62)}px Nunito, system-ui, sans-serif`;
+    x.fillText(LETTERS[i].name.toUpperCase(), s / 2, s - band / 2 - s * 0.02);
   };
 }
 for (let i = 0; i < LETTERS.length; i++) P['letter_' + i] = letterPainter(i);
@@ -214,6 +229,8 @@ export function buildTextureArray(): THREE.DataArrayTexture {
   for (const n of Object.keys(P)) if (n.startsWith('i_')) paint(n);
   return tex;
 }
+
+export const tileCanvas = (name: string) => canvases.get(name);
 
 // ---- UI icons ----------------------------------------------------------
 const iconCache = new Map<number, string>();

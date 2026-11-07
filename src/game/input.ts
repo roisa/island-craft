@@ -9,6 +9,9 @@ export class Input {
   jumpHeld = false; downHeld = false;
   sprint = false;
   usePressed = false;         // one-shot
+  tapAt: { x: number; y: number } | null = null;     // one-shot tap on the world (touch)
+  pointer: { x: number; y: number } | null = null;   // finger held on the world (touch mining)
+  pointerMine = false;
   wheel = 0;
   enabled = false;
   locked = false;
@@ -71,20 +74,34 @@ export class Input {
     const end = (e: TouchEvent) => { for (const t of Array.from(e.changedTouches)) if (t.identifier === sid) { sid = null; this.move.x = this.move.y = 0; knob.style.transform = ''; } };
     stick.addEventListener('touchend', end); stick.addEventListener('touchcancel', end);
 
-    // look by dragging anywhere that isn't a control
-    let lid: number | null = null, lx = 0, ly = 0;
+    // Touch on the world: drag = look around, quick tap = use/place at that spot,
+    // press & hold (without dragging) = mine the block under your finger.
+    let lid: number | null = null, lx = 0, ly = 0, sx = 0, sy = 0, t0 = 0, dragged = false, holdTimer = 0;
     this.canvas.addEventListener('touchstart', e => {
       if (!this.enabled) return;
-      for (const t of Array.from(e.changedTouches)) { if (lid === null) { lid = t.identifier; lx = t.clientX; ly = t.clientY; } }
+      for (const t of Array.from(e.changedTouches)) {
+        if (lid !== null) continue;
+        lid = t.identifier; lx = sx = t.clientX; ly = sy = t.clientY; t0 = performance.now(); dragged = false;
+        clearTimeout(holdTimer);
+        holdTimer = window.setTimeout(() => { if (lid !== null && !dragged) { this.pointer = { x: lx, y: ly }; this.pointerMine = true; } }, 320);
+      }
     }, { passive: true });
     addEventListener('touchmove', e => {
       for (const t of Array.from(e.changedTouches)) if (t.identifier === lid) {
+        if (!dragged && Math.hypot(t.clientX - sx, t.clientY - sy) > 12) { dragged = true; clearTimeout(holdTimer); this.pointerMine = false; this.pointer = null; }
+        if (this.pointerMine) { this.pointer = { x: t.clientX, y: t.clientY }; lx = t.clientX; ly = t.clientY; continue; }
         this.lookDX -= (t.clientX - lx) * 0.0062 * this.sensitivity;
         this.lookDY -= (t.clientY - ly) * 0.0062 * this.sensitivity;
         lx = t.clientX; ly = t.clientY;
       }
     }, { passive: true });
-    const lend = (e: TouchEvent) => { for (const t of Array.from(e.changedTouches)) if (t.identifier === lid) lid = null; };
+    const lend = (e: TouchEvent) => {
+      for (const t of Array.from(e.changedTouches)) if (t.identifier === lid) {
+        clearTimeout(holdTimer);
+        if (!dragged && !this.pointerMine && performance.now() - t0 < 320) { this.tapAt = { x: t.clientX, y: t.clientY }; }
+        lid = null; this.pointerMine = false; this.pointer = null;
+      }
+    };
     addEventListener('touchend', lend); addEventListener('touchcancel', lend);
 
     const hold = (el: HTMLElement, set: (v: boolean) => void) => {

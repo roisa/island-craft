@@ -15,7 +15,7 @@ const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = docum
 const h = (html: string) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild as HTMLElement; };
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-export type Tab = 'bag' | 'letters' | 'quests' | 'ramadhan' | 'prayer' | 'settings';
+export type Tab = 'bag' | 'craft' | 'map' | 'letters' | 'quests' | 'ramadhan' | 'prayer' | 'settings';
 interface Btn { label: string; cls?: string; fn?: () => void; keep?: boolean }
 
 export class UI {
@@ -38,6 +38,7 @@ export class UI {
   <div class="pill" id="quest"></div>
   <div id="sideBtns">
     <button class="ibtn pill" id="bBag" aria-label="Bag">🎒</button>
+    <button class="ibtn pill" id="bCraft" aria-label="Craft">🔨</button>
     <button class="ibtn pill" id="bLetters" aria-label="Letters">📖</button>
     <button class="ibtn pill" id="bCam" aria-label="Camera">👁️</button>
   </div>
@@ -58,6 +59,7 @@ export class UI {
 <div id="underwater"></div>
 <div id="sleepFade"></div>
 <div id="toast"></div>
+<div id="pickups"></div>
 <div class="veil" id="vBook"><div class="panel" id="book"></div></div>
 <div class="veil" id="vModal"><div class="panel" id="modal"></div></div>
 <div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div></div></div>
@@ -65,11 +67,12 @@ export class UI {
     this.labels();
     $('#bMenu').onclick = () => this.openBook('settings');
     $('#bBag').onclick = () => this.openBook('bag');
+    $('#bCraft').onclick = () => this.openBook('craft');
     $('#bLetters').onclick = () => this.openBook('letters');
     $('#bCam').onclick = () => g.toggleCamera();
     $('#quest').onclick = () => this.openBook('quests');
     $('#clock').onclick = () => this.openBook('prayer');
-    $('#compass').onclick = () => this.openBook('letters');
+    $('#compass').onclick = () => this.openBook('map');
     $('#vBook').addEventListener('click', e => { if (e.target === $('#vBook')) this.closeBook(); });
   }
 
@@ -77,8 +80,8 @@ export class UI {
     $('#bJump span').textContent = tr('LOMPAT', 'JUMP');
     $('#bMine span').textContent = tr('GALI', 'MINE');
     $('#bUse span').textContent = tr('PAKAI', 'USE');
-    $('#desktopHint').textContent = tr('WASD jalan · Spasi lompat · Klik kiri gali · Klik kanan pakai/pasang · E tas · V kamera',
-      'WASD move · Space jump · Left click mine · Right click use/place · E bag · V camera');
+    $('#desktopHint').textContent = tr('WASD jalan · Spasi lompat · Klik kiri gali · Klik kanan pakai/pasang · E tas · R buat · M peta · V kamera',
+      'WASD move · Space jump · Left click mine · Right click use/place · E bag · R craft · M map · V camera');
   }
 
   // ---------- small HUD helpers ----------
@@ -132,6 +135,23 @@ export class UI {
       b.textContent = sl && (sl.n > 1 || inv.creative) ? (inv.creative ? '∞' : String(sl.n)) : '';
     }
   }
+  /** "+2 🌴 Dates" pop-ups stacking in the corner; repeats of the same item merge. */
+  private pick = new Map<number, { el: HTMLElement; n: number; t: number }>();
+  pickup(id: number, n: number) {
+    const box = $('#pickups');
+    let p = this.pick.get(id);
+    if (p && p.el.isConnected) { p.n += n; clearTimeout(p.t); }
+    else {
+      const el = h(`<div class="pk"><img src="${iconURL(id)}" alt=""><span></span></div>`);
+      box.appendChild(el);
+      while (box.children.length > 4) box.firstElementChild!.remove();
+      p = { el, n, t: 0 }; this.pick.set(id, p);
+    }
+    const P = p;
+    P.el.querySelector('span')!.textContent = `+${P.n} ${t2(nameOf(id))}`;
+    P.el.classList.remove('bump'); void P.el.offsetWidth; P.el.classList.add('bump');
+    P.t = window.setTimeout(() => { P.el.classList.add('out'); setTimeout(() => P.el.remove(), 400); this.pick.delete(id); }, 1800);
+  }
   flashHeld() {
     const s = this.g.inv.held(), el = $('#heldName');
     el.textContent = s ? t2(nameOf(s.id)) : tr('Tangan kosong', 'Empty hand');
@@ -181,7 +201,7 @@ export class UI {
   }
   renderBook() {
     const tabs: [Tab, string][] = [
-      ['bag', tr('🎒 Tas', '🎒 Bag')], ['letters', tr('📖 Huruf', '📖 Letters')], ['quests', tr('⭐ Misi', '⭐ Quests')],
+      ['bag', tr('🎒 Tas', '🎒 Bag')], ['craft', tr('🔨 Buat', '🔨 Craft')], ['map', tr('🗺️ Peta', '🗺️ Map')], ['letters', tr('📖 Huruf', '📖 Letters')], ['quests', tr('⭐ Misi', '⭐ Quests')],
       ['ramadhan', tr('🌙 Ramadhan', '🌙 Ramadan')], ['prayer', tr('🕌 Sholat', '🕌 Prayer')], ['settings', tr('⚙️ Atur', '⚙️ Settings')],
     ];
     const el = $('#book');
@@ -189,7 +209,7 @@ export class UI {
     $('#bx', el).onclick = () => this.closeBook();
     el.querySelectorAll<HTMLElement>('.tab').forEach(b => (b.onclick = () => { this.tab = b.dataset.t as Tab; this.renderBook(); SFX.click(); }));
     const body = $('#tabBody', el);
-    ({ bag: () => this.bag(body), letters: () => this.letters(body), quests: () => this.quests(body), ramadhan: () => this.ramadhanTab(body), prayer: () => this.prayer(body), settings: () => this.settingsTab(body) })[this.tab]();
+    ({ bag: () => this.bag(body), craft: () => this.craftTab(body), map: () => this.mapTab(body), letters: () => this.letters(body), quests: () => this.quests(body), ramadhan: () => this.ramadhanTab(body), prayer: () => this.prayer(body), settings: () => this.settingsTab(body) })[this.tab]();
   }
 
   private slotHTML(i: number) {
@@ -205,9 +225,7 @@ export class UI {
       <div class="grid" id="invGrid" style="margin-top:8px">${Array.from({ length: 9 }, (_, i) => this.slotHTML(i)).join('')}</div>
       <div class="grid" style="margin-top:6px">${Array.from({ length: 27 }, (_, i) => this.slotHTML(i + 9)).join('')}</div>
       ${inv.creative ? `<h3>${tr('🧱 Semua balok (Mode Kreatif)', '🧱 All blocks (Creative)')}</h3><p>${tr('Ketuk untuk menaruh di kotak hotbar yang dipilih.', 'Tap to put it in the selected hotbar slot.')}</p><div class="grid" id="cat">${creativeCatalog().map(id => `<button class="slot" data-c="${id}"><img src="${iconURL(id)}" alt="" title="${esc(t2(nameOf(id)))}"></button>`).join('')}</div>` : ''}
-      <h3>${tr('🔨 Buat barang', '🔨 Crafting')}</h3>
-      <div class="chips">${chip('workbench')}${chip('furnace')}</div>
-      <div class="recipes" id="recipes"></div>`;
+      <button class="btn small" id="toCraft">🔨 ${tr('Buat barang', 'Craft things')}</button>`;
     body.querySelectorAll<HTMLElement>('[data-i]').forEach(b => (b.onclick = () => {
       const i = +b.dataset.i!;
       if (this.pickSlot < 0) { this.pickSlot = i; if (i < 9) inv.sel = i; }
@@ -217,6 +235,16 @@ export class UI {
     body.querySelectorAll<HTMLElement>('[data-c]').forEach(b => (b.onclick = () => {
       inv.slots[inv.sel] = { id: +b.dataset.c!, n: 64 }; inv.onChange?.(); SFX.pickup(); this.refreshHotbar(); this.renderBook();
     }));
+    $('#toCraft', body).onclick = () => { this.tab = 'craft'; this.renderBook(); };
+  }
+
+  private craftTab(body: HTMLElement) {
+    const g = this.g, inv = g.inv;
+    const st = g.stations();
+    const chip = (k: 'workbench' | 'furnace') => `<span class="chip ${st.has(k) ? 'on' : ''}">${st.has(k) ? '✓' : '✗'} ${t2(STATION_NAME[k])}</span>`;
+    body.innerHTML = `<p>${tr('Barang hijau bisa dibuat sekarang. Beberapa resep perlu meja kerja atau tungku di dekatmu.', 'Green items can be made now. Some recipes need a workbench or furnace nearby.')}</p>
+      <div class="chips" style="margin-top:8px">${chip('workbench')}${chip('furnace')}</div>
+      <div class="recipes" id="recipes"></div>`;
     const list = $('#recipes', body);
     const sorted = [...RECIPES].sort((a, b) => Number(canCraft(inv, b, st)) - Number(canCraft(inv, a, st)));
     for (const r of sorted) {
@@ -227,10 +255,51 @@ export class UI {
     }
   }
 
+  private mapZoom = 1;
+  private mapTab(body: HTMLElement) {
+    const g = this.g;
+    const zooms = [96, 200, 400];
+    body.innerHTML = `<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
+      <div class="mapWrap"><canvas id="mapC" width="400" height="400"></canvas></div>
+      <p style="margin-top:6px;font-size:12.5px">${tr('▲ = kamu · 🕌 = desa · ✨ = huruf belum ditemukan · ✓ = sudah ditemukan', '▲ = you · 🕌 = village · ✨ = letter not found yet · ✓ = found')}</p>`;
+    body.querySelectorAll<HTMLElement>('[data-z]').forEach(b => (b.onclick = () => { this.mapZoom = +b.dataset.z!; this.renderBook(); }));
+    const c = $<HTMLCanvasElement>('#mapC', body), x = c.getContext('2d')!;
+    const R = zooms[this.mapZoom], N = 100, step = (R * 2) / N, px = c.width / N;
+    const P = g.player.pos;
+    const BC = ['#3b8fd1', '#e8d7a2', '#7fcf5a', '#3f9a45', '#e6c77d', '#eef4fb', '#9aa1a8', '#8fd36a'];
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const wx = Math.floor(P.x - R + i * step), wz = Math.floor(P.z - R + j * step);
+      const col = g.gen.column(wx, wz);
+      let color = BC[col.biome];
+      if (col.h < 40) color = col.h < 34 ? '#2f74b3' : '#4aa3e0';
+      else if (col.biome === 6 && col.h > 85) color = '#f4f8ff';
+      x.fillStyle = color; x.fillRect(i * px, j * px, px + 0.5, px + 0.5);
+      const sh = Math.max(-0.25, Math.min(0.25, (col.h - 46) / 120));
+      x.fillStyle = sh > 0 ? `rgba(255,255,255,${sh})` : `rgba(0,0,0,${-sh})`;
+      x.fillRect(i * px, j * px, px + 0.5, px + 0.5);
+    }
+    const toC = (wx: number, wz: number) => [(wx - P.x + R) / (R * 2) * c.width, (wz - P.z + R) / (R * 2) * c.height];
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    const inside = (a: number, b: number) => a > 8 && b > 8 && a < c.width - 8 && b < c.height - 8;
+    const have = new Set(g.stats.letters);
+    for (const s of g.gen.shrines) {
+      const [a, b] = toC(s.x, s.z); if (!inside(a, b)) continue;
+      x.font = '900 16px Nunito, sans-serif';
+      if (have.has(s.letter)) { x.fillStyle = '#1FA971'; x.beginPath(); x.arc(a, b, 8, 0, 7); x.fill(); x.fillStyle = '#fff'; x.fillText('✓', a, b + 1); }
+      else { x.font = '18px sans-serif'; x.fillText('✨', a, b); }
+    }
+    const [va, vb] = toC(0, -18); if (inside(va, vb)) { x.font = '22px sans-serif'; x.fillText('🕌', va, vb); }
+    // you
+    x.save(); x.translate(c.width / 2, c.height / 2); x.rotate(-g.player.yaw);
+    x.fillStyle = '#E4423A'; x.strokeStyle = '#fff'; x.lineWidth = 2.5;
+    x.beginPath(); x.moveTo(0, -11); x.lineTo(8, 9); x.lineTo(0, 4); x.lineTo(-8, 9); x.closePath(); x.fill(); x.stroke(); x.restore();
+    x.font = '900 13px Nunito, sans-serif'; x.fillStyle = 'rgba(21,34,48,.75)'; x.fillText(tr('U', 'N'), c.width / 2, 12);
+  }
+
   private letters(body: HTMLElement) {
     const g = this.g, have = new Set(g.stats.letters);
     body.innerHTML = `<p>${tr(`Kamu sudah menemukan <b>${have.size}</b> dari 28 huruf. Ketuk huruf untuk mendengarnya.`, `You found <b>${have.size}</b> of 28 letters. Tap a letter to hear it.`)}</p>
-      <div class="lgrid" style="margin-top:10px">${LETTERS.map((L, i) => have.has(i) ? `<button class="lcell" data-l="${i}"><span class="g">${L.g}</span><span class="l">${L.name.split(' ')[0]}</span></button>` : `<button class="lcell locked" data-l="${i}"><span class="g">?</span></button>`).join('')}</div>
+      <div class="lgrid" style="margin-top:10px">${LETTERS.map((L, i) => have.has(i) ? `<button class="lcell" data-l="${i}"><span class="g" lang="ar" dir="rtl">${L.g}</span><span class="l">${L.name}</span></button>` : `<button class="lcell locked" data-l="${i}"><span class="g">?</span></button>`).join('')}</div>
       <div class="row"><button class="btn gold" id="bQuiz" ${have.size < 3 ? 'disabled style="opacity:.5"' : ''}>🎯 ${tr('Tebak Huruf', 'Letter Quiz')}</button></div>
       ${have.size < 3 ? `<p style="text-align:center;margin-top:6px">${tr('Temukan 3 huruf untuk membuka kuis.', 'Find 3 letters to unlock the quiz.')}</p>` : ''}`;
     body.querySelectorAll<HTMLElement>('[data-l]').forEach(b => (b.onclick = () => {
@@ -312,7 +381,7 @@ export class UI {
       ${tog('tSfx', s.sfx, tr('🔊 Efek suara', '🔊 Sound effects'))}
       ${tog('tMusic', s.music, tr('🎵 Musik', '🎵 Music'))}
       ${tog('tVoice', s.moVoice, tr('🗣️ Baby Mo bicara (suara HP)', '🗣️ Baby Mo speaks (device voice)'))}
-      <div class="set"><span>🌐 ${tr('Bahasa', 'Language')}</span><select id="sLang"><option value="id" ${getLang() === 'id' ? 'selected' : ''}>Bahasa Indonesia</option><option value="en" ${getLang() === 'en' ? 'selected' : ''}>English</option></select></div>
+      <div class="set"><span>🌐 ${tr('Bahasa', 'Language')}</span>${this.langSeg()}</div>
       <div class="set"><span>👁️ ${tr('Kamera', 'Camera')}</span><select id="sCam"><option value="third" ${s.cam === 'third' ? 'selected' : ''}>${tr('Orang ketiga', 'Third person')}</option><option value="first" ${s.cam === 'first' ? 'selected' : ''}>${tr('Orang pertama', 'First person')}</option></select></div>
       <div class="set"><span>🗺️ ${tr('Jarak pandang', 'View distance')}</span><select id="sDist">${[3, 4, 5, 6, 8].map(n => `<option value="${n}" ${s.dist === n ? 'selected' : ''}>${n * 16} m</option>`).join('')}</select></div>
       <div class="set"><span>🕐 ${tr('Panjang 1 hari di game', 'Length of a game day')}</span><select id="sDay">${[12, 24, 48].map(n => `<option value="${n}" ${s.dayMinutes === n ? 'selected' : ''}>${n} ${tr('menit', 'min')}</option>`).join('')}<option value="0" ${s.dayMinutes === 0 ? 'selected' : ''}>${tr('Ikuti jam asli', 'Follow the real clock')}</option></select></div>
@@ -327,7 +396,7 @@ export class UI {
       </details>`;
     const flip = (id: string, k: 'sfx' | 'music' | 'moVoice') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
     flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice');
-    $<HTMLSelectElement>('#sLang', body).onchange = e => { setLang((e.target as HTMLSelectElement).value as 'id' | 'en'); this.labels(); this.refreshHotbar(); this.renderBook(); g.saveSoon(); };
+    this.bindLangSeg(body, () => { this.refreshHotbar(); this.updateHud(); this.renderBook(); g.saveSoon(); });
     $<HTMLSelectElement>('#sCam', body).onchange = e => { s.cam = (e.target as HTMLSelectElement).value as 'first' | 'third'; g.applySettings(); };
     $<HTMLSelectElement>('#sDist', body).onchange = e => { s.dist = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $<HTMLSelectElement>('#sDay', body).onchange = e => { s.dayMinutes = +(e.target as HTMLSelectElement).value; g.applySettings(); };
@@ -367,7 +436,7 @@ export class UI {
   }
 
   duaCard(d: Dua, title: string, then?: () => void) {
-    const { el, close } = this.modal(`<div class="dua"><h2>${esc(title)}</h2><div class="ar">${d.ar}</div><div class="lat">${esc(d.lat)}</div><div class="mean">“${esc(t2(d.mean))}”</div>${d.src ? `<div class="src">${esc(d.src)}</div>` : ''}<div class="row"><button class="btn ghost" id="dSay">🔊 ${tr('Dengar', 'Listen')}</button><button class="btn" id="dOk">${tr('Aamiin 🤲', 'Ameen 🤲')}</button></div></div>`, then);
+    const { el, close } = this.modal(`<div class="dua"><h2>${esc(title)}</h2><div class="ar" lang="ar" dir="rtl">${d.ar}</div><div class="lat">${esc(d.lat)}</div><div class="mean">“${esc(t2(d.mean))}”</div>${d.src ? `<div class="src">${esc(d.src)}</div>` : ''}<div class="row"><button class="btn ghost" id="dSay">🔊 ${tr('Dengar', 'Listen')}</button><button class="btn" id="dOk">${tr('Aamiin 🤲', 'Ameen 🤲')}</button></div></div>`, then);
     $('#dSay', el).onclick = () => Speech.say(d.ar, d.lat);
     $('#dOk', el).onclick = () => close();
   }
@@ -377,12 +446,17 @@ export class UI {
     const marks: [string, string, string][] = [['َ', 'a', 'Fathah'], ['ِ', 'i', 'Kasrah'], ['ُ', 'u', 'Dhammah']];
     const base = i === 0 ? 'ا' : L.g;
     const lat = (v: string) => (i === 0 ? v : L.lat === "'" ? "'" + v : L.lat + v);
-    const { el, close } = this.modal(`<div style="text-align:center">
-      ${isNew ? `<div style="font-size:13px;font-weight:900;color:var(--green-d)">✨ ${tr('HURUF BARU DITEMUKAN!', 'NEW LETTER FOUND!')} (${this.g.stats.letters.length}/28)</div>` : ''}
-      <div class="bigLetter">${L.g}</div><h2>${esc(L.name)} <span style="font-family:var(--ar);font-weight:700">${L.ar}</span></h2>
-      <p>${tr('Ketuk untuk mendengar bunyinya dengan harakat:', 'Tap to hear it with vowel marks:')}</p>
-      <div class="harakat">${marks.map(([m, v, n], k) => `<button data-k="${k}">${i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m}<small>${lat(v)} · ${n}</small></button>`).join('')}</div>
-      <div class="row"><button class="btn ghost" id="lSay">🔊 ${esc(L.name)}</button><button class="btn" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div></div>`);
+    const { el, close } = this.modal(`<div class="lcard">
+      <div class="lc-left">
+        ${isNew ? `<div class="lnew">✨ ${tr('HURUF BARU DITEMUKAN!', 'NEW LETTER FOUND!')} (${this.g.stats.letters.length}/28)</div>` : ''}
+        <div class="bigLetter" lang="ar" dir="rtl">${L.g}</div>
+        <h2 class="lname">${esc(L.name)}</h2><div class="arname" lang="ar" dir="rtl">${L.ar}</div>
+      </div>
+      <div class="lc-right">
+        <p>${tr('Ketuk untuk mendengar bunyinya dengan harakat:', 'Tap to hear it with vowel marks:')}</p>
+        <div class="harakat">${marks.map(([m, v, n], k) => `<button data-k="${k}"><span class="hg" lang="ar" dir="rtl">${i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m}</span><small>${lat(v)}</small><small class="hn">${n}</small></button>`).join('')}</div>
+        <div class="row"><button class="btn ghost" id="lSay">🔊 ${esc(L.name)}</button><button class="btn" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div>
+      </div></div>`);
     const sayName = () => playLetter(i, L.ar, L.name);
     sayName();
     $('#lSay', el).onclick = sayName;
@@ -403,7 +477,7 @@ export class UI {
     const L = LETTERS[ans];
     const { el, close } = this.modal(`<div style="text-align:center"><h2>🎯 ${tr('Tebak Huruf', 'Letter Quiz')}</h2><p>${tr('Dengarkan, lalu ketuk huruf yang benar!', 'Listen, then tap the right letter!')}</p>
       <button class="btn gold" id="qSay">🔊 ${tr('Dengar lagi', 'Listen again')}</button>
-      <div class="quizOpts">${opts.map(o => `<button data-o="${o}">${LETTERS[o].g}</button>`).join('')}</div>
+      <div class="quizOpts">${opts.map(o => `<button data-o="${o}"><span lang="ar" dir="rtl">${LETTERS[o].g}</span></button>`).join('')}</div>
       <p style="margin-top:8px">${tr('Benar', 'Correct')}: ${g.stats.quiz}</p>
       <div class="row"><button class="btn ghost" id="qClose">${tr('Selesai', 'Done')}</button></div></div>`);
     const say = () => playLetter(ans, L.ar, L.name);
@@ -431,6 +505,17 @@ export class UI {
     });
   }
 
+  // ---------- language ----------
+  langSeg() {
+    const l = getLang();
+    return `<div class="langSeg" role="radiogroup" aria-label="Language / Bahasa"><button data-lang="id" class="${l === 'id' ? 'on' : ''}" role="radio" aria-checked="${l === 'id'}">🇮🇩 Bahasa Indonesia</button><button data-lang="en" class="${l === 'en' ? 'on' : ''}" role="radio" aria-checked="${l === 'en'}">🇬🇧 English</button></div>`;
+  }
+  bindLangSeg(root: HTMLElement, after: () => void) {
+    root.querySelectorAll<HTMLElement>('.langSeg button').forEach(b => (b.onclick = () => {
+      setLang(b.dataset.lang as 'id' | 'en'); SFX.click(); this.labels(); after();
+    }));
+  }
+
   // ---------- start / loading ----------
   loading(p: number | null, text = '') {
     const l = $('#loading');
@@ -443,18 +528,17 @@ export class UI {
     const s = this.g.settings;
     const el = $('#startPanel');
     const render = () => {
-      el.innerHTML = `<img class="logo" src="img/baby-mo-pose-05.webp" alt="Baby Mo"><h1>${tr('Dunia Baby Mo', 'Baby Mo’s World')}</h1>
+      el.innerHTML = `${this.langSeg()}<img class="logo" src="img/baby-mo-pose-05.webp" alt="Baby Mo"><h1>${tr('Dunia Baby Mo', 'Baby Mo’s World')}</h1>
         <div class="sub">${tr('Jelajahi hutan, gurun kurma, bukit salju & gua. Bangun masjidmu, temukan 28 huruf hijaiyah, dan sambut Ramadhan! 🌙', 'Explore forests, date deserts, snowy hills & caves. Build your masjid, find 28 hijaiyah letters and welcome Ramadan! 🌙')}</div>
         <div class="choice" id="cAv"><button data-v="boy" class="${s.avatar === 'boy' ? 'on' : ''}"><span class="e">👦</span>Ibra</button><button data-v="girl" class="${s.avatar === 'girl' ? 'on' : ''}"><span class="e">👧</span>Aisyah</button></div>
         <div class="choice" id="cMode"><button data-v="adventure" class="${s.mode === 'adventure' ? 'on' : ''}"><span class="e">🧭</span>${tr('Petualangan', 'Adventure')}<small>${tr('kumpulkan & buat barang', 'gather & craft')}</small></button><button data-v="creative" class="${s.mode === 'creative' ? 'on' : ''}"><span class="e">🧱</span>${tr('Kreatif', 'Creative')}<small>${tr('balok bebas & terbang', 'free blocks & flying')}</small></button></div>
         <button class="btn" id="sPlay">${hasSave ? tr('▶️ Lanjutkan petualangan', '▶️ Continue adventure') : tr('▶️ Mulai bermain', '▶️ Start playing')}</button>
-        ${hasSave ? `<button class="btn ghost small" id="sNew">🌍 ${tr('Dunia baru', 'New world')}</button>` : ''}
-        <div class="row" style="margin-top:4px"><button class="btn ghost small" id="sLang">🌐 ${getLang() === 'id' ? 'English' : 'Bahasa Indonesia'}</button></div>`;
+        ${hasSave ? `<button class="btn ghost small" id="sNew">🌍 ${tr('Dunia baru', 'New world')}</button>` : ''}`;
       el.querySelectorAll<HTMLElement>('#cAv button').forEach(b => (b.onclick = () => { s.avatar = b.dataset.v as 'boy' | 'girl'; render(); }));
       el.querySelectorAll<HTMLElement>('#cMode button').forEach(b => (b.onclick = () => { s.mode = b.dataset.v as 'adventure' | 'creative'; render(); }));
       $('#sPlay', el).onclick = () => { $('#start').classList.add('hidden'); onPlay(false); };
       const n = $('#sNew', el); if (n) n.onclick = () => { $('#start').classList.add('hidden'); onPlay(true); };
-      $('#sLang', el).onclick = () => { setLang(getLang() === 'id' ? 'en' : 'id'); this.labels(); render(); };
+      this.bindLangSeg(el, render);
     };
     render();
     $('#start').classList.remove('hidden');

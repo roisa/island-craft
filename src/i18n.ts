@@ -10,7 +10,9 @@ function initialLang(): Lang {
     const s = localStorage.getItem('bm_lang');
     if (s === 'en' || s === 'id') return s;
   } catch { /* ignore */ }
-  return 'id';
+  // first visit: follow the device language (Indonesian/Malay → id, anything else → en)
+  const nav = (navigator.languages?.[0] || navigator.language || 'id').toLowerCase();
+  return nav.startsWith('id') || nav.startsWith('ms') || nav.startsWith('in') ? 'id' : 'en';
 }
 
 let lang: Lang = initialLang();
@@ -20,6 +22,7 @@ export function setLang(l: Lang) {
   lang = l;
   try { localStorage.setItem('bm_lang', l); } catch { /* ignore */ }
   document.documentElement.lang = l;
+  document.title = l === 'en' ? 'Baby Mo’s World — Ramadan Island Craft' : 'Dunia Baby Mo — Island Craft Ramadhan';
 }
 
 /** tr('Indonesian', 'English') */

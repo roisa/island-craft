@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/nunito": "^5.2.7",
+    "@fontsource/scheherazade-new": "^5.2.5",
     "adhan": "4.4.3",
     "three": "0.170.0"
   },

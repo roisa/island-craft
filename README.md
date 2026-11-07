@@ -23,8 +23,12 @@ later be wrapped for iOS/Android with Capacitor (as `babymo-app` already does).
   Ramadhan lanterns, beds, bookshelves, dyed wool
 - Tool tiers (ores need the right pickaxe), saplings that grow into trees
 - Friendly animals: sheep (wool), cows/camels/goats (milk), chickens (eggs), cats
+- Chop the bottom of a tree and the whole trunk comes down; its leaves drift away and drop dates, apples and saplings
 - Adventure mode, or Creative mode (all blocks and flying)
-- Third-person (default) or first-person camera; touch controls and keyboard/mouse
+- Third-person (default) or first-person camera, with the held item shown in hand
+- Touch: joystick to walk, swipe to look, **tap a block to place/use, hold a finger on a block to mine** (buttons too).
+  Keyboard/mouse: WASD, Space, left/right click, E bag, R craft, M map, V camera
+- World map, crafting list that shows what you can make right now, item pick-up pop-ups
 
 **Learning, woven into play**
 - **28 hijaiyah letters** hidden in shrines around the world; a golden compass
@@ -44,7 +48,8 @@ later be wrapped for iOS/Android with Capacitor (as `babymo-app` already does).
   you on and gives hints.
 
 **Other**
-- Indonesian (default) and English, shared with the Baby Mo hub via `localStorage.bm_lang`
+- Indonesian and English: a language switch on the start screen and in Settings (first visit follows the device language); shared with the Baby Mo hub via `localStorage.bm_lang`
+- Fonts (Nunito, Scheherazade New for Arabic) are bundled, so the game works offline inside the app
 - Uses the hub's saved city (`mo_manual_city` / `mo_cached_loc`) when served from the same site
 - Saves automatically to IndexedDB. No ads, no accounts, no chat.
 

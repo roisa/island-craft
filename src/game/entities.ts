@@ -15,16 +15,28 @@ export abstract class Entity {
   radius = 0.5;
   constructor(public rig: Rig) { }
   abstract update(dt: number, t: number): void;
+  private blinkSeed = Math.random() * 10;
   sync(t: number) {
     const r = this.rig;
+    if (r.blink) { const ph = (t + this.blinkSeed) % 4.2; r.blink(ph < 0.13 || (ph > 0.3 && ph < 0.42 && this.blinkSeed > 6)); }
     r.root.position.copy(this.pos);
     r.root.rotation.y = this.yaw;
     const sw = this.moving ? Math.sin(this.walk) * 0.6 : 0;
     r.legs.forEach((l, i) => (l.rotation.x = (i % 2 === (i < 2 ? 0 : 1) ? sw : -sw)));
     if (r.armL) r.armL.rotation.x = -sw * 0.8;
     if (r.armR && !(this as any).waving) r.armR.rotation.x = sw * 0.8;
-    r.body.position.y = this.moving ? Math.abs(Math.sin(this.walk)) * 0.04 : Math.sin(t * 2) * 0.01;
+    r.body.position.y = this.moving ? Math.abs(Math.sin(this.walk)) * 0.04 : 0;
+    if (!this.moving) r.body.scale.y = 1 + Math.sin(t * 2.2 + this.blinkSeed) * 0.012; else r.body.scale.y = 1;
   }
+}
+
+/** y of the water surface near (x, y, z), or null if there's no water there. */
+export function waterSurface(world: World, x: number, y: number, z: number): number | null {
+  const fx = Math.floor(x), fz = Math.floor(z);
+  for (let yy = Math.floor(y) + 2; yy >= Math.floor(y) - 4; yy--) {
+    if (world.get(fx, yy, fz) === B.WATER && world.get(fx, yy + 1, fz) !== B.WATER) return yy + 1;
+  }
+  return null;
 }
 
 /** Stand on the nearest walkable surface around y. */
@@ -100,7 +112,7 @@ export class Npc extends Entity {
     super(buildHuman(opts));
     this.pos.copy(home);
     this.tag = nameTag(name, '#FFD874');
-    this.tag.position.y = this.rig.height + 0.45;
+    this.tag.position.y = this.rig.height + 0.32;
     this.rig.root.add(this.tag);
     this.radius = 0.6;
   }
@@ -139,16 +151,18 @@ export class Npc extends Entity {
 // ---- Baby Mo ---------------------------------------------------------------------
 export class Companion extends Entity {
   celebrate = 0;
+  swimming = false;
   tag: THREE.Sprite;
-  constructor(public world: World, public follow: () => { pos: THREE.Vector3; yaw: number }) {
+  constructor(public world: World, public follow: () => { pos: THREE.Vector3; yaw: number; fp?: boolean }) {
     super(buildBabyMo());
     this.tag = nameTag('Baby Mo', '#9BF29A');
-    this.tag.position.y = this.rig.height + 0.25;
+    this.tag.position.y = this.rig.height + 0.2;
     this.rig.root.add(this.tag);
   }
   update(dt: number, t: number) {
     const f = this.follow();
-    const tx = f.pos.x + Math.sin(f.yaw + 2.3) * 1.8, tz = f.pos.z + Math.cos(f.yaw + 2.3) * 1.8;
+    const ang = f.yaw + (f.fp ? -2.65 : 2.3), dist = f.fp ? 3.6 : 1.8; // in first person stay ahead-left where you can see him
+    const tx = f.pos.x + Math.sin(ang) * dist, tz = f.pos.z + Math.cos(ang) * dist;
     const dx = tx - this.pos.x, dz = tz - this.pos.z, d = Math.hypot(dx, dz);
     if (d > 14 || Math.abs(f.pos.y - this.pos.y) > 6) { this.pos.set(tx, f.pos.y, tz); }
     else if (d > 0.4) {
@@ -156,8 +170,14 @@ export class Companion extends Entity {
       const nx = this.pos.x + dx / d * sp, nz = this.pos.z + dz / d * sp;
       const gy = groundY(this.world, nx, this.pos.y, nz);
       this.pos.x = nx; this.pos.z = nz;
-      if (gy !== null) this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10);
-      else this.pos.y += (f.pos.y - this.pos.y) * Math.min(1, dt * 4); // hop over water/gaps after you
+      if (gy !== null) { this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10); this.swimming = false; }
+      else {
+        // swim across water (head above the surface), or hop over gaps after you
+        const sy = waterSurface(this.world, nx, this.pos.y, nz);
+        this.swimming = sy !== null;
+        const ty = sy !== null ? sy - 0.75 + Math.sin(t * 3) * 0.05 : f.pos.y;
+        this.pos.y += (ty - this.pos.y) * Math.min(1, dt * 4);
+      }
       this.moving = true; this.walk += dt * 10;
       this.yaw = Math.atan2(dx, dz);
     } else {
@@ -166,10 +186,11 @@ export class Companion extends Entity {
       this.yaw += (want - this.yaw) * Math.min(1, dt * 3);
     }
     this.sync(t);
+    if (this.swimming && this.rig.armL && this.rig.armR) { this.rig.armL.rotation.x = -2.4 + Math.sin(t * 6) * 0.5; this.rig.armR.rotation.x = -2.4 - Math.sin(t * 6) * 0.5; }
     if (this.celebrate > 0) {
       this.celebrate -= dt;
       this.rig.root.position.y += Math.abs(Math.sin(t * 9)) * 0.35;
-      this.rig.root.rotation.y += t * 6 % (Math.PI * 2);
+      this.rig.root.rotation.y = this.yaw + Math.sin(t * 8) * 0.6;
       if (this.rig.armL) this.rig.armL.rotation.x = -2.8; if (this.rig.armR) this.rig.armR.rotation.x = -2.8;
     }
   }

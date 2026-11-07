@@ -1,3 +1,9 @@
+import '@fontsource/nunito/600.css';
+import '@fontsource/nunito/700.css';
+import '@fontsource/nunito/800.css';
+import '@fontsource/nunito/900.css';
+import '@fontsource/scheherazade-new/400.css';
+import '@fontsource/scheherazade-new/700.css';
 import './style.css';
 import * as THREE from 'three';
 import { tr, t2, getLang, setLang } from './i18n';
@@ -13,6 +19,7 @@ import { Sky, Schedule } from './game/sky';
 import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
 import { buildHuman, Rig } from './game/models';
 import { FX } from './game/fx';
+import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
 import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
@@ -27,6 +34,8 @@ const SAVE_VERSION = 1;
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
 const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
 const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK]);
+
+const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LOG]: B.PINE_LEAVES, [B.PALM_LOG]: B.PALM_LEAVES };
 
 interface Sapling { x: number; y: number; z: number; id: number; t: number }
 
@@ -54,6 +63,11 @@ export class Game {
   running = false; paused = false;
   avatar: Rig | null = null;
   private highlight: THREE.LineSegments;
+  private raycaster = new THREE.Raycaster();
+  private crack!: THREE.Mesh;
+  private heldId = -1; private heldTP: THREE.Object3D | null = null; private heldFP: THREE.Object3D | null = null;
+  private viewModel = new THREE.Group();
+  private crackTex: THREE.CanvasTexture[] = [];
   private mining: { key: string; t: number; need: number } | null = null;
   private mineAnim = 0;
   private gameEvent: { p: Prayer; until: number; attended: boolean } | null = null;
@@ -76,7 +90,24 @@ export class Game {
     this.highlight = new THREE.LineSegments(hg, new THREE.LineBasicMaterial({ color: 0x152230, transparent: true, opacity: 0.55 }));
     this.highlight.visible = false;
     this.scene.add(this.highlight);
+    // crack overlay shown on the block being mined (5 stages)
+    for (let st = 0; st < 5; st++) {
+      const c = document.createElement('canvas'); c.width = c.height = 32;
+      const x = c.getContext('2d')!; x.strokeStyle = 'rgba(20,20,20,0.75)'; x.lineWidth = 2; x.lineCap = 'square';
+      let seed = 7; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+      for (let k = 0; k <= st * 2 + 1; k++) {
+        let px = 16, py = 16; const ang = rnd() * Math.PI * 2;
+        x.beginPath(); x.moveTo(px, py);
+        for (let j = 0; j < 3 + st; j++) { px += Math.cos(ang + (rnd() - 0.5) * 1.4) * 4; py += Math.sin(ang + (rnd() - 0.5) * 1.4) * 4; x.lineTo(Math.round(px), Math.round(py)); }
+        x.stroke();
+      }
+      const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; this.crackTex.push(t);
+    }
+    this.crack = new THREE.Mesh(new THREE.BoxGeometry(1.01, 1.01, 1.01), new THREE.MeshBasicMaterial({ map: this.crackTex[0], transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    this.crack.visible = false;
+    this.scene.add(this.crack);
     this.scene.add(this.camera);
+    this.camera.add(this.viewModel);
     addEventListener('resize', () => this.resize()); this.resize();
     this.inv.onChange = () => { this.ui.refreshHotbar(); this.dirtySave = true; };
     this.input.onKey = code => this.onKey(code);
@@ -100,7 +131,7 @@ export class Game {
   async boot() {
     const meta = await Save.get<any>('meta');
     if (meta?.settings) Object.assign(this.settings, meta.settings);
-    if (meta?.lang) setLang(meta.lang);
+    setLang(meta?.lang ?? getLang());
     this.ui.labels();
     this.ui.showStart(!!meta, fresh => this.start(fresh ? null : meta));
     this.loop();
@@ -119,6 +150,13 @@ export class Game {
       this.claimed = new Set(meta.claimed ?? []);
       this.saplings = meta.saplings ?? [];
     }
+    // letter blocks are drawn on canvases: make sure the Arabic font is ready first
+    try {
+      await Promise.race([
+        Promise.all([document.fonts.load('700 40px "Scheherazade New"', LETTERS.map(l => l.g).join('')), document.fonts.load('800 12px Nunito', 'ALIF')]),
+        new Promise(r => setTimeout(r, 2500)),
+      ]);
+    } catch { /* fall back to system fonts */ }
     const tex = buildTextureArray();
     initMesherTables();
     this.uniforms = {
@@ -148,10 +186,10 @@ export class Game {
 
     // villagers & Baby Mo
     const G = VILLAGE_Y + 1;
-    this.ents.addNpc(new Npc('ustadz', 'Ustadz Hasan', { skin: '#C99272', shirt: 0xf4f4f0, pants: 0xf4f4f0, peci: 0xffffff, beard: '#4a4a4a', robe: true }, new THREE.Vector3(-15.5, G, 17.5), this.world));
-    this.ents.addNpc(new Npc('aminah', 'Bu Aminah', { skin: '#E3B38F', shirt: 0xf2a33a, pants: 0x9b59b6, hijab: 0x9b59b6, robe: true, lashes: true }, new THREE.Vector3(-7.5, G, 10.5), this.world));
+    this.ents.addNpc(new Npc('ustadz', 'Ustadz Hasan', { skin: '#C99272', shirt: 0xf4f4f0, pants: 0xf4f4f0, peci: 0xffffff, beard: '#4a4a4a', robe: true, glasses: true }, new THREE.Vector3(-15.5, G, 17.5), this.world));
+    this.ents.addNpc(new Npc('aminah', 'Bu Aminah', { skin: '#E3B38F', shirt: 0xf2a33a, pants: 0x9b59b6, hijab: 0x9b59b6, robe: true, lashes: true, trim: 0xffffff }, new THREE.Vector3(-7.5, G, 10.5), this.world));
     this.ents.addNpc(new Npc('yusuf', 'Kakek Yusuf', { skin: '#D7A27F', shirt: 0x3fa34d, pants: 0x5b4636, peci: 0x222222, beard: '#e8e8e8', hair: 0xdddddd }, new THREE.Vector3(9.5, G, 12.5), this.world));
-    this.ents.mo = new Companion(this.world, () => ({ pos: this.player.pos, yaw: this.player.yaw }));
+    this.ents.mo = new Companion(this.world, () => ({ pos: this.player.pos, yaw: this.player.yaw, fp: this.settings.cam === 'first' }));
     this.ents.mo.pos.set(this.player.pos.x + 1.5, this.player.pos.y, this.player.pos.z + 1);
     this.scene.add(this.ents.mo.rig.root);
     this.buildAvatar();
@@ -180,7 +218,7 @@ export class Game {
     if (!meta) {
       setTimeout(() => this.ui.say(tr('Assalamu’alaikum! Aku Baby Mo. Selamat datang di desaku! 🌙', 'Assalamu’alaikum! I’m Baby Mo. Welcome to my village! 🌙'), 'pose-05'), 700);
       setTimeout(() => this.ui.say(tr('Ada 28 huruf hijaiyah tersembunyi di dunia ini. Ikuti kompas emas di atas ya! ✨', 'There are 28 hijaiyah letters hidden in this world. Follow the golden compass at the top! ✨'), 'idea'), 7000);
-      setTimeout(() => this.ui.say(isTouch ? tr('Geser joystick untuk jalan, geser layar untuk melihat. Tahan ⛏️ untuk menggali!', 'Use the joystick to walk and swipe to look around. Hold ⛏️ to mine!') : tr('Klik layar dulu, lalu WASD untuk jalan dan mouse untuk melihat!', 'Click the screen, then use WASD to walk and the mouse to look!'), 'ok'), 13500);
+      setTimeout(() => this.ui.say(isTouch ? tr('Joystick untuk jalan, geser layar untuk melihat. Tahan jari di balok untuk menggali, ketuk untuk memasang!', 'Joystick to walk, swipe to look. Hold your finger on a block to mine it, tap to place!') : tr('Klik layar dulu, lalu WASD untuk jalan dan mouse untuk melihat!', 'Click the screen, then use WASD to walk and the mouse to look!'), 'ok'), 13500);
     } else {
       setTimeout(() => this.ui.say(tr('Assalamu’alaikum, selamat datang kembali! 😊', 'Assalamu’alaikum, welcome back! 😊'), 'pose-05'), 600);
     }
@@ -201,9 +239,10 @@ export class Game {
   buildAvatar() {
     if (this.avatar) this.scene.remove(this.avatar.root);
     this.avatar = this.settings.avatar === 'girl'
-      ? buildHuman({ skin: '#E8B892', shirt: 0xff8fb3, pants: 0x6b5ca5, hijab: 0x2aa198, robe: true, lashes: true, scale: 0.86 })
-      : buildHuman({ skin: '#E8B892', shirt: 0x2e8e86, pants: 0x35406b, hair: 0x3a2a1e, peci: 0xf2f2f2, scale: 0.86 });
+      ? buildHuman({ skin: '#E8B892', shirt: 0xff8fb3, pants: 0x6b5ca5, hijab: 0x2aa198, robe: true, lashes: true, kid: true, scale: 0.9, trim: 0xf6dd6e })
+      : buildHuman({ skin: '#E8B892', shirt: 0x2e8e86, pants: 0x35406b, hair: 0x3a2a1e, peci: 0xf2f2f2, kid: true, scale: 0.9, trim: 0xffffff });
     this.scene.add(this.avatar.root);
+    this.heldId = -1;
   }
 
   applySettings() {
@@ -302,6 +341,8 @@ export class Game {
     if (code === 'KeyE' || code === 'KeyI') this.ui.openBook('bag');
     if (code === 'KeyL' || code === 'KeyB') this.ui.openBook('letters');
     if (code === 'KeyQ') this.ui.openBook('quests');
+    if (code === 'KeyM') this.ui.openBook('map');
+    if (code === 'KeyR') this.ui.openBook('craft');
     if (code === 'KeyV' || code === 'F5') this.toggleCamera();
     if (code === 'KeyF' && this.inv.creative) this.toggleFly();
     if (code === 'Space') this.jumpTap();
@@ -351,18 +392,31 @@ export class Game {
 
     this.world.update(p.pos.x, p.pos.z, 6);
 
-    // aiming
-    let eye = p.eye(), dir = p.look();
-    if (this.settings.cam === 'third') {
-      // aim along the camera's centre line, starting level with the player
-      const cp = this.camera.position;
-      const d2 = eye.clone().addScaledVector(dir, 10).sub(cp).normalize();
-      eye = cp.clone().addScaledVector(d2, Math.max(0, eye.clone().sub(cp).dot(d2)));
-      dir = d2;
-    }
-    const hit = this.world.raycast(eye, dir, 5.5);
-    const ent = this.ents.raycast(eye, dir, 4.5);
-    const entCloser = ent && (!hit || eye.distanceTo(ent.pos) < hit.dist + 0.6);
+    // aiming: crosshair, or the spot a finger is touching
+    const aim = (sx?: number, sy?: number) => {
+      let eye = p.eye(), dir = p.look();
+      if (sx !== undefined && sy !== undefined) {
+        const ndc = new THREE.Vector2(sx / innerWidth * 2 - 1, -(sy / innerHeight) * 2 + 1);
+        this.raycaster.setFromCamera(ndc, this.camera);
+        dir = this.raycaster.ray.direction.clone();
+        const cp = this.camera.position;
+        eye = cp.clone().addScaledVector(dir, Math.max(0, p.eye().sub(cp).dot(dir) - 0.6));
+      } else if (this.settings.cam === 'third') {
+        // aim along the camera's centre line, starting level with the player
+        const cp = this.camera.position;
+        const d2 = eye.clone().addScaledVector(dir, 10).sub(cp).normalize();
+        eye = cp.clone().addScaledVector(d2, Math.max(0, eye.clone().sub(cp).dot(d2)));
+        dir = d2;
+      }
+      const reach = sx !== undefined ? 6.5 : 5.5;
+      const hit = this.world.raycast(eye, dir, reach);
+      const ent = this.ents.raycast(eye, dir, reach - 1);
+      const entCloser = !!ent && (!hit || eye.distanceTo(ent.pos) < hit.dist + 0.6);
+      return { hit, ent, entCloser };
+    };
+    const ptr = inp.pointer;
+    const A = ptr ? aim(ptr.x, ptr.y) : aim();
+    const { hit, ent, entCloser } = A;
     if (hit && !entCloser) {
       this.highlight.visible = true;
       this.highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
@@ -372,14 +426,20 @@ export class Game {
       this.ui.target(ent ? this.entityName(ent) : '');
     }
 
-    // mining (hold)
-    if (inp.mineHeld && hit && !entCloser) this.mineStep(dt, hit);
-    else { this.mining = null; this.ui.mineRing(0); }
-    if (inp.mineHeld && entCloser && ent instanceof Animal) { inp.mineHeld = false; this.useEntity(ent); }
-    // use / place (tap)
+    // mining (hold the button / mouse, or hold a finger on a block)
+    const mining = inp.mineHeld || inp.pointerMine;
+    if (mining && hit && !entCloser) this.mineStep(dt, hit);
+    else { this.mining = null; this.ui.mineRing(0); this.crack.visible = false; }
+    if (mining && entCloser && ent instanceof Animal) { inp.mineHeld = false; inp.pointerMine = false; this.useEntity(ent); }
+    // use / place (button, right click, or a quick tap on the world)
     if (inp.takeUse()) {
       if (entCloser && ent) this.useEntity(ent);
       else this.useBlock(hit);
+    }
+    if (inp.tapAt) {
+      const T = aim(inp.tapAt.x, inp.tapAt.y); inp.tapAt = null;
+      if (T.entCloser && T.ent) this.useEntity(T.ent);
+      else if (T.hit) this.useBlock(T.hit);
     }
 
     // letters near the player
@@ -438,8 +498,12 @@ export class Game {
     this.mining.t += dt;
     this.mineAnim = 0.25;
     if (Math.floor(this.mining.t / 0.22) !== Math.floor((this.mining.t - dt) / 0.22)) SFX.hit(def.hardness < 0.5);
-    this.ui.mineRing(this.mining.t / this.mining.need);
-    if (this.mining.t >= this.mining.need) { this.breakBlock(hit.x, hit.y, hit.z, hit.id); this.mining = null; this.ui.mineRing(0); }
+    const prog = this.mining.t / this.mining.need;
+    this.ui.mineRing(prog);
+    this.crack.visible = true;
+    this.crack.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+    (this.crack.material as THREE.MeshBasicMaterial).map = this.crackTex[Math.min(4, Math.floor(prog * 5))];
+    if (this.mining.t >= this.mining.need) { this.breakBlock(hit.x, hit.y, hit.z, hit.id); this.mining = null; this.ui.mineRing(0); this.crack.visible = false; }
   }
 
   private breakBlock(x: number, y: number, z: number, id: number) {
@@ -457,13 +521,61 @@ export class Game {
     SFX.breakBlock(); haptic(8);
     this.dirtySave = true;
     this.saplings = this.saplings.filter(s => !(s.x === x && s.y === y && s.z === z));
+    if (LOG_LEAF[id]) this.fellTree(x, y, z, id);
   }
+
+  /** Chopping the trunk of a real tree brings the logs above down too, then its leaves drift away. */
+  private fellTree(x: number, y: number, z: number, log: number) {
+    const w = this.world, leaf = LOG_LEAF[log];
+    const logs: [number, number, number][] = [];
+    const seen = new Set<string>();
+    const q: [number, number, number][] = [[x, y + 1, z]];
+    while (q.length && logs.length < 16) {
+      const [a, b, c] = q.shift()!;
+      const k = a + ',' + b + ',' + c;
+      if (seen.has(k) || b < y || Math.abs(a - x) > 2 || Math.abs(c - z) > 2) continue;
+      seen.add(k);
+      if (w.get(a, b, c) !== log) continue;
+      logs.push([a, b, c]);
+      q.push([a, b + 1, c], [a + 1, b, c], [a - 1, b, c], [a, b, c + 1], [a, b, c - 1]);
+    }
+    const top = logs.length ? Math.max(...logs.map(l => l[1])) : y;
+    // only natural-looking trees (leaves around the top) fall; posts and houses stay put
+    let leafy = false;
+    for (let a = -2; a <= 2 && !leafy; a++) for (let c = -2; c <= 2 && !leafy; c++) for (let b = 0; b <= 2; b++) if (w.get(x + a, top + b, z + c) === leaf) { leafy = true; break; }
+    if (!leafy) return;
+    const creative = this.inv.creative;
+    logs.forEach(([a, b, c], i) => setTimeout(() => {
+      if (w.get(a, b, c) !== log) return;
+      w.set(a, b, c, B.AIR);
+      this.fx.debris(a + 0.5, b + 0.5, c + 0.5, BLOCKS[log]!.color, 4);
+      if (!creative) this.give([[log, 1]]);
+      if (i % 2 === 0) SFX.breakBlock();
+    }, 90 * (i + 1)));
+    // leaves that no longer touch a trunk drift away and drop their gifts
+    setTimeout(() => {
+      const isLog = (id: number) => id === B.OAK_LOG || id === B.PINE_LOG || id === B.PALM_LOG;
+      const gone: [number, number, number][] = [];
+      for (let a = x - 4; a <= x + 4; a++) for (let c = z - 4; c <= z + 4; c++) for (let b = top - 6; b <= top + 3; b++) {
+        if (w.get(a, b, c) !== leaf) continue;
+        let near = false;
+        for (let da = -2; da <= 2 && !near; da++) for (let dc = -2; dc <= 2 && !near; dc++) for (let db = -2; db <= 1; db++) if (isLog(w.get(a + da, b + db, c + dc))) { near = true; break; }
+        if (!near) gone.push([a, b, c]);
+      }
+      gone.sort(() => Math.random() - 0.5).forEach(([a, b, c], i) => setTimeout(() => {
+        if (w.get(a, b, c) !== leaf) return;
+        w.set(a, b, c, B.AIR);
+        if (i % 3 === 0) this.fx.debris(a + 0.5, b + 0.5, c + 0.5, BLOCKS[leaf]!.color, 3);
+        if (!creative) { const d = BLOCKS[leaf]!.drops!(Math.random()); if (d.length) this.give(d); }
+      }, 40 * i));
+    }, 90 * (logs.length + 2));
+  }
+
   private give(drops: [number, number][]) {
     for (const [d, n] of drops) {
       this.inv.add(d, n);
       this.stats.mined[d] = (this.stats.mined[d] || 0) + n;
-      if (d === I.DATES) this.ui.toast(tr('🌴 Dapat kurma!', '🌴 Got dates!'));
-      else if (d === I.APPLE) this.ui.toast(tr('🍎 Dapat apel!', '🍎 Got an apple!'));
+      this.ui.pickup(d, n);
     }
     if (drops.length) SFX.pickup();
     this.checkQuests();
@@ -474,7 +586,7 @@ export class Game {
     if (hit) {
       // interactive blocks
       if (hit.id === B.BED) { this.sleep(); return; }
-      if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('bag'); return; }
+      if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
       if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, tr('📚 Doa sehari-hari', '📚 Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
     }
@@ -566,8 +678,8 @@ export class Game {
     } else if (n.id === 'aminah') {
       this.ui.dialog({
         face, who: n.name,
-        text: tr('Assalamu’alaikum, Nak! Ibu sedang menyiapkan takjil untuk tetangga. Rasulullah ﷺ suka berbuka dengan <b>kurma</b>. Resep takjil: <b>3 kurma + 1 susu</b>. Kurma ada di pohon kurma, susu dari sapi atau unta yang disayang. Kalau mau berbagi, bawa makanan ke sini ya! 🍽️',
-          'Assalamu’alaikum, dear! I’m preparing iftar snacks for the neighbours. The Prophet ﷺ liked to break his fast with <b>dates</b>. Recipe: <b>3 dates + 1 milk</b>. Dates grow on date palms, and cows or camels share milk when you’re kind. If you’d like to share, bring some food here! 🍽️'),
+        text: tr('Assalamu’alaikum, Nak! Ibu sedang menyiapkan takjil untuk tetangga. Rasulullah SAW suka berbuka dengan <b>kurma</b>. Resep takjil: <b>3 kurma + 1 susu</b>. Kurma ada di pohon kurma, susu dari sapi atau unta yang disayang. Kalau mau berbagi, bawa makanan ke sini ya! 🍽️',
+          'Assalamu’alaikum, dear! I’m preparing iftar snacks for the neighbours. The Prophet (peace be upon him) liked to break his fast with <b>dates</b>. Recipe: <b>3 dates + 1 milk</b>. Dates grow on date palms, and cows or camels share milk when you’re kind. If you’d like to share, bring some food here! 🍽️'),
       });
     } else {
       const np = this.nextGamePrayer();
@@ -822,6 +934,32 @@ export class Game {
     if (a.armR) a.armR.rotation.x = this.mineAnim > 0 ? -1.6 + Math.sin(t * 22) * 0.6 : sw * 0.8;
     a.head.rotation.x = -p.pitch * 0.5;
     if (p.flying) { a.legs[0].rotation.x = 0.2; a.legs[1].rotation.x = 0.2; }
+    if (a.blink) { const ph = t % 4.6; a.blink(ph < 0.13); }
+    this.updateHeld(t, sw);
+  }
+
+  /** item in hand: on the avatar's right hand, and in front of the camera in first person */
+  private updateHeld(t: number, sw: number) {
+    const id = this.inv.held()?.id ?? -1;
+    if (id !== this.heldId) {
+      this.heldId = id;
+      if (this.heldTP) this.heldTP.removeFromParent();
+      if (this.heldFP) this.heldFP.removeFromParent();
+      this.heldTP = this.heldFP = null;
+      if (id > 0) {
+        this.heldTP = heldModel(id); this.avatar?.hand?.add(this.heldTP);
+        this.heldTP.rotation.set(-0.6, 0.6, 0);
+        this.heldFP = heldModel(id); this.viewModel.add(this.heldFP);
+        this.heldFP.scale.multiplyScalar(0.9);
+        this.heldFP.rotation.set(0.25, -0.55, 0.05);
+      }
+    }
+    const fp = this.settings.cam === 'first';
+    this.viewModel.visible = fp && !this.paused;
+    const swing = this.mineAnim > 0 ? Math.sin(t * 22) * 0.35 : 0;
+    const bob = Math.sin(t * 9) * 0.02 * Math.min(1, this.player.speed / 4) + sw * 0;
+    this.viewModel.position.set(0.5, -0.42 + bob, -0.95);
+    this.viewModel.rotation.set(swing, swing * 0.4, 0);
   }
 
   // ---------- saving ----------

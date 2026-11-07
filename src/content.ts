@@ -27,7 +27,7 @@ export interface Quest {
 export const QUESTS: Quest[] = [
   { id: 'hello', icon: '👋', title: ['Kenalan dengan Baby Mo', 'Say hi to Baby Mo'], desc: ['Ketuk Baby Mo (tombol ✋ Pakai) untuk menyapanya.', 'Tap Baby Mo (✋ Use button) to say hello.'], goal: s => [s.talked.mo ? 1 : 0, 1], reward: [[I.APPLE, 2]], sticker: '🧒' },
   { id: 'wood', icon: '🪵', title: ['Kumpulkan kayu', 'Collect wood'], desc: ['Tahan ⛏️ pada batang pohon sampai lepas. Kumpulkan 4 kayu.', 'Hold ⛏️ on a tree trunk until it pops off. Collect 4 logs.'], goal: s => [Math.min(4, sum(s.mined, [B.OAK_LOG, B.PINE_LOG, B.PALM_LOG])), 4], reward: [[B.PLANKS, 4]], sticker: '🌳' },
-  { id: 'pick', icon: '⛏️', title: ['Buat beliung kayu', 'Make a wooden pickaxe'], desc: ['Buka 🎒 Tas → Buat. Dekati meja kerja di alun-alun desa.', 'Open 🎒 Bag → Craft. Stand near the workbench in the village square.'], goal: s => [s.crafted[I.WOOD_PICK] ? 1 : 0, 1], reward: [[I.STICK, 4]], sticker: '🛠️' },
+  { id: 'pick', icon: '⛏️', title: ['Buat beliung kayu', 'Make a wooden pickaxe'], desc: ['Ketuk meja kerja di alun-alun desa, lalu pilih resepnya di 🔨 Buat.', 'Tap the workbench in the village square, then pick the recipe in 🔨 Craft.'], goal: s => [s.crafted[I.WOOD_PICK] ? 1 : 0, 1], reward: [[I.STICK, 4]], sticker: '🛠️' },
   { id: 'letter1', icon: '🔤', title: ['Temukan huruf pertamamu', 'Find your first letter'], desc: ['Ikuti kompas emas di atas layar menuju kuil huruf.', 'Follow the golden compass at the top to a letter shrine.'], goal: s => [Math.min(1, s.letters.length), 1], reward: [[B.LANTERN, 2]], sticker: '✨' },
   { id: 'ustadz', icon: '📖', title: ['Belajar dengan Ustadz Hasan', 'Learn with Ustadz Hasan'], desc: ['Ustadz Hasan tinggal di rumah kiri desa. Sapa beliau!', 'Ustadz Hasan lives in the left house of the village. Say hi!'], goal: s => [s.talked.ustadz ? 1 : 0, 1], reward: [[B.BOOKSHELF, 1]], sticker: '👳' },
   { id: 'pet', icon: '🐑', title: ['Sayangi hewan', 'Be kind to animals'], desc: ['Elus 3 hewan dengan tombol ✋. Hewan senang disayang!', 'Pet 3 animals with ✋. Animals love kindness!'], goal: s => [Math.min(3, s.petted), 3], reward: [[B.WOOL_WHITE, 3]], sticker: '💕' },
@@ -55,7 +55,7 @@ export const QUESTS: Quest[] = [
 export interface DayCard { icon: string; title: T2; tip: T2; reward: [number, number] }
 export const CALENDAR: DayCard[] = [
   { icon: '🌙', title: ['Marhaban ya Ramadhan', 'Welcome, Ramadan'], tip: ['Ramadhan adalah bulan penuh berkah. Yuk mulai dengan senyum!', 'Ramadan is a month full of blessings. Let’s start with a smile!'], reward: [B.LANTERN, 2] },
-  { icon: '🍚', title: ['Sahur itu berkah', 'Suhoor is a blessing'], tip: ['Rasulullah ﷺ mengajak kita makan sahur karena ada berkahnya.', 'The Prophet ﷺ encouraged us to eat suhoor because it is blessed.'], reward: [I.DATES, 3] },
+  { icon: '🍚', title: ['Sahur itu berkah', 'Suhoor is a blessing'], tip: ['Rasulullah SAW mengajak kita makan sahur karena ada berkahnya.', 'The Prophet (peace be upon him) encouraged us to eat suhoor because it is blessed.'], reward: [I.DATES, 3] },
   { icon: '🤲', title: ['Bismillah', 'Bismillah'], tip: ['Ucapkan "Bismillah" sebelum makan dan bermain.', 'Say "Bismillah" before eating and playing.'], reward: [I.APPLE, 2] },
   { icon: '🌴', title: ['Berbuka dengan kurma', 'Break the fast with dates'], tip: ['Berbuka dengan kurma atau air putih adalah sunnah.', 'Breaking the fast with dates or water is a sunnah.'], reward: [I.DATES, 4] },
   { icon: '😊', title: ['Senyum itu sedekah', 'A smile is charity'], tip: ['Senyum kepada saudara kita adalah sedekah. Senyum hari ini ya!', 'Smiling at others is a charity. Smile today!'], reward: [B.FLOWER_YELLOW, 4] },
@@ -89,7 +89,7 @@ export const CALENDAR: DayCard[] = [
 // ---- du'a cards -------------------------------------------------------------------
 export interface Dua { id: string; ar: string; lat: string; mean: T2; src: string }
 export const DUAS: Record<string, Dua> = {
-  eat: { id: 'eat', ar: 'بِسْمِ اللَّهِ', lat: 'Bismillah', mean: ['Dengan nama Allah', 'In the name of Allah'], src: 'HR. Abu Dawud & Tirmidzi' },
+  eat: { id: 'eat', ar: 'بِسْمِ اللَّهِ', lat: 'Bismillah', mean: ['Dengan nama Allah', 'In the name of Allah'], src: 'HR. Bukhari & Muslim' },
   done: { id: 'done', ar: 'الْحَمْدُ لِلَّهِ', lat: 'Alhamdulillah', mean: ['Segala puji bagi Allah', 'All praise is for Allah'], src: '' },
   iftar: {
     id: 'iftar', ar: 'ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ',
