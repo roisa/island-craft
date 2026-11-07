@@ -34,7 +34,7 @@ export interface BlockyOpts {
   emblem?: 'star' | 'moon' | null; backpack?: number | null; shoes?: number; shoeStripe?: number;
   hijab?: number; peci?: number; beard?: string; glasses?: boolean; robe?: boolean;
   adult?: boolean; smile?: 'open' | 'soft'; lashes?: boolean; tunic?: boolean; fringe?: number; star?: string;
-  shortSleeves?: boolean; polo?: boolean; beardStyle?: 'full' | 'short'; emblemSmall?: boolean;
+  shortSleeves?: boolean; polo?: boolean; beardStyle?: 'full' | 'short'; emblemSmall?: boolean; moonOnly?: boolean;
 }
 
 function shade(c: number, k: number) { const col = new THREE.Color(c); col.multiplyScalar(k); return col.getHex(); }
@@ -104,9 +104,12 @@ function bodyTex(o: BlockyOpts) {
       const c2 = document.createElement('canvas'); c2.width = c2.height = S; const y = c2.getContext('2d')!;
       y.fillStyle = col; y.beginPath(); y.arc(S * 0.52, cy, S * 0.17, 0, Math.PI * 2); y.fill();
       y.globalCompositeOperation = 'destination-out'; y.beginPath(); y.arc(S * 0.6, cy - S * 0.05, S * 0.15, 0, Math.PI * 2); y.fill();
-      y.globalCompositeOperation = 'source-over'; y.fillStyle = col; y.beginPath();
-      for (let i = 0; i < 10; i++) { const rr = i % 2 ? S * 0.03 : S * 0.07, a = -Math.PI / 2 + i * Math.PI / 5; y.lineTo(S * 0.68 + Math.cos(a) * rr, cy - S * 0.08 + Math.sin(a) * rr); }
-      y.fill();
+      y.globalCompositeOperation = 'source-over';
+      if (!o.moonOnly) {
+        y.fillStyle = col; y.beginPath();
+        for (let i = 0; i < 10; i++) { const rr = i % 2 ? S * 0.03 : S * 0.07, a = -Math.PI / 2 + i * Math.PI / 5; y.lineTo(S * 0.68 + Math.cos(a) * rr, cy - S * 0.08 + Math.sin(a) * rr); }
+        y.fill();
+      }
       x.drawImage(c2, 0, 0);
     }
   });
@@ -220,7 +223,7 @@ export function buildBlocky(o: BlockyOpts): Rig {
 export const BABY_MO: BlockyOpts = { shirt: 0x8dc63f, shirtDark: 0x4f7a2c, hair: 0x5b3b2f, emblem: 'star', belt: 0xf7941d, backpack: 0x55663a, cuff: 0xffd21f };
 export const IBRA = (shirt = 0x4a90e2): BlockyOpts => ({ shirt, shirtDark: shade(shirt, 0.6), hair: 0x3b2a22, emblem: 'moon', belt: 0xf7941d, backpack: 0x2d3e66, cuff: 0xffd21f });
 export const AISYAH = (shirt = 0xf28fa6, hijab = 0xf48aa3): BlockyOpts => ({
-  shirt, shirtDark: shade(shirt, 0.88), pants: shirt, pantsBand: 0xf9c8d4, hijab, fringe: 0x6b4434, emblem: 'moon', star: '#FFF1F4',
+  shirt, shirtDark: shade(shirt, 0.88), pants: shirt, pantsBand: 0xf9c8d4, hijab, fringe: 0x6b4434, emblem: 'moon', moonOnly: true, star: '#FFF1F4',
   backpack: null, cuff: 0xf9c8d4, collar: shirt, shoes: 0xf9d3dc, shoeStripe: 0xf28fa6, tunic: true, hair: 0x6b4434,
 });
 export const AYAH: BlockyOpts = {
