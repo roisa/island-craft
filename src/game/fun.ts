@@ -22,10 +22,11 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'peci_gold', slot: 'hat', name: ['Peci Emas', 'Golden Peci'], icon: '👑', level: 3, color: 0xf1c232 },
   { id: 'turban', slot: 'hat', name: ['Sorban Hijau', 'Green Turban'], icon: '🟢', level: 6 },
   { id: 'h_teal', slot: 'hijab', name: ['Hijab Toska', 'Teal Hijab'], icon: '🟦', level: 1, color: 0x2aa198 },
-  { id: 'h_pink', slot: 'hijab', name: ['Hijab Merah Muda', 'Pink Hijab'], icon: '🩷', level: 1, color: 0xff8fb3 },
+  { id: 'h_pink', slot: 'hijab', name: ['Hijab Merah Muda', 'Pink Hijab'], icon: '🩷', level: 1, color: 0xf48aa3 },
   { id: 'h_purple', slot: 'hijab', name: ['Hijab Ungu', 'Purple Hijab'], icon: '🟪', level: 2, color: 0x9b59b6 },
   { id: 'h_gold', slot: 'hijab', name: ['Hijab Emas', 'Golden Hijab'], icon: '🟨', level: 3, color: 0xf1c232 },
   { id: 'h_green', slot: 'hijab', name: ['Hijab Hijau', 'Green Hijab'], icon: '🟩', level: 6, color: 0x3fa34d },
+  { id: 's_pink', slot: 'shirt', name: ['Baju Merah Muda', 'Pink Shirt'], icon: '🩷', level: 1, color: 0xf28fa6 },
   { id: 's_blue', slot: 'shirt', name: ['Baju Biru', 'Blue Shirt'], icon: '💙', level: 1, color: 0x4a90e2 },
   { id: 's_teal', slot: 'shirt', name: ['Baju Toska', 'Teal Shirt'], icon: '👕', level: 1, color: 0x2e8e86 },
   { id: 's_red', slot: 'shirt', name: ['Baju Merah', 'Red Shirt'], icon: '❤️', level: 1, color: 0xe4423a },
@@ -37,7 +38,7 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'c_star', slot: 'cape', name: ['Jubah Bintang', 'Star Cape'], icon: '🌟', level: 7, color: 0x6b4fc8 },
 ];
 export interface Outfit { hat: string; hijab: string; cape: string; shirt: string }
-export const defaultOutfit = (_girl: boolean): Outfit => ({ hat: 'none', hijab: 'h_teal', cape: 'c_none', shirt: 's_blue' });
+export const defaultOutfit = (girl: boolean): Outfit => ({ hat: 'none', hijab: 'h_pink', cape: 'c_none', shirt: girl ? 's_pink' : 's_blue' });
 export const outfitItem = (id: string) => OUTFITS.find(o => o.id === id);
 
 /** hats & capes added on top of the avatar model */

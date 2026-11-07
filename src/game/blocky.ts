@@ -33,7 +33,7 @@ export interface BlockyOpts {
   hair?: number; skin?: string; cuff?: number; collar?: number; belt?: number;
   emblem?: 'star' | 'moon' | null; backpack?: number | null; shoes?: number; shoeStripe?: number;
   hijab?: number; peci?: number; beard?: string; glasses?: boolean; robe?: boolean;
-  adult?: boolean; smile?: 'open' | 'soft'; lashes?: boolean;
+  adult?: boolean; smile?: 'open' | 'soft'; lashes?: boolean; tunic?: boolean; fringe?: number; star?: string;
 }
 
 function shade(c: number, k: number) { const col = new THREE.Color(c); col.multiplyScalar(k); return col.getHex(); }
@@ -44,7 +44,8 @@ function faceTex(o: BlockyOpts, closed: boolean) {
     const r = (a: number, b: number, w: number, h: number, c: string) => { x.fillStyle = c; x.fillRect(a * S, b * S, w * S, h * S); };
     r(0, 0, 1, 1, skin);
     // thick brows
-    r(0.12, 0.3, 0.27, 0.07, brow); r(0.61, 0.3, 0.27, 0.07, brow);
+    const bh = o.lashes ? 0.045 : 0.07, by = o.lashes ? 0.32 : 0.3;
+    r(0.14, by, 0.24, bh, brow); r(0.62, by, 0.24, bh, brow);
     // big square eyes: white on the outer side, a large brown iris, a tiny shine
     for (const [ex, flip] of [[0.15, false], [0.6, true]] as [number, boolean][]) {
       if (closed) { r(ex, 0.5, 0.25, 0.05, '#3A2116'); continue; }
@@ -76,8 +77,8 @@ function bodyTex(o: BlockyOpts) {
   return tex((x, S) => {
     x.fillStyle = shirt; x.fillRect(0, 0, S, S);
     if (o.emblem === 'star') {
-      x.fillStyle = '#F7F5EF'; x.beginPath();
-      for (let i = 0; i < 10; i++) { const rr = i % 2 ? S * 0.09 : S * 0.2, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(S * 0.56 + Math.cos(a) * rr, S * 0.4 + Math.sin(a) * rr); }
+      x.fillStyle = o.star ?? '#F7F5EF'; x.beginPath();
+      for (let i = 0; i < 10; i++) { const rr = i % 2 ? S * 0.09 : S * 0.2, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(S * 0.56 + Math.cos(a) * rr, S * (o.tunic ? 0.64 : 0.4) + Math.sin(a) * rr); }
       x.closePath(); x.fill();
     } else if (o.emblem === 'moon') {
       x.fillStyle = '#FFE27A'; x.beginPath(); x.arc(S * 0.52, S * 0.4, S * 0.17, 0, Math.PI * 2); x.fill();
@@ -109,6 +110,7 @@ export function buildBlocky(o: BlockyOpts): Rig {
   };
   const legs = [leg(-1), leg(1)];
   if (o.robe) body.add(bbox(BW + 0.02, LEG * 0.7, BD + 0.02, shirtM, 0, LEG - LEG * 0.35));
+  if (o.tunic) { body.add(bbox(BW + 0.1, 0.16, BD + 0.1, shirtM, 0, LEG + 0.02, 0, undefined, 0.03)); body.add(bbox(BW + 0.12, 0.04, BD + 0.12, darkM, 0, LEG - 0.07, 0, undefined, 0.01)); }
 
   // ---- torso with emblem, collar and belt
   body.add(bbox(BW, TORSO, BD, shirtM, 0, LEG + TORSO / 2, 0, o.emblem ? texMat(bodyTex(o)) : undefined));
@@ -148,12 +150,24 @@ export function buildBlocky(o: BlockyOpts): Rig {
   if (o.hijab === undefined) for (const sx of [-1, 1]) headG.add(bbox(0.05, 0.12, 0.1, skinM, sx * (HEAD / 2 + 0.02), HEAD * 0.48, 0.02, undefined, 0.012));
   if (o.hijab !== undefined) {
     // hijab: frames the face and falls over the shoulders
-    const hm = m(o.hijab), hd = m(shade(o.hijab, 0.85));
-    headG.add(bbox(HEAD + 0.08, 0.14, HEAD + 0.08, hm, 0, HEAD + 0.02, -0.01, undefined, 0.03));
-    headG.add(bbox(HEAD + 0.08, HEAD * 0.98, 0.08, hm, 0, HEAD * 0.5, -HEAD / 2 - 0.03));
-    for (const sx of [-1, 1]) headG.add(bbox(0.06, HEAD * 0.98, HEAD + 0.06, hm, sx * (HEAD / 2 + 0.035), HEAD * 0.5, -0.01));
-    headG.add(bbox(HEAD + 0.06, 0.07, 0.05, hm, 0, HEAD * 0.86, HEAD / 2 + 0.01, undefined, 0.01));
-    headG.add(bbox(HEAD + 0.16, 0.18, HEAD * 0.9, hd, 0, -0.04, -0.03, undefined, 0.04));
+    const hm = m(o.hijab), hd = m(shade(o.hijab, 0.9));
+    // a roomy hood: top, back and thick sides that frame the face
+    headG.add(bbox(HEAD + 0.12, 0.16, HEAD + 0.12, hm, 0, HEAD + 0.04, -0.02, undefined, 0.045));
+    headG.add(bbox(HEAD + 0.12, HEAD + 0.06, 0.12, hm, 0, HEAD * 0.5 + 0.02, -HEAD / 2 - 0.05, undefined, 0.04));
+    for (const sx of [-1, 1]) headG.add(bbox(0.09, HEAD * 1.02, HEAD + 0.1, hm, sx * (HEAD / 2 + 0.05), HEAD * 0.5, -0.02, undefined, 0.035));
+    // the front edge with a notch in the middle, and a little hair fringe peeking out
+    headG.add(bbox(HEAD * 0.36, 0.1, 0.07, hm, -HEAD * 0.32, HEAD * 0.9, HEAD / 2 + 0.03, undefined, 0.02));
+    headG.add(bbox(HEAD * 0.36, 0.1, 0.07, hm, HEAD * 0.32, HEAD * 0.9, HEAD / 2 + 0.03, undefined, 0.02));
+    headG.add(bbox(HEAD * 0.3, 0.06, 0.07, hm, 0, HEAD * 0.96, HEAD / 2 + 0.03, undefined, 0.015));
+    if (o.fringe !== undefined) {
+      const fr = m(o.fringe, 0.2);
+      headG.add(bbox(HEAD * 0.32, 0.05, 0.03, fr, 0, HEAD * 0.9, HEAD / 2 + 0.005, undefined, 0.008));
+      for (const sx of [-1, 1]) headG.add(bbox(0.035, HEAD * 0.32, 0.03, fr, sx * (HEAD / 2 - 0.035), HEAD * 0.66, HEAD / 2 + 0.005, undefined, 0.008));
+    }
+    // the drape: wraps the neck and comes to a point on the chest
+    headG.add(bbox(HEAD + 0.2, 0.16, HEAD * 0.95, hd, 0, -0.02, -0.02, undefined, 0.05));
+    const drape = new THREE.Group(); drape.position.set(0, -0.08, BD / 2 + 0.03); headG.add(drape);
+    for (let k = 0; k < 3; k++) drape.add(bbox(0.5 - k * 0.16, 0.06, 0.05, hd, 0, -k * 0.05, 0, undefined, 0.015));
   } else {
     // chunky hair: a cap, a thick fringe with hanging blocks, sides and back
     headG.add(bbox(HEAD + 0.07, 0.14, HEAD + 0.08, hairM, 0, HEAD + 0.03, -0.01, undefined, 0.035));
@@ -177,4 +191,7 @@ export function buildBlocky(o: BlockyOpts): Rig {
 // ---- the cast ----
 export const BABY_MO: BlockyOpts = { shirt: 0x8dc63f, shirtDark: 0x4f7a2c, hair: 0x5b3b2f, emblem: 'star', belt: 0xf7941d, backpack: 0x55663a, cuff: 0xffd21f };
 export const IBRA = (shirt = 0x4a90e2): BlockyOpts => ({ shirt, shirtDark: shade(shirt, 0.6), hair: 0x3b2a22, emblem: 'moon', belt: 0xf7941d, backpack: 0x2d3e66, cuff: 0xffd21f });
-export const AISYAH = (shirt = 0x4a90e2, hijab = 0x2aa198): BlockyOpts => ({ shirt, shirtDark: shade(shirt, 0.6), hijab, emblem: 'star', belt: 0xf7941d, backpack: 0x7a3e8e, cuff: 0xffd21f, lashes: true, shoeStripe: 0xff6fa5 });
+export const AISYAH = (shirt = 0xf28fa6, hijab = 0xf48aa3): BlockyOpts => ({
+  shirt, shirtDark: shade(shirt, 0.88), pants: shirt, pantsBand: 0xf9c8d4, hijab, fringe: 0x6b4434, emblem: 'star', star: '#FFF1F4',
+  backpack: null, cuff: 0xf9c8d4, collar: shirt, shoes: 0xf9d3dc, shoeStripe: 0xf28fa6, tunic: true, hair: 0x6b4434,
+});

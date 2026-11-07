@@ -34,7 +34,7 @@ import { Festive, PICNIC } from './game/festive';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean;
+  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean; outfitV3?: boolean;
 }
 const SAVE_VERSION = 1;
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
@@ -264,11 +264,14 @@ export class Game {
       const o0 = this.settings.outfit;
       if ((o0.shirt === 's_teal' || o0.shirt === 's_red') && (o0.hat === 'peci' || girl)) { o0.shirt = 's_blue'; o0.hat = 'none'; }
     }
+    // Baby Ais now wears pink by default
+    if (girl && this.settings.outfit && !this.settings.outfitV3 && this.settings.outfit.shirt === 's_blue' && this.settings.outfit.hijab === 'h_teal') { this.settings.outfit.shirt = 's_pink'; this.settings.outfit.hijab = 'h_pink'; }
+    this.settings.outfitV3 = true;
     this.settings.outfitV2 = true;
     const o = this.settings.outfit ??= defaultOutfit(girl);
-    const shirt = outfitItem(o.shirt)?.color ?? 0x4a90e2;
+    const shirt = outfitItem(o.shirt)?.color ?? (girl ? 0xf28fa6 : 0x4a90e2);
     const hat = outfitItem(o.hat);
-    const opts = girl ? AISYAH(shirt, outfitItem(o.hijab)?.color ?? 0x2aa198) : IBRA(shirt);
+    const opts = girl ? AISYAH(shirt, outfitItem(o.hijab)?.color ?? 0xf48aa3) : IBRA(shirt);
     if (!girl && (hat?.id === 'peci' || hat?.id === 'peci_gold')) opts.peci = hat.color;
     this.avatar = buildBlocky(opts);
     dressUp(this.avatar, o, girl, 0.66);
