@@ -1,7 +1,7 @@
 // Smooth-edged blocky characters in the style of the Baby Mo reference art:
 // chunky hair blocks hanging over the forehead, thick brows, big square eyes,
 // an open smile, a backpack, cuffed sleeves and sneakers. One builder makes
-// Baby Mo (green), Ibra & Aisyah (blue) and the villagers.
+// Baby Mo (green), Adam (blue hoodie), Baby Ais (pink) and the villagers.
 import * as THREE from 'three';
 import type { Rig } from './models';
 
@@ -256,3 +256,5 @@ export const ADAM: BlockyOpts = {
   shirt: 0x2f6fde, shirtDark: 0x285fbf, pants: 0x2a62c9, pantsBand: 0x2556b2, hair: 0x4a3127,
   hoodie: true, emblem: null, backpack: null, cuff: 0x285fbf, shoes: 0x2f6fde, sole: 0xf4f4f4, shoeStripe: 0xf4f4f4, teen: true,
 };
+/** the boy hero: Adam in his hoodie (shirt colour follows the chosen outfit) */
+export const ADAM_HERO = (shirt = 0x2f6fde): BlockyOpts => ({ ...ADAM, shirt, shirtDark: shade(shirt, 0.85), cuff: shade(shirt, 0.85), shoes: shirt, teen: false });

@@ -19,7 +19,7 @@ import { Inventory, Recipe, Station, craft as doCraft } from './game/inventory';
 import { Sky, Schedule } from './game/sky';
 import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
 import { Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
-import { buildBlocky, IBRA, AISYAH, AYAH, ADAM } from './game/blocky';
+import { buildBlocky, ADAM_HERO, AISYAH, AYAH } from './game/blocky';
 import { FX } from './game/fx';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
@@ -202,8 +202,7 @@ export class Game {
 
     // villagers & Baby Mo
     const G = VILLAGE_Y + 1;
-    this.ents.addNpc(new Npc('ustadz', tr('Ayah', 'Dad'), { ...AYAH }, new THREE.Vector3(-15.5, G, 17.5), this.world));
-    this.ents.addNpc(new Npc('adam', tr('Kak Adam', 'Adam'), { ...ADAM }, new THREE.Vector3(5.5, G, -1.5), this.world));
+    this.ents.addNpc(new Npc('ustadz', tr('Ayah Ibrahim', 'Dad Ibrahim'), { ...AYAH }, new THREE.Vector3(-15.5, G, 17.5), this.world));
     this.ents.addNpc(new Npc('aminah', 'Bu Aminah', { skin: '#E8B892', shirt: 0xf2a33a, shirtDark: 0xc97f1f, hijab: 0x9b59b6, robe: true, lashes: true, adult: true, smile: 'soft', collar: 0xffffff, cuff: 0xffffff, backpack: null, emblem: null, shoes: 0x7a4a2a, shoeStripe: 0x7a4a2a }, new THREE.Vector3(-7.5, G, 10.5), this.world));
     this.ents.addNpc(new Npc('yusuf', 'Kakek Yusuf', { skin: '#D7A27F', shirt: 0x3fa34d, pants: 0x5b4636, pantsBand: 0x4a382a, peci: 0x222222, beard: '#e8e8e8', hair: 0xdddddd, adult: true, smile: 'soft', collar: 0xffffff, cuff: 0xffffff, backpack: null, emblem: null, shoes: 0x3b2a20, shoeStripe: 0x3b2a20 }, new THREE.Vector3(9.5, G, 12.5), this.world));
     this.ents.mo = new Companion(this.world, () => ({ pos: this.player.pos, yaw: this.player.yaw, fp: this.settings.cam === 'first' }));
@@ -270,9 +269,9 @@ export class Game {
     this.settings.outfitV3 = true;
     this.settings.outfitV2 = true;
     const o = this.settings.outfit ??= defaultOutfit(girl);
-    const shirt = outfitItem(o.shirt)?.color ?? (girl ? 0xf28fa6 : 0x4a90e2);
+    const shirt = outfitItem(o.shirt)?.color ?? (girl ? 0xf28fa6 : 0x2f6fde);
     const hat = outfitItem(o.hat);
-    const opts = girl ? AISYAH(shirt, outfitItem(o.hijab)?.color ?? 0xf48aa3) : IBRA(shirt);
+    const opts = girl ? AISYAH(shirt, outfitItem(o.hijab)?.color ?? 0xf48aa3) : ADAM_HERO(shirt);
     if (!girl && (hat?.id === 'peci' || hat?.id === 'peci_gold')) opts.peci = hat.color;
     this.avatar = buildBlocky(opts);
     dressUp(this.avatar, o, girl, 0.66);
@@ -775,8 +774,8 @@ export class Game {
     this.stats.talked[n.id] = true;
     const held = this.inv.held();
     const food = held && FOOD.has(held.id);
-    const portrait = n.id === 'adam' ? 'img/adam-face.webp' : '';
-    const face = n.id === 'adam' ? portrait : n.id === 'ustadz' ? '👨' : n.id === 'aminah' ? '🧕' : '👴';
+    const portrait = '';
+    const face = n.id === 'ustadz' ? '👨' : n.id === 'aminah' ? '🧕' : '👴';
     if (food) {
       const gift = [B.MOSAIC, B.GOLD_TILE, B.LANTERN, B.WOOL_PURPLE][Math.floor(Math.random() * 4)];
       this.giveFood(n.pos);
@@ -786,33 +785,29 @@ export class Game {
     }
     if (n.id === 'ustadz') {
       const k = this.stats.letters.length;
-      this.ui.dialog({
-        face, img: !!portrait, who: n.name,
-        text: k === 0 ? tr('Wa’alaikumussalam! Di dunia ini ada <b>28 huruf hijaiyah</b> yang bersinar di kuil-kuil kecil. Ikuti kompas emas, dan dengarkan bunyi setiap huruf ya.', 'Wa’alaikumussalam! There are <b>28 hijaiyah letters</b> glowing in little shrines around this world. Follow the golden compass and listen to each letter’s sound.')
-          : k < 28 ? tr(`Masya Allah, kamu sudah menemukan <b>${k} huruf</b>! Mau latihan tebak huruf bersama Ayah?`, `Masha Allah, you have found <b>${k} letters</b>! Want to practise a letter quiz with me?`)
-            : tr('Subhanallah! Semua 28 huruf sudah kamu temukan. Teruslah belajar sampai bisa membaca Al-Qur’an ya!', 'Subhanallah! You found all 28 letters. Keep learning until you can read the Qur’an!'),
-        buttons: [
-          ...(k >= 3 ? [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
-          { label: ic('book') + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
-          { label: tr('Terima kasih, Ayah', 'Thank you, Dad') },
-        ],
-      });
-    } else if (n.id === 'adam') {
+      // Dad's first hello comes with a wooden pickaxe; later he sometimes shares a building tip
       const first = !this.stats.talked.adamGift;
       if (first) { this.stats.talked.adamGift = true; this.inv.add(I.WOOD_PICK, 1); this.ui.pickup(I.WOOD_PICK, 1); SFX.quest(); }
       const tips: [string, string][] = [
-        ['Mau bangun rumah cepat? Buka 🏗️ Rancang, pilih rancangan, lalu tekan Bangun. Baloknya tersusun sendiri!', 'Want to build a house fast? Open 🏗️ Blueprints, pick one and press Build. The blocks put themselves together!'],
-        ['Tebang pohon dari batang paling bawah, nanti seluruh pohonnya tumbang. Keren kan?', 'Chop a tree from the bottom log and the whole tree comes down. Cool, right?'],
-        ['Salah pasang balok? Tenang, ketuk tombol batal ↩️ ya.', 'Placed a block by mistake? Don’t worry, just tap undo ↩️.'],
-        ['Batu bara ada di dalam batu. Pakai beliung supaya bisa menggalinya!', 'Coal is hidden in stone. Use a pickaxe to dig it out!'],
-        ['Kalau tersesat, ketuk tombol rumah 🏠 untuk pulang. Kakak tunggu di sini!', 'If you get lost, tap the home button 🏠 to come back. I’ll wait here!'],
+        ['Mau bangun rumah cepat? Buka 🏗️ Rancang, pilih rancangan, lalu tekan Bangun.', 'Want to build a house fast? Open 🏗️ Blueprints, pick one and press Build.'],
+        ['Tebang pohon dari batang paling bawah, nanti seluruh pohonnya tumbang.', 'Chop a tree from the bottom log and the whole tree comes down.'],
+        ['Salah pasang balok? Ketuk tombol batal ↩️ ya.', 'Placed a block by mistake? Just tap undo ↩️.'],
+        ['Kalau tersesat, ketuk tombol rumah 🏠 untuk pulang.', 'If you get lost, tap the home button 🏠 to come back.'],
       ];
       const tip = tips[Math.floor(Math.random() * tips.length)];
+      const extra = first ? '<br><br>' + tr('Ini hadiah dari Ayah: <b>beliung kayu</b> buat menggali batu. Ayo bangun sesuatu yang keren! 💪', 'Here’s a present from Dad: a <b>wooden pickaxe</b> for digging stone. Let’s build something awesome! 💪')
+        : Math.random() < 0.5 ? '<br><br>💡 ' + tr(tip[0], tip[1]) : '';
       this.ui.dialog({
         face, img: !!portrait, who: n.name,
-        text: first ? tr('Hai adik! Kakak punya hadiah: <b>beliung kayu</b> buat menggali batu. Ayo kita bangun sesuatu yang keren bareng! 💪', 'Hey little one! I’ve got a present for you: a <b>wooden pickaxe</b> for digging stone. Let’s build something awesome together! 💪')
-          : tr(tip[0], tip[1]),
-        buttons: [{ label: ic('blueprint') + ' ' + tr('Lihat rancangan', 'See blueprints'), cls: 'gold', fn: () => this.ui.openBook('build') }, { label: tr('Siap, Kak!', 'Got it, Adam!') }],
+        text: (k === 0 ? tr('Wa’alaikumussalam! Di dunia ini ada <b>28 huruf hijaiyah</b> yang bersinar di kuil-kuil kecil. Ikuti kompas emas, dan dengarkan bunyi setiap huruf ya.', 'Wa’alaikumussalam! There are <b>28 hijaiyah letters</b> glowing in little shrines around this world. Follow the golden compass and listen to each letter’s sound.')
+          : k < 28 ? tr(`Masya Allah, kamu sudah menemukan <b>${k} huruf</b>! Mau latihan tebak huruf bersama Ayah?`, `Masha Allah, you have found <b>${k} letters</b>! Want to practise a letter quiz with me?`)
+            : tr('Subhanallah! Semua 28 huruf sudah kamu temukan. Teruslah belajar sampai bisa membaca Al-Qur’an ya!', 'Subhanallah! You found all 28 letters. Keep learning until you can read the Qur’an!')) + extra,
+        buttons: [
+          ...(k >= 3 ? [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
+          { label: ic('book') + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
+          { label: ic('blueprint') + tr('Lihat rancangan', 'See blueprints'), cls: 'ghost', fn: () => this.ui.openBook('build') },
+          { label: tr('Terima kasih, Ayah', 'Thank you, Dad') },
+        ],
       });
     } else if (n.id === 'aminah') {
       this.ui.dialog({
