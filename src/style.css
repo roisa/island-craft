@@ -519,3 +519,7 @@ button.say .ic { width: 19px; height: 19px; }
 #start .logo.round { border-radius: 50%; object-fit: cover; background: #fff; box-shadow: 0 8px 20px -6px rgba(30,60,110,.4); }
 .dialog img.face[src*="-face"] { border-radius: 50%; object-fit: cover; background: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.15); }
 @media (max-height: 500px) { .choice button img.av { width: 30px; height: 30px; display: inline-block; vertical-align: middle; margin: 0 4px 0 0; } }
+/* an item just landed in this slot / the bag */
+.slot.bump img, #bBag.bump { animation: slotpop .32s cubic-bezier(.3,1.6,.5,1); }
+@keyframes slotpop { 0% { transform: scale(1); } 40% { transform: scale(1.32); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .slot.bump img, #bBag.bump { animation: none; } }

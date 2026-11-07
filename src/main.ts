@@ -22,6 +22,7 @@ import { Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
 import { buildBlocky, ADAM_HERO, AISYAH, AYAH } from './game/blocky';
 import { FX } from './game/fx';
 import { Animator, applyPose, type AnimInput } from './game/animator';
+import { matOf } from './game/materials';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
@@ -87,6 +88,8 @@ export class Game {
   readonly anim = new Animator(1.7);
   private animIn: AnimInput = { speed: 0, grounded: true, vy: 0 };
   private mineKind: 'mine' | 'chop' = 'mine';
+  private crackPunch = 0;
+  private moTapAt = 0;
   private gameEvent: { p: Prayer; until: number; attended: boolean } | null = null;
   private lastHour = 0;
   private remindersShown = new Set<string>();
@@ -214,8 +217,9 @@ export class Game {
     this.ents = new Entities(this.scene, this.world, this.seed);
     this.world.onChunkGenerated = c => this.ents.spawnForChunk(c);
     this.world.onChunkUnloaded = c => this.ents.despawnChunk(c);
+    this.ents.onStartle = a => SFX.critter(a.kind);
     this.player = new Player(this.world);
-    this.player.onStep = () => SFX.step();
+    this.player.onStep = () => { const q = this.player.pos; SFX.stepMat(matOf(this.world.get(Math.floor(q.x), Math.floor(q.y - 0.2), Math.floor(q.z)))); };
     this.player.onSplash = () => SFX.splash();
     this.player.onLand = () => SFX.hit(true);
     if (meta?.player) {
@@ -372,6 +376,10 @@ export class Game {
     const ok = doCraft(this.inv, r, this.stations());
     if (ok) {
       SFX.craft(); haptic(10);
+      this.ui.bumpSlot(r.out);
+      this.anim.play('build');
+      const q = this.player.pos;
+      this.fx.sparkle(q.x - Math.sin(this.player.yaw) * 1.2, this.player.visY + 1.2, q.z - Math.cos(this.player.yaw) * 1.2, 10, 0xffd874, 1.5);
       this.stats.crafted[r.out] = (this.stats.crafted[r.out] || 0) + 1;
       this.kid.reward('craft');
       this.ui.toast(tr('✨ Berhasil membuat ', '✨ Made ') + t2(nameOf(r.out)) + (r.n > 1 ? ' ×' + r.n : ''));
@@ -507,7 +515,7 @@ export class Game {
     this.uniforms.uTime.value = t;
     if (!this.paused) this.tick(dt, t);
     this.watchFps(dt);
-    this.ents.update(this.paused ? 0 : dt, t, this.player.pos);
+    this.ents.update(this.paused ? 0 : dt, t, this.player.pos, this.fun?.riding ? 0 : this.player.speed);
     this.fx.update(dt);
     this.updateAvatar(dt, t);
     const biome = this.gen.column(Math.floor(this.player.pos.x), Math.floor(this.player.pos.z));
@@ -644,7 +652,7 @@ export class Game {
     return '';
   }
 
-  private mineStep(dt: number, hit: { x: number; y: number; z: number; id: number }) {
+  private mineStep(dt: number, hit: { x: number; y: number; z: number; id: number; nx: number; ny: number; nz: number }) {
     const key = hit.x + ',' + hit.y + ',' + hit.z;
     const def = BLOCKS[hit.id];
     if (!def || def.hardness === Infinity) { this.ui.mineRing(0); return; }
@@ -676,12 +684,19 @@ export class Game {
     this.mining.t += dt;
     this.mineAnim = 0.25;
     this.mineKind = LOG_LEAF[hit.id] !== undefined ? 'chop' : 'mine';
-    if (Math.floor(this.mining.t / 0.22) !== Math.floor((this.mining.t - dt) / 0.22)) SFX.hit(def.hardness < 0.5);
+    if (Math.floor(this.mining.t / 0.22) !== Math.floor((this.mining.t - dt) / 0.22)) {
+      // each strike: a material knock, a few chips off the face, a tiny jolt of the crack box
+      SFX.hitMat(matOf(hit.id));
+      this.fx.chips(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, hit.nx, hit.ny, hit.nz, hit.id);
+      this.crackPunch = 1; haptic(3);
+    }
     const prog = this.mining.t / this.mining.need;
     this.ui.mineRing(prog);
     this.crack.visible = true;
     this.crack.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
     (this.crack.material as THREE.MeshBasicMaterial).map = this.crackTex[Math.min(4, Math.floor(prog * 5))];
+    this.crackPunch = Math.max(0, this.crackPunch - dt * 8);
+    this.crack.scale.setScalar(1 + this.crackPunch * 0.06);
     if (this.mining.t >= this.mining.need) { this.breakBlock(hit.x, hit.y, hit.z, hit.id); this.mining = null; this.ui.mineRing(0); this.crack.visible = false; }
   }
 
@@ -693,11 +708,13 @@ export class Game {
     w.set(x, y, z, nearWater ? B.WATER : B.AIR);
     // plants / torches resting on top drop too
     const above = w.get(x, y + 1, z);
-    if (BLOCKS[above]?.render === 'cross') { w.set(x, y + 1, z, B.AIR); this.give(BLOCKS[above]!.drops ? BLOCKS[above]!.drops!(Math.random()) : [[above, 1]]); }
+    const at = new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5);
+    if (BLOCKS[above]?.render === 'cross') { w.set(x, y + 1, z, B.AIR); this.give(BLOCKS[above]!.drops ? BLOCKS[above]!.drops!(Math.random()) : [[above, 1]], at.clone().setY(y + 1.5)); }
     const drops = this.inv.creative ? [] : def.drops ? def.drops(Math.random()) : [[id, 1]] as [number, number][];
-    this.give(drops);
-    this.fx.debris(x + 0.5, y + 0.5, z + 0.5, def.color);
-    SFX.breakBlock(); haptic(8);
+    this.give(drops, at);
+    this.fx.breakBurst(at.x, at.y, at.z, id);
+    SFX.breakMat(matOf(id)); haptic(8);
+    this.ents.startleNear(at);
     this.dirtySave = true;
     this.saplings = this.saplings.filter(s => !(s.x === x && s.y === y && s.z === z));
     if (LOG_LEAF[id]) this.fellTree(x, y, z, id);
@@ -727,9 +744,9 @@ export class Game {
     logs.forEach(([a, b, c], i) => setTimeout(() => {
       if (w.get(a, b, c) !== log) return;
       w.set(a, b, c, B.AIR);
-      this.fx.debris(a + 0.5, b + 0.5, c + 0.5, BLOCKS[log]!.color, 4);
-      if (!creative) this.give([[log, 1]]);
-      if (i % 2 === 0) SFX.breakBlock();
+      this.fx.breakBurst(a + 0.5, b + 0.5, c + 0.5, log);
+      if (!creative) this.give([[log, 1]], new THREE.Vector3(a + 0.5, b + 0.5, c + 0.5));
+      if (i % 2 === 0) SFX.breakMat('wood');
     }, 90 * (i + 1)));
     // leaves that no longer touch a trunk drift away and drop their gifts
     setTimeout(() => {
@@ -744,21 +761,39 @@ export class Game {
       gone.sort(() => Math.random() - 0.5).forEach(([a, b, c], i) => setTimeout(() => {
         if (w.get(a, b, c) !== leaf) return;
         w.set(a, b, c, B.AIR);
-        if (i % 3 === 0) this.fx.debris(a + 0.5, b + 0.5, c + 0.5, BLOCKS[leaf]!.color, 3);
-        if (!creative) { const d = BLOCKS[leaf]!.drops!(Math.random()); if (d.length) this.give(d); }
+        if (i % 3 === 0) { this.fx.breakBurst(a + 0.5, b + 0.5, c + 0.5, leaf); SFX.breakMat('leaves'); }
+        if (!creative) { const d = BLOCKS[leaf]!.drops!(Math.random()); if (d.length) this.give(d, new THREE.Vector3(a + 0.5, b + 0.5, c + 0.5)); }
       }, 40 * i));
     }, 90 * (logs.length + 2));
   }
 
-  private give(drops: [number, number][]) {
+  /**
+   * Items go into the bag straight away (so nothing can be lost), and when we
+   * know where they came from their icons fly there first; the bag counter and
+   * the hotbar bump show on arrival.
+   */
+  private give(drops: [number, number][], from?: THREE.Vector3) {
     for (const [d, n] of drops) {
       this.inv.add(d, n);
       this.stats.mined[d] = (this.stats.mined[d] || 0) + n;
-      this.ui.pickup(d, n);
+      this.collectFx(d, n, from);
     }
-    if (drops.length) SFX.pickup();
+    if (drops.length && !from) SFX.pickup();
     if (drops.length && !this.mining && this.mineAnim <= 0) this.anim.play('collect');
     this.checkQuests();
+  }
+
+  private flyBurst = 0;
+  private flyBurstAt = 0;
+  /** show an item arriving: flies from `from` to the player when given, else just the bag notice */
+  collectFx(id: number, n: number, from?: THREE.Vector3) {
+    if (!from || this.settings.lowGfx) { this.ui.pickup(id, n); this.ui.bumpSlot(id); return; }
+    const now = performance.now();
+    if (now - this.flyBurstAt > 600) this.flyBurst = 0;
+    this.flyBurstAt = now;
+    const k = this.flyBurst++;
+    const target = () => { const q = this.player.pos; return new THREE.Vector3(q.x, this.player.visY + 0.9, q.z); };
+    this.fx.flyItem(id, from, target, Math.min(k, 8) * 0.08, () => { this.ui.pickup(id, n); this.ui.bumpSlot(id); SFX.pop(k); });
   }
 
   private useBlock(hit: ReturnType<World['raycast']>) {
@@ -797,7 +832,8 @@ export class Game {
     this.stats.placed++;
     if (this.stats.placed % 20 === 0) { this.kid.reward('quest', 0.2); }
     this.stats.placedIds[held.id] = (this.stats.placedIds[held.id] || 0) + 1;
-    SFX.place(); haptic(6);
+    SFX.placeMat(matOf(held.id)); haptic(6);
+    this.fx.puff(x + 0.5, y + 0.5, z + 0.5, held.id);
     this.mineAnim = 0.2;
     this.anim.play('build');
     this.checkQuests();
@@ -806,6 +842,9 @@ export class Game {
   private useEntity(e: unknown) {
     const held = this.inv.held();
     if (e instanceof Companion) {
+      const now = performance.now();
+      if (now - this.moTapAt < 900 && !(held && FOOD.has(held.id))) return; // one hello at a time
+      this.moTapAt = now;
       this.stats.talked.mo = true;
       e.celebrate = 1.2; SFX.pet();
       this.fx.hearts(e.pos.x, e.pos.y + 1.8, e.pos.z, 2);
@@ -818,15 +857,19 @@ export class Game {
     if (e instanceof Animal) {
       if (held && (held.id === I.DATES || held.id === I.APPLE) && e !== this.fun.pet) { this.fun.offerAdopt(e); return; }
       if (e.kind === 'camel' && !this.fun.riding) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 2); this.fun.rideCamel(e); return; }
-      if (e === this.fun.pet) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 4); SFX.pet(); e.hop = 0.5; this.ui.toast(tr(`💕 ${this.stats.pet!.name} senang sekali!`, `💕 ${this.stats.pet!.name} is so happy!`)); this.stats.petted++; this.checkQuests(); return; }
-      e.hop = 0.5; e.target = null; e.wait = 2;
+      if (e === this.fun.pet) { if (e.petCd > 0) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 1); return; } e.petCd = 1.5; e.cheer(); this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 4); SFX.pet(); SFX.critter(e.kind); this.ui.toast(tr(`💕 ${this.stats.pet!.name} senang sekali!`, `💕 ${this.stats.pet!.name} is so happy!`)); this.stats.petted++; this.checkQuests(); return; }
+      // tapping again right away: a single heart, but no extra stars or counts
+      if (e.petCd > 0) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 1); return; }
+      e.petCd = 1.5; e.cheer();
       this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 3);
-      SFX.pet(); haptic(10);
+      SFX.pet(); SFX.critter(e.kind); haptic(10);
       this.stats.petted++; this.kid.reward('pet');
+      const from = new THREE.Vector3(e.pos.x, e.pos.y + e.rig.height * 0.6, e.pos.z);
+      const share = (id: number, n: number) => { this.inv.add(id, n); this.collectFx(id, n, from); this.anim.play('collect'); };
       if (e.cooldown <= 0) {
-        if (e.kind === 'cow' || e.kind === 'camel' || e.kind === 'goat') { this.inv.add(I.MILK, 1); this.stats.milk++; e.cooldown = 60; this.ui.toast(tr(`🥛 ${t2(ANIMAL_NAME[e.kind])} memberi susu. Terima kasih!`, `🥛 The ${t2(ANIMAL_NAME[e.kind]).toLowerCase()} shared some milk. Thank you!`)); }
-        else if (e.kind === 'chicken') { this.inv.add(I.EGG, 1); this.stats.eggs++; e.cooldown = 45; this.ui.toast(tr('🥚 Ayam memberi telur!', '🥚 The chicken laid an egg!')); }
-        else if (e.kind === 'sheep' && !e.sheared) { this.inv.add(B.WOOL_WHITE, 2); this.stats.wool += 2; e.sheared = true; e.cooldown = 120; setTimeout(() => (e.sheared = false), 120000); this.ui.toast(tr('🐑 Domba berbagi wol lembut!', '🐑 The sheep shared soft wool!')); }
+        if (e.kind === 'cow' || e.kind === 'camel' || e.kind === 'goat') { share(I.MILK, 1); this.stats.milk++; e.cooldown = 60; this.ui.toast(tr(`🥛 ${t2(ANIMAL_NAME[e.kind])} memberi susu. Terima kasih!`, `🥛 The ${t2(ANIMAL_NAME[e.kind]).toLowerCase()} shared some milk. Thank you!`)); }
+        else if (e.kind === 'chicken') { share(I.EGG, 1); this.stats.eggs++; e.cooldown = 45; this.ui.toast(tr('🥚 Ayam memberi telur!', '🥚 The chicken laid an egg!')); }
+        else if (e.kind === 'sheep' && !e.sheared) { share(B.WOOL_WHITE, 2); this.stats.wool += 2; e.sheared = true; e.cooldown = 120; setTimeout(() => (e.sheared = false), 120000); this.ui.toast(tr('🐑 Domba berbagi wol lembut!', '🐑 The sheep shared soft wool!')); }
         else this.ui.toast(tr('💕 Meong~ Kucing senang dielus!', '💕 Meow~ The cat loves being petted!'));
       } else this.ui.toast(tr(`💕 ${t2(ANIMAL_NAME[e.kind])} senang disayang!`, `💕 The ${t2(ANIMAL_NAME[e.kind]).toLowerCase()} is happy!`));
       this.checkQuests();

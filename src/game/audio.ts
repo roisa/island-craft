@@ -21,26 +21,129 @@ function tone(freq: number, dur: number, type: OscillatorType = 'sine', peak = 0
   o.connect(g); g.connect(dest ?? c.destination);
   o.start(t0); o.stop(t0 + dur + 0.05);
 }
-function noise(dur: number, peak: number, freq = 900, delay = 0) {
+function noise(dur: number, peak: number, freq = 900, delay = 0, type: BiquadFilterType = 'lowpass', q = 0.7) {
   const c = actx(); if (!c) return;
   const n = Math.max(1, Math.round(c.sampleRate * dur));
   const buf = c.createBuffer(1, n, c.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
   const s = c.createBufferSource(); s.buffer = buf;
-  const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
+  const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
   const g = c.createGain(); g.gain.value = peak;
   s.connect(f); f.connect(g); g.connect(c.destination);
   s.start(c.currentTime + delay);
 }
 
 const on = () => audioState.sfx;
+// a little random pitch so repeated hits don't sound like a machine gun
+const vary = (f: number, amt = 0.08) => f * (1 + (Math.random() * 2 - 1) * amt);
+
+/** Per-material sounds: hit (each strike while mining), break, place and footsteps. */
+type MatSound = { hit(): void; brk(): void; place(): void; step(): void };
+const MAT_SOUND: Record<string, MatSound> = {
+  wood: {
+    hit() { tone(vary(190), 0.09, 'triangle', 0.13); noise(0.05, 0.08, vary(900), 0, 'bandpass', 2); },
+    brk() { tone(vary(150), 0.16, 'triangle', 0.12); tone(vary(110), 0.2, 'triangle', 0.08, 0.05); noise(0.18, 0.14, 700, 0, 'bandpass', 1.2); },
+    place() { tone(vary(240), 0.07, 'triangle', 0.12); noise(0.04, 0.06, 1200, 0, 'bandpass', 2); },
+    step() { tone(vary(160), 0.05, 'triangle', 0.035); },
+  },
+  stone: {
+    hit() { noise(0.05, 0.13, vary(2600), 0, 'bandpass', 3); tone(vary(520), 0.04, 'square', 0.03); },
+    brk() { noise(0.2, 0.2, 1500, 0, 'bandpass', 0.9); noise(0.12, 0.1, 3200, 0.04, 'bandpass', 2); },
+    place() { noise(0.06, 0.12, 1800, 0, 'bandpass', 2); tone(vary(330), 0.05, 'square', 0.04); },
+    step() { noise(0.04, 0.05, vary(2200), 0, 'bandpass', 2.5); },
+  },
+  dirt: {
+    hit() { noise(0.06, 0.12, vary(500)); },
+    brk() { noise(0.2, 0.2, 600); noise(0.1, 0.08, 300, 0.05); },
+    place() { noise(0.08, 0.13, 550); },
+    step() { noise(0.045, 0.045, vary(450)); },
+  },
+  sand: {
+    hit() { noise(0.07, 0.1, vary(1800), 0, 'highpass', 0.5); },
+    brk() { noise(0.25, 0.14, 2200, 0, 'highpass', 0.4); },
+    place() { noise(0.1, 0.1, 2000, 0, 'highpass', 0.4); },
+    step() { noise(0.06, 0.04, vary(2500), 0, 'highpass', 0.4); },
+  },
+  snow: {
+    hit() { noise(0.07, 0.1, vary(1200), 0, 'bandpass', 0.8); },
+    brk() { noise(0.22, 0.13, 1400, 0, 'bandpass', 0.6); },
+    place() { noise(0.09, 0.1, 1300, 0, 'bandpass', 0.7); },
+    step() { noise(0.07, 0.05, vary(1500), 0, 'bandpass', 0.7); },
+  },
+  glass: {
+    hit() { tone(vary(1900, 0.04), 0.06, 'sine', 0.06); },
+    brk() { [2093, 2637, 3136, 2349].forEach((f, i) => tone(vary(f, 0.03), 0.18, 'sine', 0.06, i * 0.03)); noise(0.12, 0.08, 5000, 0, 'highpass', 0.7); },
+    place() { tone(vary(1568, 0.03), 0.09, 'sine', 0.07); tone(vary(2093, 0.03), 0.07, 'sine', 0.05, 0.03); },
+    step() { tone(vary(1200), 0.03, 'sine', 0.02); },
+  },
+  leaves: {
+    hit() { noise(0.08, 0.08, vary(3500), 0, 'highpass', 0.5); },
+    brk() { noise(0.28, 0.12, 3000, 0, 'highpass', 0.4); },
+    place() { noise(0.1, 0.08, 3200, 0, 'highpass', 0.4); },
+    step() { noise(0.06, 0.03, vary(3500), 0, 'highpass', 0.4); },
+  },
+  wool: {
+    hit() { noise(0.05, 0.1, vary(350)); },
+    brk() { noise(0.16, 0.14, 400); },
+    place() { noise(0.07, 0.12, 380); },
+    step() { noise(0.05, 0.035, vary(320)); },
+  },
+  metal: {
+    hit() { tone(vary(880, 0.03), 0.12, 'triangle', 0.08); tone(vary(1320, 0.03), 0.1, 'sine', 0.04); },
+    brk() { [880, 1175, 1568].forEach((f, i) => tone(f, 0.25, 'triangle', 0.08, i * 0.05)); },
+    place() { tone(vary(1047, 0.02), 0.12, 'triangle', 0.08); },
+    step() { tone(vary(700), 0.04, 'triangle', 0.025); },
+  },
+  magic: {
+    hit() { tone(vary(1047, 0.05), 0.08, 'sine', 0.06); },
+    brk() { [784, 988, 1175].forEach((f, i) => tone(f, 0.18, 'sine', 0.08, i * 0.06)); },
+    place() { tone(1175, 0.12, 'sine', 0.07); },
+    step() { },
+  },
+};
+MAT_SOUND.ore = { ...MAT_SOUND.stone, brk() { MAT_SOUND.stone.brk(); tone(vary(1319, 0.03), 0.16, 'sine', 0.06, 0.05); } };
+MAT_SOUND.grass = MAT_SOUND.dirt; MAT_SOUND.clay = MAT_SOUND.dirt; MAT_SOUND.gravel = MAT_SOUND.sand;
+MAT_SOUND.ice = MAT_SOUND.glass; MAT_SOUND.plant = MAT_SOUND.leaves;
+MAT_SOUND.water = { hit() { }, brk() { noise(0.25, 0.12, 1800); }, place() { noise(0.2, 0.1, 1600); }, step() { noise(0.08, 0.04, 1600); } };
+const snd = (m: string) => MAT_SOUND[m] ?? MAT_SOUND.stone;
+/** limit how often one sound can start (many drops at once shouldn't stack up) */
+const lastAt = new Map<string, number>();
+function throttle(key: string, ms: number) {
+  const now = performance.now(), l = lastAt.get(key) ?? 0;
+  if (now - l < ms) return false;
+  lastAt.set(key, now); return true;
+}
 export const SFX = {
   warm() { actx(); },
   hit(soft = false) { if (on()) noise(0.06, soft ? 0.08 : 0.12, soft ? 1400 : 700); },
   breakBlock() { if (on()) { noise(0.14, 0.2, 800); tone(180, 0.08, 'triangle', 0.06); } },
   place() { if (on()) { tone(300, 0.07, 'square', 0.07); tone(450, 0.06, 'square', 0.05, 0.03); } },
-  pickup() { if (on()) { tone(880, 0.06, 'sine', 0.08); tone(1320, 0.08, 'sine', 0.06, 0.04); } },
+  pickup() { if (on() && throttle('pickup', 70)) { tone(880, 0.06, 'sine', 0.08); tone(1320, 0.08, 'sine', 0.06, 0.04); } },
+  /** the "pop into the bag" note rises a little with each item in a burst */
+  pop(i = 0) { if (on() && throttle('pop', 45)) tone(988 * Math.pow(2, Math.min(i, 7) / 12), 0.07, 'sine', 0.07); },
+  /** a short, friendly voice for each animal (synthesized glides, nothing scary) */
+  critter(kind: string) {
+    if (!on() || !throttle('critter', 250)) return;
+    const c = actx(); if (!c) return;
+    const glide = (f0: number, f1: number, dur: number, type: OscillatorType, peak: number, delay = 0, wob = 0) => {
+      const t0 = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+      if (wob) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = wob; lg.gain.value = f0 * 0.06; l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur + 0.05); }
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(peak, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+    };
+    const v = vary(1, 0.06);
+    if (kind === 'chicken') { glide(900 * v, 1300 * v, 0.07, 'triangle', 0.05); glide(950 * v, 1400 * v, 0.07, 'triangle', 0.05, 0.1); }
+    else if (kind === 'sheep' || kind === 'goat') glide((kind === 'goat' ? 420 : 340) * v, 300 * v, 0.45, 'sawtooth', 0.025, 0, 11);
+    else if (kind === 'cow') glide(150 * v, 110 * v, 0.6, 'sawtooth', 0.03, 0, 4);
+    else if (kind === 'cat') glide(620 * v, 900 * v, 0.28, 'triangle', 0.04, 0, 6);
+    else if (kind === 'camel') glide(200 * v, 160 * v, 0.4, 'sawtooth', 0.025, 0, 7);
+  },
+  hitMat(m: string) { if (on() && throttle('hit', 60)) snd(m).hit(); },
+  breakMat(m: string) { if (on()) snd(m).brk(); },
+  placeMat(m: string) { if (on() && throttle('place', 50)) snd(m).place(); },
+  stepMat(m: string) { if (on() && throttle('step', 120)) snd(m).step(); },
   jump() { if (on()) tone(420, 0.1, 'triangle', 0.06); },
   step() { if (on()) noise(0.04, 0.035, 500); },
   splash() { if (on()) noise(0.25, 0.12, 1800); },

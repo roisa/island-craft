@@ -107,6 +107,13 @@ async function run(name) {
       if (r.placed !== 1 || r.block !== 20 || r.used !== 1) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('pet an animal (repeated taps count once)', async () => {
+      const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet);
+        if (!a) return { skipped: true };
+        const s0 = G.stats.petted; for (let i = 0; i < 4; i++) G.useEntity(a); return { kind: a.kind, counted: G.stats.petted - s0 }; });
+      if (!r.skipped && r.counted !== 1) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('collect a hijaiyah letter', async () => {
       await g(() => { const G = __game; const s = G.gen.shrines[0]; G.collectLetter(s.letter, s.x, s.y, s.z); });
       await p.waitForSelector('#lOk', { timeout: 5000 });

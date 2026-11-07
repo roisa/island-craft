@@ -139,6 +139,13 @@ export class UI {
   }
   target(text: string) { const t = $('#target'); if (t.textContent !== text) t.textContent = text; }
 
+  /** a little bounce on the hotbar slot holding this item (or the bag button when it went to the backpack) */
+  bumpSlot(id: number) {
+    const i = this.g.inv.slots.findIndex((sl, k) => k < 9 && sl?.id === id);
+    const el = i >= 0 ? $('#hotbar').children[i] as HTMLElement | undefined : document.getElementById('bBag') ?? undefined;
+    if (!el) return;
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  }
   refreshHotbar() {
     const inv = this.g.inv, el = $('#hotbar');
     if (el.children.length !== 9) {

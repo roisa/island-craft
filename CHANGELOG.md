@@ -5,6 +5,63 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M4 · Interaction quality
+
+- **Materials** (`src/game/materials.ts`): every block now belongs to one of
+  17 materials: wood, stone, ore, dirt, grass, sand, gravel, snow, ice,
+  glass, leaves, plant, wool, metal, clay, water and the magic hijaiyah
+  letters. The material decides the particles and the sounds.
+- **Material sounds**, still synthesized with no audio files:
+  - Each material has its own hit, break, place and footstep sound: a
+    knock for wood, a click for stone, crunchy snow, rustling leaves,
+    tinkling glass, a bell for gold and a chime for letters.
+  - Footsteps follow the ground under you.
+  - Pitch varies a little so repeated hits don't sound mechanical, and each
+    sound has a minimum gap so many drops at once don't pile up.
+- **Hit feedback:** each strike while mining plays the material's knock,
+  sends a few chips flying off the face you're hitting, gives the crack box
+  a small jolt and a short vibration on phones.
+- **Breaking:** the block bursts into pieces in its own colours. Leaves and
+  snow drift down slowly, stone drops fast, and pieces shrink away instead of
+  popping out.
+- **Items fly into your bag:**
+  - Each drop's icon pops out of the block and arcs to the player, one after
+    another for a burst.
+  - The bag counter, the hotbar bounce and a rising "pop" note play on
+    arrival.
+  - Items are put in the bag immediately, so nothing can be lost to the
+    animation.
+  - This covers mining, felled trees, falling leaves, and milk, eggs and
+    wool from animals.
+- **Placing:** a material sound and a small dust puff around the block's base.
+- **Crafting:** the result's hotbar slot bounces, the avatar does the build
+  motion and sparkles appear in front of you.
+- **Animal reactions:**
+  - Animals notice you: a standing animal turns its head to look at you
+    when you're within 5 blocks.
+  - Sprinting past an animal, or breaking a block right next to it, makes
+    it scurry a few blocks away with a little hop and its voice: cluck,
+    baa, moo, meow.
+  - Pets, ridden animals and camels don't get startled. Each animal waits
+    4 seconds before it can be startled again.
+  - Petted animals do a happy hop and nod.
+- **Cooldowns (fixes reward spamming):**
+  - Tapping the same animal again within 1.5 s shows one heart but gives no
+    extra star or petting count. Before, every tap gave a star.
+  - Baby Mo answers one tap at a time (0.9 s), unless you're giving him
+    food.
+- Light graphics mode skips the flying icons and halves particles, as before.
+  Particles are capped at 400.
+- Tests: 5 unit tests for materials. The smoke test checks that four quick
+  pets count once. Checked in game:
+  - 3 chips while hitting, a 14-piece break burst, the icon in flight with
+    the bag notice shown only on arrival, and a 6-piece placement puff.
+  - The egg flies from the chicken.
+  - A chicken flees a sprint, and an animal is startled by a block breaking
+    next to it.
+  - A cow turns its head 0.89 rad toward the player.
+  - All 17 material sounds and 6 animal voices play with no errors.
+
 ### M3 · Animation system
 
 - **New animator** (`src/game/animator.ts`) for every humanoid: the player's

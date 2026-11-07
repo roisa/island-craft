@@ -83,13 +83,43 @@ export class Animal extends Entity {
   follow: (() => THREE.Vector3) | null = null;   // pets follow their friend
   tagObj?: THREE.Object3D;
   ridden = false;
+  /** seconds until petting counts again (stops tap-spamming for stars) */
+  petCd = 0;
+  /** running away after a fright; while > 0 it moves faster */
+  flee = 0;
+  private startleCd = 0;
+  private happy = 0;
+  private lookYaw = 0;
   constructor(public kind: AnimalKind, public world: World) {
     super(buildAnimal(kind));
     this.radius = kind === 'chicken' || kind === 'cat' ? 0.45 : kind === 'camel' ? 0.9 : 0.7;
   }
+  /** a fright: scurry a few blocks away from `from`, unless it's someone's pet or being ridden */
+  startle(from: THREE.Vector3) {
+    if (this.follow || this.ridden || this.startleCd > 0 || this.kind === 'camel') return false;
+    const dx = this.pos.x - from.x, dz = this.pos.z - from.z, d = Math.hypot(dx, dz) || 1;
+    const run = this.kind === 'chicken' ? 4.5 : 3.5;
+    this.target = new THREE.Vector3(this.pos.x + dx / d * run + (Math.random() - 0.5) * 1.5, this.pos.y, this.pos.z + dz / d * run + (Math.random() - 0.5) * 1.5);
+    this.flee = 1.4; this.startleCd = 4; this.hop = Math.max(this.hop, 0.3); this.wait = 0;
+    return true;
+  }
+  /** petted: a happy hop and a nod */
+  cheer() { this.hop = 0.5; this.happy = 1.2; this.target = null; this.wait = 2; this.flee = 0; }
+  /** called by the manager with the player's position: notice them, or get startled by a sprint */
+  sense(p: THREE.Vector3, playerSpeed: number) {
+    const d = Math.hypot(p.x - this.pos.x, p.z - this.pos.z);
+    this.near = d < 5 && Math.abs(p.y - this.pos.y) < 3 ? p : null;
+    if (playerSpeed > 5.5 && d < 2.6 && Math.abs(p.y - this.pos.y) < 2) return this.startle(p);
+    return false;
+  }
+  private near: THREE.Vector3 | null = null;
   update(dt: number, t: number) {
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.hop = Math.max(0, this.hop - dt);
+    this.petCd = Math.max(0, this.petCd - dt);
+    this.flee = Math.max(0, this.flee - dt);
+    this.startleCd = Math.max(0, this.startleCd - dt);
+    this.happy = Math.max(0, this.happy - dt);
     if (this.ridden) return; // moved by the rider
     if (this.follow) {
       const f = this.follow(), d = Math.hypot(f.x - this.pos.x, f.z - this.pos.z);
@@ -107,7 +137,7 @@ export class Animal extends Entity {
       const dx = this.target.x - this.pos.x, dz = this.target.z - this.pos.z, d = Math.hypot(dx, dz);
       if (d < 0.3) { this.target = null; this.wait = 2 + Math.random() * 5; }
       else {
-        const sp = (this.follow ? 4.2 : this.kind === 'chicken' || this.kind === 'cat' ? 1.4 : this.kind === 'camel' ? 1.1 : 1.0) * dt;
+        const sp = (this.follow ? 4.2 : this.kind === 'chicken' || this.kind === 'cat' ? 1.4 : this.kind === 'camel' ? 1.1 : 1.0) * (this.flee > 0 ? 3 : 1) * dt;
         const nx = this.pos.x + dx / d * sp, nz = this.pos.z + dz / d * sp;
         const gy = groundY(this.world, nx, this.pos.y, nz);
         if (gy === null || Math.abs(gy - this.pos.y) > 1.1) { if (this.follow) { this.pos.x = nx; this.pos.z = nz; const sy = waterSurface(this.world, nx, this.pos.y, nz); if (sy !== null) this.pos.y = sy - 0.5; } else { this.target = null; this.wait = 1 + Math.random() * 2; } }
@@ -115,12 +145,25 @@ export class Animal extends Entity {
         const want = Math.atan2(dx, dz);
         let diff = want - this.yaw; while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;
         this.yaw += diff * Math.min(1, dt * 5);
-        this.moving = true; this.walk += dt * 9;
+        this.moving = true; this.walk += dt * (this.flee > 0 ? 20 : 9);
       }
     }
     this.sync(t);
     if (this.hop > 0) this.rig.root.position.y += Math.sin((0.5 - this.hop) / 0.5 * Math.PI) * 0.4;
-    if (this.rig.head && !this.moving) this.rig.head.rotation.x = Math.sin(t * 0.8 + this.pos.x) * 0.15;
+    // when standing: look at a nearby player (head turns, within reach of the neck), nod when happy
+    let wantLook = 0;
+    if (this.near && !this.moving && !this.ridden) {
+      let a = Math.atan2(this.near.x - this.pos.x, this.near.z - this.pos.z) - this.yaw;
+      while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2;
+      wantLook = Math.max(-0.9, Math.min(0.9, a));
+    }
+    this.lookYaw += (wantLook - this.lookYaw) * Math.min(1, dt * 4);
+    if (this.rig.head) {
+      this.rig.head.rotation.y = this.lookYaw;
+      if (this.happy > 0) this.rig.head.rotation.x = Math.sin(t * 14) * 0.25;
+      else if (!this.moving) this.rig.head.rotation.x = this.near ? -0.1 : Math.sin(t * 0.8 + this.pos.x) * 0.15;
+      else this.rig.head.rotation.x = 0;
+    }
     const wool = (this.rig as any).wool as THREE.Object3D | undefined;
     if (wool) wool.scale.set(this.sheared ? 0.82 : 1, this.sheared ? 0.8 : 1, this.sheared ? 0.92 : 1);
   }
@@ -277,12 +320,23 @@ export class Entities {
   }
   addNpc(n: Npc) { this.npcs.push(n); this.scene.add(n.rig.root); }
 
-  update(dt: number, t: number, center: THREE.Vector3) {
-    for (const a of this.animals) if (a.pos.distanceToSquared(center) < 90 * 90) a.update(dt, t);
+  /** called with the player's position and speed, so animals can notice and react */
+  onStartle: ((a: Animal) => void) | null = null;
+  update(dt: number, t: number, center: THREE.Vector3, playerSpeed = 0) {
+    for (const a of this.animals) {
+      const d2 = a.pos.distanceToSquared(center);
+      if (d2 > 90 * 90) continue;
+      if (d2 < 36 && a.sense(center, playerSpeed)) this.onStartle?.(a);
+      a.update(dt, t);
+    }
     for (const n of this.npcs) n.update(dt, t);
     this.mo?.update(dt, t);
   }
 
+  /** something loud happened at p (a block broke): animals close by scurry off */
+  startleNear(p: THREE.Vector3, r = 2.6) {
+    for (const a of this.animals) if (a.pos.distanceToSquared(p) < r * r && a.startle(p)) this.onStartle?.(a);
+  }
   /** nearest entity hit by a ray */
   raycast(o: THREE.Vector3, dir: THREE.Vector3, maxDist: number, pad = 0): Entity | null {
     let best: Entity | null = null, bd = maxDist;
