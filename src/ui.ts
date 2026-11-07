@@ -553,12 +553,34 @@ export class UI {
       <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
       <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
+      <h3>💾 ${tr('Simpanan', 'Saved game')}</h3>
+      <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
+      <div class="row"><button class="btn ghost small" id="pExp">${ic('down')} ${tr('Simpan ke file', 'Save to a file')}</button><button class="btn ghost small" id="pImp">${ic('up')} ${tr('Buka file simpanan', 'Open a save file')}</button></div>
+      <button class="btn ghost small hidden" id="pPrev">${ic('undo')} ${tr('Kembalikan dunia sebelumnya', 'Bring back the previous world')}</button>
+      <input type="file" id="pFile" accept=".json,application/json" hidden>
       <button class="btn ghost small" id="pNew">${ic('globe')} ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
       <button class="btn small" id="pOk">${tr('Selesai', 'Done')}</button>`);
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
     $<HTMLSelectElement>('#pLim', el).onchange = e => { s.playLimit = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();
+    $('#pExp', el).onclick = async () => {
+      const blob = new Blob([await g.exportSave()], { type: 'application/json' });
+      const url = URL.createObjectURL(blob), link = document.createElement('a');
+      link.href = url; link.download = `baby-mo-island-craft-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+      this.toast(tr('💾 File simpanan dibuat', '💾 Save file created'));
+    };
+    const file = $<HTMLInputElement>('#pFile', el);
+    $('#pImp', el).onclick = () => file.click();
+    file.onchange = async () => {
+      const f = file.files?.[0]; if (!f) return;
+      const err = await g.importSave(await f.text());
+      if (err) this.toast(tr('😕 File ini bukan simpanan Baby Mo Island Craft', '😕 This is not a Baby Mo Island Craft save file'), 4000);
+    };
+    g.hasPrevious().then(has => { if (!has) return; const b = $('#pPrev', el); b.classList.remove('hidden');
+      b.onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia sebelumnya', 'Previous world'), text: tr('Kembalikan dunia sebelum “Dunia baru”? Dunia sekarang akan disimpan sebagai gantinya.', 'Bring back the world from before “New world”? The current world is kept in its place.'), speak: false, buttons: [{ label: tr('Ya, kembalikan', 'Yes, bring it back'), cls: 'gold', fn: () => { g.restorePrevious(); } }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
+    });
     $('#pNew', el).onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia baru', 'New world'), text: tr('Yakin? Dunia, barang, dan progres sekarang akan dihapus.', 'Are you sure? The current world, items and progress will be deleted.'), speak: false, buttons: [{ label: tr('Ya, buat baru', 'Yes, start over'), cls: 'gold', fn: () => g.newWorld() }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
   }
   restScreen() {

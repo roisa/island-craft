@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { tr, t2, getLang, setLang } from './i18n';
 import { buildTextureArray } from './world/atlas';
 import { initMesherTables, WorldUniforms } from './world/mesher';
-import { Generator, Biome, BIOME_INFO, SEA, VILLAGE_Y, H } from './world/gen';
+import { Generator, Biome, BIOME_INFO, SEA, VILLAGE_Y, H, CS } from './world/gen';
 import { World } from './world/world';
 import { B, I, BLOCKS, ITEMS, LETTERS, isBlockId, isLetter, nameOf } from './world/blocks';
 import { Player } from './game/player';
@@ -24,6 +24,7 @@ import { FX } from './game/fx';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
+import { SAVE_VERSION, chooseSave, cleanEdits, makeExport, parseExport, type SaveMeta, type Edits } from './game/persist';
 import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
 import { QUESTS, Stats, newStats, DUAS, CALENDAR } from './content';
 import { UI } from './ui';
@@ -36,7 +37,6 @@ export interface Settings {
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
   protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean; outfitV3?: boolean;
 }
-const SAVE_VERSION = 1;
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
 const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
 const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK]);
@@ -89,6 +89,9 @@ export class Game {
   private lastJumpTap = 0;
   private iftarDay = -1;
   private dirtySave = false;
+  private saveCount = 0;
+  private loadedFrom: 'main' | 'backup' | 'none' = 'none';
+  private backupEdits: unknown;
   private prayingPose = false;
   private picnicToMasjid = -1;
   /** last thing placed, so a mis-tap can be undone for a few seconds */
@@ -145,7 +148,17 @@ export class Game {
 
   // ---------- boot ----------
   async boot() {
-    const meta = await Save.get<any>('meta');
+    const [rawMeta, rawBackup] = await Promise.all([Save.get('meta'), Save.get<any>('backup')]);
+    const res = chooseSave(rawMeta, rawBackup);
+    if (res.error) {
+      console.warn('[save] main save unusable:', res.error, '→', res.source);
+      // keep the unreadable save so nothing is ever thrown away silently
+      await Save.put('broken', { meta: rawMeta, at: Date.now(), error: res.error });
+    }
+    if (res.repaired.length) console.warn('[save] repaired fields:', res.repaired.join(', '));
+    this.loadedFrom = res.source;
+    this.backupEdits = res.source === 'backup' ? rawBackup.edits : undefined;
+    const meta: any = res.meta;
     if (meta?.settings) Object.assign(this.settings, meta.settings);
     setLang(meta?.lang ?? getLang());
     this.ui.labels();
@@ -181,7 +194,16 @@ export class Game {
     };
     this.gen = new Generator(this.seed);
     this.world = new World(this.gen, this.uniforms);
-    if (meta) this.world.edits = Save.deserializeEdits(await Save.get('edits'));
+    if (meta) {
+      const raw = this.loadedFrom === 'backup' ? this.backupEdits : await Save.get('edits');
+      const { edits, dropped } = cleanEdits(raw, CS * CS * H);
+      if (dropped) console.warn('[save] dropped', dropped, 'bad edit entries');
+      this.world.edits = Save.deserializeEdits(edits);
+      this.saveCount = meta.saves ?? 0;
+      // a known-good copy from the start of this session, used if the main save breaks later
+      if (this.loadedFrom === 'main') Save.put('backup', { meta, edits, at: Date.now() });
+    }
+    Save.requestPersist();
     this.scene.add(this.world.group);
     this.sky = new Sky(this.scene, this.uniforms);
     this.ents = new Entities(this.scene, this.world, this.seed);
@@ -244,6 +266,7 @@ export class Game {
     }
     this.checkQuests(true);
     this.save();
+    if (this.loadedFrom === 'backup') setTimeout(() => this.ui.toast(tr('💾 Simpanan terakhir rusak, jadi kami pulihkan cadangannya.', '💾 The last save was damaged, so we restored the backup.'), 5000), 1500);
   }
 
   private starterKit() {
@@ -398,7 +421,45 @@ export class Game {
     if (fx) { this.fx.sparkle(SPAWN.x, SPAWN.y + 1, SPAWN.z, 24, 0xffd874, 3); SFX.pickup(); this.ui.toast(ic('home') + tr('Sampai di desa!', 'Home in the village!')); }
   }
   restBreak() { this.ui.toast(tr('🤲 Selamat sholat! Game dijeda.', '🤲 Enjoy your prayer! The game is paused.'), 4000); this.ui.openBook('prayer'); }
-  async newWorld() { await Save.del('meta'); await Save.del('edits'); location.reload(); }
+  async newWorld() {
+    // keep the old world as "previous" so a parent can bring it back
+    await this.save();
+    const [meta, edits] = await Promise.all([Save.get('meta'), Save.get('edits')]);
+    if (meta) await Save.put('previous', { meta, edits, at: Date.now() });
+    this.running = false; // stops the pagehide/visibility save from writing the old world back
+    await Save.del('meta'); await Save.del('edits'); await Save.del('backup');
+    location.reload();
+  }
+  /** The whole save as a file a parent can keep. */
+  async exportSave(): Promise<string> {
+    await this.save();
+    const [meta, edits] = await Promise.all([Save.get('meta'), Save.get('edits')]);
+    return makeExport(meta, edits);
+  }
+  /** Load a save file; returns an error message, or reloads on success. */
+  async importSave(text: string): Promise<string | null> {
+    const r = parseExport(text, CS * CS * H);
+    if ('error' in r) return r.error;
+    this.running = false;
+    const [meta, edits] = await Promise.all([Save.get('meta'), Save.get('edits')]);
+    const ok = await Save.putMany([['meta', r.meta], ['edits', r.edits], ...(meta ? [['previous', { meta, edits, at: Date.now() }] as [string, unknown]] : []), ['backup', undefined]]);
+    if (!ok) { this.running = true; return 'could not write'; }
+    location.reload();
+    return null;
+  }
+  async hasPrevious() { return !!(await Save.get<any>('previous'))?.meta; }
+  /** Swap the current world with the one kept before the last "New world". */
+  async restorePrevious(): Promise<boolean> {
+    const prev = await Save.get<any>('previous');
+    if (!prev?.meta) return false;
+    this.running = false;
+    const [meta, edits] = await Promise.all([Save.get('meta'), Save.get('edits')]);
+    const ok = await Save.putMany([['meta', prev.meta], ['edits', prev.edits ?? {}], ['previous', meta ? { meta, edits, at: Date.now() } : undefined], ['backup', undefined]]);
+    if (!meta) await Save.del('previous');
+    await Save.del('backup');
+    if (ok) location.reload();
+    return ok;
+  }
   photo() {
     this.render();
     const url = this.renderer.domElement.toDataURL('image/png');
@@ -1126,13 +1187,17 @@ export class Game {
     if (!this.running) return;
     this.dirtySave = false;
     const p = this.player;
-    await Save.put('meta', {
+    const meta: SaveMeta = {
       v: SAVE_VERSION, seed: this.seed, hour: this.hour, day: this.day, lang: getLang(),
       player: { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
-      inv: this.inv.toJSON(), stats: this.stats, questsDone: [...this.questsDone], claimed: [...this.claimed],
-      saplings: this.saplings, settings: this.settings,
-    });
-    await Save.put('edits', Save.serializeEdits(this.world.edits));
+      inv: this.inv.toJSON(), stats: this.stats as unknown as Record<string, unknown>, questsDone: [...this.questsDone], claimed: [...this.claimed],
+      saplings: this.saplings, settings: this.settings as unknown as Record<string, unknown>,
+      savedAt: Date.now(), saves: ++this.saveCount,
+    };
+    const edits: Edits = Save.serializeEdits(this.world.edits);
+    // meta and edits in one transaction, so they can never get out of step
+    const ok = await Save.putMany([['meta', meta], ['edits', edits]]);
+    if (!ok) { this.dirtySave = true; console.warn('[save] write failed, will retry'); }
   }
 }
 

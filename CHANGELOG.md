@@ -5,6 +5,39 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M2 · Save v2
+
+- **Versioned saves with migrations** (`src/game/persist.ts`). The save is now
+  version 2. Version 1 saves (and older ones with no version field) are
+  migrated on load; nothing is renamed or dropped. Adding a later version
+  is one migration function.
+- **Repair instead of loss.** On load, bad values are fixed one field at a
+  time: a broken clock, day, player position, inventory slot, quest list or
+  settings object. The rest of the save is kept. Bad block-edit entries are
+  dropped one by one.
+- **Atomic writes.** World info (`meta`) and block edits (`edits`) are
+  written in one IndexedDB transaction, so they can no longer get out of
+  step if the tab closes mid-save. A failed write is retried at the next
+  save tick.
+- **Automatic backup and recovery.** At the start of each session the loaded
+  save is copied to `backup`. If the main save can't be read, the game loads
+  the backup and tells the player. The unreadable save is kept under
+  `broken`, never thrown away.
+- **Persistent storage.** The game asks the browser to keep its storage
+  (`navigator.storage.persist()`). This lowers the risk of Safari or Chrome
+  clearing it.
+- **Parents panel → Saved game:**
+  - *Save to a file* downloads the whole save as JSON.
+  - *Open a save file* restores one, on any device.
+  - *Bring back the previous world* appears after "New world" and swaps the
+    old world back in, keeping the current one in its place.
+- **Fixed a V1 bug:** "New world" deleted the save and reloaded, but the
+  page-hide save handler could write the old world straight back. The game
+  now stops before deleting.
+- Tests: 15 unit tests for migration, repair, edit cleaning, backup choice and
+  save files, using the exact V1 save shape. The smoke test covers save
+  and reload in the browser on all four profiles.
+
 ### M1 · QA foundation
 
 - **Unit tests** (`npm test`, vitest, `tests/unit/`):

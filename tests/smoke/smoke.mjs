@@ -137,6 +137,55 @@ async function run(name) {
       if (after.seed !== before.seed || after.crystal !== before.crystal || after.letters !== before.letters || after.block !== 25) throw new Error(JSON.stringify({ before, after }));
       return after;
     });
+    if (name === 'desktop') {
+      const idb = (fn, arg) => p.evaluate(fn, arg);
+      // raw IndexedDB helpers that run in the page, independent of the game code
+      const KV = `(op, key, val) => new Promise(res => { const r = indexedDB.open('babymo-island-craft', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('kv');
+        r.onsuccess = () => { const tx = r.result.transaction('kv', op === 'get' ? 'readonly' : 'readwrite'); const st = tx.objectStore('kv');
+          if (op === 'get') { const q = st.get(key); q.onsuccess = () => res(q.result); } else { op === 'put' ? st.put(val, key) : st.delete(key); tx.oncomplete = () => res(true); } }; })`;
+      const kv = (op, key, val) => idb(([src, op, key, val]) => (0, eval)(src)(op, key, val), [KV, op, key, val]);
+      const restart = async () => {
+        await p.reload(); await p.waitForSelector('#sPlay'); await p.click('#sPlay');
+        await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+      };
+      await step('loads a V1 save (migration)', async () => {
+        const v1 = { v: 1, seed: 424242, hour: 18.25, day: 4, lang: 'en',
+          player: { x: 3.5, y: 46, z: -7.25, yaw: 1.2, pitch: -0.3, flying: false },
+          inv: { slots: [{ id: 213, n: 3 }, null, { id: 20, n: 12 }, ...new Array(33).fill(null)], sel: 2 },
+          stats: { letters: [0, 1, 3], mined: { 2: 10 }, talked: { mo: true }, stars: 40, days: [] },
+          questsDone: ['hello'], claimed: [1], saplings: [], settings: { sfx: false, music: false, avatar: 'girl', mode: 'adventure', outfitV2: true, outfitV3: true } };
+        await kv('put', 'meta', v1); await kv('put', 'edits', { '0,0': [0, 0] }); await kv('del', 'backup');
+        await restart();
+        const r = await g(() => { const G = __game; return { seed: G.seed, day: G.day, letters: G.stats.letters.length, crystal: G.inv.count(213), quests: [...G.questsDone], avatar: G.settings.avatar }; });
+        if (r.seed !== 424242 || r.day !== 4 || r.letters < 3 || r.crystal !== 3 || !r.quests.includes('hello') || r.avatar !== 'girl') throw new Error(JSON.stringify(r));
+        await g(() => __game.save());
+        const stored = await kv('get', 'meta');
+        if (stored.v !== 2 || !stored.savedAt) throw new Error('not re-saved as v2: ' + stored.v);
+        const backup = await kv('get', 'backup');
+        if (backup?.meta?.seed !== 424242) throw new Error('no session backup');
+        return { ...r, storedVersion: stored.v };
+      });
+      await step('recovers from a damaged save', async () => {
+        await kv('put', 'meta', { v: 2, seed: 'broken', hour: 'x' });
+        await restart();
+        const r = await g(() => ({ seed: __game.seed, toast: document.getElementById('toast').innerText }));
+        await p.waitForTimeout(2000);
+        const toast = await g(() => document.getElementById('toast').innerText);
+        const broken = await kv('get', 'broken');
+        if (r.seed !== 424242) throw new Error('did not recover: ' + JSON.stringify(r));
+        if (broken?.meta?.seed !== 'broken') throw new Error('broken save was not kept');
+        return { seed: r.seed, toast: toast.slice(0, 60) };
+      });
+      await step('save to file and open it again', async () => {
+        const text = await g(() => __game.exportSave());
+        const o = JSON.parse(text);
+        if (o.format !== 'babymo-island-craft-save' || o.meta.seed !== 424242) throw new Error('bad export');
+        const err = await g(() => __game.importSave('nonsense'));
+        if (!err) throw new Error('accepted a bad file');
+        return { bytes: text.length };
+      });
+    }
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
   } catch { failed++; }

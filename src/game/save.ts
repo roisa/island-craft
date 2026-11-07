@@ -25,6 +25,23 @@ export async function put(key: string, value: unknown) {
     } catch { res(); }
   });
 }
+/** Write several keys in ONE transaction: either all of them land or none do. */
+export async function putMany(entries: [string, unknown][]): Promise<boolean> {
+  const db = await open();
+  if (!db) { for (const [k, v] of entries) mem.set(k, v); return true; }
+  return new Promise<boolean>(res => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      const st = tx.objectStore(STORE);
+      for (const [k, v] of entries) st.put(v, k);
+      tx.oncomplete = () => res(true); tx.onerror = () => res(false); tx.onabort = () => res(false);
+    } catch { res(false); }
+  });
+}
+/** Ask the browser not to clear our storage under pressure (Safari, Chrome). */
+export async function requestPersist(): Promise<boolean> {
+  try { return (await navigator.storage?.persisted?.()) || (await navigator.storage?.persist?.()) || false; } catch { return false; }
+}
 export async function get<T>(key: string): Promise<T | undefined> {
   const db = await open();
   if (!db) return mem.get(key) as T | undefined;
