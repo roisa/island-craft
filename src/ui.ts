@@ -58,6 +58,7 @@ export class UI {
   <div id="heldName"></div>
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
+  <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
   <div id="desktopHint"></div>
   <div id="stick"><div id="knob"></div></div>
@@ -74,7 +75,7 @@ export class UI {
 <div id="pickups"></div>
 <div id="starPops"></div>
 <div id="confetti"></div>
-<div id="planBar" class="pill hidden"><div class="pb-t"><b id="pbName"></b><small id="pbState"></small></div><button class="btn small ghost" id="pbRot">${ic('rotate')}</button><button class="btn small gold" id="pbBuild">${ic('check')} <span></span></button><button class="btn small ghost" id="pbCancel">${ic('xmark')}</button></div>
+<div id="planBar" class="pill hidden"><div class="pb-t"><b id="pbName"></b><small id="pbState"></small><div id="pbMats"></div></div><button class="btn small ghost" id="pbRot">${ic('rotate')}</button><button class="btn small gold" id="pbBuild">${ic('check')} <span></span></button><button class="btn small ghost" id="pbCancel">${ic('xmark')}</button></div>
 <div class="veil" id="vBook"><div class="panel" id="book"></div></div>
 <div id="loading" class="hidden"><div class="box"><img src="img/baby-mo-pose-01.webp" alt=""><b id="loadTxt"></b><div class="bar"><i id="loadBar"></i></div><p id="loadTip"></p></div></div>
 <div id="start" class="hidden"><div class="panel" id="startPanel"></div></div>`;
@@ -92,6 +93,7 @@ export class UI {
     $('#tutSkip').onclick = () => { SFX.click(); this.g.kid.skipStep(); };
     $('#moHi').onclick = e => { e.stopPropagation(); this.g.useEntity(this.g.ents.mo); };
     $('#bPray').onclick = e => { e.stopPropagation(); this.g.prayTogether(); };
+    $('#bRot').onclick = e => { e.stopPropagation(); this.g.rotatePlacement(); const b = e.currentTarget as HTMLElement; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); };
     $('#bLetters').onclick = () => this.openBook('letters');
     $('#bCam').onclick = () => g.toggleCamera();
     $('#quest').onclick = () => this.openBook('quests');
@@ -187,6 +189,8 @@ export class UI {
   }
   /** the big 👋 button floating over Baby Mo until you've said hi once */
   private hiV = new THREE.Vector3();
+  /** the rotate button: shown while holding furniture, a turnable block, or planning a blueprint */
+  showRotate(on: boolean) { const b = $('#bRot'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
   /** the "Pray together" button shows near the masjid at prayer time */
   updatePray() {
     const show = this.g.canPrayTogether() && !this.g.prayingTogether && !this.modals.length;
@@ -415,10 +419,29 @@ export class UI {
     $('#tut').classList.toggle('hidden', !!bp || !this.g.kid.tutorialActive());
     if (bp) { $('#pbName').textContent = bp.icon + ' ' + t2(bp.name); $('#pbBuild span').textContent = tr('Bangun', 'Build'); }
   }
-  planState(ok: boolean) {
-    const t = ok ? tr('Tempatnya pas! Ketuk ✔', 'Looks good! Tap ✔') : tr('Terhalang — geser sedikit', 'Blocked — move a little');
+  /** blueprint status: where it's blocked and why, and which materials you have */
+  planState(ok: boolean, info?: { blocked: number; why: 'village' | 'you' | 'things' | null; missing: [number, number][]; cost: [number, number][] }) {
+    const why = info?.why;
+    const t = ok
+      ? (info?.missing.length ? tr('Tempatnya pas, tapi bahannya kurang', 'Good spot, but you need more materials') : tr('Tempatnya pas! Ketuk ✔', 'Looks good! Tap ✔'))
+      : why === 'village' ? tr('Terlalu dekat bangunan desa — geser ya', 'Too close to the village buildings — move a bit')
+      : why === 'you' ? tr('Kamu berdiri di dalamnya — mundur sedikit', 'You’re standing in it — step back a little')
+      : tr(`${info?.blocked ?? ''} kotak merah terhalang — geser sedikit`, `${info?.blocked ?? ''} red blocks are in the way — move a little`);
     const e = $('#pbState'); if (e.textContent !== t) e.textContent = t;
     $('#planBar').classList.toggle('bad', !ok);
+    if (info) {
+      const inv = this.g.inv;
+      const html = info.cost.map(([id, n]) => { const have = inv.count(id), enough = have >= n; return `<span class="${enough ? 'ok' : 'no'}"><img src="${iconURL(id)}" alt="">${Math.min(have, n)}/${n}</span>`; }).join('');
+      const m = $('#pbMats'); if (m.innerHTML !== html) m.innerHTML = html;
+    }
+  }
+  /** a progress bar while a blueprint builds itself */
+  buildProgress(frac: number | null, bp: Blueprint) {
+    let el = document.getElementById('buildProg');
+    if (frac === null) { el?.classList.add('done'); setTimeout(() => el?.remove(), 600); return; }
+    if (!el) { el = h(`<div id="buildProg" class="pill"><b></b><div class="bpbar"><i></i></div></div>`); $('#hud').appendChild(el); }
+    el.querySelector('b')!.textContent = `${bp.icon} ${tr('Membangun', 'Building')} ${t2(bp.name)}… ${Math.round(frac * 100)}%`;
+    (el.querySelector('.bpbar i') as HTMLElement).style.width = (frac * 100).toFixed(0) + '%';
   }
 
   private mapZoom = 1;

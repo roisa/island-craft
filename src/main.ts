@@ -12,7 +12,7 @@ import { buildTextureArray } from './world/atlas';
 import { initMesherTables, WorldUniforms } from './world/mesher';
 import { Generator, Biome, BIOME_INFO, SEA, VILLAGE_Y, H, CS } from './world/gen';
 import { World } from './world/world';
-import { B, I, BLOCKS, ITEMS, LETTERS, isBlockId, isLetter, nameOf } from './world/blocks';
+import { B, I, BLOCKS, ITEMS, LETTERS, isBlockId, isLetter, isDeco, nameOf } from './world/blocks';
 import { Player } from './game/player';
 import { Input, isTouch } from './game/input';
 import { Inventory, Recipe, Station, craft as doCraft } from './game/inventory';
@@ -24,6 +24,7 @@ import { FX } from './game/fx';
 import { Animator, applyPose, type AnimInput } from './game/animator';
 import { matOf } from './game/materials';
 import { Ambient } from './game/ambient';
+import { Decor, cleanDeco, faceToward } from './game/deco';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
@@ -99,6 +100,11 @@ export class Game {
   private crackPunch = 0;
   private moTapAt = 0;
   ambient: Ambient | null = null;
+  deco!: Decor;
+  /** extra quarter turns for the next furniture / turned block you place (the rotate button) */
+  placeRot = 0;
+  private blockGhost!: THREE.Group;
+  private aimDeco: ReturnType<Decor['raycast']> = null;
   private gameEvent: { p: Prayer; until: number; attended: boolean } | null = null;
   private lastHour = 0;
   private remindersShown = new Set<string>();
@@ -211,7 +217,11 @@ export class Game {
     };
     this.gen = new Generator(this.seed);
     this.world = new World(this.gen, this.uniforms);
+    this.deco = new Decor(this.scene);
+    this.blockGhost = this.makeBlockGhost();
     if (meta) {
+      this.deco.load(cleanDeco(meta.deco));
+      this.world.facing = Save.deserializeEdits(cleanEdits(meta.facing, CS * CS * H).edits);
       const raw = this.loadedFrom === 'backup' ? this.backupEdits : await Save.get('edits');
       const { edits, dropped } = cleanEdits(raw, CS * CS * H);
       if (dropped) console.warn('[save] dropped', dropped, 'bad edit entries');
@@ -537,6 +547,7 @@ export class Game {
     if (code === 'KeyQ') this.ui.openBook('quests');
     if (code === 'KeyM') this.ui.openBook('map');
     if (code === 'KeyR') this.ui.openBook('craft');
+    if (code === 'KeyT') this.rotatePlacement();
     if (code === 'KeyV' || code === 'F5') this.toggleCamera();
     if (code === 'KeyZ' && this.undo) this.doUndo();
     if (code === 'KeyF' && this.inv.creative) this.toggleFly();
@@ -648,12 +659,20 @@ export class Game {
       const hit = this.world.raycast(eye, dir, reach);
       const ent = this.ents.raycast(eye, dir, reach - 1, sx !== undefined ? 0.45 : 0.15);
       const entCloser = !!ent && (!hit || eye.distanceTo(ent.pos) < hit.dist + 0.6);
-      return { hit, ent, entCloser };
+      const dh = this.deco.raycast(eye, dir, reach);
+      const decoCloser = !!dh && (!hit || dh.dist < hit.dist + 0.05) && !(entCloser && ent && eye.distanceTo(ent.pos) < dh.dist);
+      return { hit, ent, entCloser: entCloser && !decoCloser, decoHit: decoCloser ? dh : null };
     };
     const ptr = inp.pointer;
     const A = ptr ? aim(ptr.x, ptr.y) : aim();
-    const { hit, ent, entCloser } = A;
-    if (hit && !entCloser) {
+    const { hit, ent, entCloser, decoHit } = A;
+    this.aimDeco = decoHit;
+    this.deco.select(decoHit?.d ?? null);
+    this.updatePlacementPreview(hit, entCloser || !!decoHit);
+    if (decoHit) {
+      this.highlight.visible = false;
+      this.ui.target(t2(nameOf(decoHit.d.id)) + tr(' · ketuk = putar, tahan = ambil', ' · tap = turn, hold = pick up'));
+    } else if (hit && !entCloser) {
       this.highlight.visible = true;
       this.highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
       this.ui.target(t2(nameOf(hit.id)));
@@ -664,18 +683,21 @@ export class Game {
 
     // mining (hold the button / mouse, or hold a finger on a block)
     const mining = inp.mineHeld || inp.pointerMine;
-    if (mining && hit && !entCloser) this.mineStep(dt, hit);
+    if (mining && decoHit) { inp.mineHeld = false; inp.pointerMine = false; this.pickUpDeco(decoHit.d); }
+    else if (mining && hit && !entCloser) this.mineStep(dt, hit);
     else { this.mining = null; this.ui.mineRing(0); this.crack.visible = false; }
     // a left click / tap-and-hold on a friend greets them (kids rarely find the right button)
     if (mining && entCloser && (ent instanceof Animal || ent instanceof Companion || ent instanceof Npc)) { inp.mineHeld = false; inp.pointerMine = false; this.useEntity(ent); }
     // use / place (button, right click, or a quick tap on the world)
     if (inp.takeUse()) {
-      if (entCloser && ent) this.useEntity(ent);
+      if (decoHit && !isDeco(this.inv.held()?.id ?? -1)) this.turnDeco(decoHit.d);
+      else if (entCloser && ent) this.useEntity(ent);
       else this.useBlock(hit);
     }
     if (inp.tapAt) {
       const T = aim(inp.tapAt.x, inp.tapAt.y); inp.tapAt = null;
-      if (T.entCloser && T.ent) this.useEntity(T.ent);
+      if (T.decoHit && !isDeco(this.inv.held()?.id ?? -1)) this.turnDeco(T.decoHit.d);
+      else if (T.entCloser && T.ent) this.useEntity(T.ent);
       else if (T.hit) this.useBlock(T.hit);
     }
 
@@ -779,6 +801,8 @@ export class Game {
     this.fx.breakBurst(at.x, at.y, at.z, id);
     SFX.breakMat(matOf(id)); haptic(8);
     this.ents.startleNear(at);
+    const onTop = this.deco.at(x, y + 1, z);
+    if (onTop) this.pickUpDeco(onTop);
     this.dirtySave = true;
     this.saplings = this.saplings.filter(s => !(s.x === x && s.y === y && s.z === z));
     if (LOG_LEAF[id]) this.fellTree(x, y, z, id);
@@ -847,6 +871,95 @@ export class Game {
     this.checkQuests();
   }
 
+  // ---------- building helpers: preview, rotation, furniture ----------
+  /** see-through block where the held block will go, with an arrow for blocks that face a way */
+  private makeBlockGhost() {
+    const g = new THREE.Group();
+    const box = new THREE.Mesh(new THREE.BoxGeometry(1.004, 1.004, 1.004), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.38, depthWrite: false }));
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.34, 4), new THREE.MeshBasicMaterial({ color: 0xffd874 }));
+    arrow.rotation.x = Math.PI / 2; arrow.position.set(0, 0, 0.62); arrow.name = 'arrow';
+    box.name = 'box'; edges.name = 'edges';
+    g.add(box, edges, arrow); g.visible = false;
+    this.scene.add(g);
+    return g;
+  }
+  /** blocks whose front looks different from their sides can be turned */
+  private turnable(id: number) { const b = BLOCKS[id]; return !!b && b.render === 'cube' && !!b.front && b.front !== b.side; }
+  /** the rotate button / T key: turn the next placement a quarter */
+  rotatePlacement() {
+    const held = this.inv.held()?.id ?? -1;
+    if (this.fun.plan) { this.fun.rotatePlan(); return; }
+    if (!(isDeco(held) || this.turnable(held))) return;
+    this.placeRot = (this.placeRot + 1) % 4; SFX.click(); haptic(4);
+  }
+  /** can a block / object go into cell (x,y,z)? */
+  private cellFree(x: number, y: number, z: number, solid: boolean) {
+    const cur = this.world.get(x, y, z);
+    if (cur !== B.AIR && cur !== B.WATER && cur !== B.TALL_GRASS) return false;
+    if (y <= 0 || y >= H - 1) return false;
+    if (this.deco.at(x, y, z)) return false;
+    if (this.kid.isProtected(x, y, z)) return false;
+    if (solid && this.player.occupies(x, y, z)) return false;
+    return true;
+  }
+  /** every frame: show what the held block or furniture would look like where you're aiming */
+  private updatePlacementPreview(hit: ReturnType<World['raycast']>, blocked: boolean) {
+    const held = this.inv.held()?.id ?? -1;
+    const g = this.blockGhost;
+    g.visible = false; this.deco.preview(null);
+    this.ui.showRotate(!this.fun.plan && (isDeco(held) || this.turnable(held))); // blueprints have their own rotate button
+    if (!hit || blocked || this.fun.plan || this.paused) return;
+    const p = this.player.pos;
+    if (isDeco(held)) {
+      if (hit.ny !== 1) return;
+      const x = hit.x, y = hit.y + 1, z = hit.z;
+      const rot = (faceToward(x, z, p.x, p.z) + this.placeRot) % 4;
+      this.deco.preview(held, x, y, z, rot, this.cellFree(x, y, z, false));
+      return;
+    }
+    if (!isBlockId(held)) return;
+    const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
+    const def = BLOCKS[held]!;
+    const ok = this.cellFree(x, y, z, def.solid);
+    g.position.set(x + 0.5, y + 0.5, z + 0.5);
+    const box = g.getObjectByName('box') as THREE.Mesh, edges = g.getObjectByName('edges') as THREE.LineSegments, arrow = g.getObjectByName('arrow')!;
+    (box.material as THREE.MeshBasicMaterial).color.setHex(ok ? def.color : 0xff6b6b);
+    (edges.material as THREE.LineBasicMaterial).color.setHex(ok ? 0xffffff : 0xff4040);
+    box.scale.setScalar(def.render === 'cross' ? 0.6 : 1); box.position.y = def.render === 'cross' ? -0.2 : 0;
+    arrow.visible = this.turnable(held) && ok;
+    g.rotation.y = ((faceToward(x, z, p.x, p.z) + this.placeRot) % 4) * Math.PI / 2;
+    g.visible = true;
+  }
+  /** furniture you aim at: Use turns it, holding Mine picks it up */
+  private turnDeco(d: NonNullable<ReturnType<Decor['raycast']>>['d']) {
+    this.deco.turn(d); SFX.placeMat('wood'); haptic(5);
+    this.fx.puff(d.x + 0.5, d.y + 0.5, d.z + 0.5, B.PLANKS);
+    this.anim.play('build'); this.saveSoon();
+  }
+  private pickUpDeco(d: NonNullable<ReturnType<Decor['raycast']>>['d']) {
+    this.deco.remove(d);
+    this.inv.add(d.id, 1);
+    this.collectFx(d.id, 1, new THREE.Vector3(d.x + 0.5, d.y + 0.4, d.z + 0.5));
+    SFX.breakMat('wood'); haptic(8); this.anim.play('collect'); this.saveSoon();
+  }
+  private placeDeco(hit: NonNullable<ReturnType<World['raycast']>>, id: number) {
+    if (hit.ny !== 1) { this.ui.toast(tr('Taruh di atas lantai atau tanah ya 🪑', 'Put it on top of the floor or ground 🪑')); return; }
+    const x = hit.x, y = hit.y + 1, z = hit.z;
+    if (!this.cellFree(x, y, z, false)) { SFX.error(); this.ui.toast(tr('Tempatnya sudah terisi', 'That spot is taken')); return; }
+    if (this.world.get(x, y, z) === B.TALL_GRASS) this.world.set(x, y, z, B.AIR);
+    const rot = (faceToward(x, z, this.player.pos.x, this.player.pos.z) + this.placeRot) % 4;
+    this.deco.place(id, x, y, z, rot);
+    this.inv.useHeld();
+    this.stats.placed++;
+    this.stats.decorated = (this.stats.decorated || 0) + 1;
+    SFX.placeMat('wood'); haptic(6);
+    this.fx.puff(x + 0.5, y + 0.5, z + 0.5, B.PLANKS);
+    this.anim.play('build');
+    if (this.stats.decorated === 1) this.ui.say(tr('Cantik! Ketuk hiasan untuk memutarnya, tahan untuk mengambilnya lagi 🪑', 'Pretty! Tap a decoration to turn it, hold to pick it up again 🪑'), 'ok', 6000);
+    this.checkQuests(); this.saveSoon();
+  }
+
   private flyBurst = 0;
   private flyBurstAt = 0;
   /** show an item arriving: flies from `from` to the player when given, else just the bag notice */
@@ -872,11 +985,13 @@ export class Game {
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
     }
     if (held && held.id === I.BOAT) { this.fun.tryBoat(); return; }
+    if (held && isDeco(held.id)) { if (hit) this.placeDeco(hit, held.id); return; }
     if (held && FOOD.has(held.id)) { this.eat(); return; }
     if (!hit || !held || !isBlockId(held.id)) { if (!hit && !held) return; if (held && !isBlockId(held.id) && !FOOD.has(held.id)) this.ui.toast(tr('Pegang balok untuk dipasang 🧱', 'Hold a block to place it 🧱')); return; }
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
     const cur = this.world.get(x, y, z);
     if (cur !== B.AIR && cur !== B.WATER && cur !== B.TALL_GRASS) return;
+    if (this.deco.at(x, y, z)) { SFX.error(); return; }
     const def = BLOCKS[held.id]!;
     if (def.solid && this.player.occupies(x, y, z)) return;
     if (y <= 0 || y >= H - 1) return;
@@ -891,6 +1006,7 @@ export class Game {
       }
     }
     this.world.set(x, y, z, held.id);
+    if (this.turnable(held.id)) this.world.setFacing(x, y, z, (faceToward(x, z, this.player.pos.x, this.player.pos.z) + this.placeRot) % 4);
     this.setUndo([[x, y, z, held.id]], this.inv.creative ? [] : [[held.id, 1]]);
     this.inv.useHeld();
     this.stats.placed++;
@@ -1335,6 +1451,7 @@ export class Game {
       inv: this.inv.toJSON(), stats: this.stats as unknown as Record<string, unknown>, questsDone: [...this.questsDone], claimed: [...this.claimed],
       saplings: this.saplings, settings: this.settings as unknown as Record<string, unknown>,
       savedAt: Date.now(), saves: ++this.saveCount,
+      deco: this.deco.toJSON(), facing: Save.serializeEdits(this.world.facing),
     };
     const edits: Edits = Save.serializeEdits(this.world.edits);
     // meta and edits in one transaction, so they can never get out of step

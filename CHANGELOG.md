@@ -5,6 +5,64 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M6 · Building
+
+- **Placement preview:** while you hold a block and aim, a see-through copy
+  shows exactly where it will go. It is tinted in the block's colour, or
+  red when it can't go there: something in the way, a protected village
+  building, or you standing in that spot.
+- **Blocks that face a way:**
+  - The furnace, treasure chest and other blocks with a distinct front now
+    face *you* when placed. Before, they always faced south.
+  - The **rotate button** (or **T** on a keyboard) turns the next one a
+    quarter. The preview shows a gold arrow for the front.
+  - Facing is stored per block, saved with the game and drawn by the mesher.
+- **Furniture & decorations** (`src/game/deco.ts`): 11 new items made at the
+  workbench:
+  - **Prayer mat** (sajadah), **table**, **chair**, **floor cushion**,
+    **potted plant**, **standing lamp** (glowing shade), **bowl of dates**,
+    **ketupat decoration**, **rug**, **book stand** (rehal) with an open
+    book, and a **glowing crescent**.
+  - Each has a pixel icon, a 3D model and a recipe from things the game
+    already gives you.
+  - They sit on top of any block, facing you, with a see-through preview
+    first. The rotate button / T turns the next one.
+  - **Aim at one to select it:** a gold outline shows, with "tap = turn,
+    hold = pick up".
+  - **Use / tap** turns it a quarter. **Hold Mine** picks it back up into
+    the bag.
+  - Breaking the block under one gives it back. Blocks can't be placed
+    into a furniture cell.
+  - Saved with the game, and included in backups and save files. Old
+    saves load with none.
+  - A new quest, **Decorate your home** (place 3), gives a lamp and
+    cushions.
+- **Blueprint feedback:**
+  - Only the cells that are actually in the way turn red; the rest stay
+    green.
+  - The plan bar says *why*: "Too close to the village buildings", "You're
+    standing in it — step back", or "3 red blocks are in the way".
+  - It lists every material as have/need chips (green when you have enough,
+    red when not), and says "Good spot, but you need more materials".
+  - While a blueprint builds itself, a progress bar shows, e.g. "🏠
+    Building Little House… 73%".
+- Fix: the ketupat recipe uses a palm sapling (palm leaves never drop as an
+  item, so a leaves recipe could not be made).
+- Tests: 4 unit tests for furniture. They check that every decoration is an
+  item with a model that fits its cell and a recipe, that it faces the
+  player, place/turn/raycast/remove, and the save cleaning. The smoke test
+  places, turns and picks up a table on all four profiles. Checked in
+  game:
+  - All 11 decorations placed through the normal Use path, and the
+    preview shows while holding one.
+  - A furnace placed from the east faces east, and with one rotate it faces
+    the next way.
+  - Near the masjid the blueprint shows red cells, "Too close to the
+    village buildings" and 0/12, 6/66… chips. On open grass: "Good spot,
+    but you need more materials", then with materials "Looks good!" and
+    "Building Little House… 73%".
+  - Decorations (10) and block facing (2) survive save and reload.
+
 ### M5 · Living world
 
 - **Villagers have days** (`src/game/routines.ts`). Each villager walks

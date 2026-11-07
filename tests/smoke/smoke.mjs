@@ -107,6 +107,19 @@ async function run(name) {
       if (r.placed !== 1 || r.block !== 20 || r.used !== 1) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('place, turn and pick up furniture', async () => {
+      const r = await g(() => {
+        const G = __game, w = G.world, x = 22, z = 26; let y = 100; while (y > 1 && !w.get(x, y, z)) y--;
+        G.inv.slots[0] = { id: 231, n: 1 }; G.inv.sel = 0; // a table
+        G.useBlock({ x, y, z, id: w.get(x, y, z), nx: 0, ny: 1, nz: 0, dist: 2 });
+        const d = G.deco.at(x, y + 1, z); if (!d) return { placed: false };
+        const r0 = d.rot; G.turnDeco(d); const turned = d.rot === (r0 + 1) % 4;
+        G.pickUpDeco(d);
+        return { placed: true, turned, back: G.inv.count(231), gone: !G.deco.at(x, y + 1, z) };
+      });
+      if (!r.placed || !r.turned || r.back !== 1 || !r.gone) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet);
         if (!a) return { skipped: true };

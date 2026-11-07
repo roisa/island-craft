@@ -157,8 +157,9 @@ export class Fun {
   // blueprint placement
   plan: { bp: Blueprint; rot: number; manual: number; origin: THREE.Vector3; ok: boolean } | null = null;
   private ghost: THREE.Group = new THREE.Group();
-  private ghostOk = new THREE.MeshBasicMaterial({ color: 0x6bf08a, transparent: true, opacity: 0.35, depthWrite: false });
-  private ghostBad = new THREE.MeshBasicMaterial({ color: 0xff6b6b, transparent: true, opacity: 0.35, depthWrite: false });
+  /** one see-through material; each cell is tinted green (free) or red (in the way) */
+  private ghostMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false });
+  private cOk = new THREE.Color(0x6bf08a); private cBad = new THREE.Color(0xff4d4d);
   building = false;
 
   constructor(public g: Game) { g.scene.add(this.ghost); }
@@ -230,9 +231,9 @@ export class Fun {
     if (!this.plan) return;
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const cs = this.cells();
-    const m = new THREE.InstancedMesh(geo, this.ghostOk, cs.length);
+    const m = new THREE.InstancedMesh(geo, this.ghostMat, cs.length);
     const M = new THREE.Matrix4();
-    cs.forEach(([x, y, z], i) => m.setMatrixAt(i, M.makeTranslation(x + 0.5, y + 0.5, z + 0.5)));
+    cs.forEach(([x, y, z], i) => { m.setMatrixAt(i, M.makeTranslation(x + 0.5, y + 0.5, z + 0.5)); m.setColorAt(i, this.cOk); });
     m.instanceMatrix.needsUpdate = true;
     this.ghost.add(m);
   }
@@ -250,14 +251,22 @@ export class Fun {
     if (quarter !== p.rot) { p.rot = quarter; this.rebuildGhost(); }
     p.origin.set(ox, oy, oz);
     this.ghost.position.copy(p.origin);
-    let ok = true;
-    for (const [x, y, z] of this.cells()) {
-      const id = g.world.get(ox + x, oy + y, oz + z);
-      if (!(id === B.AIR || id === B.WATER || BLOCKS[id]?.render === 'cross') || g.kid.isProtected(ox + x, oy + y, oz + z) || g.player.occupies(ox + x, oy + y, oz + z)) { ok = false; break; }
-    }
-    p.ok = ok;
-    (this.ghost.children[0] as THREE.InstancedMesh).material = ok ? this.ghostOk : this.ghostBad;
-    g.ui.planState(ok);
+    // check every cell; only the ones in the way turn red, and we say why
+    let blocked = 0, why: 'village' | 'you' | 'things' | null = null;
+    const m = this.ghost.children[0] as THREE.InstancedMesh;
+    this.cells().forEach(([x, y, z], i) => {
+      const wx = ox + x, wy = oy + y, wz = oz + z;
+      const id = g.world.get(wx, wy, wz);
+      let bad: typeof why = null;
+      if (g.kid.isProtected(wx, wy, wz)) bad = 'village';
+      else if (g.player.occupies(wx, wy, wz)) bad = 'you';
+      else if (!(id === B.AIR || id === B.WATER || BLOCKS[id]?.render === 'cross') || g.deco.at(wx, wy, wz)) bad = 'things';
+      if (bad) { blocked++; why ??= bad; if (bad === 'village' || bad === 'you') why = bad; }
+      m.setColorAt(i, bad ? this.cBad : this.cOk);
+    });
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    p.ok = blocked === 0;
+    g.ui.planState(p.ok, { blocked, why, missing: this.missing(p.bp), cost: blueprintCost(p.bp) });
   }
   missing(bp: Blueprint): [number, number][] {
     if (this.g.inv.creative) return [];
@@ -284,9 +293,11 @@ export class Fun {
         if (i % 4 === 0) g.fx.debris(o.x + x + 0.5, o.y + y + 0.5, o.z + z + 0.5, BLOCKS[id]?.color ?? 0xffffff, 2);
       }
       if (i % 9 === 0) SFX.place();
+      g.ui.buildProgress(i / cs.length, bp);
       if (i < cs.length) setTimeout(tick, 45);
       else {
         this.building = false;
+        g.ui.buildProgress(null, bp);
         g.stats.placed += cs.length;
         g.stats.built = (g.stats.built || 0) + 1;
         g.setUndo(cs.map(([x, y, z, id]) => [o.x + x, o.y + y, o.z + z, id] as [number, number, number, number]), refund);

@@ -20,6 +20,8 @@ export enum I {
   WOOD_SHOVEL = 207, STONE_SHOVEL = 208, IRON_SHOVEL = 209,
   COAL = 210, IRON_INGOT = 211, GOLD_INGOT = 212, CRYSTAL = 213,
   DATES = 214, MILK = 215, EGG = 216, APPLE = 217, TAKJIL = 218, KOLAK = 219, BOAT = 220,
+  // furniture & decorations (placed as objects, see game/deco.ts)
+  PRAYER_MAT = 230, TABLE = 231, CHAIR = 232, CUSHION = 233, PLANT_POT = 234, LAMP = 235, DATES_BOWL = 236, KETUPAT = 237, RUG = 238, BOOK_STAND = 239, CRESCENT = 240,
 }
 
 export type ToolKind = 'pick' | 'axe' | 'shovel';
@@ -49,6 +51,8 @@ export interface ItemDef {
   icon: string;        // tile/icon name drawn by the atlas
   tool?: { kind: ToolKind; tier: number; speed: number };
   food?: boolean;
+  /** furniture / decoration placed as an object */
+  deco?: boolean;
   stack: number;
 }
 
@@ -154,6 +158,17 @@ item(I.APPLE, ['Apel', 'Apple'], 'i_apple', { food: true });
 item(I.TAKJIL, ['Takjil Kurma & Susu', 'Dates & Milk Iftar Plate'], 'i_takjil', { food: true });
 item(I.KOLAK, ['Kue Ramadhan', 'Ramadan Cake'], 'i_kolak', { food: true });
 item(I.BOAT, ['Perahu', 'Boat'], 'i_boat', { stack: 1 });
+item(I.PRAYER_MAT, ['Sajadah', 'Prayer Mat'], 'i_prayer_mat', { stack: 16, deco: true });
+item(I.TABLE, ['Meja', 'Table'], 'i_table', { stack: 16, deco: true });
+item(I.CHAIR, ['Kursi', 'Chair'], 'i_chair', { stack: 16, deco: true });
+item(I.CUSHION, ['Bantal Duduk', 'Floor Cushion'], 'i_cushion', { stack: 16, deco: true });
+item(I.PLANT_POT, ['Pot Tanaman', 'Potted Plant'], 'i_plant_pot', { stack: 16, deco: true });
+item(I.LAMP, ['Lampu Hias', 'Standing Lamp'], 'i_lamp', { stack: 16, deco: true });
+item(I.DATES_BOWL, ['Mangkuk Kurma', 'Bowl of Dates'], 'i_dates_bowl', { stack: 16, deco: true });
+item(I.KETUPAT, ['Hiasan Ketupat', 'Ketupat Decoration'], 'i_ketupat', { stack: 16, deco: true });
+item(I.RUG, ['Karpet', 'Rug'], 'i_rug', { stack: 16, deco: true });
+item(I.BOOK_STAND, ['Rehal (Tempat Buku)', 'Book Stand'], 'i_book_stand', { stack: 16, deco: true });
+item(I.CRESCENT, ['Hiasan Bulan Sabit', 'Crescent Decoration'], 'i_crescent', { stack: 16, deco: true });
 
 // ---- hijaiyah letters ---------------------------------------------------
 export interface Letter { g: string; ar: string; name: string; lat: string; }
@@ -173,6 +188,7 @@ LETTERS.forEach((L, i) => {
   });
 });
 
+export const isDeco = (id: number) => !!ITEMS.get(id)?.deco;
 export const isLetter = (id: number) => id >= B.LETTER_0 && id < B.LETTER_0 + 28;
 export const isBlockId = (id: number) => id > 0 && id < 200 && !!BLOCKS[id];
 

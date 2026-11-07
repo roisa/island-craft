@@ -70,6 +70,18 @@ export interface Recipe { out: number; n: number; ins: [number, number][]; at: S
 
 const anyLog: [number, number][] = [[B.OAK_LOG, 1]];
 export const RECIPES: Recipe[] = [
+  // furniture & decorations, made at the workbench
+  { out: I.TABLE, n: 1, ins: [[B.PLANKS, 4]], at: 'workbench', tag: 'deco' },
+  { out: I.CHAIR, n: 1, ins: [[B.PLANKS, 2], [I.STICK, 2]], at: 'workbench', tag: 'deco' },
+  { out: I.PRAYER_MAT, n: 1, ins: [[B.WOOL_GREEN, 2], [B.WOOL_YELLOW, 1]], at: 'workbench', tag: 'deco' },
+  { out: I.RUG, n: 1, ins: [[B.WOOL_RED, 3]], at: 'workbench', tag: 'deco' },
+  { out: I.CUSHION, n: 2, ins: [[B.WOOL_RED, 1], [B.WOOL_WHITE, 1]], at: 'workbench', tag: 'deco' },
+  { out: I.PLANT_POT, n: 1, ins: [[B.BRICK, 1], [B.FLOWER_RED, 1]], at: 'workbench', tag: 'deco' },
+  { out: I.LAMP, n: 1, ins: [[B.LANTERN, 1], [I.STICK, 2]], at: 'workbench', tag: 'deco' },
+  { out: I.DATES_BOWL, n: 1, ins: [[B.PLANKS, 1], [I.DATES, 3]], at: 'workbench', tag: 'deco' },
+  { out: I.KETUPAT, n: 2, ins: [[B.PALM_SAPLING, 1]], at: 'workbench', tag: 'deco' },
+  { out: I.BOOK_STAND, n: 1, ins: [[B.PLANKS, 2]], at: 'workbench', tag: 'deco' },
+  { out: I.CRESCENT, n: 1, ins: [[B.GOLD_TILE, 1], [I.STICK, 1]], at: 'workbench', tag: 'deco' },
   { out: B.PLANKS, n: 4, ins: anyLog, at: null },
   { out: B.PLANKS, n: 4, ins: [[B.PINE_LOG, 1]], at: null },
   { out: B.PLANKS, n: 4, ins: [[B.PALM_LOG, 1]], at: null },

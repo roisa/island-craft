@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { BLOCKS, B } from './blocks';
 import { layerOf } from './atlas';
-import { CS, H } from './gen';
+import { CS, H, idx } from './gen';
 
 export interface MeshInput {
   /** padded block array (CS+2)² × H, index ((y*(P)+z)*(P)+x) with x,z shifted by +1 */
@@ -14,6 +14,8 @@ export interface MeshInput {
   /** emitters near this chunk in chunk-local coords: x,y,z,level */
   lights: number[];
   ox: number; oz: number;
+  /** which way blocks with a front face point (chunk-local cell index → 0 +z, 1 +x, 2 −z, 3 −x) */
+  facing?: Map<number, number>;
 }
 
 export const PS = CS + 2;
@@ -64,12 +66,14 @@ const FACES = [
   { n: [-1, 0, 0], c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], shade: 0.68, kind: 1 }, // west
 ] as const;
 const UVS = [[0, 0], [1, 0], [1, 1], [0, 1]];
+/** face index (in FACES) that shows the front for facing 0..3: south, east, north, west */
+const FRONT_FACE = [2, 4, 3, 5];
 const AO = [0.42, 0.62, 0.8, 1];
 
 export interface ChunkGeoms { solid: THREE.BufferGeometry | null; cross: THREE.BufferGeometry | null; water: THREE.BufferGeometry | null }
 
 export function meshChunk(inp: MeshInput): ChunkGeoms {
-  const { pad, hm, lights } = inp;
+  const { pad, hm, lights, facing } = inp;
   const solid = new Buf(), cross = new Buf(), water = new Buf();
   const get = (x: number, y: number, z: number) => (y < 0 ? B.BEDROCK : y >= H ? 0 : pad[pidx(x, y, z)]);
   const occ = (x: number, y: number, z: number) => (y >= 0 && y < H && OPAQUE[pad[pidx(x, y, z)]] === 1 ? 1 : 0);
@@ -129,7 +133,9 @@ export function meshChunk(inp: MeshInput): ChunkGeoms {
         if ((CUT[id] || GLASSY[id]) && nb === id) continue;
       }
       const buf = r === 3 ? water : solid;
-      const L = r === 3 ? LT[id] : F.kind === 0 ? LT[id] : F.kind === 2 ? LB[id] : F.kind === 3 ? LF[id] : LS[id];
+      let L = r === 3 ? LT[id] : F.kind === 0 ? LT[id] : F.kind === 2 ? LB[id] : F.kind === 3 ? LF[id] : LS[id];
+      // turned blocks (furnace, chest...): the front texture goes on the side they face
+      if (facing && f >= 2 && LF[id] !== LS[id]) { const rot = facing.get(idx(x, y, z)); if (rot) L = f === FRONT_FACE[rot] ? LF[id] : LS[id]; }
       const base = buf.n;
       const aos: number[] = [];
       const waterTop = r === 3 && get(x, y + 1, z) !== B.WATER;

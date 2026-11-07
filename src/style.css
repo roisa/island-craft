@@ -561,3 +561,21 @@ body.praying-together #tut, body.praying-together #desktopHint, body.praying-tog
 .lc-right .lreward { flex-wrap: nowrap; margin: 0 0 2px; font-size: 12px; gap: 8px; }
 .lc-right .lreward + p { margin-top: 2px; }
 .lc-right .lgift img { width: 18px; height: 18px; }
+/* rotate the next furniture / turned block (also T on a keyboard) */
+#bRot { position: absolute; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(250px + var(--safe-b)); pointer-events: auto; width: 54px; height: 54px; display: grid; place-items: center; padding: 0; border: 2px solid var(--gold); }
+#bRot svg { width: 26px; height: 26px; }
+#bRot.spin svg { animation: rspin .3s ease-out; }
+@keyframes rspin { from { transform: rotate(-90deg); } to { transform: rotate(0); } }
+body.desktop #bRot { bottom: calc(110px + var(--safe-b)); right: 20px; }
+/* blueprint materials: have / need */
+#pbMats { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 3px; }
+#pbMats span { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 900; padding: 1px 6px 1px 2px; border-radius: 999px; }
+#pbMats span.ok { background: #e3f7e6; color: #17803d; }
+#pbMats span.no { background: #ffe5e5; color: #c0392b; }
+#pbMats img { width: 18px; height: 18px; image-rendering: pixelated; }
+/* blueprint building itself */
+#buildProg { position: absolute; left: 50%; top: calc(70px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); padding: 8px 14px; min-width: 240px; text-align: center; border: 2px solid var(--gold); transition: opacity .5s; }
+#buildProg b { display: block; font-size: 14px; font-weight: 900; margin-bottom: 5px; }
+#buildProg .bpbar { height: 8px; border-radius: 99px; background: #eadfc4; overflow: hidden; }
+#buildProg .bpbar i { display: block; height: 100%; background: linear-gradient(90deg, #ffc23a, #f59e0b); border-radius: 99px; transition: width .1s linear; }
+#buildProg.done { opacity: 0; }

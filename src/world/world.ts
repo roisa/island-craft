@@ -44,6 +44,8 @@ export interface RayHit { x: number; y: number; z: number; id: number; nx: numbe
 export class World {
   chunks = new Map<string, Chunk>();
   edits = new Map<string, Map<number, number>>();
+  /** which way turned blocks face: chunk key → cell index → 1..3 (0 = the default, south) */
+  facing = new Map<string, Map<number, number>>();
   group = new THREE.Group();
   mats: ReturnType<typeof makeMaterials>;
   radius = 5;
@@ -89,6 +91,7 @@ export class World {
     const old = c.data[i];
     if (old === id) return false;
     c.data[i] = id;
+    this.facing.get(c.key())?.delete(i); // a new block starts facing the default way
     c.computeColumn(lx, lz);
     const lightChange = emission(old) > 0 || emission(id) > 0;
     if (lightChange) c.computeLights();
@@ -108,6 +111,19 @@ export class World {
     return true;
   }
 
+  getFacing(x: number, y: number, z: number) {
+    const c = this.chunkAt(x, z); if (!c) return 0;
+    return this.facing.get(c.key())?.get(idx(x - c.cx * CS, y, z - c.cz * CS)) ?? 0;
+  }
+  /** turn the block at (x,y,z) to face 0 (+z), 1 (+x), 2 (−z) or 3 (−x) */
+  setFacing(x: number, y: number, z: number, rot: number) {
+    const c = this.chunkAt(x, z); if (!c) return;
+    const i = idx(x - c.cx * CS, y, z - c.cz * CS);
+    let m = this.facing.get(c.key());
+    if (!rot) m?.delete(i);
+    else { if (!m) this.facing.set(c.key(), m = new Map()); m.set(i, rot); }
+    c.dirty = true;
+  }
   private generateChunk(cx: number, cz: number) {
     const c = new Chunk(cx, cz);
     c.biome = this.gen.generate(cx, cz, c.data);
@@ -147,7 +163,7 @@ export class World {
         lights.push(x, L[i + 1] + 0.5, z, L[i + 3]);
       }
     }
-    const g = meshChunk({ pad, hm, lights, ox: c.cx * CS, oz: c.cz * CS });
+    const g = meshChunk({ pad, hm, lights, ox: c.cx * CS, oz: c.cz * CS, facing: this.facing.get(c.key()) });
     this.disposeGroup(c);
     const grp = new THREE.Group();
     grp.position.set(c.cx * CS, 0, c.cz * CS);

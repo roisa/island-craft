@@ -17,6 +17,10 @@ export interface SaveMeta {
   stats?: Record<string, unknown>; questsDone: string[]; claimed: number[];
   saplings: unknown[]; settings: Record<string, unknown>;
   savedAt: number; saves: number;
+  /** furniture & decorations: [id, x, y, z, rot][] (cleaned by deco.ts on load) */
+  deco?: unknown;
+  /** facing of turned blocks, same layout as edits */
+  facing?: Edits;
 }
 export type Edits = Record<string, number[]>;
 
