@@ -141,9 +141,11 @@ export class World {
     return true;
   }
 
+  // scratch buffers reused for every chunk we mesh (no 37 KB allocation per chunk → less garbage on phones)
+  private padBuf = new Uint8Array(PS * PS * H);
+  private hmBuf = new Int16Array(PS * PS);
   private meshOne(c: Chunk) {
-    const pad = new Uint8Array(PS * PS * H);
-    const hm = new Int16Array(PS * PS);
+    const pad = this.padBuf, hm = this.hmBuf;
     const lights: number[] = [];
     const nb: Chunk[] = [];
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) nb.push(this.chunks.get((c.cx + dx) + ',' + (c.cz + dz))!);

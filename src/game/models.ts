@@ -2,6 +2,7 @@
 // Characters use "chamfered" boxes (three overlapping boxes) so heads and
 // bodies read as soft and rounded, and smooth hand-drawn faces that blink.
 import * as THREE from 'three';
+import { mergeRig } from './merge';
 
 const matCache = new Map<string, THREE.Material>();
 /** Lambert material with a little self-light so colours stay cheerful in shade. */
@@ -336,6 +337,12 @@ function quad(bodyW: number, bodyH: number, bodyL: number, legH: number, bodyM: 
 }
 
 export function buildAnimal(kind: AnimalKind): Rig & { wool?: THREE.Object3D } {
+  const r = buildAnimalParts(kind);
+  // one mesh per material for each moving part; the wool stays its own part (it shrinks when sheared)
+  mergeRig(r.root, [r.body, r.head, ...r.legs, ...(r.wool ? [r.wool] : [])]);
+  return r;
+}
+function buildAnimalParts(kind: AnimalKind): Rig & { wool?: THREE.Object3D } {
   const eye = mat(0x1a1a1a);
   if (kind === 'chicken') {
     const root = new THREE.Group(), body = new THREE.Group(); root.add(body);

@@ -78,7 +78,7 @@ passing; a changelog entry; a commit; and a push to the feature branch.
 | M5 | **Living world** ✅ | NPC day routines (walk between home, market, masjid), idle behaviours, greetings when the player is near, animals that graze, flee gently, sleep at night; pet tricks; ambient birds, butterflies, fireflies |
 | M6 | **Building** ✅ | Placement preview, rotation of directional blocks, grid snapping for blueprints, new furniture and decorations, clearer blueprint progress |
 | M7 | **Exploration** ✅ | Handcrafted landmarks placed in the generated world, hidden spots, treasure trails, discoveries recorded in the map |
-| M8 | **Performance** | Merge character meshes to cut draw calls, smarter chunk budget or a worker, geometry and texture disposal, reliable touch input |
+| M8 | **Performance** ✅ | Merge character meshes to cut draw calls, smarter chunk budget or a worker, geometry and texture disposal, reliable touch input |
 | M9 | **QA pass** | The smoke suite on desktop, iPhone, iPad and Android profiles; a check that letters, quiz, word game, prayer times, Ramadhan calendar, du'a and picnic still work |
 
 ### Testing limits (stated up front)

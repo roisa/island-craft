@@ -3,6 +3,7 @@
 // an open smile, a backpack, cuffed sleeves and sneakers. One builder makes
 // Baby Mo (green), Adam (blue hoodie), Baby Ais (pink) and the villagers.
 import * as THREE from 'three';
+import { mergeRig } from './merge';
 import type { Rig } from './models';
 
 const mats = new Map<string, THREE.Material>();
@@ -238,9 +239,12 @@ export function buildBlocky(o: BlockyOpts): Rig {
     }
     if (o.peci !== undefined) headG.add(bbox(HEAD + 0.08, 0.16, HEAD + 0.08, m(o.peci), 0, HEAD + 0.06, 0, undefined, 0.02));
   }
-  const fronts = headBox.children as THREE.Mesh[];
-  const blink = (closed: boolean) => { for (const f of fronts) (f.material as THREE.Material[])[4] = closed ? shut : open; };
+  // blinking swaps the face picture on the one face material, so it keeps working after the meshes are merged
+  const openMap = (open as THREE.MeshLambertMaterial).map, shutMap = (shut as THREE.MeshLambertMaterial).map;
+  const blink = (closed: boolean) => { const fm = open as THREE.MeshLambertMaterial; const want = closed ? shutMap : openMap; if (fm.map !== want) { fm.map = want; fm.emissiveMap = want; } };
   const height = LEG + TORSO + HEAD + 0.14;
+  // bake the many little boxes of each joint into one mesh per material (≈110 → ≈20 draw calls)
+  mergeRig(root, [body, headG, L.g, R.g, ...legs, R.hand]);
   return { root, body, head: headG, armL: L.g, armR: R.g, legs, height, blink, hand: R.hand, hip: LEG, scale: 1, neck: LEG + TORSO };
 }
 

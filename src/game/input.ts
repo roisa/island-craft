@@ -26,7 +26,11 @@ export class Input {
       this.onKey?.(e.code);
     });
     addEventListener('keyup', e => this.keys.delete(e.code));
-    addEventListener('blur', () => { this.keys.clear(); this.mineHeld = false; });
+    // the app going to the background (or the window losing focus) can swallow "touch ended":
+    // let go of everything so nothing stays stuck walking or mining
+    addEventListener('blur', () => this.reset());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.reset(); });
+    addEventListener('pagehide', () => this.reset());
 
     canvas.addEventListener('mousedown', e => {
       if (isTouch || !this.enabled) return;
@@ -45,6 +49,15 @@ export class Input {
     addEventListener('wheel', e => { if (this.locked) this.wheel += Math.sign(e.deltaY); }, { passive: true });
   }
 
+  private resetTouch: (() => void) | null = null;
+  /** release every key, button, stick and finger (also called when a pop-up opens) */
+  reset() {
+    this.keys.clear();
+    this.mineHeld = this.jumpHeld = this.downHeld = false;
+    this.pointerMine = false; this.pointer = null; this.tapAt = null; this.usePressed = false;
+    this.move.x = this.move.y = 0;
+    this.resetTouch?.();
+  }
   axis() {
     let fx = this.move.x, fz = this.move.y;
     if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) fz -= 1;
@@ -109,11 +122,17 @@ export class Input {
       const up = (e: Event) => { e.preventDefault(); set(false); el.classList.remove('down'); };
       el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
     };
+    this.resetTouch = () => {
+      sid = null; knob.style.transform = '';
+      lid = null; clearTimeout(holdTimer); dragged = false;
+      for (const b of [btn.jump, btn.mine, btn.down, btn.use]) b.classList.remove('down');
+    };
     hold(btn.jump, v => (this.jumpHeld = v));
     hold(btn.mine, v => (this.mineHeld = v));
     hold(btn.down, v => (this.downHeld = v));
     btn.use.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); this.usePressed = true; btn.use.classList.add('down'); }, { passive: false });
     btn.use.addEventListener('touchend', () => btn.use.classList.remove('down'));
+    btn.use.addEventListener('touchcancel', () => btn.use.classList.remove('down'));
   }
   private updateStick(dx: number, dy: number, R: number, knob: HTMLElement) {
     const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / R);

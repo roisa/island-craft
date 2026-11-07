@@ -411,6 +411,15 @@ export class Companion extends Entity {
   }
 }
 
+/** free what belongs to one animal: its merged geometry and any name tag (materials are shared, kept) */
+export function disposeRig(root: THREE.Object3D) {
+  root.traverse(o => {
+    const m = o as THREE.Mesh;
+    if (m.isMesh) m.geometry.dispose();
+    if ((o as THREE.Sprite).isSprite) { const sm = (o as THREE.Sprite).material; sm.map?.dispose(); sm.dispose(); }
+  });
+}
+
 // ---- manager ---------------------------------------------------------------------
 const BIOME_ANIMALS: Partial<Record<Biome, AnimalKind[]>> = {
   [Biome.MEADOW]: ['sheep', 'cow', 'chicken', 'sheep'],
@@ -458,7 +467,14 @@ export class Entities {
   }
   despawnChunk(c: Chunk) {
     const k = c.key();
-    this.animals = this.animals.filter(a => { if (a.chunk === k) { this.scene.remove(a.rig.root); return false; } return true; });
+    this.animals = this.animals.filter(a => {
+      if (a.chunk !== k) return true;
+      // a camel you're riding (or a friend following you) comes along instead of vanishing
+      if (a.ridden || a.follow) { a.chunk = 'wild'; return true; }
+      this.scene.remove(a.rig.root);
+      disposeRig(a.rig.root);
+      return false;
+    });
   }
   addNpc(n: Npc) { this.npcs.push(n); this.scene.add(n.rig.root); }
 

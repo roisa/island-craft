@@ -5,6 +5,58 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M8 · Performance
+
+Measured in headless Chromium with a software GPU, desktop 1100×680, a new
+world after loading (the same script as the V1 baseline in `docs/V2_PLAN.md`).
+
+| | Before M8 | After M8 |
+|---|---|---|
+| Draw calls per frame | 1509 | **209** (−86%) |
+| Scene objects drawn | 1119 | 386 |
+| Geometries in memory | 333 | 115 |
+| Triangles | 33,072 | 30,542 |
+| Load to playable | 2369 ms | 2085 ms |
+
+- **Characters are merged** (`src/game/merge.ts`):
+  - After a character or animal is built, all the little bevelled boxes in
+    each moving part (body, head, each arm and leg, the hand) are baked into
+    **one mesh per material** for that part.
+  - A villager went from 109 meshes to 7; Baby Mo and the player from about
+    115 to 7. Animals from about 10 to 6.
+  - The joints are untouched, so walking, actions, prayer poses, held items,
+    hats and capes all work as before. The animation gallery renders the
+    same.
+  - Blinking now swaps the face picture on the one face material, so it
+    keeps working after merging.
+  - Sheep wool stays its own part (it shrinks when sheared).
+- **No more memory build-up while exploring:**
+  - Animals in an unloaded chunk now have their geometry and name-tag
+    textures freed. Before, every animal ever spawned stayed in GPU memory.
+  - Measured over 12 jumps to far parts of the world: geometries stay at
+    144 and the JS heap at about 21 MB.
+- **Fix:** a camel you're riding (or an animal following you) used to
+  vanish from under you when its home chunk unloaded. It now comes along.
+- **Smoother world loading:**
+  - The chunk mesher reuses one scratch buffer instead of allocating about
+    37 KB per chunk, which means less garbage collection on phones.
+  - On a slow frame (under 30 fps) the game loads half as much world that
+    frame, so moving stays smooth.
+- **Touch input can't get stuck:**
+  - When the app goes to the background, the window loses focus or a
+    pop-up opens mid-touch, every key, button, joystick and finger is
+    released.
+  - iOS can swallow the "touch ended" event at those moments, which could
+    leave the child walking or mining on their own.
+- Tests: 4 unit tests for merging. They check the same shape in world
+  space, one draw call per material per joint, that joints and kept parts
+  still move, and that the face material survives. Checked in game:
+  - The measurements above.
+  - Blinking swaps after merging, and a hat and cape still attach.
+  - A ridden camel is kept when its chunk unloads, while another animal
+    there is removed and freed.
+  - The village morning screenshot looks the same as before.
+
 ### M7 · Exploration
 
 - **Eight handcrafted landmarks** (`src/world/landmarks.ts`), placed in

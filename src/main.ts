@@ -361,7 +361,7 @@ export class Game {
   // ---------- helpers for UI ----------
   pause(on: boolean) {
     this.paused = on;
-    if (on) { this.input.mineHeld = false; this.input.move.x = this.input.move.y = 0; document.exitPointerLock?.(); }
+    if (on) { this.input.reset(); document.exitPointerLock?.(); } // a pop-up opening mid-touch must not leave anything held down
   }
   toggleCamera() { this.settings.cam = this.settings.cam === 'third' ? 'first' : 'third'; this.saveSoon(); }
   nextGamePrayer(): { p: Prayer; h: number } {
@@ -644,7 +644,8 @@ export class Game {
     this.ui.setFlying(p.flying);
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }
 
-    this.world.update(p.pos.x, p.pos.z, 6);
+    // on a slow frame, load less world this frame so moving stays smooth
+    this.world.update(p.pos.x, p.pos.z, dt > 1 / 30 ? 3 : 6);
 
     // aiming: crosshair, or the spot a finger is touching
     const aim = (sx?: number, sy?: number) => {
