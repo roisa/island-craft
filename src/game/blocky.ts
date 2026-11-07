@@ -34,6 +34,7 @@ export interface BlockyOpts {
   emblem?: 'star' | 'moon' | null; backpack?: number | null; shoes?: number; shoeStripe?: number;
   hijab?: number; peci?: number; beard?: string; glasses?: boolean; robe?: boolean;
   adult?: boolean; smile?: 'open' | 'soft'; lashes?: boolean; tunic?: boolean; fringe?: number; star?: string;
+  shortSleeves?: boolean; polo?: boolean; beardStyle?: 'full' | 'short'; emblemSmall?: boolean;
 }
 
 function shade(c: number, k: number) { const col = new THREE.Color(c); col.multiplyScalar(k); return col.getHex(); }
@@ -59,9 +60,17 @@ function faceTex(o: BlockyOpts, closed: boolean) {
     if (o.glasses) { x.strokeStyle = '#333'; x.lineWidth = S * 0.025; x.strokeRect(0.12 * S, 0.41 * S, 0.31 * S, 0.26 * S); x.strokeRect(0.57 * S, 0.41 * S, 0.31 * S, 0.26 * S); r(0.43, 0.5, 0.14, 0.025, '#333'); }
     // rosy cheeks
     r(0.08, 0.68, 0.14, 0.07, 'rgba(255,140,130,.55)'); r(0.78, 0.68, 0.14, 0.07, 'rgba(255,140,130,.55)');
-    if (o.beard) { x.fillStyle = o.beard; x.fillRect(0.06 * S, 0.7 * S, 0.88 * S, 0.3 * S); x.fillRect(0, 0.48 * S, 0.08 * S, 0.5 * S); x.fillRect(0.92 * S, 0.48 * S, 0.08 * S, 0.5 * S); }
+    if (o.beard && o.beardStyle === 'short') {
+      // moustache, a beard along the jaw and a little chin tuft, smile still visible
+      x.fillStyle = o.beard;
+      x.fillRect(0, 0.72 * S, 0.06 * S, 0.28 * S); x.fillRect(0.94 * S, 0.72 * S, 0.06 * S, 0.28 * S);   // sideburns
+      x.fillRect(0, 0.93 * S, S, 0.07 * S);                                                             // jaw line
+      x.fillRect(0.06 * S, 0.88 * S, 0.24 * S, 0.06 * S); x.fillRect(0.7 * S, 0.88 * S, 0.24 * S, 0.06 * S);
+      x.fillRect(0.44 * S, 0.88 * S, 0.12 * S, 0.06 * S);                                               // chin tuft
+      x.fillRect(0.32 * S, 0.665 * S, 0.36 * S, 0.04 * S);                                              // moustache
+    } else if (o.beard) { x.fillStyle = o.beard; x.fillRect(0.06 * S, 0.7 * S, 0.88 * S, 0.3 * S); x.fillRect(0, 0.48 * S, 0.08 * S, 0.5 * S); x.fillRect(0.92 * S, 0.48 * S, 0.08 * S, 0.5 * S); }
     // mouth
-    if ((o.smile ?? 'open') === 'open' && !o.beard) {
+    if ((o.smile ?? 'open') === 'open' && (!o.beard || o.beardStyle === 'short')) {
       x.fillStyle = '#8E2A20'; x.beginPath(); x.moveTo(0.35 * S, 0.71 * S); x.lineTo(0.65 * S, 0.71 * S); x.lineTo(0.63 * S, 0.81 * S); x.quadraticCurveTo(0.5 * S, 0.94 * S, 0.37 * S, 0.81 * S); x.closePath(); x.fill();
       r(0.36, 0.71, 0.28, 0.04, '#FFFFFF');
       x.fillStyle = '#F07A72'; x.beginPath(); x.ellipse(0.5 * S, 0.85 * S, 0.09 * S, 0.045 * S, 0, 0, Math.PI * 2); x.fill();
@@ -76,9 +85,18 @@ function bodyTex(o: BlockyOpts) {
   const shirt = '#' + new THREE.Color(o.shirt).getHexString();
   return tex((x, S) => {
     x.fillStyle = shirt; x.fillRect(0, 0, S, S);
+    if (o.polo) {
+      // polo collar: a V placket with two collar tabs
+      x.fillStyle = '#F6C9A0'; x.beginPath(); x.moveTo(S * 0.4, 0); x.lineTo(S * 0.6, 0); x.lineTo(S * 0.5, S * 0.16); x.closePath(); x.fill();
+      x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(S * 0.47, S * 0.14, S * 0.06, S * 0.14);
+      x.fillStyle = '#FFFFFF'; x.beginPath(); x.moveTo(S * 0.3, 0); x.lineTo(S * 0.42, 0); x.lineTo(S * 0.47, S * 0.13); x.lineTo(S * 0.36, S * 0.1); x.closePath(); x.fill();
+      x.beginPath(); x.moveTo(S * 0.7, 0); x.lineTo(S * 0.58, 0); x.lineTo(S * 0.53, S * 0.13); x.lineTo(S * 0.64, S * 0.1); x.closePath(); x.fill();
+      x.strokeStyle = 'rgba(0,0,0,.12)'; x.lineWidth = S * 0.012; x.stroke();
+    }
     if (o.emblem === 'star') {
+      const sm = o.emblemSmall ? 0.55 : 1, sx = o.emblemSmall ? 0.7 : 0.56, sy = o.emblemSmall ? 0.36 : (o.tunic ? 0.64 : 0.4);
       x.fillStyle = o.star ?? '#F7F5EF'; x.beginPath();
-      for (let i = 0; i < 10; i++) { const rr = i % 2 ? S * 0.09 : S * 0.2, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(S * 0.56 + Math.cos(a) * rr, S * (o.tunic ? 0.64 : 0.4) + Math.sin(a) * rr); }
+      for (let i = 0; i < 10; i++) { const rr = (i % 2 ? S * 0.09 : S * 0.2) * sm, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(S * sx + Math.cos(a) * rr, S * sy + Math.sin(a) * rr); }
       x.closePath(); x.fill();
     } else if (o.emblem === 'moon') {
       const col = o.star ?? '#FFE27A', cy = S * (o.tunic ? 0.62 : 0.4);
@@ -117,8 +135,8 @@ export function buildBlocky(o: BlockyOpts): Rig {
   if (o.tunic) { body.add(bbox(BW + 0.1, 0.16, BD + 0.1, shirtM, 0, LEG + 0.02, 0, undefined, 0.03)); body.add(bbox(BW + 0.12, 0.04, BD + 0.12, darkM, 0, LEG - 0.07, 0, undefined, 0.01)); }
 
   // ---- torso with emblem, collar and belt
-  body.add(bbox(BW, TORSO, BD, shirtM, 0, LEG + TORSO / 2, 0, o.emblem ? texMat(bodyTex(o)) : undefined));
-  body.add(bbox(0.16, 0.05, 0.03, m(o.collar ?? 0xf7941d), 0, LEG + TORSO - 0.03, BD / 2 + 0.005, undefined, 0.008));
+  body.add(bbox(BW, TORSO, BD, shirtM, 0, LEG + TORSO / 2, 0, o.emblem || o.polo ? texMat(bodyTex(o)) : undefined));
+  if (!o.polo) body.add(bbox(0.16, 0.05, 0.03, m(o.collar ?? 0xf7941d), 0, LEG + TORSO - 0.03, BD / 2 + 0.005, undefined, 0.008));
   if (o.belt !== undefined) body.add(bbox(BW * 0.5, 0.06, 0.03, m(o.belt), 0.02, LEG + 0.09, BD / 2 + 0.005, undefined, 0.01));
 
   // ---- backpack with straps
@@ -129,7 +147,7 @@ export function buildBlocky(o: BlockyOpts): Rig {
     for (const sx of [-1, 1]) {
       body.add(bbox(0.05, TORSO * 0.75, 0.03, bpD, sx * BW * 0.3, LEG + TORSO * 0.6, BD / 2 + 0.012, undefined, 0.006));
       body.add(bbox(0.05, 0.035, BD + 0.04, bpD, sx * BW * 0.3, LEG + TORSO - 0.015, 0, undefined, 0.006));
-      body.add(bbox(0.07, 0.05, 0.035, m(0x3c4a28), sx * BW * 0.3, LEG + TORSO * 0.55, BD / 2 + 0.02, undefined, 0.008));
+      body.add(bbox(0.07, 0.05, 0.035, m(shade(o.backpack, 0.6)), sx * BW * 0.3, LEG + TORSO * 0.55, BD / 2 + 0.02, undefined, 0.008));
     }
   }
 
@@ -137,9 +155,15 @@ export function buildBlocky(o: BlockyOpts): Rig {
   const arm = (side: number) => {
     const g = new THREE.Group(); g.position.set(side * (BW / 2 + 0.09), LEG + TORSO - 0.05, 0); body.add(g);
     const sl = TORSO * 0.78;
-    g.add(bbox(0.17, sl, 0.18, shirtM, 0, -sl / 2 + 0.05));
-    g.add(bbox(0.18, 0.05, 0.19, m(o.cuff ?? 0xffd21f), 0, -sl + 0.025, 0, undefined, 0.01));
-    g.add(bbox(0.16, 0.12, 0.17, skinM, 0, -sl - 0.06, 0, undefined, 0.025));
+    if (o.shortSleeves) {
+      // short sleeve over a bare arm
+      g.add(bbox(0.16, sl + 0.12, 0.17, skinM, 0, -(sl + 0.12) / 2 + 0.05, 0, undefined, 0.025));
+      g.add(bbox(0.19, sl * 0.38, 0.2, shirtM, 0, -sl * 0.19 + 0.05, 0, undefined, 0.02));
+    } else {
+      g.add(bbox(0.17, sl, 0.18, shirtM, 0, -sl / 2 + 0.05));
+      g.add(bbox(0.18, 0.05, 0.19, m(o.cuff ?? 0xffd21f), 0, -sl + 0.025, 0, undefined, 0.01));
+      g.add(bbox(0.16, 0.12, 0.17, skinM, 0, -sl - 0.06, 0, undefined, 0.025));
+    }
     const hand = new THREE.Group(); hand.position.set(0, -sl - 0.1, 0.06); g.add(hand);
     return { g, hand };
   };
@@ -199,3 +223,8 @@ export const AISYAH = (shirt = 0xf28fa6, hijab = 0xf48aa3): BlockyOpts => ({
   shirt, shirtDark: shade(shirt, 0.88), pants: shirt, pantsBand: 0xf9c8d4, hijab, fringe: 0x6b4434, emblem: 'moon', star: '#FFF1F4',
   backpack: null, cuff: 0xf9c8d4, collar: shirt, shoes: 0xf9d3dc, shoeStripe: 0xf28fa6, tunic: true, hair: 0x6b4434,
 });
+export const AYAH: BlockyOpts = {
+  skin: '#F2C29A', shirt: 0xf5f3ee, shirtDark: 0xdcd8cf, pants: 0xe2c79a, pantsBand: 0xe2c79a, hair: 0x5a3b2e,
+  beard: '#5A3B2E', beardStyle: 'short', polo: true, emblem: 'star', emblemSmall: true, star: '#24335E',
+  shortSleeves: true, backpack: 0x3b3a3d, shoes: 0xf7f7f4, shoeStripe: 0xf7f7f4, adult: true,
+};

@@ -19,7 +19,7 @@ import { Inventory, Recipe, Station, craft as doCraft } from './game/inventory';
 import { Sky, Schedule } from './game/sky';
 import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
 import { Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
-import { buildBlocky, IBRA, AISYAH } from './game/blocky';
+import { buildBlocky, IBRA, AISYAH, AYAH } from './game/blocky';
 import { FX } from './game/fx';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
@@ -202,7 +202,7 @@ export class Game {
 
     // villagers & Baby Mo
     const G = VILLAGE_Y + 1;
-    this.ents.addNpc(new Npc('ustadz', 'Ustadz Hasan', { skin: '#D6A27F', shirt: 0xf4f4f0, shirtDark: 0xd8d8d0, peci: 0xffffff, beard: '#4a4a4a', robe: true, glasses: true, adult: true, smile: 'soft', collar: 0xe6e6de, cuff: 0xe6e6de, backpack: null, emblem: null, shoes: 0x5b3b2f, shoeStripe: 0x5b3b2f }, new THREE.Vector3(-15.5, G, 17.5), this.world));
+    this.ents.addNpc(new Npc('ustadz', tr('Ayah', 'Dad'), { ...AYAH }, new THREE.Vector3(-15.5, G, 17.5), this.world));
     this.ents.addNpc(new Npc('aminah', 'Bu Aminah', { skin: '#E8B892', shirt: 0xf2a33a, shirtDark: 0xc97f1f, hijab: 0x9b59b6, robe: true, lashes: true, adult: true, smile: 'soft', collar: 0xffffff, cuff: 0xffffff, backpack: null, emblem: null, shoes: 0x7a4a2a, shoeStripe: 0x7a4a2a }, new THREE.Vector3(-7.5, G, 10.5), this.world));
     this.ents.addNpc(new Npc('yusuf', 'Kakek Yusuf', { skin: '#D7A27F', shirt: 0x3fa34d, pants: 0x5b4636, pantsBand: 0x4a382a, peci: 0x222222, beard: '#e8e8e8', hair: 0xdddddd, adult: true, smile: 'soft', collar: 0xffffff, cuff: 0xffffff, backpack: null, emblem: null, shoes: 0x3b2a20, shoeStripe: 0x3b2a20 }, new THREE.Vector3(9.5, G, 12.5), this.world));
     this.ents.mo = new Companion(this.world, () => ({ pos: this.player.pos, yaw: this.player.yaw, fp: this.settings.cam === 'first' }));
@@ -774,7 +774,7 @@ export class Game {
     this.stats.talked[n.id] = true;
     const held = this.inv.held();
     const food = held && FOOD.has(held.id);
-    const face = n.id === 'ustadz' ? '👳' : n.id === 'aminah' ? '🧕' : '👴';
+    const face = n.id === 'ustadz' ? '👨' : n.id === 'aminah' ? '🧕' : '👴';
     if (food) {
       const gift = [B.MOSAIC, B.GOLD_TILE, B.LANTERN, B.WOOL_PURPLE][Math.floor(Math.random() * 4)];
       this.giveFood(n.pos);
@@ -787,12 +787,12 @@ export class Game {
       this.ui.dialog({
         face, who: n.name,
         text: k === 0 ? tr('Wa’alaikumussalam! Di dunia ini ada <b>28 huruf hijaiyah</b> yang bersinar di kuil-kuil kecil. Ikuti kompas emas, dan dengarkan bunyi setiap huruf ya.', 'Wa’alaikumussalam! There are <b>28 hijaiyah letters</b> glowing in little shrines around this world. Follow the golden compass and listen to each letter’s sound.')
-          : k < 28 ? tr(`Masya Allah, kamu sudah menemukan <b>${k} huruf</b>! Mau latihan tebak huruf bersama Ustadz?`, `Masha Allah, you have found <b>${k} letters</b>! Want to practise a letter quiz with me?`)
+          : k < 28 ? tr(`Masya Allah, kamu sudah menemukan <b>${k} huruf</b>! Mau latihan tebak huruf bersama Ayah?`, `Masha Allah, you have found <b>${k} letters</b>! Want to practise a letter quiz with me?`)
             : tr('Subhanallah! Semua 28 huruf sudah kamu temukan. Teruslah belajar sampai bisa membaca Al-Qur’an ya!', 'Subhanallah! You found all 28 letters. Keep learning until you can read the Qur’an!'),
         buttons: [
           ...(k >= 3 ? [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
           { label: ic('book') + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
-          { label: tr('Terima kasih, Ustadz', 'Thank you, Ustadz') },
+          { label: tr('Terima kasih, Ayah', 'Thank you, Dad') },
         ],
       });
     } else if (n.id === 'aminah') {
