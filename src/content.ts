@@ -31,7 +31,7 @@ export interface Quest {
 }
 
 export const QUESTS: Quest[] = [
-  { id: 'hello', icon: '👋', title: ['Kenalan dengan Baby Mo', 'Say hi to Baby Mo'], desc: ['Ketuk Baby Mo (tombol ✋ Pakai) untuk menyapanya.', 'Tap Baby Mo (✋ Use button) to say hello.'], goal: s => [s.talked.mo ? 1 : 0, 1], reward: [[I.APPLE, 2]], sticker: '🧒' },
+  { id: 'hello', icon: '👋', title: ['Kenalan dengan Baby Mo', 'Say hi to Baby Mo'], desc: ['Ketuk Baby Mo atau tombol 👋 Hai! di atas kepalanya.', 'Tap Baby Mo or the 👋 Hi! button above his head.'], goal: s => [s.talked.mo ? 1 : 0, 1], reward: [[I.APPLE, 2]], sticker: '🧒' },
   { id: 'wood', icon: '🪵', title: ['Kumpulkan kayu', 'Collect wood'], desc: ['Tahan ⛏️ pada batang pohon sampai lepas. Kumpulkan 4 kayu.', 'Hold ⛏️ on a tree trunk until it pops off. Collect 4 logs.'], goal: s => [Math.min(4, sum(s.mined, [B.OAK_LOG, B.PINE_LOG, B.PALM_LOG])), 4], reward: [[B.PLANKS, 4]], sticker: '🌳' },
   { id: 'pick', icon: '⛏️', title: ['Buat beliung kayu', 'Make a wooden pickaxe'], desc: ['Ketuk meja kerja di alun-alun desa, lalu pilih resepnya di 🔨 Buat.', 'Tap the workbench in the village square, then pick the recipe in 🔨 Craft.'], goal: s => [s.crafted[I.WOOD_PICK] ? 1 : 0, 1], reward: [[I.STICK, 4]], sticker: '🛠️' },
   { id: 'letter1', icon: '🔤', title: ['Temukan huruf pertamamu', 'Find your first letter'], desc: ['Ikuti kompas emas di atas layar menuju kuil huruf.', 'Follow the golden compass at the top to a letter shrine.'], goal: s => [Math.min(1, s.letters.length), 1], reward: [[B.LANTERN, 2]], sticker: '✨' },

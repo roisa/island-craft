@@ -5,6 +5,53 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M5 · Living world
+
+- **Villagers have days** (`src/game/routines.ts`). Each villager walks
+  between real places in the village by the game clock:
+  - **Ayah Ibrahim:** at his door in the morning, chatting on the plaza,
+    reading by the masjid porch, visiting the market, tending the flower bed.
+  - **Bu Aminah:** selling at the market stall, fetching water at the well,
+    chatting on the plaza in the evening.
+  - **Kakek Yusuf:** at the well early, sitting on the plaza, reading at the
+    porch, chatting, then in the garden.
+  - Prayer times and the iftar picnic still come first. After the prayer
+    everyone picks their day up again.
+- **What they do there:**
+  - Reading: holding a book and turning pages.
+  - Fetching water and gardening: bending down now and then.
+  - Sitting on the plaza.
+  - Chatting: friends at the same place face each other and pop little
+    bubbles (💬 😊 👍).
+- **Greetings:** walk up to a villager and they turn to you, wave, chime
+  and say something fitting in a speech bubble ("Fresh dates! Want some?
+  🌴", "Aren't the flowers pretty? 🌷"). Each villager greets you at most
+  once every 40 s.
+- **Night:** from an hour after Isha until Fajr the villagers go home and
+  doze by their beds (eyes closed, 💤).
+- **Animals:**
+  - **They graze**: heads down to the grass. Chickens peck.
+  - **They sleep at night**: settled low, head tucked, slow breathing.
+    Pets stay awake and follow you.
+  - **Your pet spins** with joy when you pet it.
+- **Ambient life** (`src/game/ambient.ts`), each kind one draw call:
+  - Butterflies in six colours flutter around flowers and tall grass by day.
+  - Small flocks of birds glide overhead now and then.
+  - Fireflies glow and blink around you at night.
+  - Nothing appears in rain, underground or underwater. Light graphics mode
+    turns ambient life off.
+- The "Say hi to Baby Mo" quest text now points to the 👋 Hi! button.
+- New animator action: *read*.
+- Tests: 5 unit tests for routines. They check that day plans cover 0–24
+  with no gaps, that everyone sleeps from an hour after Isha until Fajr,
+  the places and the greetings. Checked in game:
+  - At 09:00 Ayah is on the plaza chatting, Bu Aminah is selling at the
+    market and Kakek Yusuf is sitting on the plaza.
+  - Walking up to Bu Aminah gives a wave and a bubble.
+  - By day there were 2 butterflies and a flock of 5 birds.
+  - At 22:00 all three villagers sleep by their beds, 38 of 40 animals
+    sleep, and 16 fireflies are out.
+
 ### Feedback batch: water break, saying hi, letter rewards, praying together
 
 Requested after playing V2 M4.

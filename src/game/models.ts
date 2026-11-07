@@ -423,6 +423,21 @@ export function nameTag(text: string, color = '#ffffff') {
   s.scale.set(1.1, 0.275, 1);
   return s;
 }
+/** a white speech bubble with a little tail, for villagers' greetings */
+export function speechBubble(text: string) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const x = c.getContext('2d')!;
+  x.font = '800 38px Nunito, system-ui, sans-serif';
+  const w = Math.min(500, x.measureText(text).width + 44);
+  x.fillStyle = 'rgba(255,255,255,0.96)'; x.strokeStyle = 'rgba(15,32,22,0.25)'; x.lineWidth = 4;
+  x.beginPath(); x.roundRect((512 - w) / 2, 8, w, 86, 30); x.fill(); x.stroke();
+  x.beginPath(); x.moveTo(236, 92); x.lineTo(256, 122); x.lineTo(276, 92); x.closePath(); x.fill();
+  x.fillStyle = '#1d2b22'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 256, 52);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+  sp.scale.set(2.0, 0.5, 1); sp.renderOrder = 5;
+  return sp;
+}
 let heartTex: THREE.Texture | null = null, sparkTex: THREE.Texture | null = null;
 export function heartTexture() {
   return heartTex ??= ctex(32, 32, x => {

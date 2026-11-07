@@ -23,6 +23,7 @@ import { buildBlocky, ADAM_HERO, AISYAH, AYAH } from './game/blocky';
 import { FX } from './game/fx';
 import { Animator, applyPose, type AnimInput } from './game/animator';
 import { matOf } from './game/materials';
+import { Ambient } from './game/ambient';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
 import * as Save from './game/save';
@@ -97,6 +98,7 @@ export class Game {
   private mineKind: 'mine' | 'chop' = 'mine';
   private crackPunch = 0;
   private moTapAt = 0;
+  ambient: Ambient | null = null;
   private gameEvent: { p: Prayer; until: number; attended: boolean } | null = null;
   private lastHour = 0;
   private remindersShown = new Set<string>();
@@ -225,6 +227,8 @@ export class Game {
     this.world.onChunkGenerated = c => this.ents.spawnForChunk(c);
     this.world.onChunkUnloaded = c => this.ents.despawnChunk(c);
     this.ents.onStartle = a => SFX.critter(a.kind);
+    this.ents.onGreet = () => SFX.chime();
+    this.ambient = new Ambient(this.scene, this.world);
     this.player = new Player(this.world);
     this.player.onStep = () => { const q = this.player.pos; SFX.stepMat(matOf(this.world.get(Math.floor(q.x), Math.floor(q.y - 0.2), Math.floor(q.z)))); };
     this.player.onSplash = () => SFX.splash();
@@ -564,6 +568,13 @@ export class Game {
     const biome = this.gen.column(Math.floor(this.player.pos.x), Math.floor(this.player.pos.z));
     const under = this.player.headInWater;
     this.ui.underwater(under);
+    const sc = this.schedule;
+    Object.assign(this.ents.clock, { hour: this.hour, isha: sc.isha, fajr: sc.fajr, night: this.sky.night });
+    if (this.ambient) {
+      this.ambient.enabled = !this.settings.lowGfx;
+      const q = this.player.pos, top = this.world.chunkAt(q.x, q.z)?.hm?.[(((Math.floor(q.z) % 16) + 16) % 16) * 16 + (((Math.floor(q.x) % 16) + 16) % 16)] ?? 0;
+      this.ambient.update(dt, t, q, this.sky.night, this.sky.raining, q.y < top - 4 || under);
+    }
     this.sky.update(dt, this.hour, this.schedule, this.camera.position, biome.biome === Biome.DESERT, biome.biome === Biome.SNOWY || biome.biome === Biome.MOUNTAIN && this.player.pos.y > SEA + 30, under, (this.settings.dist - 0.6) * 16);
     Music.setNight(this.sky.night);
     this.updateCamera();
@@ -910,7 +921,7 @@ export class Game {
     if (e instanceof Animal) {
       if (held && (held.id === I.DATES || held.id === I.APPLE) && e !== this.fun.pet) { this.fun.offerAdopt(e); return; }
       if (e.kind === 'camel' && !this.fun.riding) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 2); this.fun.rideCamel(e); return; }
-      if (e === this.fun.pet) { if (e.petCd > 0) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 1); return; } e.petCd = 1.5; e.cheer(); this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 4); SFX.pet(); SFX.critter(e.kind); this.ui.toast(tr(`💕 ${this.stats.pet!.name} senang sekali!`, `💕 ${this.stats.pet!.name} is so happy!`)); this.stats.petted++; this.checkQuests(); return; }
+      if (e === this.fun.pet) { if (e.petCd > 0) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 1); return; } e.petCd = 1.5; e.cheer(); e.spin = 0.7; this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 4); SFX.pet(); SFX.critter(e.kind); this.ui.toast(tr(`💕 ${this.stats.pet!.name} senang sekali!`, `💕 ${this.stats.pet!.name} is so happy!`)); this.stats.petted++; this.checkQuests(); return; }
       // tapping again right away: a single heart, but no extra stars or counts
       if (e.petCd > 0) { this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 1); return; }
       e.petCd = 1.5; e.cheer();

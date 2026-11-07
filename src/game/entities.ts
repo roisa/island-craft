@@ -4,7 +4,9 @@ import type { World, Chunk } from '../world/world';
 import { CS, Biome, VILLAGE_Y } from '../world/gen';
 import { B, BLOCKS } from '../world/blocks';
 import { mulberry32 } from '../world/noise';
-import { buildAnimal, nameTag, AnimalKind, Rig, applyPrayerPose, clearPose, poseAt } from './models';
+import { buildAnimal, nameTag, speechBubble, AnimalKind, Rig, applyPrayerPose, clearPose, poseAt } from './models';
+import { routineAt, placeY, GREETINGS, type Activity, type Place } from './routines';
+import { tr } from '../i18n';
 import { buildBlocky, BlockyOpts, BABY_MO } from './blocky';
 import { Animator, applyPose, type AnimInput } from './animator';
 import type { T2 } from '../i18n';
@@ -94,6 +96,16 @@ export class Animal extends Entity {
     super(buildAnimal(kind));
     this.radius = kind === 'chicken' || kind === 'cat' ? 0.45 : kind === 'camel' ? 0.9 : 0.7;
   }
+  /** asleep: settled low with the head down, breathing slowly */
+  private sleepUpdate(dt: number, t: number) {
+    this.moving = false; this.target = null;
+    this.sync(t, dt);
+    const r = this.rig;
+    r.root.position.y -= r.height * 0.12;
+    r.root.scale.set(1, 0.9 + Math.sin(t * 1.4 + this.pos.x) * 0.012, 1);
+    if (r.head) { r.head.rotation.x = 0.55; r.head.rotation.y = 0.3; }
+    r.legs.forEach(l => (l.rotation.x = 0));
+  }
   /** a fright: scurry a few blocks away from `from`, unless it's someone's pet or being ridden */
   startle(from: THREE.Vector3) {
     if (this.follow || this.ridden || this.startleCd > 0 || this.kind === 'camel') return false;
@@ -113,7 +125,14 @@ export class Animal extends Entity {
     return false;
   }
   private near: THREE.Vector3 | null = null;
+  /** night: lie down and sleep (pets still follow their friend) */
+  sleeping = false;
+  private grazeT = 2 + Math.random() * 6; private grazing = 0;
+  /** a happy spin, for your pet */
+  spin = 0;
   update(dt: number, t: number) {
+    if (this.sleeping && !this.follow && !this.ridden && this.flee <= 0) return this.sleepUpdate(dt, t);
+    if (this.rig.root.scale.y !== 1) this.rig.root.scale.set(1, 1, 1);
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.hop = Math.max(0, this.hop - dt);
     this.petCd = Math.max(0, this.petCd - dt);
@@ -151,6 +170,11 @@ export class Animal extends Entity {
     this.sync(t);
     if (this.hop > 0) this.rig.root.position.y += Math.sin((0.5 - this.hop) / 0.5 * Math.PI) * 0.4;
     // when standing: look at a nearby player (head turns, within reach of the neck), nod when happy
+    if (this.spin > 0) { this.spin = Math.max(0, this.spin - dt); this.rig.root.rotation.y = this.yaw + (1 - this.spin / 0.7) * Math.PI * 2; }
+    // grazing (heads down to the grass) or pecking (chickens), when nobody is close
+    this.grazeT -= dt;
+    if (!this.moving && !this.near && this.grazeT <= 0 && this.grazing <= 0) { this.grazing = 2 + Math.random() * 2.5; this.grazeT = 5 + Math.random() * 8; }
+    if (this.moving || this.near) this.grazing = 0;
     let wantLook = 0;
     if (this.near && !this.moving && !this.ridden) {
       let a = Math.atan2(this.near.x - this.pos.x, this.near.z - this.pos.z) - this.yaw;
@@ -161,6 +185,7 @@ export class Animal extends Entity {
     if (this.rig.head) {
       this.rig.head.rotation.y = this.lookYaw;
       if (this.happy > 0) this.rig.head.rotation.x = Math.sin(t * 14) * 0.25;
+      else if (this.grazing > 0) { this.grazing -= dt; this.rig.head.rotation.x = this.kind === 'chicken' ? 0.5 + Math.max(0, Math.sin(t * 16)) * 0.5 : 0.75 + Math.sin(t * 5) * 0.06; }
       else if (!this.moving) this.rig.head.rotation.x = this.near ? -0.1 : Math.sin(t * 0.8 + this.pos.x) * 0.15;
       else this.rig.head.rotation.x = 0;
     }
@@ -180,6 +205,16 @@ export class Npc extends Entity {
   faceTo: THREE.Vector3 | null = null;
   tag: THREE.Sprite;
   waving = false;
+  /** where the day plan says to be and what to do there (null: wander near home) */
+  routine: { place: Place; at: string; act: Activity } | null = null;
+  /** another villager to chat with, when both are at the same place */
+  chatWith: Entity | null = null;
+  greetCd = 3 + Math.random() * 4;
+  private placeKey = '';
+  private facePt = new THREE.Vector3(); private faceT = 0;
+  private bubble: THREE.Sprite | null = null; private bubbleT = 0;
+  private actT = Math.random() * 5;
+  private seated = false;
   constructor(public id: NpcId, public name: string, opts: BlockyOpts, public home: THREE.Vector3, public world: World) {
     super(buildBlocky(opts));
     this.anim = new Animator();
@@ -189,10 +224,42 @@ export class Npc extends Entity {
     this.rig.root.add(this.tag);
     this.radius = 0.6;
   }
+  get act(): Activity | null { return !this.goingToMasjid && !this.target && this.routine ? this.routine.act : null; }
+  get asleep() { return this.act === 'sleep'; }
+  /** follow the day plan (called about once a second); prayer time comes first */
+  setRoutine(r: { place: Place; at: string; act: Activity }) {
+    this.routine = r;
+    if (this.goingToMasjid) return;
+    const key = r.at + ':' + r.act;
+    if (key === this.placeKey) return;
+    this.placeKey = key;
+    this.target = new THREE.Vector3(r.place.x, placeY, r.place.z);
+  }
+  /** a bubble over the head for a few seconds */
+  say(text: string, secs = 3) {
+    if (this.bubble) { this.bubble.removeFromParent(); this.bubble.material.map?.dispose(); this.bubble.material.dispose(); }
+    this.bubble = speechBubble(text);
+    this.bubble.position.y = this.rig.height + 0.95;
+    this.rig.root.add(this.bubble);
+    this.bubbleT = secs;
+  }
+  /** you walked up: turn to you, wave and say hello (once in a while) */
+  greet(p: THREE.Vector3) {
+    if (this.greetCd > 0 || this.target || this.goingToMasjid || this.asleep) return false;
+    this.greetCd = 40;
+    this.lookAt(p, 4);
+    this.anim!.play('wave', 1.6);
+    const lines = GREETINGS[this.routine?.act ?? 'stand'];
+    const [id, en] = lines[Math.floor(Math.random() * lines.length)];
+    this.say(tr(id, en), 3.2);
+    return true;
+  }
   update(dt: number, t: number) {
+    this.greetCd -= dt; this.faceT -= dt; this.actT -= dt;
+    if (this.bubble && (this.bubbleT -= dt) <= 0) { this.bubble.removeFromParent(); this.bubble.material.map?.dispose(); this.bubble.material.dispose(); this.bubble = null; }
     if (!this.target) {
       this.moving = false; this.wait -= dt;
-      if (this.wait <= 0 && !this.goingToMasjid) {
+      if (!this.routine && this.wait <= 0 && !this.goingToMasjid) {
         const a = Math.random() * Math.PI * 2, r = Math.random() * 4;
         this.target = new THREE.Vector3(this.home.x + Math.cos(a) * r, this.home.y, this.home.z + Math.sin(a) * r);
       }
@@ -209,7 +276,20 @@ export class Npc extends Entity {
         this.moving = true; this.walk += dt * 8;
       }
     }
-    if (this.waving) this.anim!.play('wave'); else this.anim!.stop('wave');
+    // at their place: face the right way (you, a friend, or the work) and do the activity
+    const act = this.act;
+    if (act) {
+      let want = this.routine!.place.yaw;
+      if (this.faceT > 0) want = Math.atan2(this.facePt.x - this.pos.x, this.facePt.z - this.pos.z);
+      else if (act === 'chat' && this.chatWith) want = Math.atan2(this.chatWith.pos.x - this.pos.x, this.chatWith.pos.z - this.pos.z);
+      let dy = want - this.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
+      this.yaw += dy * Math.min(1, dt * 4);
+      if (act === 'read' && this.faceT <= 0) this.anim!.play('read'); else this.anim!.stop('read');
+      if ((act === 'water' || act === 'garden') && this.actT <= 0) { this.actT = 5 + Math.random() * 4; this.anim!.play('collect'); }
+      if (act === 'chat' && this.chatWith && this.actT <= 0) { this.actT = 4 + Math.random() * 4; if (!this.bubble) this.say(['💬', '😊', '🌴?', '👍', '😄'][Math.floor(Math.random() * 5)], 1.8); }
+      if (act === 'sleep' && this.actT <= 0) { this.actT = 6; if (!this.bubble) this.say('💤', 2.5); }
+    } else this.anim!.stop('read');
+    if (this.waving) this.anim!.play('wave'); else if (this.faceT <= 0) this.anim!.stop('wave');
     this.sync(t, dt);
     // at the masjid during prayer time: pray together, facing the qibla wall (north)
     if (this.goingToMasjid && !this.target) {
@@ -217,14 +297,21 @@ export class Npc extends Entity {
       this.rig.root.rotation.y = this.yaw; applyPrayerPose(this.rig, this.activity === 'picnic' ? 'julus' : poseAt(t)); this.praying = true; return;
     }
     if (this.praying) { clearPose(this.rig); this.praying = false; this.sync(t, 0); }
+    // sitting on the plaza, or asleep (sitting back, eyes closed)
+    if (act === 'sit' || act === 'sleep') {
+      applyPrayerPose(this.rig, 'julus'); this.seated = true;
+      if (act === 'sleep') { this.rig.blink?.(true); this.rig.head.rotation.x = 0.35; }
+    } else if (this.seated) { clearPose(this.rig); this.seated = false; this.sync(t, 0); }
   }
   /** walk to the masjid for jama'ah prayer, or home again */
   goPray(on: boolean, spot: THREE.Vector3, activity: 'pray' | 'picnic' = 'pray', faceTo: THREE.Vector3 | null = null) {
     this.goingToMasjid = on; this.activity = activity; this.faceTo = faceTo;
     if (this.praying) { clearPose(this.rig); this.praying = false; }
-    this.target = on ? spot.clone() : this.home.clone();
+    this.placeKey = ''; // after prayer, pick the day plan up again
+    this.target = on ? spot.clone() : this.routine ? new THREE.Vector3(this.routine.place.x, placeY, this.routine.place.z) : this.home.clone();
   }
-  lookAt(p: THREE.Vector3) { this.yaw = Math.atan2(p.x - this.pos.x, p.z - this.pos.z); }
+  /** turn towards p now and keep facing it for a few seconds */
+  lookAt(p: THREE.Vector3, secs = 5) { this.yaw = Math.atan2(p.x - this.pos.x, p.z - this.pos.z); this.facePt.copy(p); this.faceT = secs; }
 }
 
 // ---- Baby Mo ---------------------------------------------------------------------
@@ -377,12 +464,32 @@ export class Entities {
 
   /** called with the player's position and speed, so animals can notice and react */
   onStartle: ((a: Animal) => void) | null = null;
+  onGreet: ((n: Npc) => void) | null = null;
+  /** game clock, set by the game each frame: drives villagers' days and the animals' bedtime */
+  clock = { hour: 8, isha: 19.3, fajr: 4.6, night: false };
+  private routineT = 0;
   update(dt: number, t: number, center: THREE.Vector3, playerSpeed = 0) {
     for (const a of this.animals) {
       const d2 = a.pos.distanceToSquared(center);
       if (d2 > 90 * 90) continue;
+      a.sleeping = this.clock.night;
       if (d2 < 36 && a.sense(center, playerSpeed)) this.onStartle?.(a);
       a.update(dt, t);
+    }
+    // once a second: everyone follows their day plan; friends at the same place chat
+    this.routineT -= dt;
+    if (this.routineT <= 0) {
+      this.routineT = 1;
+      for (const n of this.npcs) n.setRoutine(routineAt(n.id, this.clock.hour, this.clock.isha, this.clock.fajr));
+      for (const n of this.npcs) {
+        n.chatWith = null;
+        if (n.routine?.act !== 'chat') continue;
+        let best: Entity | null = null, bd = 4.5;
+        for (const o of this.npcs) if (o !== n && !o.target && !o.goingToMasjid && o.routine?.act !== 'sleep') { const d = o.pos.distanceTo(n.pos); if (d < bd) { bd = d; best = o; } }
+        n.chatWith = best;
+      }
+      // you walked up to a villager: they turn, wave and say hello
+      for (const n of this.npcs) if (Math.hypot(n.pos.x - center.x, n.pos.z - center.z) < 4 && Math.abs(n.pos.y - center.y) < 2.5 && n.greet(center)) this.onGreet?.(n);
     }
     for (const n of this.npcs) n.update(dt, t);
     this.mo?.update(dt, t);

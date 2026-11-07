@@ -13,7 +13,7 @@
 // Pure maths on a flat pose record, unit tested in tests/unit/animator.test.ts.
 
 export type Loco = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land' | 'swim' | 'ride' | 'fly';
-export type Action = 'mine' | 'chop' | 'collect' | 'build' | 'wave' | 'celebrate' | 'drink';
+export type Action = 'mine' | 'chop' | 'collect' | 'build' | 'wave' | 'celebrate' | 'drink' | 'read';
 
 /** Joint angles (radians) and the body's vertical offset (rig units). Negative x on arms/legs = forward. */
 export interface Pose {
@@ -119,6 +119,12 @@ const ACT: Record<Action, ActionClip> = {
     const sip = sin(c.u * TAU) * 0.08;
     o.armRx = -2.15 + sip; o.armRy = 0; o.armRz = -0.55; o.armLx = -0.1; o.armLz = -0.08;
     o.headX = -0.32 - sip; o.headY = 0; o.bodyY_rot = 0; o.bodyZ = 0;
+  } },
+  // holding a book open in both hands, looking down at it, turning a page now and then
+  read: { loop: true, dur: 4, fadeIn: 0.3, fadeOut: 0.3, mask: UPPER, sample(c, o) {
+    const page = c.u > 0.85 ? sin((c.u - 0.85) / 0.15 * Math.PI) * 0.35 : 0;
+    o.armLx = -1.05; o.armLz = 0.32; o.armRx = -1.05 - page * 0.4; o.armRy = 0; o.armRz = -0.32 - page;
+    o.headX = 0.38; o.bodyY_rot = 0; o.bodyZ = 0;
   } },
   wave: { loop: true, dur: 0.6, fadeIn: 0.15, fadeOut: 0.2, mask: ['armRx', 'armRy', 'armRz', 'headY'], sample(c, o) {
     o.armRx = -2.7; o.armRz = 0.25 + sin(c.u * TAU) * 0.35; o.armRy = 0; o.headY = 0.1;
