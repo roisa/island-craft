@@ -111,121 +111,158 @@ function blinker(front: THREE.Mesh, f: { open: THREE.Material; shut: THREE.Mater
 /** The face-carrying box of a soft() group is its third child. */
 const frontOf = (g: THREE.Group) => g.children[2] as THREE.Mesh;
 
-// ---- Baby Mo -------------------------------------------------------------------
-// A toddler: big round head with a black swoopy fringe, green star onesie
-// (with feet), orange sleeves with yellow cuffs.
+// ---- Baby Mo ----------------------------------------------------------------
+// Baby Mo as a classic blocky "skin" avatar: sharp boxes for head, body,
+// arms and legs, each face painted as pixel art (16 px per head face),
+// plus a slightly larger transparent outer layer for the hair - the way
+// block-game avatars are built. Original Baby Mo design.
+const PX = 1 / 32;                       // one skin pixel in world units
+type Pix = string[];                      // rows of characters, '.' = transparent
+const MO_PAL: Record<string, string> = {
+  H: '#1B1B20', h: '#34343C',             // hair, hair highlight
+  S: '#F6C7A0', s: '#E9B08A', E: '#E39C7B', // skin, skin shade, ear inner
+  K: '#1A110B', B: '#6B3A1E', b: '#3A1E0E', W: '#FFFFFF', // eye outline, iris, pupil, shine
+  P: '#FF8F86', M: '#9C3326', T: '#FF7F7F', // cheeks, mouth, tongue
+  G: '#4FCF4A', g: '#3FB43B', D: '#2F9A2E', // greens
+  O: '#F58F4F', o: '#D9763A', Y: '#F7E27A', w: '#EFEFEF', // orange, yellow cuff, star white
+};
+function pixTex(rows: Pix, flipX = false) {
+  const h = rows.length, w = rows[0].length;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d')!;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const ch = rows[j][flipX ? w - 1 - i : i];
+    if (ch === '.' || ch === undefined) continue;
+    x.fillStyle = MO_PAL[ch] ?? '#ff00ff'; x.fillRect(i, j, 1, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const fill = (w: number, h: number, ch: string): Pix => Array.from({ length: h }, () => ch.repeat(w));
+function skinMat(rows: Pix, overlay = false, flipX = false) {
+  const t = pixTex(rows, flipX);
+  return new THREE.MeshLambertMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.3, transparent: overlay, alphaTest: overlay ? 0.5 : 0, side: overlay ? THREE.DoubleSide : THREE.FrontSide });
+}
+/** a sharp box w×h×d skin pixels; mats = [right, left, top, bottom, front, back] pixel maps */
+function skinBox(w: number, h: number, d: number, faces: [Pix, Pix, Pix, Pix, Pix, Pix], overlay = false) {
+  return new THREE.Mesh(new THREE.BoxGeometry(w * PX, h * PX, d * PX), faces.map(f => skinMat(f, overlay)));
+}
+
+// ---- head (16×16×16) ----
+const FACE_OPEN: Pix = [
+  'HHHHHHHHHHHHHHHH',
+  'HHHHHhHHHHHHhHHH',
+  'HHHHHHHHHHHHHHHH',
+  'HHHhHHHHHHHHHHHH',
+  'HHHHHHHHHHHHHHHH',
+  'HSHHHHSHHHHSHHHH',
+  'HSSHHSSSHHSSSHHS',
+  'SSSSSSSSSSSSSSSS',
+  'SSSKKKSSSSKKKSSS',
+  'SSKBWBKSSKBWBKSS',
+  'SSKBbBKSSKBbBKSS',
+  'SSSKKKSSSSKKKSSS',
+  'SPPSSSSssSSSSPPS',
+  'SPPSSMSSSSMSSPPS',
+  'SSSSSSMTTMSSSSSS',
+  'SSSSSSSSSSSSSSSS',
+];
+const FACE_SHUT: Pix = FACE_OPEN.map((r, j) => (j >= 8 && j <= 11 ? (j === 10 ? 'SSKKKKSSSSKKKKSS' : 'SSSSSSSSSSSSSSSS') : r));
+const HEAD_SIDE: Pix = [
+  'HHHHHHHHHHHHHHHH', 'HHHHHHHHHHHHHHHH', 'HHHHHHHHHHHHHHHH', 'HHHHHhHHHHHHHHHH',
+  'HHHHHHHHHHHHHHHH', 'HHHHHHHHHHHHHHHS', 'HHHHHHHHHHHHHHSS', 'HHHHHHHHHHHSSSSS',
+  'HHHHHHHSSSSSSSSS', 'HHHHHHSSESSSSSSS', 'HHHHHSSEESSSSSSS', 'HHHHSSSEESSSSSSS',
+  'HHHSSSSSSSSSSSSS', 'HHSSSSSSSSSSSSSS', 'sSSSSSSSSSSSSSSS', 'ssSSSSSSSSSSSSSS',
+];
+const HEAD_BACK: Pix = [
+  ...fill(16, 11, 'H'), 'HHHHHHHHHHHHHHHH', 'HHSHHHHSHHHHSHHS', 'sSSSSSSSSSSSSSSs', 'sSSSSSSSSSSSSSSs', 'ssssssssssssssss',
+].map((r, j) => (j === 2 ? 'HHHHhHHHHHHhHHHH' : r));
+const HEAD_TOP: Pix = fill(16, 16, 'H').map((r, j) => (j % 5 === 2 ? 'HHhHHHHhHHHHhHHH' : r));
+const HEAD_BOTTOM: Pix = fill(16, 16, 'S');
+// outer hair layer (17×17×17 effectively, drawn on the same 16 grid): fringe tufts that stick out
+const HAIR_FRONT: Pix = [
+  'HHHHHHHHHHHHHHHH', 'HHHHHhHHHHHHhHHH', 'HHHHHHHHHHHHHHHH', 'HHHhHHHHHHHHHHHH',
+  'HHHHHHHHHHHHHHHH', 'H.HHHH.HHHH.HHHH', '...HH...HH...HH.', '................',
+  ...fill(16, 8, '.'),
+];
+const HAIR_SIDE: Pix = [
+  ...fill(16, 4, 'H'), 'HHHHHHHHHHHHHHH.', 'HHHHHHHHHHHHHH..', 'HHHHHHHHHHH.....', 'HHHHHHH.........', 'HHHHH...........',
+  ...fill(16, 7, '.'),
+];
+const HAIR_BACK: Pix = [...fill(16, 11, 'H'), 'HH.HHH.HHHH.HH.H', ...fill(16, 4, '.')];
+
+// ---- body (16 wide × 20 tall × 8 deep) ----
+const BODY_FRONT: Pix = [
+  'GGGGGOOOOOOGGGGG',
+  'GGGGGGOOOOGGGGGG',
+  'GGGGGGGGGGGGGGGG',
+  'GGGGGGGwwGGGGGGG',
+  'GGGGGGGwwGGGGGGG',
+  'GGGwwwwwwwwwwGGG',
+  'GGGGwwwwwwwwGGGG',
+  'GGGGGwwwwwwGGGGG',
+  'GGGGGwwGGwwGGGGG',
+  'GGGGwwGGGGwwGGGG',
+  'GGGGGGGGGGGGGGGG',
+  'GGGGGGGGGGGGGGGG',
+  'GGGOGGGGGGGGOGGG',
+  'GGGGOOOOOOOOGGGG',
+  'GGGgGGGGGGGGgGGG',
+  'GGGgGGGGGGGGgGGG',
+  'GGGgggggggggGGGG',
+  'GGGGGGGGGGGGGGGG',
+  'gggggggggggggggg',
+  'gggggggggggggggg',
+];
+const BODY_SIDE: Pix = ['GGGOOGGG', ...fill(8, 17, 'G'), 'gggggggg', 'gggggggg'];
+const BODY_BACK: Pix = ['GGGGGOOOOOOGGGGG', ...fill(16, 17, 'G'), ...fill(16, 2, 'g')];
+const BODY_TOP: Pix = ['GGGGGOOOOOOGGGGG', 'GGGGGOOOOOOGGGGG', ...fill(16, 6, 'G')];
+const BODY_BOTTOM: Pix = fill(16, 8, 'g');
+
+// ---- arm (8 × 20 × 8): orange sleeve, yellow cuff, hand ----
+const ARM_SIDE: Pix = [...fill(6, 12, 'O').map((r, j) => (j === 11 ? 'oooooo' : r)), 'YYYYYY', 'YYYYYY', ...fill(6, 6, 'S')];
+const ARM_TOP: Pix = fill(6, 6, 'O');
+const ARM_BOTTOM: Pix = fill(6, 6, 's');
+
+// ---- leg (8 × 16 × 8): green leg, round green foot ----
+const LEG_FRONT: Pix = [...fill(8, 11, 'g'), 'gggggggg', 'GGGGGGGG', 'GGGGGGGG', 'GGGGGGGG', 'DDDDDDDD'];
+const LEG_TOP: Pix = fill(8, 8, 'g');
+const LEG_BOTTOM: Pix = fill(8, 8, 'D');
+
 export function buildBabyMo(): Rig {
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-  const SKIN = '#F7C8A2', HAIR = '#17171B', HAIR_HI = '#2E2E36';
-  const skin = mat(SKIN, 0.34), hair = mat(HAIR, 0.12);
-  const green = mat(0x4fcf4a, 0.3), greenD = mat(0x3fb83c, 0.3), orange = mat(0xf58f4f, 0.3), yellow = mat(0xf7e27a, 0.3);
-  const S = 128;
-  // --- head textures: the fringe is painted on, so it reads as soft hair, not blocks
-  const fringe = (x: CanvasRenderingContext2D, side: boolean) => {
-    x.fillStyle = HAIR;
-    x.beginPath(); x.moveTo(0, 0); x.lineTo(S, 0);
-    if (side) { x.lineTo(S, S * 0.36); x.quadraticCurveTo(S * 0.75, S * 0.42, S * 0.5, S * 0.3); x.quadraticCurveTo(S * 0.3, S * 0.4, 0, S * 0.36); }
-    else {
-      // a fringe that sweeps to one side with a few soft points
-      x.lineTo(S, S * 0.42);
-      x.quadraticCurveTo(S * 0.9, S * 0.3, S * 0.84, S * 0.36);
-      x.quadraticCurveTo(S * 0.74, S * 0.24, S * 0.64, S * 0.34);
-      x.quadraticCurveTo(S * 0.52, S * 0.2, S * 0.42, S * 0.32);
-      x.quadraticCurveTo(S * 0.3, S * 0.18, S * 0.2, S * 0.3);
-      x.quadraticCurveTo(S * 0.1, S * 0.2, 0, S * 0.34);
-    }
-    x.closePath(); x.fill();
-    x.strokeStyle = HAIR_HI; x.lineWidth = 3; x.lineCap = 'round';
-    for (const [a, b, c] of side ? [[0.2, 0.08, 0.3]] : [[0.3, 0.06, 0.24], [0.6, 0.05, 0.22], [0.82, 0.08, 0.3]]) { x.beginPath(); x.moveTo(S * a, S * b); x.quadraticCurveTo(S * (a + 0.05), S * (b + c / 2), S * (a - 0.02), S * c); x.stroke(); }
-  };
-  const faceTex = (closed: boolean) => ctex(S, S, x => {
-    x.fillStyle = SKIN; x.fillRect(0, 0, S, S);
-    const ell = (cx: number, cy: number, rx: number, ry: number, c: string) => { x.fillStyle = c; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.fill(); };
-    // rosy cheeks
-    x.globalAlpha = 0.5; ell(S * 0.15, S * 0.76, S * 0.12, S * 0.085, '#FF8C7A'); ell(S * 0.85, S * 0.76, S * 0.12, S * 0.085, '#FF8C7A'); x.globalAlpha = 1;
-    // big, low-set eyes
-    for (const ex of [S * 0.3, S * 0.7]) {
-      const ey = S * 0.58, r = S * 0.135;
-      if (closed) {
-        x.strokeStyle = '#2A1A10'; x.lineWidth = 4; x.lineCap = 'round';
-        x.beginPath(); x.arc(ex, ey - r * 0.2, r * 0.8, 0.15 * Math.PI, 0.85 * Math.PI); x.stroke();
-      } else {
-        ell(ex, ey, r * 0.92, r, '#FFFFFF');
-        ell(ex, ey + r * 0.08, r * 0.8, r * 0.88, '#6B3A1E');
-        ell(ex, ey + r * 0.15, r * 0.55, r * 0.6, '#2B160A');
-        ell(ex + r * 0.3, ey - r * 0.32, r * 0.28, r * 0.28, '#FFFFFF');
-        ell(ex - r * 0.3, ey + r * 0.38, r * 0.12, r * 0.12, '#FFFFFF');
-        x.strokeStyle = '#1B120C'; x.lineWidth = 4.5; x.lineCap = 'round';
-        x.beginPath(); x.ellipse(ex, ey, r * 0.95, r * 1.02, 0, 1.1 * Math.PI, 1.9 * Math.PI); x.stroke();
-      }
-      // small brows peeking under the fringe
-      x.strokeStyle = '#3A2414'; x.lineWidth = 3.5;
-      x.beginPath(); x.arc(ex, ey - r * 0.35, r * 1.35, 1.36 * Math.PI, 1.64 * Math.PI); x.stroke();
-    }
-    // nose & a small happy smile
-    ell(S * 0.5, S * 0.72, S * 0.022, S * 0.016, 'rgba(200,110,80,.55)');
-    x.fillStyle = '#8E2F22'; x.beginPath(); x.moveTo(S * 0.42, S * 0.81); x.quadraticCurveTo(S * 0.5, S * 0.95, S * 0.58, S * 0.81); x.closePath(); x.fill();
-    x.fillStyle = '#FF8E8E'; x.beginPath(); x.ellipse(S * 0.5, S * 0.875, S * 0.04, S * 0.022, 0, 0, Math.PI * 2); x.fill();
-    x.fillStyle = '#FFFFFF'; x.fillRect(S * 0.45, S * 0.81, S * 0.1, S * 0.018);
-    fringe(x, false);
-  }, true);
-  const sideTex = ctex(S, S, x => { x.fillStyle = SKIN; x.fillRect(0, 0, S, S); fringe(x, true); x.fillStyle = HAIR; x.fillRect(S * 0.72, 0, S * 0.28, S * 0.62); }, true);
-  const sideTexR = ctex(S, S, x => { x.fillStyle = SKIN; x.fillRect(0, 0, S, S); fringe(x, true); x.fillStyle = HAIR; x.fillRect(0, 0, S * 0.28, S * 0.62); }, true);
-  const backTex = ctex(S, S, x => { x.fillStyle = HAIR; x.fillRect(0, 0, S, S * 0.66); x.fillStyle = SKIN; x.fillRect(0, S * 0.66, S, S * 0.34); x.fillStyle = HAIR; for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(i * S / 4, S * 0.64); x.quadraticCurveTo(i * S / 4 + S / 8, S * 0.76, (i + 1) * S / 4, S * 0.64); x.fill(); } }, true);
-  const open = mat(faceTex(false), 0.32), shut = mat(faceTex(true), 0.32);
-  const sideL = mat(sideTex, 0.32), sideR = mat(sideTexR, 0.32), back = mat(backTex, 0.2);
-
-  // --- head (big & round-ish), hair volume on top, big ears
-  const headG = new THREE.Group(); headG.position.y = 0.7; body.add(headG);
-  const HW = 0.76, HH = 0.68, HD = 0.66;
-  const headBox = new THREE.Group(); headBox.position.y = HH / 2;
-  const c = 0.08;
-  // three overlapping boxes give rounded edges; faces: +x, -x, +y, -y, +z(front), -z(back)
-  headBox.add(new THREE.Mesh(new THREE.BoxGeometry(HW, HH - c * 2, HD - c * 2), [sideR, sideL, hair, skin, open, back]));
-  headBox.add(new THREE.Mesh(new THREE.BoxGeometry(HW - c * 2, HH, HD - c * 2), [sideR, sideL, hair, skin, open, back]));
-  const front = new THREE.Mesh(new THREE.BoxGeometry(HW - c * 2, HH - c * 2, HD), [sideR, sideL, hair, skin, open, back]);
-  headBox.add(front);
-  headG.add(headBox);
-  // a thin, soft hair cap and a swooping tuft on top (no spiky blocks)
-  headG.add(soft(HW + 0.04, 0.09, HD + 0.04, hair, 0, HH + 0.02, -0.01, 0.04));
-  const tuft = (x: number, y: number, z: number, w: number, h: number, d: number, rz: number) => { const t = soft(w, h, d, hair, x, y, z, 0.03); t.rotation.set(0, 0, rz); headG.add(t); };
-  tuft(0.06, HH + 0.1, 0.06, 0.34, 0.08, 0.3, -0.18);
-  tuft(-0.16, HH + 0.08, -0.12, 0.2, 0.07, 0.22, 0.22);
-  headG.add(box(HW + 0.03, HH * 0.4, 0.05, hair, 0, HH * 0.78, -HD / 2 - 0.01));
-  const ear = (sx: number) => { const e = soft(0.08, 0.17, 0.13, skin, sx * (HW / 2 + 0.035), HH * 0.47, 0.02, 0.03); headG.add(e); const inner = box(0.02, 0.09, 0.06, mat('#F2A98A', 0.3), sx * (HW / 2 + 0.075), HH * 0.47, 0.02); headG.add(inner); };
-  ear(-1); ear(1);
-
-  // --- body: green onesie with white star & orange smile stripe, orange shirt peeking at the neck
-  const star = ctex(S, S, x => {
-    x.fillStyle = '#4FCF4A'; x.fillRect(0, 0, S, S);
-    x.fillStyle = '#EDEDED'; x.beginPath();
-    for (let i = 0; i < 10; i++) { const r = i % 2 ? S * 0.11 : S * 0.24, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(S / 2 + Math.cos(a) * r, S * 0.38 + Math.sin(a) * r); }
-    x.closePath(); x.fill();
-    x.strokeStyle = '#F58F4F'; x.lineWidth = S * 0.05; x.lineCap = 'round';
-    x.beginPath(); x.moveTo(S * 0.28, S * 0.72); x.quadraticCurveTo(S * 0.5, S * 0.8, S * 0.72, S * 0.72); x.stroke();
-  }, true);
-  body.add(soft(0.52, 0.38, 0.38, green, 0, 0.52, 0, 0.09, mat(star, 0.3)));
-  body.add(soft(0.3, 0.05, 0.24, orange, 0, 0.72, 0, 0.02));         // shirt collar
-  // arms: orange sleeve, yellow cuff, little hand
-  const arm = (side: number) => {
-    const a = new THREE.Group(); a.position.set(0.32 * side, 0.68, 0); body.add(a);
-    a.add(softLimb(0.15, 0.17, 0.15, orange, 0, 0, 0, 0.04));
-    a.add(softLimb(0.155, 0.055, 0.155, yellow, 0, -0.155, 0, 0.02));
-    a.add(softLimb(0.13, 0.09, 0.13, skin, 0, -0.205, 0, 0.045));
-    const hand = new THREE.Group(); hand.position.set(0, -0.27, 0.04); a.add(hand);
-    return { a, hand };
-  };
-  const L = arm(-1), R = arm(1);
-  // short legs with round green feet
+  const LEG = 16 * PX, TORSO = 20 * PX, HEAD = 16 * PX;
+  // legs (pivot at the hip)
   const leg = (side: number) => {
-    const l = new THREE.Group(); l.position.set(0.125 * side, 0.34, 0); body.add(l);
-    l.add(softLimb(0.21, 0.24, 0.23, greenD, 0, 0, 0, 0.06));
-    l.add(soft(0.23, 0.1, 0.29, green, 0, -0.29, 0.035, 0.045));
-    return l;
+    const g = new THREE.Group(); g.position.set(side * 4 * PX, LEG, 0); body.add(g);
+    const m = skinBox(8, 16, 8, [LEG_FRONT, LEG_FRONT, LEG_TOP, LEG_BOTTOM, LEG_FRONT, LEG_FRONT]); m.position.y = -LEG / 2; g.add(m);
+    return g;
   };
   const legs = [leg(-1), leg(1)];
-  const blink = (closed: boolean) => { for (const m of headBox.children as THREE.Mesh[]) (m.material as THREE.Material[])[4] = closed ? shut : open; };
-  return { root, body, head: headG, armL: L.a, armR: R.a, legs, height: 1.52, blink, hand: R.hand, hip: 0.34, scale: 1 };
+  // torso
+  const torso = skinBox(16, 20, 8, [BODY_SIDE, BODY_SIDE, BODY_TOP, BODY_BOTTOM, BODY_FRONT, BODY_BACK]);
+  torso.position.y = LEG + TORSO / 2; body.add(torso);
+  // arms (pivot at the shoulder)
+  const arm = (side: number) => {
+    const g = new THREE.Group(); g.position.set(side * 11 * PX, LEG + TORSO - 2 * PX, 0); body.add(g);
+    const m = skinBox(6, 20, 6, [ARM_SIDE, ARM_SIDE, ARM_TOP, ARM_BOTTOM, ARM_SIDE, ARM_SIDE]); m.position.y = -TORSO / 2 + 2 * PX; g.add(m);
+    const hand = new THREE.Group(); hand.position.set(0, -TORSO + 3 * PX, 3 * PX); g.add(hand);
+    return { g, hand };
+  };
+  const L = arm(-1), R = arm(1);
+  // head with an outer hair layer
+  const headG = new THREE.Group(); headG.position.y = LEG + TORSO; body.add(headG);
+  const open = skinMat(FACE_OPEN), shut = skinMat(FACE_SHUT);
+  const sideR = skinMat(HEAD_SIDE, false, true), sideL = skinMat(HEAD_SIDE);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(HEAD, HEAD, HEAD), [sideR, sideL, skinMat(HEAD_TOP), skinMat(HEAD_BOTTOM), open, skinMat(HEAD_BACK)]);
+  head.position.y = HEAD / 2; headG.add(head);
+  const hairOuter = new THREE.Mesh(new THREE.BoxGeometry(HEAD * 1.09, HEAD * 1.09, HEAD * 1.09),
+    [skinMat(HAIR_SIDE, true, true), skinMat(HAIR_SIDE, true), skinMat(HEAD_TOP, true), skinMat(fill(16, 16, '.'), true), skinMat(HAIR_FRONT, true), skinMat(HAIR_BACK, true)]);
+  hairOuter.position.y = HEAD / 2 + HEAD * 0.03; headG.add(hairOuter);
+  const blink = (closed: boolean) => { (head.material as THREE.Material[])[4] = closed ? shut : open; };
+  return { root, body, head: headG, armL: L.g, armR: R.g, legs, height: LEG + TORSO + HEAD + 0.05, blink, hand: R.hand, hip: LEG, scale: 1 };
 }
 
 // ---- humans (player avatar & villagers) ------------------------------------------
