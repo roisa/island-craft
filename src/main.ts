@@ -774,8 +774,8 @@ export class Game {
     this.stats.talked[n.id] = true;
     const held = this.inv.held();
     const food = held && FOOD.has(held.id);
-    const portrait = '';
-    const face = n.id === 'ustadz' ? '👨' : n.id === 'aminah' ? '🧕' : '👴';
+    const portrait = n.id === 'ustadz' ? 'img/ibrahim-face.webp' : '';
+    const face = n.id === 'ustadz' ? portrait : n.id === 'aminah' ? '🧕' : '👴';
     if (food) {
       const gift = [B.MOSAIC, B.GOLD_TILE, B.LANTERN, B.WOOL_PURPLE][Math.floor(Math.random() * 4)];
       this.giveFood(n.pos);

@@ -34,7 +34,7 @@ export interface BlockyOpts {
   emblem?: 'star' | 'moon' | null; backpack?: number | null; shoes?: number; shoeStripe?: number;
   hijab?: number; peci?: number; beard?: string; glasses?: boolean; robe?: boolean;
   adult?: boolean; smile?: 'open' | 'soft'; lashes?: boolean; tunic?: boolean; fringe?: number; star?: string;
-  shortSleeves?: boolean; polo?: boolean; beardStyle?: 'full' | 'short'; emblemSmall?: boolean; moonOnly?: boolean;
+  shortSleeves?: boolean; polo?: boolean; beardStyle?: 'full' | 'short' | 'goatee'; watch?: number; emblemSmall?: boolean; moonOnly?: boolean;
   teen?: boolean; hoodie?: boolean; sole?: number;
 }
 
@@ -61,7 +61,10 @@ function faceTex(o: BlockyOpts, closed: boolean) {
     if (o.glasses) { x.strokeStyle = '#333'; x.lineWidth = S * 0.025; x.strokeRect(0.12 * S, 0.41 * S, 0.31 * S, 0.26 * S); x.strokeRect(0.57 * S, 0.41 * S, 0.31 * S, 0.26 * S); r(0.43, 0.5, 0.14, 0.025, '#333'); }
     // rosy cheeks
     r(0.08, 0.68, 0.14, 0.07, 'rgba(255,140,130,.55)'); r(0.78, 0.68, 0.14, 0.07, 'rgba(255,140,130,.55)');
-    if (o.beard && o.beardStyle === 'short') {
+    if (o.beard && o.beardStyle === 'goatee') {
+      // just a small tuft on the chin
+      x.fillStyle = o.beard; x.fillRect(0.43 * S, 0.9 * S, 0.14 * S, 0.1 * S); x.fillRect(0.46 * S, 0.86 * S, 0.08 * S, 0.04 * S);
+    } else if (o.beard && o.beardStyle === 'short') {
       // moustache, a beard along the jaw and a little chin tuft, smile still visible
       x.fillStyle = o.beard;
       x.fillRect(0, 0.72 * S, 0.06 * S, 0.28 * S); x.fillRect(0.94 * S, 0.72 * S, 0.06 * S, 0.28 * S);   // sideburns
@@ -71,7 +74,7 @@ function faceTex(o: BlockyOpts, closed: boolean) {
       x.fillRect(0.32 * S, 0.665 * S, 0.36 * S, 0.04 * S);                                              // moustache
     } else if (o.beard) { x.fillStyle = o.beard; x.fillRect(0.06 * S, 0.7 * S, 0.88 * S, 0.3 * S); x.fillRect(0, 0.48 * S, 0.08 * S, 0.5 * S); x.fillRect(0.92 * S, 0.48 * S, 0.08 * S, 0.5 * S); }
     // mouth
-    if ((o.smile ?? 'open') === 'open' && (!o.beard || o.beardStyle === 'short')) {
+    if ((o.smile ?? 'open') === 'open' && (!o.beard || o.beardStyle === 'short' || o.beardStyle === 'goatee')) {
       x.fillStyle = '#8E2A20'; x.beginPath(); x.moveTo(0.35 * S, 0.71 * S); x.lineTo(0.65 * S, 0.71 * S); x.lineTo(0.63 * S, 0.81 * S); x.quadraticCurveTo(0.5 * S, 0.94 * S, 0.37 * S, 0.81 * S); x.closePath(); x.fill();
       r(0.36, 0.71, 0.28, 0.04, '#FFFFFF');
       x.fillStyle = '#F07A72'; x.beginPath(); x.ellipse(0.5 * S, 0.85 * S, 0.09 * S, 0.045 * S, 0, 0, Math.PI * 2); x.fill();
@@ -183,6 +186,7 @@ export function buildBlocky(o: BlockyOpts): Rig {
       // short sleeve over a bare arm
       g.add(bbox(0.16, sl + 0.12, 0.17, skinM, 0, -(sl + 0.12) / 2 + 0.05, 0, undefined, 0.025));
       g.add(bbox(0.19, sl * 0.38, 0.2, shirtM, 0, -sl * 0.19 + 0.05, 0, undefined, 0.02));
+      if (o.watch !== undefined && side < 0) g.add(bbox(0.175, 0.05, 0.185, m(o.watch), 0, -sl + 0.03, 0, undefined, 0.01));
     } else {
       g.add(bbox(0.17, sl, 0.18, shirtM, 0, -sl / 2 + 0.05));
       g.add(bbox(0.18, 0.05, 0.19, m(o.cuff ?? 0xffd21f), 0, -sl + 0.025, 0, undefined, 0.01));
@@ -248,8 +252,8 @@ export const AISYAH = (shirt = 0xf28fa6, hijab = 0xf48aa3): BlockyOpts => ({
   backpack: null, cuff: 0xf9c8d4, collar: shirt, shoes: 0xf9d3dc, shoeStripe: 0xf28fa6, tunic: true, hair: 0x6b4434,
 });
 export const AYAH: BlockyOpts = {
-  skin: '#F2C29A', shirt: 0xf5f3ee, shirtDark: 0xdcd8cf, pants: 0xe2c79a, pantsBand: 0xe2c79a, hair: 0x5a3b2e,
-  beard: '#5A3B2E', beardStyle: 'short', polo: true, emblem: 'star', emblemSmall: true, star: '#24335E',
+  skin: '#F2C29A', shirt: 0xf5f3ee, shirtDark: 0xdcd8cf, pants: 0xe2c79a, pantsBand: 0xd4b888, hair: 0x1f1a1a,
+  beard: '#1F1A1A', beardStyle: 'goatee', watch: 0x1e2a4a, polo: true, emblem: 'star', emblemSmall: true, star: '#24335E',
   shortSleeves: true, backpack: 0x3b3a3d, shoes: 0xf7f7f4, shoeStripe: 0xf7f7f4, adult: true,
 };
 export const ADAM: BlockyOpts = {
