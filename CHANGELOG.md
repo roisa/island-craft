@@ -5,6 +5,58 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### M7 · Exploration
+
+- **Eight handcrafted landmarks** (`src/world/landmarks.ts`), placed in
+  every world. Each one is put in a fitting biome, 60–320 blocks from the
+  village, away from the letter shrines and from each other:
+  - 🗼 **Lighthouse** on a beach: red-and-white stripes, a spiral stair
+    round the outside, a lantern room on top.
+  - 🏕️ **Oasis Camp** in the desert: a striped tent, a pool, date palms and
+    a camp stove.
+  - ⛰️ **Mountain Lookout** on a high peak: a wooden platform, lanterns and
+    a flag.
+  - 🏛️ **Library Ruins** in the forest: broken walls, marble pillars, a
+    mosaic floor and old bookshelves.
+  - ⛄ **The Igloo** in the snow: a round snow house with a bed and a
+    lantern.
+  - 🌷 **The Secret Garden**: a ring of flowers in a meadow hides a stair
+    down to a glowing underground garden with crystals.
+  - 🌴 **The Date Farm**: rows of date palms, a fence and a farmer's hut.
+  - ☁️ **The Sky Island**: a floating island with a tree, reached by a
+    spiral of stepping stones (one block up each hop).
+- **Treasure in every landmark:** each hides a treasure chest (one-time
+  loot, as before).
+- **Discoveries:** the first time you come close you get a **"New
+  discovery!"** card.
+  - It has a short fun fact, e.g. the Lighthouse's stars-as-guides (An-Nahl
+    16:16) or the Lookout's "Allahu Akbar going up, Subhanallah going down".
+  - It nudges you to find the treasure and shows "n/8 special places
+    found".
+  - Stars, fireworks, and Baby Mo and you celebrate.
+- **Explorer's Journal** on the 🗺️ Map tab:
+  - Found places show their icon, name and fact, and appear on the map.
+  - Places not found yet show a gentle clue ("Where the sand meets the sea
+    stands a tall striped tower").
+  - **🧭 Show the way** makes the golden compass point to that place, with
+    its icon and distance and a ❓ on the map. Tap again to go back to
+    letters.
+- **New quests:** "True explorer" (find 3) and "Every special place"
+  (find all 8).
+- **Older saves:** the landmarks come from their own random stream, so
+  letter shrines and the rest of each world stay exactly where they were.
+  In an older save the landmarks also appear in places already explored;
+  anything the player built there stays on top.
+- **For teacher review:** the fun facts are in `landmarks.ts`, next to the
+  other religious wording (see the note in `content.ts`).
+- Tests: 4 unit tests over five seeds. They check that all 8 landmarks are
+  placed and deterministic, the distances from the village, shrines and
+  each other, that each has a chest, and that texts exist in both
+  languages. Checked in game:
+  - Every landmark was screenshotted in a generated world.
+  - Walking into the Oasis showed its discovery card and recorded it.
+  - "Show the way" turned the compass to 🗼 with its distance.
+
 ### M6 · Building
 
 - **Placement preview:** while you hold a block and aim, a see-through copy

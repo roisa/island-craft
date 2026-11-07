@@ -18,6 +18,8 @@ export interface Stats {
   water?: number;
   /** furniture & decorations placed */
   decorated?: number;
+  /** landmarks found (ids from world/landmarks.ts) */
+  discovered?: string[];
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,
@@ -46,6 +48,8 @@ export const QUESTS: Quest[] = [
   { id: 'sedekah', icon: '🤲', title: ['Berbagi itu indah', 'Sharing is beautiful'], desc: ['Pegang makanan, lalu berikan ke warga desa dengan ✋.', 'Hold some food and give it to a villager with ✋.'], goal: s => [Math.min(1, s.gave), 1], reward: [[B.GOLD_TILE, 4]], sticker: '🤲' },
   { id: 'iftar', icon: '🌇', title: ['Berbuka puasa', 'Break the fast'], desc: ['Saat Maghrib di dalam game, makan kurma atau takjil.', 'At Maghrib in the game, eat dates or a takjil plate.'], goal: s => [Math.min(1, s.iftar), 1], reward: [[B.LANTERN, 4]], sticker: '🌙' },
   { id: 'jamaah', icon: '🕌', title: ['Sholat berjamaah', 'Pray together'], desc: ['Saat waktu sholat di game, datang ke masjid bersama warga.', 'When it is prayer time in the game, go to the masjid with the villagers.'], goal: s => [Math.min(1, s.jamaah), 1], reward: [[B.MOSAIC, 6]], sticker: '🕌' },
+  { id: 'explore3', icon: '🧭', title: ['Penjelajah sejati', 'True explorer'], desc: ['Temukan 3 tempat istimewa di dunia. Lihat petunjuknya di 🗺️ Peta.', 'Find 3 special places in the world. See the clues in 🗺️ Map.'], goal: s => [Math.min(3, s.discovered?.length || 0), 3], reward: [[I.CRYSTAL, 2], [B.TORCH, 6]], sticker: '🧭' },
+  { id: 'explore8', icon: '🗺️', title: ['Semua tempat istimewa', 'Every special place'], desc: ['Temukan semua 8 tempat istimewa: mercusuar, oasis, puncak gunung, dan lainnya!', 'Find all 8 special places: the lighthouse, the oasis, the mountain top and more!'], goal: s => [Math.min(8, s.discovered?.length || 0), 8], reward: [[I.GOLD_INGOT, 6], [I.CRYSTAL, 6]], sticker: '🌍' },
   { id: 'decorate', icon: '🪑', title: ['Hias rumahmu', 'Decorate your home'], desc: ['Buat sajadah, meja atau lampu di meja kerja (🔨 Buat), lalu pasang 3 hiasan.', 'Make a prayer mat, table or lamp at the workbench (🔨 Craft), then place 3 decorations.'], goal: s => [Math.min(3, s.decorated || 0), 3], reward: [[I.LAMP, 1], [I.CUSHION, 2]], sticker: '🛋️' },
   { id: 'blueprint', icon: '🏗️', title: ['Bangun dengan rancangan', 'Build from a blueprint'], desc: ['Buka 🏗️ Rancang, pilih Rumah Kecil, lalu bangun!', 'Open 🏗️ Blueprints, pick the Little House, then build it!'], goal: s => [Math.min(1, s.built || 0), 1], reward: [[B.LANTERN, 3]], sticker: '🏠' },
   { id: 'chest', icon: '🎁', title: ['Harta karun', 'Treasure hunt'], desc: ['Temukan peti harta karun di luar desa atau di dalam gua, lalu ketuk.', 'Find a treasure chest outside the village or in a cave, then tap it.'], goal: s => [Math.min(1, s.chests || 0), 1], reward: [[I.GOLD_INGOT, 2]], sticker: '🎁' },

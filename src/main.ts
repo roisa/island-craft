@@ -368,9 +368,16 @@ export class Game {
     for (const p of PRAYERS) if (this.schedule[p] > this.hour) return { p, h: this.schedule[p] };
     return { p: 'fajr', h: this.schedule.fajr };
   }
+  /** a landmark the child chose to follow from the journal (the golden arrow points there instead) */
+  exploreTarget: string | null = null;
   compass() {
-    let best: { rot: number; dist: number } | null = null, bd = Infinity;
+    let best: { rot: number; dist: number; landmark?: string } | null = null, bd = Infinity;
     const p = this.player?.pos; if (!p) return null;
+    const lm = this.exploreTarget ? this.gen.landmarks.find(l => l.id === this.exploreTarget) : null;
+    if (lm) {
+      const ta = Math.atan2(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
+      return { rot: -(ta - la), dist: Math.hypot(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), landmark: lm.icon };
+    }
     const have = new Set(this.stats.letters);
     for (const s of this.gen.shrines) {
       if (have.has(s.letter)) continue;
@@ -1275,8 +1282,24 @@ export class Game {
     }
   }
 
+  /** walking close to a landmark for the first time: a discovery card with a fun fact */
+  private checkDiscoveries() {
+    const p = this.player.pos, found = (this.stats.discovered ??= []);
+    for (const l of this.gen.landmarks) {
+      if (found.includes(l.id) || Math.hypot(l.x - p.x, l.z - p.z) > l.r || Math.abs(l.y - p.y) > 14) continue;
+      found.push(l.id);
+      if (this.exploreTarget === l.id) this.exploreTarget = null;
+      this.kid.reward('biome', 3);
+      SFX.fanfare(); haptic([15, 40, 15]);
+      this.fx.fireworks(p.x, p.y + 2, p.z);
+      this.anim.play('celebrate', 1.8); this.ents.mo.celebrate = 2;
+      this.ui.discovery(l, found.length, this.gen.landmarks.length);
+      this.checkQuests(); this.saveSoon();
+    }
+  }
   private slowChecks() {
     const p = this.player.pos;
+    this.checkDiscoveries();
     const col = this.gen.column(Math.floor(p.x), Math.floor(p.z));
     const bn = Biome[col.biome];
     if (!this.stats.biomes.includes(bn)) {

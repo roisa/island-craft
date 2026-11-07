@@ -10,6 +10,7 @@ import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, let
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId } from './game/prayer';
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
+import type { Landmark } from './world/landmarks';
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, type Blueprint } from './game/fun';
 import type { T2 } from './i18n';
@@ -247,6 +248,15 @@ export class UI {
       : r.next ? `<span class="lnext"><span class="ldots">${dots}</span>${r.toNext === 1 ? tr(`1 huruf lagi → ${r.next.icon} peti harta!`, `1 more letter → ${r.next.icon} treasure chest!`) : tr(`${r.toNext} huruf lagi → ${r.next.icon} peti harta`, `${r.toNext} more letters → ${r.next.icon} treasure chest`)}</span>` : '';
     return `<div class="lreward">${gift}${next}</div>`;
   }
+  /** you found a landmark: its name, a fun fact and a nudge to look for its treasure */
+  discovery(l: Landmark, n: number, of: number) {
+    const { el, close } = this.modal(`<div class="lvup discovery"><div class="burst">${l.icon}</div><div class="lvn">${tr('PENEMUAN BARU!', 'NEW DISCOVERY!')}</div><h2>${esc(t2(l.name))}</h2>
+      <p class="dfact">💡 ${esc(t2(l.fact))}</p>
+      <p>${tr('Ada 🎁 peti harta tersembunyi di sekitar sini. Coba cari!', 'There’s a 🎁 treasure chest hidden around here. Can you find it?')}</p>
+      <p><b>🧭 ${n}/${of}</b> ${tr('tempat istimewa ditemukan', 'special places found')}</p>
+      <button class="btn gold" id="dOk">${tr('Subhanallah! ✨', 'Subhanallah! ✨')}</button></div>`, undefined, { onShow: () => { this.confetti(60); if (this.g.settings.moVoice) Speech.talk(t2(l.name) + '. ' + t2(l.fact), getLang(), false, 1); } });
+    $('#dOk', el).onclick = () => close();
+  }
   /** a treasure chest opens every 4 letters */
   treasure(t: Treasure) {
     const { el, close } = this.modal(`<div class="lvup treasure"><div class="burst">${t.icon}</div><div class="lvn">${tr('PETI HARTA!', 'TREASURE!')}</div><h2>${esc(t2(t.title))}</h2>
@@ -301,7 +311,9 @@ export class UI {
     const c = g.compass();
     if (c) {
       $('#compassArrow').style.transform = `rotate(${c.rot}rad)`;
-      $('#compassText').innerHTML = `<b>${g.stats.letters.length}/28</b> · ${Math.round(c.dist)} m<small>${tr('Ikuti panah emas ✨', 'Follow the golden arrow ✨')}</small>`;
+      $('#compassText').innerHTML = c.landmark
+        ? `<b>${c.landmark}</b> · ${Math.round(c.dist)} m<small>${tr('Menuju tempat istimewa 🧭', 'Heading to a special place 🧭')}</small>`
+        : `<b>${g.stats.letters.length}/28</b> · ${Math.round(c.dist)} m<small>${tr('Ikuti panah emas ✨', 'Follow the golden arrow ✨')}</small>`;
     } else {
       $('#compassArrow').style.transform = '';
       $('#compassText').innerHTML = `🏆 28/28<small>${tr('Semua huruf ditemukan!', 'All letters found!')}</small>`;
@@ -450,7 +462,10 @@ export class UI {
     const zooms = [96, 200, 400];
     body.innerHTML = `<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
       <div class="mapWrap"><canvas id="mapC" width="400" height="400"></canvas></div>
-      <p style="margin-top:6px;font-size:12.5px">${tr('▲ = kamu · 🕌 = desa · ✨ = huruf belum ditemukan · ✓ = sudah ditemukan', '▲ = you · 🕌 = village · ✨ = letter not found yet · ✓ = found')}</p>`;
+      <p style="margin-top:6px;font-size:12.5px">${tr('▲ = kamu · 🕌 = desa · ✨ = huruf belum ditemukan · ✓ = sudah ditemukan', '▲ = you · 🕌 = village · ✨ = letter not found yet · ✓ = found')}</p>
+      <h3>🧭 ${tr('Jurnal Penjelajah', 'Explorer’s Journal')} <small>(${(g.stats.discovered || []).length}/${g.gen.landmarks.length})</small></h3>
+      <div class="journal">${g.gen.landmarks.map(l => { const f = (g.stats.discovered || []).includes(l.id); return `<div class="jr ${f ? 'found' : ''}"><span class="ji">${f ? l.icon : '❔'}</span><div><b>${f ? esc(t2(l.name)) : tr('Belum ditemukan', 'Not found yet')}</b><small>${esc(t2(f ? l.fact : l.hint))}</small></div>${f ? '<span class="jok">✓</span>' : `<button class="btn small ${g.exploreTarget === l.id ? 'gold' : 'ghost'}" data-follow="${l.id}">🧭 ${g.exploreTarget === l.id ? tr('Diikuti', 'Following') : tr('Tunjukkan arah', 'Show the way')}</button>`}</div>`; }).join('')}</div>`;
+    body.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => (b.onclick = () => { const id = b.dataset.follow!; g.exploreTarget = g.exploreTarget === id ? null : id; SFX.click(); this.renderBook(); }));
     body.querySelectorAll<HTMLElement>('[data-z]').forEach(b => (b.onclick = () => { this.mapZoom = +b.dataset.z!; this.renderBook(); }));
     const c = $<HTMLCanvasElement>('#mapC', body), x = c.getContext('2d')!;
     const R = zooms[this.mapZoom], N = 100, step = (R * 2) / N, px = c.width / N;
@@ -478,6 +493,13 @@ export class UI {
       else { x.font = '18px sans-serif'; x.fillText('✨', a, b); }
     }
     const [va, vb] = toC(0, -18); if (inside(va, vb)) { x.font = '22px sans-serif'; x.fillText('🕌', va, vb); }
+    // landmarks you've found (and the one you're following, as a "?")
+    for (const l of g.gen.landmarks) {
+      const found = (g.stats.discovered || []).includes(l.id);
+      if (!found && g.exploreTarget !== l.id) continue;
+      const [la, lb] = toC(l.x, l.z); if (!inside(la, lb)) continue;
+      x.font = '20px sans-serif'; x.fillText(found ? l.icon : '❓', la, lb);
+    }
     // you
     x.save(); x.translate(c.width / 2, c.height / 2); x.rotate(-g.player.yaw);
     x.fillStyle = '#E4423A'; x.strokeStyle = '#fff'; x.lineWidth = 2.5;

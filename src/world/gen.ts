@@ -2,6 +2,7 @@
 // oases, snowy hills, mountains, beaches), caves, ores, trees, a starting
 // village with a masjid, and 28 hijaiyah letter shrines scattered over the world.
 import { B, LETTERS } from './blocks';
+import { placeLandmarks, type Landmark } from './landmarks';
 import { Simplex, mulberry32, hash3, clamp, lerp, smoothstep } from './noise';
 
 export const CS = 16;          // chunk size (x/z)
@@ -33,6 +34,8 @@ export class Generator {
   private nMt: Simplex; private nOasis: Simplex; private nCaveA: Simplex; private nCaveB: Simplex; private nCheese: Simplex;
   stamps = new Map<string, Stamp[]>();
   shrines: Shrine[] = [];
+  /** handcrafted places to discover (see landmarks.ts) */
+  landmarks: Landmark[] = [];
 
   constructor(public seed: number) {
     this.nCont = new Simplex(seed + 1); this.nTemp = new Simplex(seed + 2); this.nMoist = new Simplex(seed + 3);
@@ -40,6 +43,7 @@ export class Generator {
     this.nCaveA = new Simplex(seed + 7); this.nCaveB = new Simplex(seed + 8); this.nCheese = new Simplex(seed + 9);
     this.buildVillage();
     this.placeShrines();
+    this.landmarks = placeLandmarks({ column: (x, z) => this.column(x, z), stamp: (x, y, z, id) => this.stamp(x, y, z, id), box: (a, b, c, d, e, f, id) => this.box(a, b, c, d, e, f, id) }, this.seed, this.shrines);
   }
 
   column(x: number, z: number): Column {
