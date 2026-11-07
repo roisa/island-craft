@@ -5,6 +5,28 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Volcano Island 🌋
+
+- A new landmark far out at sea (12 in total), reached by boat.
+  - In a world with no deep sea in reach, it stands on low land instead.
+- **The island:** a sandy beach, grassy lower slopes and a dark basalt
+  cone.
+- **The crater:** glowing warm magma rock, with a step to climb back out.
+- **Getting up:** a stone path climbs the south side one block at a time.
+- **Smoke** rises from the crater and can be seen from far away; steam
+  rises from two warm springs.
+- **New blocks:** basalt, warm magma rock (glows; not mineable, never
+  hurts) and obsidian (iron pickaxe).
+- **Secret spot:** inside the crater.
+- **Chest:** obsidian, crystals and gold.
+- **New quest:** volcano explorer.
+- **Old worlds keep their places:** a new test with saved positions of
+  every landmark for 8 seeds makes sure new places never move the ones a
+  saved world already has.
+- **Tested:** unit tests for the crater, the path (never more than one
+  block up per step), the springs and the chest; the desktop smoke suite;
+  a screenshot check of the island, path and crater.
+
 ### New places: Waterfall Valley, Coral Reef, Stargazing Hill and the Eid bazaar
 
 Three new landmarks in every world (11 in total), placed by the same seed

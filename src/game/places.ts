@@ -38,6 +38,37 @@ function turtle() {
   return g;
 }
 
+/** soft puffs that rise and fade: volcano smoke and steam over warm water */
+class Puffs {
+  private list: { s: THREE.Sprite; v: number; life: number; max: number; grow: number }[] = [];
+  private tex: THREE.CanvasTexture;
+  constructor(private scene: THREE.Scene) {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const x = c.getContext('2d')!, gr = x.createRadialGradient(32, 32, 4, 32, 32, 30);
+    gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    this.tex = new THREE.CanvasTexture(c);
+  }
+  add(x: number, y: number, z: number, color: number, size: number, rise: number, life: number) {
+    if (this.list.length > 60) return;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.tex, color, transparent: true, depthWrite: false, opacity: 0 }));
+    s.position.set(x, y, z); s.scale.setScalar(size);
+    this.scene.add(s);
+    this.list.push({ s, v: rise, life, max: life, grow: size * 0.6 });
+  }
+  update(dt: number) {
+    for (let i = this.list.length - 1; i >= 0; i--) {
+      const p = this.list[i];
+      p.life -= dt;
+      if (p.life <= 0) { this.scene.remove(p.s); p.s.material.dispose(); this.list.splice(i, 1); continue; }
+      const u = 1 - p.life / p.max;
+      p.s.position.y += p.v * dt; p.s.position.x += Math.sin(u * 3 + i) * dt * 0.3;
+      p.s.scale.setScalar(p.s.scale.x + p.grow * dt);
+      p.s.material.opacity = Math.min(1, u * 5) * (1 - u) * 0.7;
+    }
+  }
+}
+
 export class Places {
   private rainbow: THREE.Sprite | null = null;
   private mistT = 0; private rushT = 0;
@@ -45,11 +76,13 @@ export class Places {
   private fishData: { r: number; h: number; sp: number; ph: number; wob: number }[] = [];
   private turtles: { g: THREE.Group; r: number; sp: number; ph: number; h: number }[] = [];
   private m = new THREE.Matrix4(); private q = new THREE.Quaternion(); private e = new THREE.Euler(); private s = new THREE.Vector3(1, 1, 1); private v = new THREE.Vector3();
-  private fall?: Landmark; private reef?: Landmark; private hill?: Landmark;
+  private fall?: Landmark; private reef?: Landmark; private hill?: Landmark; private volcano?: Landmark;
+  private puffs: Puffs; private smokeT = 0; private steamT = 0;
 
   constructor(private g: Game) {
     const ls = g.gen.landmarks;
-    this.fall = ls.find(l => l.id === 'waterfall'); this.reef = ls.find(l => l.id === 'reef'); this.hill = ls.find(l => l.id === 'stargaze');
+    this.fall = ls.find(l => l.id === 'waterfall'); this.reef = ls.find(l => l.id === 'reef'); this.hill = ls.find(l => l.id === 'stargaze'); this.volcano = ls.find(l => l.id === 'volcano');
+    this.puffs = new Puffs(g.scene);
     if (this.fall?.at?.rainbow) {
       this.rainbow = new THREE.Sprite(new THREE.SpriteMaterial({ map: rainbowTexture(), transparent: true, depthWrite: false, opacity: 0 }));
       const [x, y, z] = this.fall.at.rainbow; this.rainbow.position.set(x, y, z); this.rainbow.scale.set(18, 9, 1);
@@ -149,6 +182,17 @@ export class Places {
         const fl = tt.g.userData.flippers as THREE.Mesh[];
         fl.forEach((f, k) => (f.rotation.z = Math.sin(t * 2.4 + k) * 0.5 * (k % 2 ? -1 : 1)));
       }
+    }
+    // ---- volcano: grey smoke from the crater (seen from far away), steam over the warm springs
+    this.puffs.update(dt);
+    const v = this.volcano?.at;
+    if (v && this.near(this.volcano, 150) && (this.smokeT -= dt) <= 0) {
+      this.smokeT = lite ? 0.9 : 0.45;
+      const [x, y, z] = v.smoke; this.puffs.add(x + (Math.random() - 0.5) * 2, y + 1, z + (Math.random() - 0.5) * 2, 0x6e6e78, 5, 2.4, 7);
+    }
+    if (v && this.near(this.volcano, 40) && (this.steamT -= dt) <= 0) {
+      this.steamT = lite ? 0.7 : 0.35;
+      const [x, y, z] = Math.random() < 0.5 ? v.spring1 : v.spring2; this.puffs.add(x + (Math.random() - 0.5), y - 0.4, z + (Math.random() - 0.5), 0xffffff, 0.9, 0.8, 2.5);
     }
     // ---- stargazing hill: more shooting stars up there
     g.sky.meteorBoost = this.near(this.hill, 30);

@@ -42,6 +42,8 @@ type Spec = Omit<Landmark, 'x' | 'y' | 'z'> & {
   /** returns the y used for the discovery point (and any secret spots) */
   build(b: Builder, x: number, y: number, z: number): Built;
   loot?: [number, number][];
+  /** when no fitting spot exists in this world, build it on any dry land rather than leave it out */
+  loose?: boolean;
 };
 
 /** fill from the ground up to y (so buildings never float over a dip) */
@@ -346,6 +348,53 @@ const SPECS = (): Spec[] => specs ??= [
       return { y: top + 1, at: { scope: [x, top + 1, z] } };
     },
   },
+  {
+    id: 'volcano', icon: '🌋', name: ['Pulau Gunung Api', 'Volcano Island'], biomes: [Biome.OCEAN], dist: [110, 330], r: 18, loose: true,
+    ok: c => c.h < SEA - 4,
+    hint: ['Jauh di laut ada pulau dengan gunung berasap. Buat perahu untuk berlayar ke sana!', 'Far out at sea is an island with a smoking mountain. Make a boat to sail there!'],
+    fact: ['Gunung api ini sedang tidur, jadi aman! Indonesia punya lebih dari 120 gunung api. Abu gunung api membuat tanah sangat subur untuk sawah dan kebun. Al-Qur’an menyebut gunung sebagai “pasak” bumi (QS An-Naba’: 7).', 'This volcano is asleep, so it’s safe! Indonesia has more than 120 volcanoes. Volcanic ash makes the soil very rich for rice fields and gardens. The Qur’an calls the mountains “pegs” of the earth (An-Naba’ 78:7).'],
+    loot: [[B.OBSIDIAN, 4], [I.CRYSTAL, 3], [I.GOLD_INGOT, 2]],
+    build(b, x, _y, z) {
+      const R = 17, cone = (d: number) => SEA + 2 + Math.round((12 - d) * 1.15);
+      const CR = 3.6, floor = cone(CR) - 3;
+      const springs: [number, number][] = [[x + 9, z + 5], [x - 8, z - 7]];
+      for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) {
+        const d = Math.hypot(dx, dz); if (d > R + 0.5) continue;
+        const X = x + dx, Z = z + dz, h = b.column(X, Z).h;
+        let top = d > 14.5 ? SEA : d > 12 ? SEA + 1 : cone(Math.max(d, CR));
+        if (d < CR) top = floor;
+        const path = dx === 0 && dz >= CR && d <= 12; // a stepped path up the south side
+        if (path) top = SEA + 2 + Math.round(12 - d);
+        for (let yy = Math.min(h, top) - 3; yy <= top; yy++) {
+          let id: number;
+          if (yy < top) id = d > 12 ? B.SAND : d > 8 ? B.DIRT : hash3(X, yy, Z, 21) < 0.25 ? B.STONE : B.BASALT;
+          else if (path) id = B.COBBLE;
+          else if (d < CR) id = d < 1.6 ? B.MAGMA : B.BASALT;
+          else id = d > 12 ? B.SAND : d > 8 ? B.GRASS : hash3(X, yy, Z, 23) < 0.06 ? B.OBSIDIAN : B.BASALT;
+          b.stamp(X, yy, Z, id);
+        }
+        b.box(X, top + 1, Z, X, Math.max(top + 4, SEA + 18), Z, B.AIR);
+        if (d > 8 && d <= 12 && !path && hash3(X, 1, Z, 31) < 0.12) b.stamp(X, top + 1, Z, hash3(X, 2, Z, 31) < 0.5 ? B.TALL_GRASS : B.FLOWER_YELLOW);
+        if (d > 12.5 && d < 14 && hash3(X, 3, Z, 41) < 0.03) palm(b, X, top, Z, 4);
+      }
+      // a step inside the crater so you can climb back out
+      b.stamp(x, floor + 1, z + 3, B.BASALT);
+      // two warm springs on the lower slopes
+      for (const [sx, sz] of springs) {
+        const t = cone(Math.hypot(sx - x, sz - z));
+        b.box(sx - 1, t - 1, sz - 1, sx + 1, t, sz + 1, B.STONE);
+        b.box(sx, t, sz, sx + 1, t, sz + 1, B.WATER);
+      }
+      // crystals and a chest on the rim
+      for (const [cx, cz] of [[x - 2, z - 3], [x + 3, z - 1], [x - 3, z + 1]]) b.stamp(cx, cone(Math.hypot(cx - x, cz - z)) - 1, cz, B.CRYSTAL_ORE);
+      b.stamp(x + 1, cone(4) + 1, z - 4, B.CHEST);
+      return {
+        y: SEA + 2,
+        spots: [{ id: 'crater', icon: '🔥', name: ['Di Dalam Kawah', 'Inside the Crater'], fact: ['Kamu ada di kawah gunung api yang sedang tidur! Jauh di bawah sana, batu begitu panas sampai meleleh menjadi magma. Batu yang menyala ini hanya hangat.', 'You’re in the crater of a sleeping volcano! Deep below, rock is so hot that it melts into magma. This glowing rock is only warm.'], x: x + 0.5, y: floor + 1, z: z + 0.5, r: 3 }],
+        at: { smoke: [x + 0.5, floor + 2, z + 0.5], spring1: [springs[0][0] + 1, cone(Math.hypot(springs[0][0] - x, springs[0][1] - z)) + 1, springs[0][1] + 1], spring2: [springs[1][0] + 1, cone(Math.hypot(springs[1][0] - x, springs[1][1] - z)) + 1, springs[1][1] + 1] },
+      };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
@@ -369,7 +418,7 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
       const c = b.column(x, z);
       const fits = s.ok ? s.ok(c) : true;
       if (fits && s.biomes.includes(c.biome)) spot = { x, z, h: c.h };
-      else if (fits && !fallback && c.biome !== Biome.OCEAN && c.biome !== Biome.VILLAGE) fallback = { x, z, h: c.h };
+      else if ((fits || (s.loose && c.h < SEA + 20)) && !fallback && c.biome !== Biome.OCEAN && c.biome !== Biome.VILLAGE) fallback = { x, z, h: c.h };
     }
     // no fitting biome nearby in this world: still build it on any dry spot so every world has all of them
     spot ??= fallback;

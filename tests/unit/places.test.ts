@@ -103,3 +103,23 @@ describe('Eid bazaar opening', () => {
     expect(eidOpen('off', new Date('2025-03-30T12:00:00Z'), 30)).toBe(false);
   });
 });
+
+describe('volcano island', () => {
+  for (const seed of [1, 42, 777]) it(`seed ${seed}: a cone with a warm crater, a path up, springs and a chest`, () => {
+    const g = new Generator(seed), at = stamped(g), l = g.landmarks.find(l => l.id === 'volcano')!;
+    const c = l.spots![0];
+    expect(at(c.x, c.y - 1, c.z)).toBe(B.MAGMA);
+    expect(at(c.x, c.y, c.z)).toBe(B.AIR);
+    // the stone path climbs one block at a time
+    let last = -1;
+    for (let dz = 12; dz >= 4; dz--) {
+      let y = 120; while (y > 0 && at(l.x, y, l.z + dz) !== B.COBBLE) y--;
+      expect(y, `path at ${dz}`).toBeGreaterThan(0);
+      if (last >= 0) expect(y - last).toBeLessThanOrEqual(1);
+      last = y;
+    }
+    for (const k of ['spring1', 'spring2']) { const [x, y, z] = l.at![k]; expect(at(x - 1, y - 1, z - 1)).toBe(B.WATER); }
+    let chests = 0; for (const list of g.stamps.values()) for (const [x, , z, id] of list) if (id === B.CHEST && Math.hypot(x - l.x, z - l.z) < 8) chests++;
+    expect(chests).toBe(1);
+  });
+});

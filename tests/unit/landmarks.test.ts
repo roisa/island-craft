@@ -34,3 +34,16 @@ describe('landmarks', () => {
     for (const l of new Generator(5).landmarks) { expect(l.hint[0] && l.hint[1] && l.fact[0] && l.fact[1] && l.name[0] && l.name[1]).toBeTruthy(); }
   });
 });
+
+import positions from './fixtures/landmark-positions.json';
+describe('old worlds keep their places', () => {
+  it('adding new landmarks never moves the ones a saved world already has', () => {
+    for (const [seed, list] of Object.entries(positions as Record<string, [string, number, number, number][]>)) {
+      const now = new Generator(+seed).landmarks;
+      for (const [id, x, y, z] of list) {
+        const l = now.find(l => l.id === id);
+        expect(l && [l.x + 0, l.y + 0, l.z + 0], `seed ${seed} ${id}`).toEqual([x, y, z]);
+      }
+    }
+  });
+});

@@ -12,7 +12,9 @@ export enum B {
   WOOL_WHITE = 45, WOOL_RED = 46, WOOL_YELLOW = 47, WOOL_BLUE = 48, WOOL_PURPLE = 49, WOOL_GREEN = 50,
   PINE_SAPLING = 51, CHEST = 52, BEDUG = 53,
   // the reef, the stargazing hill
-  CORAL_PINK = 54, CORAL_ORANGE = 55, CORAL_PURPLE = 56, SEA_GRASS = 57, CORAL_FAN = 58, CLAM = 59, TELESCOPE = 60, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  CORAL_PINK = 54, CORAL_ORANGE = 55, CORAL_PURPLE = 56, SEA_GRASS = 57, CORAL_FAN = 58, CLAM = 59, TELESCOPE = 60,
+  // the volcano island
+  BASALT = 61, MAGMA = 62, OBSIDIAN = 63, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -139,6 +141,9 @@ blk(B.SEA_GRASS, ['Rumput Laut', 'Seagrass'], 'sea_grass', { ...plant, color: 0x
 blk(B.CORAL_FAN, ['Kipas Karang', 'Coral Fan'], 'coral_fan', { ...plant, color: 0xff6f91, aquatic: true });
 blk(B.CLAM, ['Kerang', 'Clam'], ['clam_top', 'clam_side', 'sand'], { color: 0xd9c3e8, hardness: 0.6, tool: 'shovel', drops: r => (r < 0.45 ? [[I.PEARL, 1]] : [[B.SAND, 1]]) });
 blk(B.TELESCOPE, ['Teropong Bintang', 'Telescope'], 'telescope', { ...plant, color: 0xc9a227, hardness: Infinity });
+blk(B.BASALT, ['Batu Gunung Api', 'Basalt'], 'basalt', { color: 0x4a4a52, hardness: 2.4, tool: 'pick' });
+blk(B.MAGMA, ['Batu Magma Hangat', 'Warm Magma Rock'], 'magma', { color: 0xff7a1a, hardness: Infinity, light: 1 });
+blk(B.OBSIDIAN, ['Obsidian', 'Obsidian'], 'obsidian', { color: 0x2a1f3d, hardness: 4, tool: 'pick', tier: 3 });
 const wool: [number, string, T2, number][] = [
   [B.WOOL_WHITE, 'wool_white', ['Wol Putih', 'White Wool'], 0xf2f2f2],
   [B.WOOL_RED, 'wool_red', ['Wol Merah', 'Red Wool'], 0xe4423a],
