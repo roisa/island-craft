@@ -18,7 +18,8 @@ import { Input, isTouch } from './game/input';
 import { Inventory, Recipe, Station, craft as doCraft } from './game/inventory';
 import { Sky, Schedule } from './game/sky';
 import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
-import { buildHuman, Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
+import { Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
+import { buildBlocky, IBRA, AISYAH } from './game/blocky';
 import { FX } from './game/fx';
 import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic } from './game/audio';
@@ -33,7 +34,7 @@ import { Festive, PICNIC } from './game/festive';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean;
+  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean;
 }
 const SAVE_VERSION = 1;
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
@@ -201,9 +202,9 @@ export class Game {
 
     // villagers & Baby Mo
     const G = VILLAGE_Y + 1;
-    this.ents.addNpc(new Npc('ustadz', 'Ustadz Hasan', { skin: '#C99272', shirt: 0xf4f4f0, pants: 0xf4f4f0, peci: 0xffffff, beard: '#4a4a4a', robe: true, glasses: true }, new THREE.Vector3(-15.5, G, 17.5), this.world));
-    this.ents.addNpc(new Npc('aminah', 'Bu Aminah', { skin: '#E3B38F', shirt: 0xf2a33a, pants: 0x9b59b6, hijab: 0x9b59b6, robe: true, lashes: true, trim: 0xffffff }, new THREE.Vector3(-7.5, G, 10.5), this.world));
-    this.ents.addNpc(new Npc('yusuf', 'Kakek Yusuf', { skin: '#D7A27F', shirt: 0x3fa34d, pants: 0x5b4636, peci: 0x222222, beard: '#e8e8e8', hair: 0xdddddd }, new THREE.Vector3(9.5, G, 12.5), this.world));
+    this.ents.addNpc(new Npc('ustadz', 'Ustadz Hasan', { skin: '#D6A27F', shirt: 0xf4f4f0, shirtDark: 0xd8d8d0, peci: 0xffffff, beard: '#4a4a4a', robe: true, glasses: true, adult: true, smile: 'soft', collar: 0xe6e6de, cuff: 0xe6e6de, backpack: null, emblem: null, shoes: 0x5b3b2f, shoeStripe: 0x5b3b2f }, new THREE.Vector3(-15.5, G, 17.5), this.world));
+    this.ents.addNpc(new Npc('aminah', 'Bu Aminah', { skin: '#E8B892', shirt: 0xf2a33a, shirtDark: 0xc97f1f, hijab: 0x9b59b6, robe: true, lashes: true, adult: true, smile: 'soft', collar: 0xffffff, cuff: 0xffffff, backpack: null, emblem: null, shoes: 0x7a4a2a, shoeStripe: 0x7a4a2a }, new THREE.Vector3(-7.5, G, 10.5), this.world));
+    this.ents.addNpc(new Npc('yusuf', 'Kakek Yusuf', { skin: '#D7A27F', shirt: 0x3fa34d, pants: 0x5b4636, pantsBand: 0x4a382a, peci: 0x222222, beard: '#e8e8e8', hair: 0xdddddd, adult: true, smile: 'soft', collar: 0xffffff, cuff: 0xffffff, backpack: null, emblem: null, shoes: 0x3b2a20, shoeStripe: 0x3b2a20 }, new THREE.Vector3(9.5, G, 12.5), this.world));
     this.ents.mo = new Companion(this.world, () => ({ pos: this.player.pos, yaw: this.player.yaw, fp: this.settings.cam === 'first' }));
     this.ents.mo.pos.set(this.player.pos.x + 1.5, this.player.pos.y, this.player.pos.z + 1);
     this.scene.add(this.ents.mo.rig.root);
@@ -258,13 +259,19 @@ export class Game {
   buildAvatar() {
     if (this.avatar) this.scene.remove(this.avatar.root);
     const girl = this.settings.avatar === 'girl';
+    // older saves used the first outfit defaults; move them to the new blue look
+    if (this.settings.outfit && !this.settings.outfitV2) {
+      const o0 = this.settings.outfit;
+      if ((o0.shirt === 's_teal' || o0.shirt === 's_red') && (o0.hat === 'peci' || girl)) { o0.shirt = 's_blue'; o0.hat = 'none'; }
+    }
+    this.settings.outfitV2 = true;
     const o = this.settings.outfit ??= defaultOutfit(girl);
-    const shirt = outfitItem(o.shirt)?.color ?? (girl ? 0xff8fb3 : 0x2e8e86);
+    const shirt = outfitItem(o.shirt)?.color ?? 0x4a90e2;
     const hat = outfitItem(o.hat);
-    this.avatar = girl
-      ? buildHuman({ skin: '#E8B892', shirt, pants: 0x6b5ca5, hijab: outfitItem(o.hijab)?.color ?? 0x2aa198, robe: true, lashes: true, kid: true, scale: 0.9, trim: 0xf6dd6e })
-      : buildHuman({ skin: '#E8B892', shirt, pants: 0x35406b, hair: 0x3a2a1e, peci: hat?.id === 'peci' || hat?.id === 'peci_gold' ? hat.color : undefined, kid: true, scale: 0.9, trim: 0xffffff });
-    dressUp(this.avatar, o, girl, 0.6);
+    const opts = girl ? AISYAH(shirt, outfitItem(o.hijab)?.color ?? 0x2aa198) : IBRA(shirt);
+    if (!girl && (hat?.id === 'peci' || hat?.id === 'peci_gold')) opts.peci = hat.color;
+    this.avatar = buildBlocky(opts);
+    dressUp(this.avatar, o, girl, 0.66);
     this.scene.add(this.avatar.root);
     this.heldId = -1;
   }

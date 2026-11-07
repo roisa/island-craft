@@ -4,7 +4,8 @@ import type { World, Chunk } from '../world/world';
 import { CS, Biome, VILLAGE_Y } from '../world/gen';
 import { B, BLOCKS } from '../world/blocks';
 import { mulberry32 } from '../world/noise';
-import { buildAnimal, buildBabyMo, buildHuman, nameTag, AnimalKind, Rig, HumanOpts, applyPrayerPose, clearPose, poseAt } from './models';
+import { buildAnimal, nameTag, AnimalKind, Rig, applyPrayerPose, clearPose, poseAt } from './models';
+import { buildBlocky, BlockyOpts, BABY_MO } from './blocky';
 import type { T2 } from '../i18n';
 
 export abstract class Entity {
@@ -120,8 +121,8 @@ export class Npc extends Entity {
   faceTo: THREE.Vector3 | null = null;
   tag: THREE.Sprite;
   waving = false;
-  constructor(public id: NpcId, public name: string, opts: HumanOpts, public home: THREE.Vector3, public world: World) {
-    super(buildHuman(opts));
+  constructor(public id: NpcId, public name: string, opts: BlockyOpts, public home: THREE.Vector3, public world: World) {
+    super(buildBlocky(opts));
     this.pos.copy(home);
     this.tag = nameTag(name, '#FFD874');
     this.tag.position.y = this.rig.height + 0.32;
@@ -173,7 +174,7 @@ export class Companion extends Entity {
   swimming = false;
   tag: THREE.Sprite;
   constructor(public world: World, public follow: () => { pos: THREE.Vector3; yaw: number; fp?: boolean }) {
-    super(buildBabyMo());
+    super(buildBlocky(BABY_MO));
     this.tag = nameTag('Baby Mo', '#9BF29A');
     this.tag.position.y = this.rig.height + 0.2;
     this.rig.root.add(this.tag);

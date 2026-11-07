@@ -50,7 +50,7 @@ function softLimb(w: number, h: number, d: number, m: THREE.Material, x: number,
 export interface Rig {
   root: THREE.Group; body: THREE.Group; head: THREE.Object3D; armL?: THREE.Object3D; armR?: THREE.Object3D; legs: THREE.Object3D[]; height: number;
   blink?: (closed: boolean) => void; hand?: THREE.Object3D;
-  hip?: number; scale?: number;
+  hip?: number; scale?: number; neck?: number;
 }
 
 // ---- faces -------------------------------------------------------------------

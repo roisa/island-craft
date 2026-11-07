@@ -26,6 +26,7 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'h_purple', slot: 'hijab', name: ['Hijab Ungu', 'Purple Hijab'], icon: '🟪', level: 2, color: 0x9b59b6 },
   { id: 'h_gold', slot: 'hijab', name: ['Hijab Emas', 'Golden Hijab'], icon: '🟨', level: 3, color: 0xf1c232 },
   { id: 'h_green', slot: 'hijab', name: ['Hijab Hijau', 'Green Hijab'], icon: '🟩', level: 6, color: 0x3fa34d },
+  { id: 's_blue', slot: 'shirt', name: ['Baju Biru', 'Blue Shirt'], icon: '💙', level: 1, color: 0x4a90e2 },
   { id: 's_teal', slot: 'shirt', name: ['Baju Toska', 'Teal Shirt'], icon: '👕', level: 1, color: 0x2e8e86 },
   { id: 's_red', slot: 'shirt', name: ['Baju Merah', 'Red Shirt'], icon: '❤️', level: 1, color: 0xe4423a },
   { id: 's_yellow', slot: 'shirt', name: ['Baju Kuning', 'Yellow Shirt'], icon: '💛', level: 2, color: 0xf4c430 },
@@ -36,11 +37,11 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'c_star', slot: 'cape', name: ['Jubah Bintang', 'Star Cape'], icon: '🌟', level: 7, color: 0x6b4fc8 },
 ];
 export interface Outfit { hat: string; hijab: string; cape: string; shirt: string }
-export const defaultOutfit = (girl: boolean): Outfit => ({ hat: 'peci', hijab: 'h_teal', cape: 'c_none', shirt: girl ? 's_red' : 's_teal' });
+export const defaultOutfit = (_girl: boolean): Outfit => ({ hat: 'none', hijab: 'h_teal', cape: 'c_none', shirt: 's_blue' });
 export const outfitItem = (id: string) => OUTFITS.find(o => o.id === id);
 
 /** hats & capes added on top of the avatar model */
-export function dressUp(rig: { head: THREE.Object3D; body: THREE.Group }, o: Outfit, girl: boolean, hs: number) {
+export function dressUp(rig: { head: THREE.Object3D; body: THREE.Group; neck?: number }, o: Outfit, girl: boolean, hs: number) {
   const hat = !girl ? o.hat : 'none';
   const head = rig.head;
   if (hat === 'explorer') {
@@ -54,7 +55,7 @@ export function dressUp(rig: { head: THREE.Object3D; body: THREE.Group }, o: Out
   }
   const cape = outfitItem(o.cape);
   if (cape?.color !== undefined) {
-    const c = new THREE.Group(); c.position.set(0, girl ? 1.18 : 1.18, -0.17);
+    const c = new THREE.Group(); c.position.set(0, (rig.neck ?? 1.18) - 0.02, -0.3);
     const geo = new THREE.BoxGeometry(0.5, 0.78, 0.04); geo.translate(0, -0.39, 0);
     c.add(new THREE.Mesh(geo, mat(cape.color)));
     if (cape.id === 'c_star') for (const [x, y] of [[-0.12, -0.25], [0.1, -0.5], [-0.05, -0.65]]) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.02), mat(0xffd874)); s.position.set(x, y, -0.03); c.add(s); }
