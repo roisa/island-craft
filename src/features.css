@@ -46,3 +46,23 @@
 .installBtn { margin-top: 10px; }
 /* installed as an app: the status bar is see-through, so keep the sky colour behind it */
 @media (display-mode: standalone), (display-mode: fullscreen) { html, body { background: #1FA971; } }
+
+/* ---- telescope: tonight's moon & star pictures ---- */
+.scope { max-width: 400px; }
+.scope .scTabs { display: flex; gap: 8px; justify-content: center; margin: 6px 0 10px; flex-wrap: wrap; }
+.scope .moonBox { display: flex; gap: 12px; align-items: center; }
+.scope .moonBox canvas { width: 120px; height: 120px; border-radius: 16px; flex: none; }
+.scope .moonBox div { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.scope .mName { font-size: 18px; }
+.scope .phases { display: flex; justify-content: space-between; margin: 10px 0 4px; font-size: 22px; }
+.scope .phases span { opacity: .45; padding: 2px 3px; border-radius: 10px; }
+.scope .phases span.on { opacity: 1; background: rgba(241,194,50,.3); outline: 2px solid #F1C232; }
+.scope p { font-size: 13.5px; text-align: left; margin: 6px 0; }
+.scope .cons { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0; }
+.scope #scSky { width: 100%; max-width: 340px; aspect-ratio: 340 / 230; border-radius: 14px; touch-action: none; display: block; margin: 0 auto; }
+.scope .scTabs .btn, .scope .cons .btn { width: auto; flex: 1 1 auto; margin: 0; }
+@media (max-height: 520px) {
+  .scope .scVerse { display: none; }
+  .scope #scSky { max-width: 300px; }
+  .scope .cons .btn, .scope .scTabs .btn { padding: 6px 10px; font-size: 13px; }
+}

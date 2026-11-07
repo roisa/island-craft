@@ -10,7 +10,9 @@ export enum B {
   FLOWER_RED = 35, FLOWER_YELLOW = 36, FLOWER_BLUE = 37, FLOWER_PURPLE = 38,
   TALL_GRASS = 39, DEAD_BUSH = 40, SAPLING = 41, PALM_SAPLING = 42, BED = 43, BOOKSHELF = 44,
   WOOL_WHITE = 45, WOOL_RED = 46, WOOL_YELLOW = 47, WOOL_BLUE = 48, WOOL_PURPLE = 49, WOOL_GREEN = 50,
-  PINE_SAPLING = 51, CHEST = 52, BEDUG = 53, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  PINE_SAPLING = 51, CHEST = 52, BEDUG = 53,
+  // the reef, the stargazing hill
+  CORAL_PINK = 54, CORAL_ORANGE = 55, CORAL_PURPLE = 56, SEA_GRASS = 57, CORAL_FAN = 58, CLAM = 59, TELESCOPE = 60, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -25,6 +27,8 @@ export enum I {
   // toy swords (for shooing naughty beetles), fishing and cooking
   WOOD_SWORD = 241, STONE_SWORD = 242, IRON_SWORD = 243, FISHING_ROD = 244,
   SMALL_FISH = 245, BIG_FISH = 246, GOLDEN_FISH = 247, MEAT = 248, GRILLED_FISH = 249, FRIED_EGG = 250, STEAK = 251,
+  // the pearl cave and the Eid bazaar
+  PEARL = 252, KETUPAT_OPOR = 253, NASTAR = 254, ANGPAO = 255, FIREWORK = 256,
 }
 
 export type ToolKind = 'pick' | 'axe' | 'shovel' | 'sword';
@@ -46,6 +50,8 @@ export interface BlockDef {
   drops?: (r: number) => [number, number][];
   color: number;       // particle colour
   letter?: number;     // hijaiyah letter index
+  /** sea plants: they live inside water, so the water around them stays whole */
+  aquatic?: boolean;
 }
 
 export interface ItemDef {
@@ -126,6 +132,13 @@ blk(B.BED, ['Kasur', 'Bed'], ['bed_top', 'bed_side', 'planks'], { color: 0xe4423
 blk(B.BEDUG, ['Bedug', 'Bedug Drum'], ['bedug_face', 'bedug_side', 'bedug_face'], { color: 0x8a5c38, hardness: Infinity });
 blk(B.CHEST, ['Peti Harta Karun', 'Treasure Chest'], ['chest_top', 'chest_side', 'chest_top', 'chest_front'], { color: 0xc49a62, hardness: Infinity });
 blk(B.BOOKSHELF, ['Rak Buku', 'Bookshelf'], ['planks', 'bookshelf', 'planks'], { color: 0xc49a62, hardness: 1.2, tool: 'axe' });
+blk(B.CORAL_PINK, ['Karang Merah Muda', 'Pink Coral'], 'coral_pink', { color: 0xff7aa8, hardness: 0.8, tool: 'pick' });
+blk(B.CORAL_ORANGE, ['Karang Jingga', 'Orange Coral'], 'coral_orange', { color: 0xff9a3c, hardness: 0.8, tool: 'pick' });
+blk(B.CORAL_PURPLE, ['Karang Ungu', 'Purple Coral'], 'coral_purple', { color: 0xa66bd3, hardness: 0.8, tool: 'pick' });
+blk(B.SEA_GRASS, ['Rumput Laut', 'Seagrass'], 'sea_grass', { ...plant, color: 0x3fa36b, aquatic: true, drops: () => [] });
+blk(B.CORAL_FAN, ['Kipas Karang', 'Coral Fan'], 'coral_fan', { ...plant, color: 0xff6f91, aquatic: true });
+blk(B.CLAM, ['Kerang', 'Clam'], ['clam_top', 'clam_side', 'sand'], { color: 0xd9c3e8, hardness: 0.6, tool: 'shovel', drops: r => (r < 0.45 ? [[I.PEARL, 1]] : [[B.SAND, 1]]) });
+blk(B.TELESCOPE, ['Teropong Bintang', 'Telescope'], 'telescope', { ...plant, color: 0xc9a227, hardness: Infinity });
 const wool: [number, string, T2, number][] = [
   [B.WOOL_WHITE, 'wool_white', ['Wol Putih', 'White Wool'], 0xf2f2f2],
   [B.WOOL_RED, 'wool_red', ['Wol Merah', 'Red Wool'], 0xe4423a],
@@ -183,6 +196,11 @@ item(I.MEAT, ['Daging Halal', 'Halal Meat'], 'i_meat');
 item(I.GRILLED_FISH, ['Ikan Bakar', 'Grilled Fish'], 'i_fish_grilled', { food: true });
 item(I.FRIED_EGG, ['Telur Ceplok', 'Fried Egg'], 'i_egg_fried', { food: true });
 item(I.STEAK, ['Steak', 'Steak'], 'i_steak', { food: true });
+item(I.PEARL, ['Mutiara', 'Pearl'], 'i_pearl');
+item(I.KETUPAT_OPOR, ['Ketupat & Opor', 'Ketupat & Opor'], 'i_ketupat_opor', { food: true });
+item(I.NASTAR, ['Kue Nastar', 'Pineapple Tarts'], 'i_nastar', { food: true });
+item(I.ANGPAO, ['Amplop Lebaran', 'Eid Envelope'], 'i_angpao', { stack: 16 });
+item(I.FIREWORK, ['Kembang Api', 'Firework'], 'i_firework', { stack: 16 });
 
 // ---- hijaiyah letters ---------------------------------------------------
 export interface Letter { g: string; ar: string; name: string; lat: string; }

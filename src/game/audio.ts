@@ -161,6 +161,11 @@ export const SFX = {
   jump() { if (on()) tone(420, 0.1, 'triangle', 0.06); },
   step() { if (on()) noise(0.04, 0.035, 500); },
   splash() { if (on()) noise(0.25, 0.12, 1800); },
+  /** the soft rush of a waterfall (v = how close, 0..1) */
+  rush(v: number) { if (on() && v > 0.05) noise(1.6, 0.035 * v, 1300, 0, 'bandpass', 0.6); },
+  twinkle() { if (on()) [1568, 2093, 2637].forEach((f, i) => tone(f, 0.18, 'sine', 0.05, i * 0.07)); },
+  /** a firework: whoosh up, then a soft pop */
+  boom() { if (on()) { noise(0.5, 0.04, 2400, 0, 'highpass'); noise(0.5, 0.11, 500, 0.45); tone(90, 0.3, 'sine', 0.08, 0.45); } },
   craft() { if (on()) { tone(523, 0.1, 'triangle', 0.12); tone(659, 0.1, 'triangle', 0.12, 0.08); tone(784, 0.16, 'triangle', 0.12, 0.16); } },
   pet() { if (on()) { tone(660, 0.1, 'sine', 0.14); tone(990, 0.14, 'sine', 0.1, 0.07); } },
   letter() { if (on()) { tone(784, 0.12, 'sine', 0.14); tone(988, 0.12, 'sine', 0.12, 0.09); tone(1175, 0.2, 'sine', 0.12, 0.18); } },

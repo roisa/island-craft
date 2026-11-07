@@ -2,9 +2,9 @@
 // landmark in a fitting biome (a lighthouse on a beach, an igloo in the snow…),
 // away from the village and the letter shrines. Each one has a treasure chest
 // and a "discovery" with a short fun fact when you first get close.
-import { B } from './blocks';
+import { B, I } from './blocks';
 import { Biome, H, SEA, type Column } from './gen';
-import { mulberry32 } from './noise';
+import { mulberry32, hash3 } from './noise';
 import type { T2 } from '../i18n';
 
 export interface Landmark {
@@ -16,7 +16,15 @@ export interface Landmark {
   x: number; y: number; z: number;
   /** discovered when you come this close (blocks) */
   r: number;
+  /** secret spots inside the landmark: a second, smaller discovery */
+  spots?: Spot[];
+  /** named points the game uses for effects (the waterfall's foot, the reef's middle…) */
+  at?: Record<string, [number, number, number]>;
+  /** what its treasure chest holds (instead of a random gift) */
+  loot?: [number, number][];
 }
+export interface Spot { id: string; icon: string; name: T2; fact: T2; x: number; y: number; z: number; r: number }
+type Built = number | { y: number; spots?: Spot[]; at?: Record<string, [number, number, number]> };
 
 /** what a landmark builder can do with the generator */
 export interface Builder {
@@ -31,7 +39,9 @@ type Spec = Omit<Landmark, 'x' | 'y' | 'z'> & {
   ok?: (c: Column) => boolean;
   /** min / max distance from the village */
   dist: [number, number];
-  build(b: Builder, x: number, y: number, z: number): number; // returns the y used for the discovery point
+  /** returns the y used for the discovery point (and any secret spots) */
+  build(b: Builder, x: number, y: number, z: number): Built;
+  loot?: [number, number][];
 };
 
 /** fill from the ground up to y (so buildings never float over a dip) */
@@ -221,6 +231,121 @@ const SPECS = (): Spec[] => specs ??= [
       return top + 1;
     },
   },
+  {
+    id: 'waterfall', icon: '🏞️', name: ['Lembah Air Terjun', 'Waterfall Valley'], biomes: [Biome.MOUNTAIN, Biome.FOREST, Biome.MEADOW], dist: [70, 300], r: 11,
+    ok: c => c.h > SEA + 3 && c.h < H - 34,
+    hint: ['Dengarkan suara air yang jatuh dari tebing tinggi. Di sore yang cerah ada pelangi!', 'Listen for water falling from a tall cliff. On sunny afternoons there’s a rainbow!'],
+    fact: ['Air terjun adalah sungai yang jatuh dari tebing. Allah menurunkan hujan dari langit, lalu mengalirkannya menjadi mata air di bumi (QS Az-Zumar: 21). Pelangi muncul saat cahaya matahari menembus butiran air.', 'A waterfall is a river dropping over a cliff. Allah sends rain down from the sky and makes it flow as springs in the earth (Az-Zumar 39:21). A rainbow appears when sunlight shines through tiny drops of water.'],
+    loot: [[I.CRYSTAL, 3], [I.GOLD_INGOT, 2], [B.LANTERN, 2]],
+    build(b, x, y, z) {
+      const top = y + 12;
+      // the valley floor in front of the cliff
+      b.box(x - 8, y + 1, z - 3, x + 8, y + 16, z + 7, B.AIR);
+      foundation(b, x - 8, z - 3, x + 8, z + 7, y, B.DIRT);
+      b.box(x - 8, y, z - 3, x + 8, y, z + 7, B.GRASS);
+      // the cliff, lower towards its sides, with a grassy top
+      for (let dx = -8; dx <= 8; dx++) {
+        const ht = top - Math.max(0, Math.abs(dx) - 3) * 2;
+        for (let dz = -14; dz <= -4; dz++) {
+          const X = x + dx, Z = z + dz, g0 = Math.min(b.column(X, Z).h, y) - 2;
+          for (let yy = g0; yy <= ht; yy++) b.stamp(X, yy, Z, yy === ht ? B.GRASS : yy > ht - 2 ? B.DIRT : hash3(X, yy, Z, 7) < 0.2 ? B.COBBLE : B.STONE);
+          b.box(X, ht + 1, Z, X, ht + 6, Z, B.AIR);
+        }
+      }
+      // a little river on top runs to the edge and falls into a pool
+      b.box(x, top, z - 13, x + 1, top, z - 4, B.WATER);
+      b.box(x, y + 1, z - 3, x + 1, top, z - 3, B.WATER);
+      b.box(x - 3, y - 1, z - 3, x + 4, y, z + 3, B.WATER);
+      b.box(x - 3, y - 2, z - 3, x + 4, y - 2, z + 3, B.SAND);
+      // the secret cave behind the falling water, its walls sparkling with crystals
+      b.box(x - 3, y, z - 10, x + 4, y + 5, z - 4, (X, Y, Z) => (hash3(X, Y, Z, 11) < 0.16 ? B.CRYSTAL_ORE : B.STONE));
+      b.box(x - 2, y + 1, z - 9, x + 3, y + 4, z - 5, B.AIR);
+      b.box(x, y + 1, z - 4, x + 1, y + 2, z - 4, B.AIR);
+      b.stamp(x, y + 1, z - 9, B.CHEST);
+      b.stamp(x - 2, y + 1, z - 9, B.LANTERN); b.stamp(x + 3, y + 1, z - 9, B.LANTERN);
+      b.stamp(x - 2, y + 1, z - 5, B.WOOL_BLUE); b.stamp(x + 3, y + 1, z - 5, B.WOOL_GREEN);
+      // flowers and saplings around the pool
+      const fl = [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE];
+      for (let i = 0; i < 14; i++) {
+        const fx = x - 7 + Math.floor(hash3(i, 1, x, 3) * 15), fz = z + 4 + Math.floor(hash3(i, 2, z, 3) * 4);
+        b.stamp(fx, y + 1, fz, i % 5 === 0 ? B.TALL_GRASS : fl[i % 4]);
+      }
+      b.stamp(x - 6, y + 1, z - 2, B.TORCH); b.stamp(x + 7, y + 1, z - 2, B.TORCH);
+      return {
+        y: y + 1,
+        spots: [{ id: 'waterfall_cave', icon: '💎', name: ['Gua Rahasia di Balik Air Terjun', 'The Secret Cave Behind the Waterfall'], fact: ['Kamu menembus air terjun dan menemukan gua kristal! Ada peti harta di sini.', 'You went through the waterfall and found a crystal cave! There’s a treasure chest in here.'], x: x + 0.5, y: y + 1, z: z - 7, r: 3.2 }],
+        at: { foot: [x + 1, y + 1, z - 2], rainbow: [x + 1, y + 9, z + 5] },
+      };
+    },
+  },
+  {
+    id: 'reef', icon: '🪸', name: ['Taman Karang', 'The Coral Reef'], biomes: [Biome.OCEAN, Biome.BEACH], dist: [60, 300], r: 12,
+    ok: c => c.h >= SEA - 12 && c.h <= SEA + 1,
+    hint: ['Di laut dangkal yang jernih ada taman karang warna-warni. Menyelamlah ke bawah!', 'In the clear shallow sea is a colourful coral garden. Dive down!'],
+    fact: ['Karang adalah hewan kecil yang hidup bersama dan membangun rumah dari batu kapur. Allah berfirman tentang lautan: “Dari keduanya keluar mutiara dan marjan” (QS Ar-Rahman: 22).', 'Corals are tiny animals that live together and build homes of limestone. Allah says of the seas: “From both of them come pearls and coral” (Ar-Rahman 55:22).'],
+    loot: [[I.PEARL, 4], [I.GOLDEN_FISH, 1], [B.LANTERN, 2]],
+    build(b, x, _y, z) {
+      const f = SEA - 6, R = 9;
+      const corals = [B.CORAL_PINK, B.CORAL_ORANGE, B.CORAL_PURPLE];
+      const shaft = (X: number, Z: number) => X >= x + 3 && X <= x + 4 && Z >= z - 1 && Z <= z;
+      for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) {
+        const d = Math.hypot(dx, dz); if (d > R + 0.5) continue;
+        const X = x + dx, Z = z + dz, h = b.column(X, Z).h;
+        const fl = d > R - 1.5 ? Math.max(f, Math.min(h, SEA - 2)) : f;
+        for (let yy = Math.min(h, fl) - 3; yy < fl; yy++) b.stamp(X, yy, Z, B.SAND);
+        b.stamp(X, fl, Z, B.SAND);
+        for (let yy = fl + 1; yy <= SEA; yy++) b.stamp(X, yy, Z, B.WATER);
+        if (h > SEA) b.box(X, SEA + 1, Z, X, Math.min(h + 2, SEA + 10), Z, B.AIR);
+        if (d > R - 1.5 || shaft(X, Z) || Math.hypot(dx - 3.5, dz + 0.5) < 2.2) continue;
+        const r = hash3(X, 7, Z, 99);
+        if (r < 0.16) { const n = 1 + Math.floor(r * 19) % 3, c = corals[Math.floor(hash3(X, 8, Z, 5) * 3)]; for (let k = 1; k <= n; k++) b.stamp(X, fl + k, Z, c); }
+        else if (r < 0.3) b.stamp(X, fl + 1, Z, B.CORAL_FAN);
+        else if (r < 0.5) b.stamp(X, fl + 1, Z, B.SEA_GRASS);
+        else if (r < 0.55) b.stamp(X, fl, Z, B.CLAM);
+      }
+      // the pearl cave: swim down the hole, through a low tunnel, and come up into an air bubble
+      const t0 = f - 6;
+      b.box(x + 2, t0 - 1, z - 2, x + 5, f - 1, z + 1, B.STONE);
+      b.box(x + 3, t0, z - 1, x + 4, f, z, B.WATER);
+      b.box(x + 5, t0 - 1, z - 4, x + 12, t0 + 4, z + 3, (X, Y, Z) => (Y === t0 + 4 && hash3(X, Y, Z, 13) < 0.3 ? B.CRYSTAL_ORE : B.STONE));
+      b.box(x + 6, t0, z - 3, x + 11, t0 + 1, z + 2, B.WATER);
+      b.box(x + 6, t0 + 2, z - 3, x + 11, t0 + 3, z + 2, B.AIR);
+      b.box(x + 5, t0, z - 1, x + 5, t0 + 1, z, B.WATER);
+      b.box(x + 10, t0, z - 3, x + 11, t0 + 1, z + 2, B.STONE); // a dry ledge to stand on
+      for (const [X, Z] of [[x + 7, z - 2], [x + 8, z + 1], [x + 6, z + 2]]) b.stamp(X, t0 - 1, Z, B.CLAM);
+      b.stamp(x + 11, t0 + 2, z - 1, B.CHEST);
+      b.stamp(x + 11, t0 + 2, z + 2, B.LANTERN); b.stamp(x + 10, t0 + 2, z - 3, B.LANTERN);
+      return {
+        y: SEA - 3,
+        spots: [{ id: 'pearl_cave', icon: '🫧', name: ['Gua Mutiara', 'The Pearl Cave'], fact: ['Ada udara di dalam gua di bawah laut! Mutiara tumbuh di dalam kerang, sedikit demi sedikit, selama bertahun-tahun.', 'There’s air in this cave under the sea! Pearls grow inside clams, little by little, over many years.'], x: x + 9, y: t0 + 2, z: z - 0.5, r: 3.2 }],
+        at: { reef: [x + 0.5, f + 2, z + 0.5] },
+      };
+    },
+  },
+  {
+    id: 'stargaze', icon: '🔭', name: ['Bukit Bintang', 'Stargazing Hill'], biomes: [Biome.DESERT, Biome.MEADOW], dist: [70, 300], r: 9,
+    ok: c => c.h > SEA + 2 && c.h < SEA + 18,
+    hint: ['Sebuah bukit dengan teropong besar. Ketuk teropongnya untuk melihat bulan dan bintang!', 'A hill with a big telescope. Tap it to look at the moon and the stars!'],
+    fact: ['Banyak bintang punya nama dari bahasa Arab, seperti Altair, Vega dan Aldebaran! Ilmuwan Muslim seperti Al-Battani dan As-Sufi mempelajari langit. Bulan sabit baru (hilal) menandai awal bulan Hijriah, seperti Ramadhan dan Syawal.', 'Many stars have Arabic names, like Altair, Vega and Aldebaran! Muslim scientists like Al-Battani and Al-Sufi studied the sky. The new crescent moon (hilal) marks the start of each Hijri month, like Ramadan and Shawwal.'],
+    loot: [[I.CRYSTAL, 2], [B.GOLD_TILE, 6], [B.LANTERN, 3]],
+    build(b, x, y, z) {
+      const top = y + 5, desert = b.column(x, z).biome === Biome.DESERT;
+      for (let dx = -8; dx <= 8; dx++) for (let dz = -8; dz <= 8; dz++) {
+        const d = Math.hypot(dx, dz); if (d > 8.5) continue;
+        const X = x + dx, Z = z + dz, h = b.column(X, Z).h;
+        const ht = d <= 2.6 ? top : Math.round(top - (d - 2.6) * 0.9);
+        if (ht < h) continue;
+        for (let yy = h - 1; yy <= ht; yy++) b.stamp(X, yy, Z, yy === ht ? (dx === 0 && dz > 2 ? B.COBBLE : desert ? B.SAND : B.GRASS) : B.DIRT);
+        b.box(X, ht + 1, Z, X, ht + 8, Z, B.AIR);
+      }
+      b.box(x - 2, top, z - 2, x + 2, top, z + 2, (X, _y, Z) => (Math.abs(X - x) + Math.abs(Z - z) <= 1 ? B.MOSAIC : B.MARBLE));
+      b.stamp(x, top + 1, z, B.TELESCOPE);
+      b.stamp(x - 2, top + 1, z + 1, B.WOOL_BLUE); b.stamp(x - 2, top + 1, z - 1, B.WOOL_BLUE);
+      b.stamp(x + 2, top + 1, z - 2, B.CHEST);
+      for (const [dx, dz] of [[-3, 3], [3, 3], [-3, -3], [3, -3]]) { const X = x + dx, Z = z + dz; b.stamp(X, top, Z, B.TORCH); }
+      return { y: top + 1, at: { scope: [x, top + 1, z] } };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
@@ -249,8 +374,12 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
     // no fitting biome nearby in this world: still build it on any dry spot so every world has all of them
     spot ??= fallback;
     if (!spot) continue;
-    const y = s.build(b, spot.x, spot.h, spot.z);
-    out.push({ id: s.id, icon: s.icon, name: s.name, hint: s.hint, fact: s.fact, x: spot.x, y, z: spot.z, r: s.r });
+    const built = s.build(b, spot.x, spot.h, spot.z);
+    const y = typeof built === 'number' ? built : built.y;
+    const l: Landmark = { id: s.id, icon: s.icon, name: s.name, hint: s.hint, fact: s.fact, x: spot.x, y, z: spot.z, r: s.r };
+    if (typeof built !== 'number') { if (built.spots) l.spots = built.spots; if (built.at) l.at = built.at; }
+    if (s.loot) l.loot = s.loot;
+    out.push(l);
     taken.push({ x: spot.x, z: spot.z, r: 12 });
   }
   return out;

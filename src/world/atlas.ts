@@ -56,6 +56,11 @@ function wool(g: Grid, c: string, d: string) {
   g.noise(c, [d, c, c], 0.35);
   for (let y = 1; y < 16; y += 4) for (let x = 0; x < 16; x++) if ((x + y) % 3 === 0) g.p(x, y, d);
 }
+function coral(g: Grid, pal: string[], tip: string) {
+  g.noise(pal[0], pal, 0.5);
+  for (let i = 0; i < 14; i++) { const x = Math.floor(g.rnd() * 15), y = Math.floor(g.rnd() * 15); g.p(x, y, tip); g.p(x + 1, y, pal[2]); }
+  for (let i = 0; i < 5; i++) { const x = Math.floor(g.rnd() * 14), y = Math.floor(g.rnd() * 14); g.rect(x, y, 2, 2, pal[2]); }
+}
 function flower(g: Grid, petal: string, center: string) {
   g.clear();
   for (let y = 8; y < 16; y++) g.p(7, y, '#3F8A46');
@@ -146,6 +151,14 @@ const P: Record<string, Painter> = {
   chest_front: g => { P.chest_side(g); g.rect(6, 5, 4, 5, '#F1C232'); g.rect(7, 7, 2, 2, '#5E3E25'); },
   chest_top: g => { g.fill('#B98250'); for (let x = 0; x < 16; x += 4) g.rect(x, 0, 1, 16, '#8C5E33'); g.rect(0, 0, 16, 1, '#F1C232'); g.rect(0, 15, 16, 1, '#F1C232'); g.rect(0, 0, 1, 16, '#F1C232'); g.rect(15, 0, 1, 16, '#F1C232'); },
   // items (UI icons only)
+  coral_pink: g => coral(g, ['#FF7AA8', '#FF9CC0', '#E85C8E'], '#FFD1E2'),
+  coral_orange: g => coral(g, ['#FF9A3C', '#FFB466', '#E07A22'], '#FFE0B8'),
+  coral_purple: g => coral(g, ['#A66BD3', '#BE8BE6', '#8A4FB8'], '#E8D4F7'),
+  sea_grass: g => { g.clear(); for (let i = 0; i < 7; i++) { let x = 2 + i * 2 + Math.floor(g.rnd() * 2); const h = 7 + Math.floor(g.rnd() * 8); for (let k = 0; k < h; k++) { g.p(x, 15 - k, g.pick(['#3FA36B', '#4DBA7A', '#2F8A55'])); if (k % 3 === 2) x += g.rnd() < 0.5 ? 1 : -1; x = Math.max(0, Math.min(15, x)); } } },
+  coral_fan: g => { g.clear(); for (let y = 11; y < 16; y++) g.p(7, y, '#C24A72'); for (let r = 1; r < 8; r++) for (let a = -6; a <= 6; a++) { const t = a / 6 * 1.1; const x = Math.round(7.5 + Math.sin(t) * r), y = Math.round(11 - Math.cos(t) * r); if (g.rnd() < 0.75) g.p(x, y, r % 2 ? '#FF6F91' : '#FF9CB5'); } },
+  clam_top: g => { g.noise('#E6D3A2', ['#DCC793', '#EFDDB0'], 0.4); for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if (Math.hypot(x - 7.5, y - 8.5) < 5) g.p(x, y, (x + y) % 3 ? '#C9A9DC' : '#E7D6F2'); g.rect(3, 8, 10, 1, '#8D6BA6'); g.p(7, 7, '#FFFFFF'); g.p(8, 7, '#F2EEF8'); },
+  clam_side: g => { g.noise('#E6D3A2', ['#DCC793', '#EFDDB0'], 0.4); g.rect(3, 0, 10, 4, '#C9A9DC'); g.rect(3, 4, 10, 1, '#8D6BA6'); for (let x = 3; x < 13; x += 2) g.p(x, 1, '#E7D6F2'); },
+  telescope: g => { g.clear(); for (let i = 0; i < 10; i++) g.rect(3 + i, 8 - Math.floor(i * 0.6), 3, 3, i < 2 ? '#2E4A7A' : i > 7 ? '#E0B84D' : '#3D5F99'); g.rect(12, 2, 3, 3, '#F1C232'); g.p(13, 3, '#BDEBFA'); for (let y = 10; y < 16; y++) { g.p(8 - Math.floor((y - 10) / 2), y, '#8C5E33'); g.p(8 + Math.floor((y - 10) / 2), y, '#8C5E33'); g.p(8, y, '#6E4A2A'); } },
   i_stick: g => { g.clear(); for (let i = 0; i < 11; i++) g.p(3 + i, 13 - i, i % 2 ? '#7B5131' : '#96683F'); },
   i_pick_wood: g => tool(g, '#C49A62', '#8F6A3E', 'pick'),
   i_pick_stone: g => tool(g, '#9DA4AB', '#6E757C', 'pick'),
@@ -188,6 +201,11 @@ const P: Record<string, Painter> = {
   i_book_stand: g => { g.clear(); for (let i = 0; i < 6; i++) { g.rect(2 + i, 4 + i, 2, 1, '#8C5E33'); g.rect(12 - i, 4 + i, 2, 1, '#8C5E33'); } g.rect(1, 2, 7, 3, '#1F7A4D'); g.rect(8, 2, 7, 3, '#1F7A4D'); g.rect(2, 3, 5, 1, '#F2EBD9'); g.rect(9, 3, 5, 1, '#F2EBD9'); },
   i_crescent: g => { g.clear(); g.rect(7, 9, 2, 6, '#5C4632'); g.rect(5, 14, 6, 1, '#5C4632'); for (const [x, y, w] of [[5, 1, 3], [3, 2, 2], [2, 3, 2], [2, 4, 2], [2, 5, 2], [3, 6, 2], [4, 7, 5]]) g.rect(x, y, w, 1, '#FFD874'); g.rect(10, 3, 2, 2, '#FFE9A0'); },
   i_boat: g => { g.clear(); g.rect(1, 9, 14, 3, '#A9743F'); g.rect(3, 12, 10, 2, '#8C5E33'); g.rect(1, 8, 2, 1, '#8C5E33'); g.rect(13, 8, 2, 1, '#8C5E33'); g.rect(7, 2, 1, 7, '#7B5131'); g.rect(8, 3, 4, 4, '#F2F2F2'); g.rect(8, 7, 3, 1, '#F2F2F2'); },
+  i_pearl: g => { g.clear(); for (let y = 3; y < 14; y++) for (let x = 3; x < 14; x++) { const d = Math.hypot(x - 8, y - 8.5); if (d < 5) g.p(x, y, d < 2.2 ? '#FFFFFF' : d < 3.6 ? '#F2EEF8' : '#D8D0E8'); } g.p(6, 6, '#FFFFFF'); g.p(6, 7, '#FFFFFF'); g.p(10, 11, '#C9BEDD'); },
+  i_ketupat_opor: g => { g.clear(); g.rect(1, 10, 14, 4, '#F2EFE8'); g.rect(2, 14, 12, 1, '#C9C3B5'); g.rect(2, 9, 12, 2, '#F2B33A'); g.rect(4, 8, 3, 2, '#E9D6A0'); g.rect(9, 8, 3, 2, '#E9D6A0'); for (let i = 0; i < 4; i++) { g.rect(11 - i, 1 + i, i * 2 + 1, 1, i % 2 ? '#6CBF4F' : '#D9C24A'); g.rect(11 - i, 7 - i, i * 2 + 1, 1, i % 2 ? '#6CBF4F' : '#D9C24A'); } },
+  i_nastar: g => { g.clear(); g.rect(2, 9, 12, 5, '#E4423A'); g.rect(2, 8, 12, 1, '#FF6B5E'); for (const [x, y] of [[3, 4], [7, 3], [11, 4], [5, 6], [9, 6]]) { g.rect(x, y, 3, 3, '#F2B33A'); g.p(x + 1, y, '#C98A12'); g.p(x + 1, y + 1, '#E07A22'); } },
+  i_angpao: g => { g.clear(); g.rect(2, 3, 12, 10, '#1F8A4C'); g.rect(2, 3, 12, 1, '#2FAE64'); for (let i = 0; i < 6; i++) { g.p(2 + i, 4 + i, '#17703C'); g.p(13 - i, 4 + i, '#17703C'); } g.rect(6, 8, 4, 3, '#F1C232'); g.p(7, 9, '#FFE07A'); g.p(8, 9, '#FFE07A'); },
+  i_firework: g => { g.clear(); g.rect(6, 7, 4, 7, '#E4423A'); g.rect(6, 9, 4, 1, '#F4C430'); g.rect(6, 12, 4, 1, '#F4C430'); g.rect(7, 5, 2, 2, '#2E6FE0'); g.p(8, 4, '#8C5E33'); g.p(9, 3, '#8C5E33'); for (const [x, y, c] of [[11, 2, '#FFD874'], [13, 4, '#FF8FB1'], [4, 2, '#8FD3EC'], [2, 5, '#FFD874'], [12, 7, '#B388FF']] as [number, number, string][]) g.p(x, y, c); },
   i_kolak: g => { g.clear(); g.rect(2, 8, 12, 5, '#F4C430'); g.rect(2, 7, 12, 1, '#FFFFFF'); g.rect(3, 6, 10, 1, '#E4423A'); g.rect(7, 4, 2, 2, '#E4423A'); g.rect(2, 13, 12, 1, '#C78A1E'); },
 };
 

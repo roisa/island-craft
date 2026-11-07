@@ -140,6 +140,41 @@ async function run(name) {
       if (after.friedEggs <= r.eggs || after.cooked < 1 || after.rodGift !== 1) throw new Error(JSON.stringify({ r, after }));
       return { taps: r.taps, ...after };
     });
+    await step('new places: pearl cave, telescope star picture, Eid bazaar', async () => {
+      // the pearl cave under the reef: standing in its air pocket finds the secret spot
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals();
+        const reef = G.gen.landmarks.find(l => l.id === 'reef'), cave = reef.spots[0];
+        G.player.pos.set(cave.x, cave.y, cave.z); G.player.vel.set(0, 0, 0);
+        return { cave: [cave.x, cave.y, cave.z] };
+      });
+      for (let i = 0; i < 40; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => __game.stats.spots?.includes('pearl_cave') || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 });
+      // the telescope: join up the Summer Triangle by tapping its stars
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.telescope('stars'); });
+      await p.waitForSelector('.veil.on [data-c="triangle"]');
+      await g(() => document.querySelector('.veil.on [data-c="triangle"]').click());
+      await p.waitForTimeout(150);
+      const pts = await g(() => { const cv = document.querySelector('.veil.on #scSky'); cv.scrollIntoView({ block: 'center' }); const b = cv.getBoundingClientRect(); return [[30, 22], [74, 16], [52, 78], [30, 22]].map(([x, y]) => [b.left + (20 + x / 100 * 300) * b.width / 340, b.top + (15 + y / 100 * 200) * b.height / 230]); });
+      for (const [x, y] of pts) { touch ? await p.touchscreen.tap(x, y) : await p.mouse.click(x, y); await p.waitForTimeout(120); }
+      const cons = await g(() => __game.stats.constellations || []);
+      if (!cons.includes('triangle')) throw new Error('star picture not joined: ' + JSON.stringify(cons));
+      // the Eid bazaar: open it, take food at the ketupat stall, greet a villager for an Eid envelope
+      const e = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.settings.eid = 'on'; G.eid.refresh(); G.stats.eidWelcome = true;
+        const s = G.eid.stalls.find(s => s.id === 'food'); G.player.pos.set(s.front.x, s.front.y, s.front.z); G.player.vel.set(0, 0, 0);
+        return { open: G.eid.open, food: G.inv.count(253) };
+      });
+      if (!e.open) throw new Error('bazaar did not open');
+      await p.waitForSelector('.veil.on #dbtns button.gold', { timeout: 15000 });
+      await g(() => document.querySelector('.veil.on #dbtns button.gold').click());
+      const f = await g(() => { const G = __game; G.ui.closeAllModals(); G.inv.slots[G.inv.sel] = null; G.talkNpc(G.ents.npcs.find(n => n.id === 'yusuf')); return { food: G.inv.count(253), angpao: G.inv.count(255) }; });
+      if (f.food < e.food + 2 || f.angpao < 1) throw new Error(JSON.stringify({ e, f }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.eid = 'auto'; G.eid.refresh(); G.player.pos.set(0.5, 47, 3.5); });
+      // back home, and wait until the village is loaded again for the steps that follow
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return { spot: 'pearl_cave', cons, ...f };
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet);
         if (!a) return { skipped: true };

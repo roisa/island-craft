@@ -5,6 +5,84 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### New places: Waterfall Valley, Coral Reef, Stargazing Hill and the Eid bazaar
+
+Three new landmarks in every world (11 in total), placed by the same seed
+rules as the others, plus a market that opens in the village for Eid.
+
+- **Waterfall Valley** 🏞️ (forest, meadow or mountains)
+  - A cliff with a river on top that falls into a pool. There is spray at
+    its foot and a soft rushing sound when you are close.
+  - A rainbow over the pool on sunny afternoons (after Dhuhr, before
+    Maghrib, not raining).
+  - **Secret cave behind the waterfall:** swim through the falling water to
+    find a room with crystal walls and a treasure chest.
+- **Coral Reef** 🪸 (shallow sea or a beach lagoon)
+  - Pink, orange and purple coral, seagrass, coral fans and clams.
+  - A school of fish and two sea turtles swim around the reef.
+  - Clams give a **pearl** about half the time.
+  - **Pearl Cave:** dive down a hole in the sea floor and through a short
+    tunnel, then come up into an air pocket with a dry ledge and a chest.
+  - New sea plants keep the water around them whole, and you swim through
+    them (`aquatic` blocks in the mesher and the player).
+- **Diving Mask** 🤿, a new power hat
+  - Unlocks at level 4, or as soon as you find the reef.
+  - With it you swim almost as fast as you walk and see about twice as far
+    underwater.
+  - It comes with 2 lanterns for the cave.
+- **Stargazing Hill** 🔭 (desert or meadow)
+  - A round hill with a telescope; tapping the telescope opens two pages.
+  - **Tonight's moon:** the real phase for today's date (worked out from
+    the length of a lunar month, accurate to about half a day). It shows
+    how much of the moon is lit and the Hijri date, and explains the hilal
+    with the hadith "fast when you see it". It also gives the days until
+    the next new moon.
+  - **Star pictures:** tap the twinkling stars to join up the Summer
+    Triangle, Orion (Al-Jabbar) and the Big Dipper (Banāt Na‘sh). Each one
+    explains the Arabic origin of its star names.
+  - The moon in the sky now shows the real phase too. Shooting stars cross
+    clear night skies, and they come more often over the hill.
+- **Eid bazaar** 🎉 in the village
+  - A welcome gate with a "Selamat Hari Raya / Eid Mubarak" banner and
+    ketupat, a red carpet, and umbul-umbul flags.
+  - **Four stalls:**
+    - Ketupat & opor, free once a day ("take two: one to share").
+    - Eid cakes: nastar for eggs or dates.
+    - Fireworks for a pearl or apples.
+    - Eid clothes: two new outfits for pearls.
+  - A welcome card explains Eid prayer, forgiving each other and zakat
+    al-fitr, and shows the takbir in Arabic with its meaning.
+  - **Villagers** answer "Minal ‘aidin wal faizin" and give an **Eid
+    envelope** once a day; opening it gives a small gift.
+  - **Fireworks** over the village at night, and ones you can launch
+    yourself.
+  - **When it opens:**
+    - On the real last days of Ramadhan (from the 28th) and the first week
+      of Syawal.
+    - Outside Ramadhan, when the game calendar reaches day 28.
+    - Parents can choose "open now" or "closed" in the parents panel.
+  - The Ramadhan tab shows how close the bazaar is and links to tonight's
+    moon.
+- **New quests:** the waterfall's secret, pearl diver and little astronomer.
+- **Old saves:** the new places are added to existing worlds. The 8 older
+  landmarks keep their positions, because each landmark uses the same
+  random stream as before.
+- **Tested:**
+  - 15 new unit tests: the waterfall's water column and cave, the reef's
+    coral, clams and air pocket, the telescope block, and moon phases on
+    known new and full moon dates. They also check when the bazaar opens.
+  - A new smoke step on desktop, iPhone, iPad and Android finds the Pearl
+    Cave, joins a star picture by tapping, takes food at a stall and gets
+    an Eid envelope.
+  - All 110 unit tests, the smoke suite and the QA suite pass.
+- **Fixed while testing:**
+  - The telescope's star canvas was below the fold on an iPhone in
+    landscape. It now has a compact layout and scrolls into view.
+  - Eid fireworks were switched off completely in light-graphics mode; now
+    they come less often instead.
+  - The bazaar was first placed over a village palm tree and a letter
+    shrine, so it moved to a lane east of the south path.
+
 ### Full-screen app on phones (Add to Home Screen)
 
 So the browser bars do not cover the game on iPhone and other phones.

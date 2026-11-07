@@ -11,14 +11,19 @@ import { nameTag, mat } from './models';
 import { SFX, haptic } from './audio';
 import { levelOf } from './kid';
 import type { AnimalKind } from './models';
+import type { Stats } from '../content';
 
 // ======================= outfits =======================
 export type OutfitSlot = 'hat' | 'hijab' | 'cape' | 'shirt';
-export interface OutfitItem { id: string; slot: OutfitSlot; name: T2; icon: string; level: number; color?: number; perk?: T2 }
+export interface OutfitItem {
+  id: string; slot: OutfitSlot; name: T2; icon: string; level: number; color?: number; perk?: T2;
+  /** another way to open it before that level, and how to say it */
+  unlock?: { test: (s: Stats) => boolean; how: T2 };
+}
 /** hats with a power: anyone can wear them, even over a hijab */
-export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'explorer']);
+export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'hat_diver', 'explorer']);
 /** the matching item you get the first time you put one on */
-export const HAT_GIFTS: Record<string, [number, number][]> = { hat_straw: [[B.SAPLING, 3]], hat_fisher: [[I.FISHING_ROD, 1]], hat_miner: [[B.TORCH, 8]], hat_chef: [[I.EGG, 2], [I.MEAT, 1]], explorer: [[I.CRYSTAL, 1]] };
+export const HAT_GIFTS: Record<string, [number, number][]> = { hat_straw: [[B.SAPLING, 3]], hat_fisher: [[I.FISHING_ROD, 1]], hat_miner: [[B.TORCH, 8]], hat_chef: [[I.EGG, 2], [I.MEAT, 1]], hat_diver: [[B.LANTERN, 2]], explorer: [[I.CRYSTAL, 1]] };
 export const OUTFITS: OutfitItem[] = [
   { id: 'peci', slot: 'hat', name: ['Peci Putih', 'White Peci'], icon: '🧢', level: 1, color: 0xf2f2f2 },
   { id: 'none', slot: 'hat', name: ['Tanpa Topi', 'No Hat'], icon: '🙂', level: 1 },
@@ -30,6 +35,7 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'hat_fisher', slot: 'hat', name: ['Topi Pemancing', 'Fishing Hat'], icon: '🎣', level: 2, perk: ['Ikan lebih cepat menggigit, ikan emas lebih sering', 'Fish bite sooner, golden fish more often'] },
   { id: 'hat_miner', slot: 'hat', name: ['Helm Penambang', 'Miner’s Helmet'], icon: '⛑️', level: 3, perk: ['Lampu di kepala & menggali lebih cepat', 'A head lamp & faster digging'] },
   { id: 'hat_chef', slot: 'hat', name: ['Topi Koki', 'Chef’s Hat'], icon: '👨‍🍳', level: 3, perk: ['Zona hijau memasak lebih lebar', 'A wider green zone when cooking'] },
+  { id: 'hat_diver', slot: 'hat', name: ['Masker Selam', 'Diving Mask'], icon: '🤿', level: 4, perk: ['Berenang cepat & melihat jelas di dalam air', 'Swim fast & see clearly underwater'], unlock: { test: s => !!s.discovered?.includes('reef'), how: ['Temukan Taman Karang', 'Find the Coral Reef'] } },
   { id: 'h_teal', slot: 'hijab', name: ['Hijab Toska', 'Teal Hijab'], icon: '🟦', level: 1, color: 0x2aa198 },
   { id: 'h_pink', slot: 'hijab', name: ['Hijab Merah Muda', 'Pink Hijab'], icon: '🩷', level: 1, color: 0xf48aa3 },
   { id: 'h_purple', slot: 'hijab', name: ['Hijab Ungu', 'Purple Hijab'], icon: '🟪', level: 2, color: 0x9b59b6 },
@@ -42,6 +48,9 @@ export const OUTFITS: OutfitItem[] = [
   { id: 's_yellow', slot: 'shirt', name: ['Baju Kuning', 'Yellow Shirt'], icon: '💛', level: 2, color: 0xf4c430 },
   { id: 's_white', slot: 'shirt', name: ['Baju Koko Putih', 'White Koko Shirt'], icon: '🤍', level: 3, color: 0xf4f4f0 },
   { id: 's_green', slot: 'shirt', name: ['Baju Hijau Baby Mo', 'Baby Mo Green'], icon: '💚', level: 5, color: 0x55c94a },
+  // from the Eid bazaar's clothes stall
+  { id: 's_eid_green', slot: 'shirt', name: ['Baju Lebaran Hijau', 'Green Eid Outfit'], icon: '🌙', level: 99, color: 0x1f8a4c, unlock: { test: s => !!s.eidShirts?.includes('s_eid_green'), how: ['Bazar Lebaran', 'Eid bazaar'] } },
+  { id: 's_eid_gold', slot: 'shirt', name: ['Baju Lebaran Emas', 'Golden Eid Outfit'], icon: '✨', level: 99, color: 0xe9cf7a, unlock: { test: s => !!s.eidShirts?.includes('s_eid_gold'), how: ['Bazar Lebaran', 'Eid bazaar'] } },
   { id: 'c_none', slot: 'cape', name: ['Tanpa Jubah', 'No Cape'], icon: '➖', level: 1 },
   { id: 'c_hero', slot: 'cape', name: ['Jubah Pahlawan', 'Hero Cape'], icon: '🦸', level: 4, color: 0xe4423a },
   { id: 'c_star', slot: 'cape', name: ['Jubah Bintang', 'Star Cape'], icon: '🌟', level: 7, color: 0x6b4fc8 },
@@ -82,6 +91,13 @@ export function dressUp(rig: { head: THREE.Object3D; body: THREE.Group; neck?: n
     const band = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.04, 0.12, hs + 0.04), white); band.position.y = hs + 0.06; head.add(band);
     const puff = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.14, 0.26, hs + 0.14), white); puff.position.y = hs + 0.26; head.add(puff);
     for (const [x, z] of [[-0.1, 0], [0.1, 0.05], [0, -0.1]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.16), white); b.position.set(x, hs + 0.42, z); head.add(b); }
+  } else if (hat === 'hat_diver') {
+    const frame = mat(0x2b3a4a), glass = new THREE.MeshBasicMaterial({ color: 0x9fe3ff, transparent: true, opacity: 0.75 }), strap = mat(0x1f8a8a), tube = mat(0xf4c430);
+    const f = new THREE.Mesh(new THREE.BoxGeometry(hs * 0.86, 0.2, 0.06), frame); f.position.set(0, hs * 0.62, hs / 2 + 0.03); head.add(f);
+    const gl = new THREE.Mesh(new THREE.BoxGeometry(hs * 0.74, 0.14, 0.03), glass); gl.position.set(0, hs * 0.62, hs / 2 + 0.065); head.add(gl);
+    const st = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.04, 0.07, hs + 0.04), strap); st.position.y = hs * 0.64; head.add(st);
+    const sn = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.46, 0.06), tube); sn.position.set(hs / 2 + 0.05, hs * 0.75, 0.05); head.add(sn);
+    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.06), mat(0xe4423a)); tip.position.set(hs / 2 + 0.05, hs * 0.98 + 0.03, 0.05); head.add(tip);
   } else if (hat === 'turban') {
     const g = mat(0x3fa34d), w = mat(0xf4f4f0);
     for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.1 - i * 0.12, 0.1, hs + 0.1 - i * 0.12), i % 2 ? w : g); r.position.y = hs + 0.03 + i * 0.09; head.add(r); }
@@ -238,7 +254,7 @@ export class Fun {
       [[I.GOLD_INGOT, 2], [B.LANTERN, 3]], [[I.CRYSTAL, 2], [B.MOSAIC, 4]], [[B.GOLD_TILE, 6], [I.DATES, 4]],
       [[I.IRON_INGOT, 4], [I.KOLAK, 1]], [[B.WOOL_PURPLE, 4], [B.WOOL_YELLOW, 4], [I.APPLE, 3]], [[B.MARBLE, 12], [B.LANTERN, 2]],
     ];
-    const pick = loot[Math.floor(Math.random() * loot.length)];
+    const pick = g.places?.lootAt(x, y, z) ?? loot[Math.floor(Math.random() * loot.length)];
     g.world.set(x, y, z, B.AIR);
     for (const [id, n] of pick) { g.inv.add(id, n); g.ui.pickup(id, n); }
     g.stats.chests = (g.stats.chests || 0) + 1;
@@ -442,7 +458,7 @@ export class Fun {
   }
 
   /** current level unlocks */
-  unlocked(item: OutfitItem) { return levelOf(this.g.stats.stars) >= item.level; }
+  unlocked(item: OutfitItem) { return levelOf(this.g.stats.stars) >= item.level || !!item.unlock?.test(this.g.stats); }
 }
 
 export { VILLAGE_Y };

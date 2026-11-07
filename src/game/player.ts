@@ -1,7 +1,9 @@
 // Player body: AABB collisions, gentle auto step-up, swimming, flying.
 import * as THREE from 'three';
 import type { World } from '../world/world';
-import { B } from '../world/blocks';
+import { B, BLOCKS } from '../world/blocks';
+
+const wet = (id: number) => id === B.WATER || !!BLOCKS[id]?.aquatic;
 
 export const PW = 0.3;   // half width
 export const PH = 1.6;   // height
@@ -17,6 +19,8 @@ export class Player {
   vel = new THREE.Vector3();
   yaw = 0; pitch = -0.15;
   onGround = false; inWater = false; headInWater = false;
+  /** wearing the diving mask: swim faster */
+  diver = false;
   flying = false;
   visY = 0;           // smoothed y for camera after step-ups
   speed = 0;
@@ -66,12 +70,12 @@ export class Player {
   step(dt: number, inp: MoveInput) {
     const w = this.world, p = this.pos, v = this.vel;
     const wasInWater = this.inWater;
-    this.inWater = w.get(Math.floor(p.x), Math.floor(p.y + 0.4), Math.floor(p.z)) === B.WATER;
-    this.headInWater = w.get(Math.floor(p.x), Math.floor(p.y + EYE), Math.floor(p.z)) === B.WATER;
+    this.inWater = wet(w.get(Math.floor(p.x), Math.floor(p.y + 0.4), Math.floor(p.z)));
+    this.headInWater = wet(w.get(Math.floor(p.x), Math.floor(p.y + EYE), Math.floor(p.z)));
     if (this.inWater && !wasInWater && v.y < -4) this.onSplash?.();
 
     let sp = this.flying ? (inp.sprint ? 11 : 7) : inp.sprint ? 6.2 : 4.4;
-    if (this.inWater && !this.flying) sp *= 0.6;
+    if (this.inWater && !this.flying) sp *= this.diver ? 1.05 : 0.6;
     let fx = inp.fx, fz = inp.fz;
     const len = Math.hypot(fx, fz); if (len > 1) { fx /= len; fz /= len; }
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw);

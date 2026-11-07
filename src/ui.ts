@@ -8,10 +8,11 @@ import { B, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
 import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from './game/inventory';
 import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
-import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId } from './game/prayer';
+import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri } from './game/prayer';
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
-import type { Landmark } from './world/landmarks';
+import type { Landmark, Spot } from './world/landmarks';
+import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
 import { guessLook, toCss, type Look } from './game/photo';
@@ -260,6 +261,91 @@ export class UI {
       <button class="btn gold" id="dOk">${tr('Subhanallah! ✨', 'Subhanallah! ✨')}</button></div>`, undefined, { onShow: () => { this.confetti(60); if (this.g.settings.moVoice) Speech.talk(t2(l.name) + '. ' + t2(l.fact), getLang(), false, 1); } });
     $('#dOk', el).onclick = () => close();
   }
+  /** a secret spot inside a landmark */
+  spotFound(sp: Spot) {
+    const { el, close } = this.modal(`<div class="lvup discovery"><div class="burst">${sp.icon}</div><div class="lvn">${tr('TEMPAT RAHASIA!', 'SECRET PLACE!')}</div><h2>${esc(t2(sp.name))}</h2>
+      <p class="dfact">✨ ${esc(t2(sp.fact))}</p>
+      <button class="btn gold" id="spOk">${tr('Masya Allah! ✨', 'Masha Allah! ✨')}</button></div>`, undefined, { onShow: () => { this.confetti(60); if (this.g.settings.moVoice) Speech.talk(t2(sp.name) + '. ' + t2(sp.fact), getLang(), false, 1); } });
+    $('#spOk', el).onclick = () => close();
+  }
+
+  /** the telescope on Stargazing Hill: tonight's real moon, and star pictures to join up */
+  telescope(tab: 'moon' | 'stars' = 'moon') {
+    const g = this.g;
+    const { el, close } = this.modal(`<div class="scope"><h2>🔭 ${tr('Teropong Bintang', 'The Telescope')}</h2>
+      <div class="scTabs"><button class="btn small ${tab === 'moon' ? 'gold' : 'ghost'}" data-t="moon">🌙 ${tr('Bulan malam ini', 'Tonight’s moon')}</button><button class="btn small ${tab === 'stars' ? 'gold' : 'ghost'}" data-t="stars">✨ ${tr('Gambar bintang', 'Star pictures')}</button></div>
+      <div id="scBody"></div>
+      <div class="row"><button class="btn ghost small" id="scX">${tr('Tutup', 'Close')}</button></div></div>`, undefined, { onShow: () => SFX.twinkle() });
+    $('#scX', el).onclick = () => close();
+    el.querySelectorAll<HTMLElement>('[data-t]').forEach(b => (b.onclick = () => { close(); setTimeout(() => this.telescope(b.dataset.t as 'moon' | 'stars'), 60); }));
+    const body = $('#scBody', el);
+    if (tab === 'moon') {
+      const now = new Date(), p = moonPhase(now), idx = phaseIndex(p), age = moonAge(now), lit = Math.round(moonLit(now) * 100);
+      const h = hijri(now), hj = h ? `${h.day} ${t2(HIJRI_MONTHS[h.month - 1])} ${h.year} H` : '';
+      const toNew = Math.max(1, Math.round(daysToNewMoon(now)));
+      const next = h ? (h.month === 8 ? tr(' Bulan Hijriah berikutnya adalah <b>Ramadhan</b>! 🌙', ' The next Hijri month is <b>Ramadan</b>! 🌙') : h.month === 9 ? tr(' Bulan berikutnya <b>Syawal</b> — hari raya Idul Fitri! 🎉', ' The next month is <b>Shawwal</b> — Eid al-Fitr! 🎉') : '') : '';
+      body.innerHTML = `<div class="moonBox"><canvas id="scMoon" width="200" height="200"></canvas>
+        <div><b class="mName">${PHASES[idx].icon} ${esc(t2(PHASES[idx].name))}</b>
+        <small>${tr(`Umur bulan ${Math.floor(age)} hari · ${lit}% bersinar`, `The moon is ${Math.floor(age)} days old · ${lit}% lit`)}</small>
+        ${hj ? `<small>📅 ${tr('Hari ini', 'Today is')} <b>${hj}</b></small>` : ''}</div></div>
+        <div class="phases">${PHASES.map((ph, i) => `<span class="${i === idx ? 'on' : ''}" title="${esc(t2(ph.name))}">${ph.icon}</span>`).join('')}</div>
+        <p>${tr('Setiap bulan Hijriah dimulai saat <b>hilal</b> — bulan sabit tipis pertama — terlihat setelah matahari terbenam. Rasulullah ﷺ bersabda: “Berpuasalah karena melihatnya, dan berbukalah (berhari raya) karena melihatnya.” (HR. Bukhari & Muslim)', 'Each Hijri month begins when the <b>hilal</b> — the first thin crescent — is seen after sunset. The Prophet ﷺ said: “Fast when you see it, and end the fast when you see it.” (Bukhari & Muslim)')}</p>
+        <p>${tr(`Bulan baru berikutnya sekitar <b>${toNew} hari</b> lagi. Satu atau dua hari setelahnya, lihatlah ke barat saat Maghrib untuk mencari hilal!`, `The next new moon is in about <b>${toNew} days</b>. A day or two later, look west at Maghrib to spot the hilal!`)}${next}</p>`;
+      const cv = $<HTMLCanvasElement>('#scMoon', body), x = cv.getContext('2d')!;
+      x.fillStyle = '#0B1736'; x.fillRect(0, 0, 200, 200);
+      for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(255,255,255,${(0.3 + Math.random() * 0.6).toFixed(2)})`; x.fillRect(Math.random() * 200, Math.random() * 200, 1.5, 1.5); }
+      drawMoon(x, 100, 100, 70, p, '#FFF4C8', 'rgba(70,82,120,0.6)');
+      return;
+    }
+    const done = (g.stats.constellations ??= []);
+    body.innerHTML = `<p class="scVerse">${tr('“Dialah yang menjadikan bintang-bintang bagimu, agar kamu menjadikannya petunjuk dalam kegelapan di darat dan di laut.” (QS Al-An’am: 97)', '“It is He who made the stars for you, so you can find your way by them in the darkness of land and sea.” (Al-An’am 6:97)')}</p>
+      <div class="cons">${CONSTELLATIONS.map(c => `<button class="btn small ${done.includes(c.id) ? 'ghost' : 'gold'}" data-c="${c.id}">${c.icon} ${esc(t2(c.name))}${done.includes(c.id) ? ' ✓' : ''}</button>`).join('')}</div>
+      <canvas id="scSky" width="340" height="230"></canvas><p id="scTip">${tr('Pilih gambar bintang, lalu ketuk bintang yang berkedip satu per satu.', 'Pick a star picture, then tap the twinkling star, one after another.')}</p>`;
+    const cv = $<HTMLCanvasElement>('#scSky', body), x = cv.getContext('2d')!, tip = $('#scTip', body);
+    const W = 340, Hh = 230, bg: [number, number, number][] = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * Hh, Math.random()]);
+    let cur: (typeof CONSTELLATIONS)[number] | null = null, step = 0, raf = 0;
+    const sx = (v: number) => 20 + v / 100 * (W - 40), sy = (v: number) => 15 + v / 100 * (Hh - 30);
+    const draw = () => {
+      const t = performance.now() / 1000;
+      x.fillStyle = '#0B1736'; x.fillRect(0, 0, W, Hh);
+      for (const [a, b, c] of bg) { x.fillStyle = `rgba(255,255,255,${(0.25 + 0.35 * (0.5 + 0.5 * Math.sin(t * 2 + c * 9))).toFixed(2)})`; x.fillRect(a, b, 1.4, 1.4); }
+      if (cur) {
+        x.strokeStyle = '#FFD874'; x.lineWidth = 2.5; x.beginPath();
+        for (let i = 0; i < step; i++) { const s0 = cur.stars[cur.path[i]]; if (i === 0) x.moveTo(sx(s0.x), sy(s0.y)); else x.lineTo(sx(s0.x), sy(s0.y)); }
+        x.stroke();
+        cur.stars.forEach((st, i) => {
+          const r = st.big ? 5 : 3.6;
+          x.fillStyle = '#FFFFFF'; x.beginPath(); x.arc(sx(st.x), sy(st.y), r, 0, Math.PI * 2); x.fill();
+          const nextI = step < cur!.path.length ? cur!.path[step] : -1;
+          if (i === nextI) { x.strokeStyle = `rgba(255,216,116,${(0.5 + 0.5 * Math.sin(t * 6)).toFixed(2)})`; x.lineWidth = 3; x.beginPath(); x.arc(sx(st.x), sy(st.y), 13, 0, Math.PI * 2); x.stroke(); }
+          if (cur!.path.slice(0, step).includes(i)) { x.fillStyle = '#FFE9A0'; x.font = '11px system-ui'; x.fillText(st.name, sx(st.x) + 7, sy(st.y) - 7); }
+        });
+      }
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    const stop = new MutationObserver(() => { if (!el.isConnected) { cancelAnimationFrame(raf); stop.disconnect(); } });
+    stop.observe(document.body, { childList: true, subtree: true });
+    body.querySelectorAll<HTMLElement>('[data-c]').forEach(b => (b.onclick = () => {
+      cur = CONSTELLATIONS.find(c => c.id === b.dataset.c)!; step = 0; SFX.click();
+      cv.scrollIntoView({ block: 'center' });
+      tip.innerHTML = `${cur.icon} <b>${esc(t2(cur.name))}</b> — ${tr('ketuk bintang yang berkedip', 'tap the twinkling star')}`;
+    }));
+    cv.onpointerdown = e => {
+      if (!cur || step >= cur.path.length) return;
+      const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width, py = (e.clientY - r.top) * Hh / r.height;
+      const want = cur.stars[cur.path[step]];
+      if (Math.hypot(px - sx(want.x), py - sy(want.y)) > 26) { SFX.error(); return; }
+      step++; SFX.pop(step);
+      if (step < cur.path.length) return;
+      const first = !done.includes(cur.id);
+      if (first) { done.push(cur.id); g.kid.reward('quiz', 4); g.checkQuests(); g.saveSoon(); }
+      SFX.fanfare(); this.confetti(40);
+      tip.innerHTML = `⭐ <b>${esc(t2(cur.name))}</b>! ${esc(t2(cur.fact))}`;
+      const btn = body.querySelector<HTMLElement>(`[data-c="${cur.id}"]`); if (btn) { btn.classList.remove('gold'); btn.classList.add('ghost'); if (!btn.textContent!.includes('✓')) btn.textContent += ' ✓'; }
+    };
+  }
+
   /** a treasure chest opens every 4 letters */
   treasure(t: Treasure) {
     const { el, close } = this.modal(`<div class="lvup treasure"><div class="burst">${t.icon}</div><div class="lvn">${tr('PETI HARTA!', 'TREASURE!')}</div><h2>${esc(t2(t.title))}</h2>
@@ -524,13 +610,13 @@ export class UI {
       <button class="btn small gold" id="wdPhoto">📷 ${tr('Buat tampilanku dari foto', 'Make my look from a photo')}</button>${g.settings.look ? ` <button class="btn small ghost" id="wdPhotoOff">${tr('Kembali ke warna biasa', 'Back to normal colours')}</button>` : ''}`
       + slots.map(([slot, label, f]) => `<h3>${label}</h3><div class="wardrobe">${OUTFITS.filter(f).map(i => {
       const on = (o as any)[slot] === i.id, open = g.fun.unlocked(i);
-      return `<button class="wd ${on ? 'on' : ''} ${open ? '' : 'locked'} ${i.perk ? 'perk' : ''}" data-id="${i.id}" data-slot="${slot}"><span class="e">${open ? i.icon : '🔒'}</span><span>${esc(t2(i.name))}</span>${open ? (i.perk ? `<small class="perkTxt">✨ ${esc(t2(i.perk))}</small>` : '') : `<small>Level ${i.level}</small>`}</button>`;
+      return `<button class="wd ${on ? 'on' : ''} ${open ? '' : 'locked'} ${i.perk ? 'perk' : ''}" data-id="${i.id}" data-slot="${slot}"><span class="e">${open ? i.icon : '🔒'}</span><span>${esc(t2(i.name))}</span>${open ? (i.perk ? `<small class="perkTxt">✨ ${esc(t2(i.perk))}</small>` : '') : `<small>${i.unlock ? (i.level < 99 ? `Level ${i.level} · ` : '') + esc(t2(i.unlock.how)) : `Level ${i.level}`}</small>`}</button>`;
     }).join('')}</div>`).join('');
     $('#wdPhoto', body).onclick = () => this.photoLook();
     const off = body.querySelector<HTMLElement>('#wdPhotoOff'); if (off) off.onclick = () => { delete g.settings.look; g.buildAvatar(); g.saveSoon(); this.renderBook(); };
     body.querySelectorAll<HTMLElement>('.wd').forEach(b => (b.onclick = () => {
       const item = OUTFITS.find(i => i.id === b.dataset.id)!;
-      if (!g.fun.unlocked(item)) { SFX.error(); this.toast(tr(`Terbuka di Level ${item.level} ⭐`, `Unlocks at level ${item.level} ⭐`)); return; }
+      if (!g.fun.unlocked(item)) { SFX.error(); this.toast(item.unlock && item.level >= 99 ? '🔒 ' + t2(item.unlock.how) : item.unlock ? tr(`Terbuka di Level ${item.level} ⭐ atau: ${t2(item.unlock.how)}`, `Unlocks at level ${item.level} ⭐ or: ${t2(item.unlock.how)}`) : tr(`Terbuka di Level ${item.level} ⭐`, `Unlocks at level ${item.level} ⭐`)); return; }
       (o as any)[b.dataset.slot!] = item.id; SFX.pickup(); g.buildAvatar(); g.saveSoon(); this.renderBook();
       if (item.slot === 'hat') g.wearHat(item.id);
     }));
@@ -659,7 +745,10 @@ export class UI {
       const n = i + 1, open = n <= unlocked, cl = g.claimed.has(n);
       return `<button class="day ${open ? 'open' : ''} ${cl ? 'claimed' : ''} ${n === today ? 'today' : ''}" data-d="${n}"><span class="n">${n}</span><span class="i">${open ? c.icon : '🔒'}</span></button>`;
     }).join('')}</div><div id="dayCard"></div>
+      <div class="qcard" style="margin-top:10px"><div class="ic">🎉</div><div class="tx"><b>${tr('Bazar Lebaran', 'Eid bazaar')}</b><small>${g.eid.open ? tr('Sudah buka di desa! Ikuti jalan ke selatan dari alun-alun.', 'Open now in the village! Follow the path south of the plaza.') : rs.inRamadhan ? tr('Buka di hari-hari terakhir Ramadhan (mulai hari ke-28).', 'Opens in the last days of Ramadan (from day 28).') : tr(`Buka saat kalender sampai hari ke-28 (${Math.min(unlocked, 28)}/28). Setiap hari bermain membuka satu hari.`, `Opens when the calendar reaches day 28 (${Math.min(unlocked, 28)}/28). Each day you play opens one more.`)}</small></div></div>
+      <div class="qcard"><div class="ic">🔭</div><div class="tx"><b>${tr('Lihat bulan malam ini', 'See tonight’s moon')}</b><small>${tr('Teropong di Bukit Bintang menunjukkan bulan yang asli malam ini, dan kapan hilal muncul.', 'The telescope on Stargazing Hill shows the real moon tonight, and when the hilal will appear.')}</small></div><button class="btn small ghost" id="calMoon">🌙</button></div>
       <p style="margin-top:10px;font-size:11.5px">${tr('Tanggal Hijriah dihitung dengan kalender Umm al-Qura; awal Ramadhan di tempatmu bisa berbeda 1 hari sesuai keputusan pemerintah/ulama.', 'Hijri dates use the Umm al-Qura calendar; the start of Ramadan where you live may differ by a day.')}</p>`;
+    $('#calMoon', body).onclick = () => this.telescope('moon');
     const show = (n: number) => {
       const c = CALENDAR[n - 1], cl = g.claimed.has(n);
       const dc = $('#dayCard', body);
@@ -764,6 +853,7 @@ export class UI {
       <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
       <div class="set"><span>${tile('leaf', C.green)}${tr('Kumbang nakal saat senja (tidak bisa melukai)', 'Naughty beetles at dusk (can’t hurt)')}</span><button class="toggle ${s.beetles !== false ? 'on' : ''}" id="pBug"></button></div>
+      <div class="set"><span>${tile('moon', C.purple)}${tr('Bazar Lebaran di desa', 'Eid bazaar in the village')}</span><select id="pEid">${([['auto', tr('Ikuti kalender', 'By the calendar')], ['on', tr('Buka sekarang', 'Open now')], ['off', tr('Tutup', 'Closed')]] as const).map(([v, l]) => `<option value="${v}" ${(s.eid ?? 'auto') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
       <h3>💾 ${tr('Simpanan', 'Saved game')}</h3>
       <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
@@ -775,6 +865,7 @@ export class UI {
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
     $('#pBug', el).onclick = e => { s.beetles = s.beetles === false; (e.currentTarget as HTMLElement).classList.toggle('on', s.beetles !== false); g.saveSoon(); };
+    $<HTMLSelectElement>('#pEid', el).onchange = e => { s.eid = (e.target as HTMLSelectElement).value as 'auto' | 'on' | 'off'; g.eid.refresh(); g.saveSoon(); };
     $<HTMLSelectElement>('#pLim', el).onchange = e => { s.playLimit = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $<HTMLSelectElement>('#pWater', el).onchange = e => { s.water = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();

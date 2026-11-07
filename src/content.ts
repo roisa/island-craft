@@ -27,6 +27,15 @@ export interface Stats {
   treetops?: string[];
   /** power hats whose matching item was already given */
   hatGifts?: string[];
+  /** secret spots found inside landmarks (the waterfall cave, the pearl cave) */
+  spots?: string[];
+  /** star pictures joined up at the telescope */
+  constellations?: string[];
+  /** shooting stars seen */
+  meteors?: number;
+  /** Eid bazaar: the welcome card was shown, villagers greeted (id → game day), stalls visited, outfits bought */
+  eidWelcome?: boolean; eidGreet?: Record<string, number>; eidStall?: Record<string, number>; eidShirts?: string[];
+  angpao?: number; fireworks?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,
@@ -60,6 +69,9 @@ export const QUESTS: Quest[] = [
   { id: 'beetles', icon: '🐞', title: ['Usir kumbang nakal', 'Shoo the naughty beetles'], desc: ['Saat senja, kumbang nakal keluar. Ketuk mereka (pedang mainan membantu!) supaya pulang ke rumahnya. Usir 5 kumbang.', 'At dusk, naughty beetles come out. Tap them (a toy sword helps!) so they fly home. Shoo 5 beetles.'], goal: s => [Math.min(5, s.bugs || 0), 5], reward: [[I.STONE_SWORD, 1]], sticker: '🐞' },
   { id: 'fish1', icon: '🎣', title: ['Memancing', 'Gone fishing'], desc: ['Buat pancingan di meja kerja, lemparkan ke air, lalu ketuk saat pelampungnya tenggelam!', 'Make a fishing rod at the workbench, cast it into water, then tap when the float dips!'], goal: s => [Math.min(1, s.fish || 0), 1], reward: [[I.SMALL_FISH, 2]], sticker: '🐟' },
   { id: 'chef', icon: '🍳', title: ['Koki cilik', 'Little chef'], desc: ['Masak di tungku: ketuk saat penanda ada di zona hijau. Masak 3 kali.', 'Cook at a furnace: tap when the marker is in the green zone. Cook 3 times.'], goal: s => [Math.min(3, s.cooked || 0), 3], reward: [[I.MEAT, 2], [I.EGG, 2]], sticker: '👩‍🍳' },
+  { id: 'falls', icon: '🏞️', title: ['Rahasia air terjun', 'The waterfall’s secret'], desc: ['Temukan Lembah Air Terjun (🧭 Peta), lalu berenang menembus air terjun. Ada apa di baliknya?', 'Find Waterfall Valley (🧭 Map), then swim through the falling water. What’s behind it?'], goal: s => [s.spots?.includes('waterfall_cave') ? 1 : 0, 1], reward: [[I.CRYSTAL, 2]], sticker: '💧' },
+  { id: 'pearls', icon: '🫧', title: ['Penyelam mutiara', 'Pearl diver'], desc: ['Di Taman Karang ada lubang di dasar laut. Menyelam ke bawah, lewati terowongan, dan temukan Gua Mutiara!', 'In the Coral Reef there’s a hole in the sea floor. Dive down, swim through the tunnel and find the Pearl Cave!'], goal: s => [s.spots?.includes('pearl_cave') ? 1 : 0, 1], reward: [[I.PEARL, 2]], sticker: '🐢' },
+  { id: 'stars', icon: '🔭', title: ['Astronom cilik', 'Little astronomer'], desc: ['Ketuk teropong di Bukit Bintang dan sambungkan 3 gambar bintang.', 'Tap the telescope on Stargazing Hill and join up 3 star pictures.'], goal: s => [Math.min(3, s.constellations?.length || 0), 3], reward: [[B.LANTERN, 2], [I.CRYSTAL, 1]], sticker: '🌠' },
   { id: 'treetop', icon: '🌳', title: ['Panjat pohon', 'Climb a tree'], desc: ['Jalan terus ke batang pohon untuk memanjat sampai ke puncaknya. Ada buah di atas!', 'Keep walking into a tree trunk to climb it to the top. There’s fruit up there!'], goal: s => [Math.min(1, s.treetops?.length || 0), 1], reward: [[I.APPLE, 3]], sticker: '🐒' },
   { id: 'decorate', icon: '🪑', title: ['Hias rumahmu', 'Decorate your home'], desc: ['Buat sajadah, meja atau lampu di meja kerja (🔨 Buat), lalu pasang 3 hiasan.', 'Make a prayer mat, table or lamp at the workbench (🔨 Craft), then place 3 decorations.'], goal: s => [Math.min(3, s.decorated || 0), 3], reward: [[I.LAMP, 1], [I.CUSHION, 2]], sticker: '🛋️' },
   { id: 'blueprint', icon: '🏗️', title: ['Bangun dengan rancangan', 'Build from a blueprint'], desc: ['Buka 🏗️ Rancang, pilih Rumah Kecil, lalu bangun!', 'Open 🏗️ Blueprints, pick the Little House, then build it!'], goal: s => [Math.min(1, s.built || 0), 1], reward: [[B.LANTERN, 3]], sticker: '🏠' },
@@ -121,6 +133,7 @@ export const CALENDAR: DayCard[] = [
 export interface Dua { id: string; ar: string; lat: string; mean: T2; src: string }
 export const DUAS: Record<string, Dua> = {
   eat: { id: 'eat', ar: 'بِسْمِ اللَّهِ', lat: 'Bismillah', mean: ['Dengan nama Allah', 'In the name of Allah'], src: 'HR. Bukhari & Muslim' },
+  takbir: { id: 'takbir', ar: 'اللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ، لَا إِلَٰهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ وَلِلَّهِ الْحَمْدُ', lat: 'Allāhu akbar, Allāhu akbar, Allāhu akbar, lā ilāha illallāhu wallāhu akbar, Allāhu akbar wa lillāhil-ḥamd', mean: ['Allah Maha Besar (3×). Tiada tuhan selain Allah, dan Allah Maha Besar. Allah Maha Besar, dan segala puji bagi Allah.', 'Allah is the Greatest (3×). There is no god but Allah, and Allah is the Greatest. Allah is the Greatest, and all praise is for Allah.'], src: 'Takbir Idul Fitri' },
   done: { id: 'done', ar: 'الْحَمْدُ لِلَّهِ', lat: 'Alhamdulillah', mean: ['Segala puji bagi Allah', 'All praise is for Allah'], src: '' },
   iftar: {
     id: 'iftar', ar: 'ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ',

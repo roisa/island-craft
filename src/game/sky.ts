@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import type { WorldUniforms } from '../world/mesher';
 import { H } from '../world/gen';
 import { lerp, clamp, smoothstep, Simplex } from '../world/noise';
+import { drawMoon } from './moon';
 
 export interface Schedule { fajr: number; sunrise: number; dhuhr: number; asr: number; maghrib: number; isha: number }
 
@@ -29,6 +30,16 @@ export class Sky {
   private rain: THREE.Points; private rainPos: Float32Array;
   private rainbow: THREE.Sprite; rainbowT = 0;
   private weatherTimer = 240;
+  private moonCanvas: HTMLCanvasElement; private moonTex: THREE.CanvasTexture;
+  moonPhase = -1;
+  /** shooting stars: a short bright streak now and then on clear nights */
+  private meteor: THREE.LineSegments; private meteorPos = new Float32Array(18); private meteorT = 0; private meteorWait = 25;
+  private meteorFrom = new THREE.Vector3(); private meteorDir = new THREE.Vector3();
+  /** more of them up on the stargazing hill */
+  meteorBoost = false;
+  /** wearing the diving mask: you see further underwater */
+  diver = false;
+  onMeteor?: () => void;
   horizon = new THREE.Color();
 
   constructor(scene: THREE.Scene, private u: WorldUniforms) {
@@ -57,14 +68,11 @@ export class Sky {
       g.addColorStop(0, 'rgba(255,250,220,1)'); g.addColorStop(0.28, 'rgba(255,236,170,1)'); g.addColorStop(0.32, 'rgba(255,220,140,.5)'); g.addColorStop(1, 'rgba(255,200,120,0)');
       x.fillStyle = g; x.fillRect(0, 0, s, s);
     });
-    const moonTex = disc((x, s) => {
-      const g = x.createRadialGradient(s / 2, s / 2, s * 0.2, s / 2, s / 2, s / 2);
-      g.addColorStop(0, 'rgba(255,248,210,.35)'); g.addColorStop(1, 'rgba(255,248,210,0)');
-      x.fillStyle = g; x.fillRect(0, 0, s, s);
-      // crescent (hilal)
-      x.fillStyle = '#FFF4C8'; x.beginPath(); x.arc(s / 2, s / 2, s * 0.22, 0, Math.PI * 2); x.fill();
-      x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.arc(s / 2 + s * 0.1, s / 2 - s * 0.05, s * 0.2, 0, Math.PI * 2); x.fill();
-    });
+    // the moon shows tonight's real phase (see setMoonPhase)
+    this.moonCanvas = document.createElement('canvas'); this.moonCanvas.width = this.moonCanvas.height = 128;
+    const moonTex = new THREE.CanvasTexture(this.moonCanvas); moonTex.colorSpace = THREE.SRGBColorSpace;
+    this.moonTex = moonTex;
+    this.setMoonPhase(0.08);
     this.sunSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: sunTex, depthWrite: false, fog: false, transparent: true }));
     this.sunSpr.scale.set(90, 90, 1);
     this.moonSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonTex, depthWrite: false, fog: false, transparent: true }));
@@ -113,8 +121,54 @@ export class Sky {
     this.rainbow.scale.set(260, 260, 1);
     this.group.add(this.rainbow);
 
+    const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(this.meteorPos, 3));
+    this.meteor = new THREE.LineSegments(mg, new THREE.LineBasicMaterial({ color: 0xfff6d8, transparent: true, opacity: 0, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+    this.meteor.frustumCulled = false; this.meteor.visible = false;
+    this.group.add(this.meteor);
+
     this.sun.position.set(50, 100, 30);
     scene.add(this.group, this.hemi, this.sun, this.sun.target);
+  }
+
+  /** draw the moon for phase p (0 new … 0.5 full … 1) */
+  setMoonPhase(p: number) {
+    if (Math.abs(p - this.moonPhase) < 0.004) return;
+    this.moonPhase = p;
+    const s = 128, x = this.moonCanvas.getContext('2d')!;
+    x.clearRect(0, 0, s, s);
+    const g = x.createRadialGradient(s / 2, s / 2, s * 0.2, s / 2, s / 2, s / 2);
+    const glow = 0.12 + 0.3 * (1 - Math.cos(p * Math.PI * 2)) / 2;
+    g.addColorStop(0, `rgba(255,248,210,${glow.toFixed(2)})`); g.addColorStop(1, 'rgba(255,248,210,0)');
+    x.fillStyle = g; x.fillRect(0, 0, s, s);
+    drawMoon(x, s / 2, s / 2, s * 0.22, p, '#FFF4C8', 'rgba(60,72,110,0.35)');
+    this.moonTex.needsUpdate = true;
+  }
+
+  private updateMeteor(dt: number, clear: boolean) {
+    if (this.meteorT > 0) {
+      this.meteorT -= dt;
+      const u = 1 - this.meteorT / 0.9;
+      const head = this.meteorFrom.clone().addScaledVector(this.meteorDir, u * 90);
+      const p = this.meteorPos;
+      for (let k = 0; k < 3; k++) {
+        const tail = head.clone().addScaledVector(this.meteorDir, -26 + k * 6);
+        const off = (k - 1) * 0.35;
+        p.set([head.x, head.y + off, head.z, tail.x, tail.y + off, tail.z], k * 6);
+      }
+      this.meteor.geometry.attributes.position.needsUpdate = true;
+      (this.meteor.material as THREE.LineBasicMaterial).opacity = Math.sin(Math.min(1, u) * Math.PI) * 0.95;
+      if (this.meteorT <= 0) this.meteor.visible = false;
+      return;
+    }
+    if (!clear) return;
+    this.meteorWait -= dt * (this.meteorBoost ? 4 : 1);
+    if (this.meteorWait > 0) return;
+    this.meteorWait = 30 + Math.random() * 50;
+    const a = Math.random() * Math.PI * 2;
+    this.meteorFrom.set(Math.cos(a) * 220, 170 + Math.random() * 70, Math.sin(a) * 220);
+    this.meteorDir.set(-Math.sin(a) + (Math.random() - 0.5) * 0.6, -0.35 - Math.random() * 0.3, Math.cos(a)).normalize();
+    this.meteorT = 0.9; this.meteor.visible = true;
+    this.onMeteor?.();
   }
 
   /** daylight 0.15..1 for an hour of the in-game day */
@@ -173,6 +227,7 @@ export class Sky {
     this.moonSpr.visible = this.night || hour < s.sunrise;
     (this.stars.material as THREE.PointsMaterial).opacity = nightK * (1 - this.rainAmount);
     this.stars.rotation.y += dt * 0.004;
+    this.updateMeteor(dt, nightK > 0.8 && this.rainAmount < 0.1);
 
     const rb = this.rainbow.material as THREE.SpriteMaterial;
     if (this.rainbowT > 0) { this.rainbowT -= dt; rb.opacity = Math.min(1, this.rainbowT / 6, (45 - this.rainbowT) / 4) * 0.8; this.rainbow.position.set(-sunDir.x * 300, 40, -sunDir.z * 300 - 80); }
@@ -189,7 +244,7 @@ export class Sky {
     // world shader uniforms
     this.u.uDay.value = day;
     this.u.uSkyTint.value.copy(tint);
-    if (underwater) { this.u.uFogColor.value.set(0x1e5f8a).multiplyScalar(Math.max(day, 0.3)); this.u.uUnderwater.value = 1; }
+    if (underwater) { this.u.uFogColor.value.set(0x1e5f8a).multiplyScalar(Math.max(day, 0.3)); this.u.uUnderwater.value = this.diver ? 2 : 1; }
     else { this.u.uFogColor.value.copy(hor); this.u.uUnderwater.value = 0; }
     this.u.uFogNear.value = fogFar * 0.55 * (1 - this.rainAmount * 0.3);
     this.u.uFogFar.value = fogFar * (1 - this.rainAmount * 0.25);

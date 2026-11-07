@@ -40,6 +40,9 @@ import { UI } from './ui';
 import { Kid } from './game/kid';
 import { Fun, Outfit, defaultOutfit, outfitItem, dressUp, HAT_GIFTS } from './game/fun';
 import { Festive, PICNIC } from './game/festive';
+import { Places } from './game/places';
+import { Eid, type EidMode } from './game/eid';
+import { moonPhase } from './game/moon';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -51,6 +54,8 @@ export interface Settings {
   beetles?: boolean;
   /** colours picked from a photo (the photo itself is never kept) */
   look?: { hair: number; skin: number; shirt: number; pants: number };
+  /** the Eid bazaar: by the calendar (auto), always open, or off */
+  eid?: EidMode;
 }
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
 const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
@@ -59,7 +64,7 @@ const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
 const ROW = { imam: new THREE.Vector3(0.5, VILLAGE_Y + 1, -20.5), player: new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5), mo: new THREE.Vector3(2.0, VILLAGE_Y + 1, -18.5),
   others: [new THREE.Vector3(-1.0, VILLAGE_Y + 1, -18.5), new THREE.Vector3(-2.5, VILLAGE_Y + 1, -18.5), new THREE.Vector3(3.5, VILLAGE_Y + 1, -18.5)] };
 const inMasjidArea = (p: THREE.Vector3) => p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3;
-const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK, I.GRILLED_FISH, I.FRIED_EGG, I.STEAK]);
+const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK, I.GRILLED_FISH, I.FRIED_EGG, I.STEAK, I.KETUPAT_OPOR, I.NASTAR]);
 
 const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LOG]: B.PINE_LEAVES, [B.PALM_LOG]: B.PALM_LEAVES };
 
@@ -81,6 +86,9 @@ export class Game {
   kid!: Kid;
   fun!: Fun;
   festive!: Festive;
+  places!: Places;
+  eid!: Eid;
+  private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
   seed = 0;
   hour = 7.5; day = 1;
@@ -280,6 +288,10 @@ export class Game {
     this.fun = new Fun(this);
     this.fun.restorePet();
     this.festive = new Festive(this);
+    this.places = new Places(this);
+    this.eid = new Eid(this);
+    this.eid.refresh();
+    this.sky.setMoonPhase(moonPhase(new Date()));
 
     // pre-generate the area around the player
     const total = 30;
@@ -376,6 +388,8 @@ export class Game {
     const ok = hs.fajr < hs.sunrise && hs.sunrise < hs.dhuhr && hs.dhuhr < hs.asr && hs.asr < hs.maghrib && hs.maghrib < hs.isha;
     this.schedule = ok ? hs : { fajr: 4.6, sunrise: 5.9, dhuhr: 12, asr: 15.2, maghrib: 18, isha: 19.2 };
     this.ramadhan = ramadhanStatus(now);
+    this.sky?.setMoonPhase(moonPhase(now));
+    this.eid?.refresh();
   }
   setLocation(l: Loc) { this.loc = l; saveLocation(l); this.refreshTimes(); this.remindersShown.clear(); this.saveSoon(); }
 
@@ -777,6 +791,7 @@ export class Game {
     Object.assign(this.ents.clock, { hour: this.hour, isha: sc.isha, fajr: sc.fajr, night: this.sky.night });
     this.attackCd -= dt;
     if (this.player && (this.player.onGround || this.player.climbing) && this.player.pos.y > 30) this.checkTreetop(); // every frame: kids keep walking and step off the top
+    this.player.diver = this.sky.diver = this.hasHat('hat_diver');
     if (this.uniforms.uLamp) this.uniforms.uLamp.value += ((this.hasHat('hat_miner') ? 1 : 0) - this.uniforms.uLamp.value) * Math.min(1, dt * 4);
     if (this.bugs) {
       const q = this.player.pos, col = this.gen.column(Math.floor(q.x), Math.floor(q.z));
@@ -942,6 +957,9 @@ export class Game {
     this.playTime(dt);
     this.fun.update(dt);
     this.festive.update(t);
+    this.places.update(dt, t);
+    this.eid.update(dt, t);
+    if ((this.eidT -= dt) <= 0) { this.eidT = 20; this.eid.refresh(); }
     this.picnicCheck();
   }
 
@@ -958,6 +976,7 @@ export class Game {
     if (!def || def.hardness === Infinity) { this.ui.mineRing(0); return; }
     if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); this.input.mineHeld = false; this.input.pointerMine = false; return; }
     if (hit.id === B.BEDUG) { this.festive.bedug(); this.input.mineHeld = false; this.input.pointerMine = false; return; }
+    if (hit.id === B.TELESCOPE) { this.input.mineHeld = false; this.input.pointerMine = false; this.ui.telescope(); return; }
     if (isLetter(hit.id)) {
       const sh = this.gen.shrines.find(s => s.x === hit.x && s.y === hit.y && s.z === hit.z);
       if (sh && !this.stats.letters.includes(sh.letter)) { this.collectLetter(sh.letter, hit.x, hit.y, hit.z); return; }
@@ -1194,11 +1213,14 @@ export class Game {
       if (hit.id === B.BED) { this.sleep(); return; }
       if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.BEDUG) { this.festive.bedug(); return; }
+      if (hit.id === B.TELESCOPE) { this.ui.telescope(); return; }
       if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
-      if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, ic('book') + tr('Doa sehari-hari', 'Daily du’a')); return; }
+      if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS).filter(k => k !== 'takbir'); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, ic('book') + tr('Doa sehari-hari', 'Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
     }
     if (held && held.id === I.BOAT) { this.fun.tryBoat(); return; }
+    if (held && held.id === I.ANGPAO) { this.eid.openAngpao(); return; }
+    if (held && held.id === I.FIREWORK) { this.eid.launch(); return; }
     if (held && isDeco(held.id)) { if (hit) this.placeDeco(hit, held.id); return; }
     if (held && FOOD.has(held.id)) { this.eat(); return; }
     if (!hit || !held || !isBlockId(held.id)) { if (!hit && !held) return; if (held && !isBlockId(held.id) && !FOOD.has(held.id)) this.ui.toast(tr('Pegang balok untuk dipasang 🧱', 'Hold a block to place it 🧱')); return; }
@@ -1289,6 +1311,7 @@ export class Game {
       this.ui.dialog({ face, img: !!portrait, who: n.name, text: tr(`Masya Allah, terima kasih ya! Semoga Allah membalas kebaikanmu. 🤲<br>Ini hadiah kecil untukmu: <b>${t2(nameOf(gift))} ×2</b>`, `Masha Allah, thank you! May Allah reward your kindness. 🤲<br>Here's a small gift: <b>${t2(nameOf(gift))} ×2</b>`) });
       return;
     }
+    if (this.eid.greet(n.id, n.name, face, !!portrait, n.pos)) return;
     if (n.id === 'ustadz') {
       const k = this.stats.letters.length;
       // Dad's first hello comes with a wooden pickaxe; later he sometimes shares a building tip
@@ -1505,8 +1528,10 @@ export class Game {
       this.fx.fireworks(p.x, p.y + 2, p.z);
       this.anim.play('celebrate', 1.8); this.ents.mo.celebrate = 2;
       this.ui.discovery(l, found.length, this.gen.landmarks.length);
+      if (l.id === 'reef') setTimeout(() => this.ui.toast(tr('🤿 Masker Selam terbuka! Pakai di 👕 Baju untuk berenang cepat.', '🤿 Diving Mask unlocked! Wear it in 👕 Outfits to swim fast.')), 2500);
       this.checkQuests(); this.saveSoon();
     }
+    this.places?.checkSpots();
   }
   private slowChecks() {
     const p = this.player.pos;

@@ -23,6 +23,7 @@ export const pidx = (x: number, y: number, z: number) => (y * PS + (z + 1)) * PS
 
 // per-block lookup tables
 const OPAQUE = new Uint8Array(256), RENDER = new Uint8Array(256), CUT = new Uint8Array(256), GLASSY = new Uint8Array(256), EMIT = new Float32Array(256);
+const AQUA = new Uint8Array(256);
 const LT = new Int16Array(256), LS = new Int16Array(256), LB = new Int16Array(256), LF = new Int16Array(256);
 export function initMesherTables() {
   for (let id = 0; id < 256; id++) {
@@ -33,10 +34,13 @@ export function initMesherTables() {
     CUT[id] = b.cutout ? 1 : 0;
     GLASSY[id] = b.glassy ? 1 : 0;
     EMIT[id] = b.light ?? 0;
+    AQUA[id] = b.aquatic ? 1 : 0;
     LT[id] = layerOf.get(b.top) ?? 0; LS[id] = layerOf.get(b.side) ?? 0; LB[id] = layerOf.get(b.bottom) ?? 0;
     LF[id] = layerOf.get(b.front ?? b.side) ?? 0;
   }
 }
+/** water, or a sea plant that lives in water */
+export const isWet = (id: number) => id === B.WATER || AQUA[id] === 1;
 export const isOpaque = (id: number) => OPAQUE[id] === 1;
 export const emission = (id: number) => EMIT[id];
 
@@ -126,7 +130,7 @@ export function meshChunk(inp: MeshInput): ChunkGeoms {
       const nx = x + F.n[0], ny = y + F.n[1], nz = z + F.n[2];
       const nb = get(nx, ny, nz);
       if (r === 3) { // water
-        if (nb === B.WATER || OPAQUE[nb] || nb === B.ICE) continue;
+        if (nb === B.WATER || AQUA[nb] || OPAQUE[nb] || nb === B.ICE) continue;
         if (f === 1 && nb !== 0) continue;
       } else {
         if (OPAQUE[nb]) continue;
@@ -138,7 +142,7 @@ export function meshChunk(inp: MeshInput): ChunkGeoms {
       if (facing && f >= 2 && LF[id] !== LS[id]) { const rot = facing.get(idx(x, y, z)); if (rot) L = f === FRONT_FACE[rot] ? LF[id] : LS[id]; }
       const base = buf.n;
       const aos: number[] = [];
-      const waterTop = r === 3 && get(x, y + 1, z) !== B.WATER;
+      const waterTop = r === 3 && get(x, y + 1, z) !== B.WATER && !AQUA[get(x, y + 1, z)];
       for (let k = 0; k < 4; k++) {
         const c = F.c[k];
         let px = x + c[0], py = y + c[1], pz = z + c[2];
@@ -234,7 +238,7 @@ void main(){
   vec3 col = t.rgb * lit * vLight.x;
   float a = uWater > 0.5 ? 0.78 : 1.0;
   float fog = smoothstep(uFogNear, uFogFar, vDist);
-  if (uUnderwater > 0.5) fog = smoothstep(2.0, 22.0, vDist);
+  if (uUnderwater > 0.5) fog = smoothstep(2.0, uUnderwater > 1.5 ? 44.0 : 22.0, vDist); // 2 = wearing the diving mask
   col = mix(col, uFogColor, fog);
   outColor = linearToOutputTexel(vec4(col, a));
 }`;
