@@ -261,6 +261,31 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       return r;
     });
+    await step('pray together: villagers wait, the prayer starts in your place, coins at the end, then shop', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 46, -12.5); G.hour = G.schedule.dhuhr - 0.002; G.lastHour = G.hour; });
+      await p.waitForFunction(() => !!__game.gameEvent || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
+      const before = await g(() => ({ coins: __game.stats.coins || 0, jamaah: __game.stats.jamaah }));
+      // the prayer waits for you
+      await p.waitForTimeout(1000);
+      if (await g(() => !!__game.jamaah)) throw new Error('started without you');
+      await g(() => { const G = __game; G.player.pos.set(0.5, 46, -18.5); G.player.vel.set(0, 0, 0); });
+      await p.waitForFunction(() => !!__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 200 });
+      const hud = await g(() => document.querySelector('#jmHud').innerText);
+      // skip ahead to the salam, then it finishes by itself
+      await g(() => { const j = __game.jamaah; j.i = j.plan.length - 1; j.t = 0; });
+      await p.waitForFunction(() => !__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
+      const after = await g(() => ({ coins: __game.stats.coins || 0, jamaah: __game.stats.jamaah, again: !!__game.jamaah }));
+      if (after.jamaah !== before.jamaah + 1 || after.coins < before.coins + 100 || after.again) throw new Error(JSON.stringify({ before, after, hud }));
+      // spend some at the village shop
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.ui.shop(); });
+      await p.waitForSelector('.veil.on .shopRow');
+      const dates = await g(() => __game.inv.count(214));
+      await g(() => document.querySelector('.veil.on [data-buy="0"]').click());
+      const bought = await g(d => ({ dates: __game.inv.count(214) - d, coins: __game.stats.coins }), dates);
+      await g(() => __game.ui.closeAllModals());
+      if (bought.dates !== 5 || bought.coins !== after.coins - 20) throw new Error(JSON.stringify(bought));
+      return { hud, coins: after.coins, shop: bought };
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
         if (!a) return { skipped: true };

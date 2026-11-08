@@ -48,6 +48,8 @@ export interface Stats {
   mangroves?: number;
   /** saw a glowing mushroom at night */
   glowSeen?: boolean;
+  /** coins earned (prayer together, quests, treasure) and spent at the village shop */
+  coins?: number; bought?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

@@ -1,4 +1,5 @@
 // Friendly creatures, villagers and Baby Mo, the companion who follows you.
+import { rowPose } from './jamaah';
 import * as THREE from 'three';
 import type { World, Chunk } from '../world/world';
 import { CS, Biome, VILLAGE_Y } from '../world/gen';
@@ -297,7 +298,7 @@ export class Npc extends Entity {
     // at the masjid during prayer time: pray together, facing the qibla wall (north)
     if (this.goingToMasjid && !this.target) {
       if (this.activity === 'picnic' && this.faceTo) this.yaw = Math.atan2(this.faceTo.x - this.pos.x, this.faceTo.z - this.pos.z); else this.yaw = Math.PI;
-      this.rig.root.rotation.y = this.yaw; applyPrayerPose(this.rig, this.activity === 'picnic' ? 'julus' : poseAt(t)); this.praying = true; return;
+      this.rig.root.rotation.y = this.yaw; applyPrayerPose(this.rig, this.activity === 'picnic' ? 'julus' : rowPose.pose); if (this.activity !== 'picnic') this.rig.head.rotation.y = rowPose.head; this.praying = true; return;
     }
     if (this.praying) { clearPose(this.rig); this.praying = false; this.sync(t, 0); }
     // sitting on the plaza, or asleep (sitting back, eyes closed)
@@ -413,7 +414,7 @@ export class Companion extends Entity {
     this.yaw = Math.PI; // facing the qibla wall, like the villagers
     this.sync(t, dt);
     this.rig.root.rotation.y = this.yaw;
-    applyPrayerPose(this.rig, poseAt(t));
+    applyPrayerPose(this.rig, rowPose.pose); this.rig.head.rotation.y = rowPose.head;
     this.praying = true;
   }
 }

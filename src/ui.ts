@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import type { Game } from './main';
 import { tr, t2, getLang, setLang } from './i18n';
 import { iconURL } from './world/atlas';
-import { B, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
+import { B, I, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
 import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from './game/inventory';
 import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
@@ -28,6 +28,12 @@ const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = docum
 const h = (html: string) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild as HTMLElement; };
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
+/** what the village shop sells: [item, how many, price in coins] */
+const SHOP: [number, number, number][] = [
+  [I.DATES, 5, 20], [I.MILK, 2, 30], [B.SAPLING, 2, 20], [B.WOOL_RED, 4, 30], [B.WOOL_BLUE, 4, 30], [B.WOOL_YELLOW, 4, 30],
+  [B.LANTERN, 3, 50], [I.FISHING_ROD, 1, 80], [I.PRAYER_MAT, 1, 100], [B.MANGROVE_SEEDLING, 2, 40], [I.KITE_RED, 1, 120], [I.FIREWORK, 3, 60], [I.BOAT, 1, 150],
+];
+
 export type Tab = 'bag' | 'craft' | 'build' | 'wardrobe' | 'map' | 'letters' | 'quests' | 'ramadhan' | 'prayer' | 'settings';
 interface Btn { label: string; cls?: string; fn?: () => void; keep?: boolean }
 
@@ -46,8 +52,10 @@ export class UI {
     <button class="ibtn pill" id="bMenu" aria-label="Menu">${ic('menu')}</button>
     <button class="pill" id="compass"><span id="compassArrow">${ic('arrow')}</span><span id="compassText"></span></button>
     <button class="pill" id="stars"><span class="st">${ic('star')}</span><span class="sv"><b id="starN">0</b><small id="starLv"></small><i class="sbar"><i id="starBar"></i></i></span></button>
+    <button class="pill" id="coins" aria-label="Coins"><span class="ci">🪙</span><b id="coinN">0</b></button>
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
+  <div id="jmHud" class="pill hidden"></div>
   <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button><button class="skip" id="tutSkip">${tr('Lewati', 'Skip')} ›</button></div>
   <button id="moHi" class="hidden" aria-label="Say hi">👋 <span>${tr('Hai!', 'Hi!')}</span></button>
@@ -90,6 +98,7 @@ export class UI {
     $('#bBag').onclick = () => this.openBook('bag');
     $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: ic('home') + tr('Ya, pulang!', 'Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: ic('up') + tr('Naik ke permukaan', 'Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
     $('#stars').onclick = () => this.openBook('quests');
+    $('#coins').onclick = () => this.shop();
     $('#bUndo').onclick = () => g.doUndo();
     $('#pbRot').onclick = () => g.fun.rotatePlan();
     $('#pbBuild').onclick = () => g.fun.build();
@@ -262,6 +271,66 @@ export class UI {
       <button class="btn gold" id="dOk">${tr('Subhanallah! ✨', 'Subhanallah! ✨')}</button></div>`, undefined, { onShow: () => { this.confetti(60); if (this.g.settings.moVoice) Speech.talk(t2(l.name) + '. ' + t2(l.fact), getLang(), false, 1); } });
     $('#dOk', el).onclick = () => close();
   }
+  // ---------- coins & the village shop ----------
+  private coinShown = 0; private coinRaf = 0;
+  /** the coin counter in the top bar; counts up to the new total */
+  updateCoins() {
+    const want = this.g.stats.coins || 0, el = $('#coinN');
+    cancelAnimationFrame(this.coinRaf);
+    const from = this.coinShown, t0 = performance.now(), dur = Math.min(1600, 300 + Math.abs(want - from) * 8);
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / dur);
+      this.coinShown = Math.round(from + (want - from) * (1 - Math.pow(1 - k, 3)));
+      el.textContent = this.coinShown.toLocaleString(getLang() === 'id' ? 'id-ID' : 'en-US');
+      if (k < 1) this.coinRaf = requestAnimationFrame(step); else this.coinRaf = 0;
+    };
+    step();
+  }
+  /** a big "+100 🪙" that floats up, with the sum shown */
+  private coinBusyUntil = 0;
+  coinPop(n: number, from: number) {
+    // one at a time: a second reward waits for the first to finish
+    const now = performance.now(), wait = Math.max(0, this.coinBusyUntil - now);
+    this.coinBusyUntil = now + wait + 1500;
+    if (wait > 0) { setTimeout(() => this.coinPop(n, from), wait); this.coinBusyUntil -= 1500; return; }
+    const el = document.createElement('div');
+    el.className = 'coinPop';
+    el.innerHTML = `<b>+${n} 🪙</b><small>${from.toLocaleString()} + ${n} = ${(from + n).toLocaleString()}</small>`;
+    document.body.appendChild(el);
+    SFX.pop(3); setTimeout(() => SFX.pop(5), 120);
+    setTimeout(() => el.remove(), 2600);
+    const c = $('#coins'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump');
+  }
+  /** the prayer together: which rakaat and which movement */
+  jamaahHud(j: { step: { name: T2; rakaat: number }; total: number; joined: boolean } | null) {
+    const el = $('#jmHud');
+    if (!j) { if (!el.classList.contains('hidden')) el.classList.add('hidden'); return; }
+    const txt = `🤲 ${tr('Rakaat', 'Rakaat')} ${j.step.rakaat}/${j.total} · <b>${esc(t2(j.step.name))}</b>${j.joined ? '' : ' · ' + tr('kamu keluar barisan', 'you left the row')}`;
+    if (el.innerHTML !== txt) el.innerHTML = txt;
+    el.classList.remove('hidden');
+  }
+  /** Bu Aminah's village shop: spend coins, and see the sum each time */
+  shop() {
+    const g = this.g;
+    const near = Math.hypot(g.player.pos.x, g.player.pos.z) < 40;
+    if (!near) { this.toast(tr('🛒 Toko ada di warung Bu Aminah di desa. Ketuk 🏠 untuk pulang!', '🛒 The shop is at Bu Aminah’s stall in the village. Tap 🏠 to go home!'), 4000); return; }
+    const { el, close } = this.modal(`<div class="shop"><h2>🛒 ${tr('Toko Desa', 'Village Shop')}</h2><p class="shopHave"></p><div class="shopList"></div><button class="btn ghost small" id="shX">${tr('Tutup', 'Close')}</button></div>`);
+    const render = () => {
+      const have = g.stats.coins || 0, fmt = (n: number) => n.toLocaleString();
+      el.querySelector<HTMLElement>('.shopHave')!.innerHTML = `${tr('Koinmu', 'Your coins')}: <b>🪙 ${fmt(have)}</b>`;
+      el.querySelector<HTMLElement>('.shopList')!.innerHTML = SHOP.map(([id, n, price], i) => `<div class="shopRow ${have >= price ? '' : 'poor'}"><img src="${iconURL(id)}" alt=""><div><b>${esc(t2(nameOf(id)))}${n > 1 ? ' ×' + n : ''}</b><small>${have >= price ? `${fmt(have)} − ${price} = ${fmt(have - price)}` : tr(`Kurang ${fmt(price - have)} koin`, `${fmt(price - have)} more coins needed`)}</small></div><button class="btn small ${have >= price ? 'gold' : 'ghost'}" data-buy="${i}">🪙 ${price}</button></div>`).join('');
+      el.querySelectorAll<HTMLElement>('[data-buy]').forEach(b => (b.onclick = () => {
+        const [id, n, price] = SHOP[+b.dataset.buy!];
+        if (!g.spendCoins(price)) { SFX.error(); this.toast(tr('Koinnya belum cukup. Sholat berjamaah dan selesaikan misi untuk dapat koin!', 'Not enough coins yet. Pray together and finish quests to earn coins!')); return; }
+        g.inv.add(id, n); this.pickup(id, n); SFX.pickup();
+        g.stats.bought = (g.stats.bought || 0) + 1;
+        g.checkQuests(); render();
+      }));
+    };
+    render();
+    $('#shX', el).onclick = () => close();
+  }
+
   /** a piece of the treasure map */
   mapPiece(complete: boolean) {
     const g = this.g;
@@ -410,6 +479,7 @@ export class UI {
   updateHud() {
     const g = this.g;
     this.updateStars();
+    if (this.coinShown !== (g.stats.coins || 0) && !this.coinRaf) this.updateCoins();
     // clock + next in-game prayer
     $('#clockT').innerHTML = ic('clock') + fmtHour(g.hour) + (g.weather ? ` <span class="wx" title="${esc(t2(g.weather.info.name))}">${g.weather.info.icon}</span>` : '');
     const np = g.nextGamePrayer();

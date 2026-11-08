@@ -48,6 +48,7 @@ import { Kites, isKite } from './game/kites';
 import { Treasure } from './game/treasure';
 import { mangroveTree } from './world/landmarks';
 import { Weather } from './game/weather';
+import { Jamaah, rowPose } from './game/jamaah';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -134,7 +135,11 @@ export class Game {
   placeRot = 0;
   private blockGhost!: THREE.Group;
   private aimDeco: ReturnType<Decor['raycast']> = null;
-  private gameEvent: { p: Prayer; until: number; attended: boolean } | null = null;
+  private gameEvent: { p: Prayer; until: number; attended: boolean; prayed?: boolean } | null = null;
+  /** the prayer together in progress (everyone moves as one) */
+  jamaah: Jamaah | null = null;
+  private rowStill = 0;
+  private rowMark: THREE.Mesh | null = null;
   private lastHour = 0;
   private remindersShown = new Set<string>();
   private timers = { hud: 0, slow: 0, save: 0, tip: 60, real: 0 };
@@ -562,7 +567,7 @@ export class Game {
   private prayCamBefore: 'first' | 'third' | null = null;
   get prayingTogether() { return this.prayCamBefore !== null; }
   /** can the "Pray together" button be offered right now? */
-  canPrayTogether() { return !!this.gameEvent && this.picnicToMasjid < 0 && this.player.pos.distanceTo(MASJID_SPOT) < 22 && !this.fun?.riding; }
+  canPrayTogether() { return !!this.gameEvent && !this.gameEvent.prayed && !this.jamaah && this.picnicToMasjid < 0 && this.player.pos.distanceTo(MASJID_SPOT) < 22 && !this.fun?.riding; }
   /** step into the row next to Baby Mo, facing the qibla, with the camera behind you so you can follow along */
   prayTogether() {
     if (!this.canPrayTogether()) return;
@@ -571,8 +576,7 @@ export class Game {
     if (this.prayCamBefore === null) this.prayCamBefore = this.settings.cam;
     this.settings.cam = 'third';
     this.ents.mo.prayAt = ROW.mo; this.ents.mo.pos.copy(ROW.mo);
-    SFX.chime();
-    this.ui.say(tr('Bismillah. Diam dulu ya, lalu ikuti Baby Mo: berdiri, rukuk, sujud, lalu duduk 🤲', 'Bismillah. Stay still and copy Baby Mo: stand, bow, prostrate, then sit 🤲'), 'alright', 4500);
+    this.startJamaah();
   }
   /** walking off (or the prayer ending) gives you your own camera back */
   private endPrayTogether() {
@@ -955,7 +959,7 @@ export class Game {
     }
 
     // time of day
-    if (this.settings.dayMinutes > 0) this.hour += dt * 24 / (this.settings.dayMinutes * 60);
+    if (this.settings.dayMinutes > 0) { if (!this.jamaah?.joined) this.hour += dt * 24 / (this.settings.dayMinutes * 60); } // time waits while you pray
     else { const n = new Date(); this.hour = n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600; }
     if (this.hour >= 24) { this.hour -= 24; this.day++; }
     this.gameTimeEvents();
@@ -975,6 +979,7 @@ export class Game {
     this.fun.update(dt);
     this.festive.update(t);
     this.places.update(dt, t);
+    this.rowTick(dt, t);
     this.sanctuary.update(dt);
     this.kites.update(dt, t);
     this.weather.update(dt, t);
@@ -1379,6 +1384,7 @@ export class Game {
           'Assalamu’alaikum, dear! I’m preparing iftar snacks for the neighbours. The Prophet (peace be upon him) liked to break his fast with <b>dates</b>. Recipe: <b>3 dates + 1 milk</b>. Dates grow on date palms, and cows or camels share milk when you’re kind. If you’d like to share, bring some food here! 🍽️'),
         buttons: [
           ...(this.inv.count(I.DATES) >= 3 ? [{ label: tr('🥩 Tukar 3 kurma dengan daging halal', '🥩 Trade 3 dates for halal meat'), cls: 'gold', fn: () => { this.inv.remove(I.DATES, 3); this.inv.add(I.MEAT, 1); this.collectFx(I.MEAT, 1, n.pos.clone().setY(n.pos.y + 1.2)); SFX.pickup(); this.ui.toast(tr('🥩 Daging halal untukmu. Masak di tungku ya!', '🥩 Halal meat for you. Cook it at a furnace!')); } }] : []),
+          { label: '🛒 ' + tr('Toko desa', 'Village shop'), cls: 'ghost', fn: () => this.ui.shop() },
           { label: tr('Terima kasih, Bu', 'Thank you') },
         ],
       });
@@ -1479,6 +1485,7 @@ export class Game {
         if (silent) continue;
         for (const [id, n] of q.reward) this.inv.add(id, n);
         SFX.quest(); haptic([10, 30, 10]); this.kid.reward('quest'); this.ui.confetti(36);
+        this.addCoins(50, from => this.ui.coinPop(50, from));
         this.ents.mo.celebrate = 2;
         this.fx.sparkle(this.player.pos.x, this.player.pos.y + 2, this.player.pos.z, 20, 0x9bf29a, 2.5);
         const rw = q.reward.map(([id, n]) => `${t2(nameOf(id))} ×${n}`).join(', ');
@@ -1497,15 +1504,16 @@ export class Game {
     const s = this.schedule;
     for (const p of PRAYERS) {
       if (this.crossed(s[p])) {
-        this.gameEvent = { p, until: (s[p] + 0.9) % 24, attended: false };
+        // the villagers wait in the row until you join (or until shortly before the next prayer)
+        const next = PRAYERS.map(q => s[q]).filter(h => h > s[p]).sort((a, b) => a - b)[0] ?? s.fajr + 24;
+        this.gameEvent = { p, until: Math.min(s[p] + 3, next - 0.15) % 24, attended: false };
         this.stats.prayersSeen++;
         SFX.drum(3); setTimeout(() => SFX.chime(), 1400);
         if (p === 'maghrib') {
           // iftar first: everyone sits down together on the plaza, then goes to pray
           this.festive.setPicnic(true);
           this.ents.npcs.forEach((n, i) => n.goPray(true, this.festive.seat(i), 'picnic', PICNIC));
-          this.gameEvent.until = (s[p] + 1.4) % 24;
-          this.picnicToMasjid = (s[p] + 0.55) % 24;
+          this.picnicToMasjid = (s[p] + 0.35) % 24;
         } else this.ents.npcs.forEach((n, i) => n.goPray(true, this.rowSpot(n.id, i)));
         const lines: Record<Prayer, [string, string]> = {
           fajr: ['Sudah Subuh! Langit mulai terang. Warga berangkat ke masjid 🕌', 'It’s Fajr! The sky is getting lighter. The villagers are heading to the masjid 🕌'],
@@ -1521,11 +1529,10 @@ export class Game {
     if (this.gameEvent) {
       const ev = this.gameEvent;
       const p = this.player.pos;
-      if (!ev.attended && inMasjidArea(p)) {
-        ev.attended = true; this.stats.jamaah++; this.kid.reward('jamaah');
-        SFX.quest();
-        this.ui.say(tr(`Ayo sholat ${prayerName(ev.p)} berjamaah! Tekan 🤲 Sholat bersama, lalu ikuti gerakan Baby Mo: berdiri, rukuk, sujud, duduk.`, `Let’s pray ${prayerName(ev.p)} together! Press 🤲 Pray together and copy Baby Mo: stand, bow, prostrate, sit.`), 'alright', 8000);
-        this.checkQuests();
+      if (!ev.attended && inMasjidArea(p) && this.picnicToMasjid < 0) {
+        ev.attended = true;
+        SFX.chime();
+        this.ui.say(tr(`Warga menunggumu! Berdiri di tempatmu di barisan (tanda yang bersinar ✨) atau tekan 🤲 Sholat bersama — sholat ${prayerName(ev.p)} dimulai bersama-sama.`, `The villagers are waiting for you! Stand in your place in the row (the glowing mark ✨) or press 🤲 Pray together — then ${prayerName(ev.p)} prayer starts together.`), 'alright', 8000);
       }
       if (this.picnicToMasjid >= 0 && this.crossed(this.picnicToMasjid)) {
         this.picnicToMasjid = -1;
@@ -1534,9 +1541,77 @@ export class Game {
       // Baby Mo joins the row whenever you're in the masjid during prayer time (not during the iftar picnic)
       const prayingNow = this.picnicToMasjid < 0;
       this.ents.mo.prayAt = prayingNow && inMasjidArea(p) ? ROW.mo : null;
-      if (this.crossed(ev.until)) { for (const n of this.ents.npcs) n.goPray(false, n.home); this.gameEvent = null; this.festive.setPicnic(false); this.ents.mo.prayAt = null; this.endPrayTogether(); }
+      // still on your way to the masjid: they wait a little longer
+      if (this.crossed(ev.until) && !this.jamaah && p.distanceTo(MASJID_SPOT) < 30) ev.until = (this.hour + 0.25) % 24;
+      else if (this.crossed(ev.until) && !this.jamaah) this.endPrayerTime();
     }
     this.lastHour = this.hour;
+  }
+
+  /** the glowing place in the row, and starting the prayer when you stand on it */
+  private rowTick(dt: number, t: number) {
+    const ev = this.gameEvent, waiting = !!ev && !ev.prayed && !this.jamaah && this.picnicToMasjid < 0;
+    if (waiting && !this.rowMark) {
+      this.rowMark = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.48, 24), new THREE.MeshBasicMaterial({ color: 0xffd874, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+      this.rowMark.rotation.x = -Math.PI / 2; this.rowMark.position.set(ROW.player.x, ROW.player.y + 0.03, ROW.player.z);
+      this.scene.add(this.rowMark);
+    }
+    if (this.rowMark) { this.rowMark.visible = waiting; (this.rowMark.material as THREE.MeshBasicMaterial).opacity = 0.5 + Math.sin(t * 4) * 0.3; }
+    if (waiting) {
+      const p = this.player;
+      const inPlace = Math.hypot(p.pos.x - ROW.player.x, p.pos.z - ROW.player.z) < 0.7 && Math.abs(p.pos.y - ROW.player.y) < 1 && p.speed < 0.3;
+      this.rowStill = inPlace ? this.rowStill + dt : 0;
+      if (this.rowStill > 0.6) this.startJamaah();
+    }
+    if (this.jamaah) this.jamaahTick(dt);
+    this.ui.jamaahHud(this.jamaah);
+  }
+  private endPrayerTime() {
+    for (const n of this.ents.npcs) n.goPray(false, n.home);
+    this.gameEvent = null; this.festive.setPicnic(false); this.ents.mo.prayAt = null; this.endPrayTogether();
+    rowPose.pose = 'qiyam'; rowPose.head = 0;
+  }
+  /** you're in your place in the row: the prayer starts, everyone together */
+  startJamaah() {
+    const ev = this.gameEvent;
+    if (!ev || ev.prayed || this.jamaah || this.picnicToMasjid >= 0) return;
+    this.jamaah = new Jamaah(ev.p);
+    this.ents.mo.prayAt = ROW.mo;
+    SFX.chime();
+    this.ui.say(tr(`Allahu Akbar. Sholat ${prayerName(ev.p)} ${this.jamaah.total} rakaat dimulai. Diam di tempat dan ikuti gerakannya ya 🤲`, `Allahu Akbar. ${prayerName(ev.p)} prayer, ${this.jamaah.total} rakaat, begins. Stay in your place and follow along 🤲`), 'alright', 5000);
+  }
+  private jamaahTick(dt: number) {
+    const j = this.jamaah!, p = this.player.pos;
+    if (j.joined && Math.hypot(p.x - ROW.player.x, p.z - ROW.player.z) > 1.6) {
+      j.joined = false;
+      this.ui.toast(tr('Kamu meninggalkan barisan. Warga menyelesaikan sholatnya 🙂', 'You left the row. The villagers finish their prayer 🙂'), 4000);
+    }
+    if (!j.update(dt)) return;
+    // salam: the prayer is done
+    const joined = j.joined, ev = this.gameEvent;
+    this.jamaah = null;
+    if (joined) {
+      this.stats.jamaah++; this.kid.reward('jamaah');
+      this.addCoins(100, from => this.ui.coinPop(100, from));
+      SFX.fanfare(); this.ui.confetti(40);
+      this.ents.mo.celebrate = 2;
+      this.ui.say(tr('Taqabbalallahu minna wa minkum 🤲 Semoga Allah menerima sholat kita. Kamu dapat 100 koin! 🪙', 'Taqabbalallahu minna wa minkum 🤲 May Allah accept our prayer. You earned 100 coins! 🪙'), 'alright', 7000);
+      this.checkQuests(); this.saveSoon();
+    }
+    if (ev) { ev.prayed = true; ev.until = (this.hour + 0.15) % 24; }
+    rowPose.pose = 'qiyam'; rowPose.head = 0;
+  }
+  /** coins: big numbers to count, spent at the village shop */
+  addCoins(n: number, pop?: (from: number) => void) {
+    const before = this.stats.coins || 0;
+    this.stats.coins = before + n;
+    pop?.(before);
+    this.ui.updateCoins();
+  }
+  spendCoins(n: number) {
+    if ((this.stats.coins || 0) < n) return false;
+    this.stats.coins! -= n; this.ui.updateCoins(); this.saveSoon();
+    return true;
   }
 
   private realReminders() {
@@ -1711,7 +1786,7 @@ export class Game {
     // standing still in the masjid at prayer time: pray along with the villagers
     const inMasjid = inMasjidArea(p.pos);
     if (this.prayCamBefore !== null && (p.speed > 1 || !inMasjid)) this.endPrayTogether();
-    if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, poseAt(t)); this.prayingPose = true; }
+    if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, this.jamaah?.joined ? rowPose.pose : 'qiyam'); a.head.rotation.y = this.jamaah?.joined ? rowPose.head : 0; this.prayingPose = true; }
     else if (this.prayingPose) { clearPose(a); this.prayingPose = false; }
     this.updateHeld(t, sw);
   }

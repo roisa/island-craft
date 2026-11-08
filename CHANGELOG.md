@@ -5,6 +5,54 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Praying together, properly 🤲 — and coins 🪙
+
+Requested by a parent: the prayer was over by the time the child arrived,
+and they wanted a big-number reward for praying.
+
+- **The villagers wait for you.** At prayer time they walk to the masjid
+  and wait in the row, standing.
+  - They wait until shortly before the next prayer (up to 3 game hours),
+    and a little longer if you are close to the masjid.
+  - A glowing ring marks your place in the row.
+- **The prayer starts when you are in your place.** Stand still on the
+  ring, or tap 🤲 Pray together.
+  - Ayah Ibrahim leads; the villagers, Baby Mo and you move as one.
+  - The real number of rakaat: Fajr 2, Maghrib 3, the others 4. Each
+    rakaat is shortened to about 12 seconds; a whole prayer takes under a
+    minute.
+  - Each rakaat has standing, ruku', i'tidal, two sujud with sitting
+    between, and the first tashahhud after the 2nd rakaat. It ends with
+    the final tashahhud and salam to the right, then to the left.
+  - A pill shows "Rakaat 2/4 · Bowing".
+  - Game time waits while you pray, so the next prayer can't cut it short.
+  - Walking out of the row lets the villagers finish without you.
+- **At the salam:** "Taqabbalallahu minna wa minkum", the jama'ah count,
+  stars, and **+100 coins**.
+- **Coins 🪙:**
+  - A new counter in the top bar counts up to the new total.
+  - Each reward floats up as a big "+100" with the sum written out, such
+    as "250 + 100 = 350".
+  - Finishing any quest gives +50.
+  - Two rewards at once take turns instead of overlapping.
+- **Village shop** (Bu Aminah, or tap the coin counter in the village):
+  dates, milk, saplings, wool, lanterns, a fishing rod, a prayer mat,
+  mangrove seedlings, a kite, fireworks and a boat.
+  - Every item shows the sum "you have 340, 340 − 50 = 290", or how many
+    more coins you need.
+- **Fixed while testing:**
+  - The "time waits" change briefly made the clock jump to the real time.
+  - A second prayer started on its own right after the salam.
+  - The time freeze now only holds while you are in the row.
+  - The prayer pill wrapped badly on phones in portrait.
+- **Tested:**
+  - Unit tests: the rakaat count and sujud per prayer, salam on both
+    sides, under 70 seconds, and the row moving through to the end.
+  - A smoke step on all four profiles: no start without you, the start
+    in your place, +100 coins and the count at the end, no restart, and a
+    purchase.
+  - The QA suite.
+
 ### Play-time lock with a grown-ups check 🔒
 
 Requested by a parent: one hour of play by default, then the game stops

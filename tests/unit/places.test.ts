@@ -255,3 +255,23 @@ describe('grown-ups check', () => {
     for (let i = 0; i < 200; i++) { const { a, b, ans } = adultSum(); expect(ans).toBe(a * b); expect(ans).toBeGreaterThanOrEqual(72); expect(a).toBeGreaterThanOrEqual(12); }
   });
 });
+
+import { jamaahPlan, planLength, RAKAAT, Jamaah, rowPose } from '../../src/game/jamaah';
+describe('praying together', () => {
+  it('has the real number of rakaat, with sujud twice in each, and ends with salam to both sides', () => {
+    for (const p of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const) {
+      const plan = jamaahPlan(p);
+      expect(plan.filter(s => s.pose === 'ruku').length).toBe(RAKAAT[p]);
+      expect(plan.filter(s => s.pose === 'sujud').length).toBe(RAKAAT[p] * 2);
+      expect(plan.slice(-2).map(s => s.head)).toEqual([0.9, -0.9]);
+      expect(planLength(plan)).toBeLessThan(70); // short enough for a child to follow to the end
+    }
+    expect(RAKAAT.fajr).toBe(2); expect(RAKAAT.maghrib).toBe(3); expect(RAKAAT.isha).toBe(4);
+  });
+  it('moves the whole row through the prayer and then finishes', () => {
+    const j = new Jamaah('fajr');
+    let done = false, sawSujud = false;
+    for (let t = 0; t < 80 && !done; t += 0.1) { done = j.update(0.1); if (rowPose.pose === 'sujud') sawSujud = true; }
+    expect(sawSujud).toBe(true); expect(done).toBe(true); expect(rowPose.pose).toBe('qiyam');
+  });
+});
