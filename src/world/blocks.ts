@@ -16,7 +16,9 @@ export enum B {
   // the volcano island
   BASALT = 61, MAGMA = 62, OBSIDIAN = 63,
   // the river, the treasure map
-  RAFT_DOCK = 64, MAP_SCROLL = 65, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  RAFT_DOCK = 64, MAP_SCROLL = 65,
+  // the mangrove swamp
+  MANGROVE_LOG = 66, MANGROVE_LEAVES = 67, MANGROVE_ROOTS = 68, MANGROVE_SEEDLING = 69, MUD = 70, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -147,6 +149,11 @@ blk(B.TELESCOPE, ['Teropong Bintang', 'Telescope'], 'telescope', { ...plant, col
 blk(B.BASALT, ['Batu Gunung Api', 'Basalt'], 'basalt', { color: 0x4a4a52, hardness: 2.4, tool: 'pick' });
 blk(B.MAGMA, ['Batu Magma Hangat', 'Warm Magma Rock'], 'magma', { color: 0xff7a1a, hardness: Infinity, light: 1 });
 blk(B.OBSIDIAN, ['Obsidian', 'Obsidian'], 'obsidian', { color: 0x2a1f3d, hardness: 4, tool: 'pick', tier: 3 });
+blk(B.MANGROVE_LOG, ['Kayu Bakau', 'Mangrove Log'], ['mangrove_top', 'mangrove_log', 'mangrove_top'], { color: 0x7a4a32, hardness: 1.6, tool: 'axe' });
+blk(B.MANGROVE_LEAVES, ['Daun Bakau', 'Mangrove Leaves'], 'mangrove_leaves', { color: 0x3f7f45, hardness: 0.25, cutout: true, opaque: false, drops: r => (r < 0.15 ? [[B.MANGROVE_SEEDLING, 1]] : []) });
+blk(B.MANGROVE_ROOTS, ['Akar Bakau', 'Mangrove Roots'], 'mangrove_roots', { ...plant, color: 0x7a4a32, hardness: 0.6, tool: 'axe', aquatic: true, drops: () => [[I.STICK, 2]] });
+blk(B.MANGROVE_SEEDLING, ['Bibit Bakau', 'Mangrove Seedling'], 'mangrove_seedling', { ...plant, color: 0x4f9e48, aquatic: true });
+blk(B.MUD, ['Lumpur', 'Mud'], 'mud', { color: 0x5a4636, hardness: 0.5, tool: 'shovel' });
 blk(B.MAP_SCROLL, ['Potongan Peta', 'Map Piece'], 'map_scroll', { ...plant, color: 0xe8d9a8, hardness: Infinity });
 blk(B.RAFT_DOCK, ['Rakit Sungai', 'River Raft'], ['raft_top', 'raft_side', 'raft_side'], { color: 0xb08a55, hardness: Infinity });
 const wool: [number, string, T2, number][] = [

@@ -44,6 +44,8 @@ export interface Stats {
   kites?: number; kiteHigh?: boolean;
   /** treasure map pieces found (the places they came from), and the great treasure dug up */
   mapPieces?: string[]; greatTreasure?: boolean;
+  /** mangrove seedlings planted in shallow water */
+  mangroves?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,
@@ -85,6 +87,7 @@ export const QUESTS: Quest[] = [
   { id: 'rescue', icon: '🏡', title: ['Penolong hewan', 'Animal helper'], desc: ['Ada hewan kecil yang tersesat (🥺). Ketuk mereka, lalu antar ke Rumah Hewan. Tolong 3 hewan!', 'Some little animals are lost (🥺). Tap them, then take them to the Animal Sanctuary. Help 3 of them!'], goal: s => [Math.min(3, s.rescued?.length || 0), 3], reward: [[I.APPLE, 5], [B.WOOL_YELLOW, 4]], sticker: '🐾' },
   { id: 'kite', icon: '🪁', title: ['Layang-layang tinggi', 'A kite up high'], desc: ['Buat layang-layang di meja kerja (2 tongkat + 2 wol). Pegang, ketuk 👆 Pakai, lalu naik ke bukit tinggi supaya terbang tinggi!', 'Make a kite at the workbench (2 sticks + 2 wool). Hold it, tap 👆 Use, then climb a tall hill so it flies up high!'], goal: s => [s.kiteHigh ? 1 : 0, 1], reward: [[B.WOOL_RED, 3], [B.WOOL_BLUE, 3]], sticker: '🪁' },
   { id: 'map', icon: '🗺️', title: ['Peta harta karun', 'The treasure map'], desc: ['Cari 4 potongan peta di Mercusuar, Perkemahan Oasis, Rumah Salju dan Reruntuhan Perpustakaan. Lalu gali di bawah tanda X!', 'Find 4 map pieces at the Lighthouse, Oasis Camp, Igloo and Library Ruins. Then dig under the X!'], goal: s => [Math.min(4, s.mapPieces?.length || 0) + (s.greatTreasure ? 1 : 0), 5], reward: [[I.GOLD_INGOT, 2]], sticker: '🗺️' },
+  { id: 'mangrove', icon: '🌿', title: ['Penjaga pantai', 'Coast keeper'], desc: ['Ambil bibit bakau di Hutan Bakau, lalu tanam 3 bibit di air dangkal (air setinggi satu balok).', 'Get mangrove seedlings at the Mangrove Swamp, then plant 3 of them in shallow water (one block deep).'], goal: s => [Math.min(3, s.mangroves || 0), 3], reward: [[B.MANGROVE_SEEDLING, 3], [I.BIG_FISH, 1]], sticker: '🦀' },
   { id: 'treetop', icon: '🌳', title: ['Panjat pohon', 'Climb a tree'], desc: ['Jalan terus ke batang pohon untuk memanjat sampai ke puncaknya. Ada buah di atas!', 'Keep walking into a tree trunk to climb it to the top. There’s fruit up there!'], goal: s => [Math.min(1, s.treetops?.length || 0), 1], reward: [[I.APPLE, 3]], sticker: '🐒' },
   { id: 'decorate', icon: '🪑', title: ['Hias rumahmu', 'Decorate your home'], desc: ['Buat sajadah, meja atau lampu di meja kerja (🔨 Buat), lalu pasang 3 hiasan.', 'Make a prayer mat, table or lamp at the workbench (🔨 Craft), then place 3 decorations.'], goal: s => [Math.min(3, s.decorated || 0), 3], reward: [[I.LAMP, 1], [I.CUSHION, 2]], sticker: '🛋️' },
   { id: 'blueprint', icon: '🏗️', title: ['Bangun dengan rancangan', 'Build from a blueprint'], desc: ['Buka 🏗️ Rancang, pilih Rumah Kecil, lalu bangun!', 'Open 🏗️ Blueprints, pick the Little House, then build it!'], goal: s => [Math.min(1, s.built || 0), 1], reward: [[B.LANTERN, 3]], sticker: '🏠' },

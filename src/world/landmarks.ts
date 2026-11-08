@@ -527,9 +527,69 @@ const SPECS = (): Spec[] => specs ??= [
       return { y: y + 1, at: { pen: [x + 0.5, y + 1, z + 0.5] } };
     },
   },
+  {
+    id: 'mangrove', icon: '🌿', name: ['Hutan Bakau', 'Mangrove Swamp'], biomes: [Biome.BEACH], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.OCEAN, Biome.SNOWY, Biome.DESERT], dist: [70, 300], r: 13,
+    ok: c => c.h >= SEA - 2 && c.h <= SEA + 1,
+    hint: ['Di pinggir laut ada hutan pohon berakar tinggi yang berdiri di dalam air. Kepiting tinggal di sana!', 'At the edge of the sea is a forest of trees on tall roots, standing in the water. Crabs live there!'],
+    fact: ['Indonesia punya hutan bakau (mangrove) terluas di dunia! Akarnya menahan ombak dan melindungi pantai, dan menjadi rumah bagi ikan dan kepiting. Allah menjadikan manusia sebagai khalifah untuk menjaga bumi (QS Al-Baqarah: 30). Tanam bibit bakau di air dangkal!', 'Indonesia has the biggest mangrove forests in the world! Their roots hold back the waves, protect the coast, and are a home for fish and crabs. Allah made people khalifah — caretakers of the earth (Al-Baqarah 2:30). Plant mangrove seedlings in shallow water!'],
+    loot: [[B.MANGROVE_SEEDLING, 6], [I.BIG_FISH, 1], [B.LANTERN, 2]],
+    plan(b, x, z, taken) {
+      // keep the swamp's whole area clear of other places
+      if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 16)) return null;
+      return true;
+    },
+    build(b, x, _y, z) {
+      const R = 13, put = (X: number, Y: number, Z: number, id: number) => b.stamp(X, Y, Z, id);
+      // shallow water over mud, with a few dry mud banks
+      for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) {
+        const d = Math.hypot(dx, dz); if (d > R + 0.5) continue;
+        const X = x + dx, Z = z + dz, h = b.column(X, Z).h;
+        const bank = hash3(X, 1, Z, 61) < 0.08 || d > R - 1.2;
+        const top = bank ? SEA : SEA - 1;
+        for (let yy = Math.min(h, top) - 2; yy <= top; yy++) b.stamp(X, yy, Z, B.MUD);
+        if (!bank) b.stamp(X, SEA, Z, B.WATER);
+        b.box(X, SEA + 1, Z, X, Math.max(h, SEA) + 9, Z, B.AIR);
+      }
+      // mangrove trees, spaced out
+      const trees: [number, number][] = [];
+      for (let k = 0; k < 40 && trees.length < 9; k++) {
+        const a = hash3(k, 2, x, 63) * Math.PI * 2, r = 3 + hash3(k, 3, z, 63) * (R - 5);
+        const tx = Math.round(x + Math.cos(a) * r), tz = Math.round(z + Math.sin(a) * r);
+        if (Math.abs(tz - z) <= 1 || trees.some(([px, pz]) => Math.hypot(px - tx, pz - tz) < 4.5)) continue; // leave the boardwalk free
+        trees.push([tx, tz]);
+        mangroveTree(put, tx, SEA, tz, 3 + (k % 2));
+      }
+      // a boardwalk across the swamp to a little platform in the middle
+      b.box(x - R, SEA + 1, z, x + 2, SEA + 1, z, B.PLANKS);
+      b.box(x - 1, SEA + 1, z - 1, x + 2, SEA + 1, z + 1, B.PLANKS);
+      b.box(x - R, SEA + 2, z, x + 2, SEA + 5, z, B.AIR); b.box(x - 1, SEA + 2, z - 1, x + 2, SEA + 5, z + 1, B.AIR);
+      for (let i = -R + 1; i <= 0; i += 4) { b.stamp(x + i, SEA + 2, z + 1, B.OAK_LOG); b.stamp(x + i, SEA + 3, z + 1, B.LANTERN); }
+      b.stamp(x + 2, SEA + 2, z - 1, B.CHEST);
+      // a planting spot: open shallow water next to the platform, waiting for seedlings
+      for (let dx = 3; dx <= 6; dx++) for (let dz = -2; dz <= 2; dz++) { b.stamp(x + dx, SEA - 1, z + dz, B.MUD); b.stamp(x + dx, SEA, z + dz, B.WATER); b.box(x + dx, SEA + 1, z + dz, x + dx, SEA + 7, z + dz, B.AIR); }
+      b.stamp(x + 4, SEA, z, B.MANGROVE_SEEDLING);
+      return { y: SEA + 2, at: { centre: [x + 0.5, SEA + 1, z + 0.5], plant: [x + 4.5, SEA, z + 0.5] } };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
+
+/**
+ * A mangrove tree standing in shallow water at (x, y, z): arching roots at
+ * the water line, a short trunk, a wide low canopy. Used by the swamp and by
+ * the seedlings you plant. `roots` cells may be water.
+ */
+export function mangroveTree(put: (x: number, y: number, z: number, id: number, roots?: boolean) => void, x: number, y: number, z: number, tall = 3) {
+  put(x, y, z, B.MANGROVE_ROOTS, true);
+  for (const [dx, dz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) put(x + dx, y, z + dz, B.MANGROVE_ROOTS, true);
+  for (let i = 1; i <= tall; i++) put(x, y + i, z, B.MANGROVE_LOG);
+  const t = y + tall;
+  for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = 0; dy <= 2; dy++) {
+    const r = dy === 2 ? 1 : 2;
+    if (Math.abs(dx) <= r && Math.abs(dz) <= r && !(Math.abs(dx) === 2 && Math.abs(dz) === 2) && !(dx === 0 && dz === 0 && dy === 0)) put(x + dx, t + dy, z + dz, B.MANGROVE_LEAVES);
+  }
+}
 /** the four places that each keep a piece of the treasure map */
 export const MAP_PIECE_PLACES = ['lighthouse', 'oasis', 'igloo', 'ruins'];
 

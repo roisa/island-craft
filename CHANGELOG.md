@@ -5,6 +5,34 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Mangrove Swamp 🌿
+
+- **A new landmark** at the coast (or a lagoon where there is no beach):
+  shallow water one block deep over mud, with dry mud banks.
+- **Mangrove trees** stand on arching roots in the water, with short trunks
+  and wide canopies.
+- **A boardwalk** with lanterns crosses to a platform with a chest
+  (seedlings, a fish, lanterns), next to an open planting spot.
+- **Crabs** scuttle sideways along the boardwalk, and fireflies glow over
+  the swamp at night.
+- **New blocks:** mangrove log, leaves (sometimes drop a seedling), roots
+  and seedling (both live in water), and mud.
+- **Planting:**
+  - Mangrove seedlings go only in shallow water on mud or sand.
+  - Elsewhere a friendly message explains this, and other plants can no
+    longer be placed into water by mistake. Sea plants still can.
+  - A planted seedling grows into a mangrove tree like other saplings.
+- **The discovery card** explains that Indonesia has the largest mangrove
+  forests in the world, how they protect the coast, and that people are
+  caretakers (khalifah) of the earth.
+- **New quest:** coast keeper (plant 3 mangroves).
+- **Tested:**
+  - Unit tests on 4 seeds: roots, logs, the platform, the planting spot.
+  - Every one of 150 seeds gets a swamp.
+  - A smoke step on all four profiles refuses a seedling on the boardwalk
+    and plants one in the water.
+  - The letter smoke step now closes pending pop-ups first.
+
 ### Treasure map 🗺️ and the great treasure
 
 - **Four map pieces** wait as scrolls in the Lighthouse (top platform), the

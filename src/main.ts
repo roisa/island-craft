@@ -46,6 +46,7 @@ import { moonPhase } from './game/moon';
 import { Sanctuary } from './game/sanctuary';
 import { Kites, isKite } from './game/kites';
 import { Treasure } from './game/treasure';
+import { mangroveTree } from './world/landmarks';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -1250,7 +1251,14 @@ export class Game {
     if (def.render === 'cross') {
       const below = this.world.get(x, y - 1, z);
       if (!BLOCKS[below]?.solid) { this.ui.toast(tr('Harus di atas balok padat', 'Needs a solid block below')); return; }
-      if ((held.id === B.SAPLING || held.id === B.PALM_SAPLING || held.id === B.PINE_SAPLING)) {
+      if (held.id === B.MANGROVE_SEEDLING) {
+        // mangroves grow in shallow water: the seedling goes in water one block deep, on mud or sand
+        if (cur !== B.WATER || ![B.MUD, B.SAND, B.DIRT, B.GRASS, B.CLAY, B.GRAVEL].includes(below) || this.world.get(x, y + 1, z) === B.WATER) { this.ui.toast(tr('🌿 Tanam bibit bakau di air dangkal ya', '🌿 Plant mangrove seedlings in shallow water')); return; }
+        this.saplings.push({ x, y, z, id: held.id, t: 0 });
+        this.stats.planted++; this.stats.mangroves = (this.stats.mangroves || 0) + 1; this.kid.reward('plant');
+        this.ui.say(tr('Masya Allah! Bibit bakau ini akan tumbuh dan melindungi pantai dari ombak 🌿', 'Masha Allah! This mangrove will grow and protect the coast from the waves 🌿'), 'ok');
+      } else if (cur === B.WATER && !def.aquatic) { this.ui.toast(tr('Tanaman ini tidak bisa tumbuh di air', 'This plant can’t grow in water')); return; }
+      else if ((held.id === B.SAPLING || held.id === B.PALM_SAPLING || held.id === B.PINE_SAPLING)) {
         if (![B.GRASS, B.DIRT, B.SNOW_GRASS, B.SAND].includes(below)) { this.ui.toast(tr('Tanam bibit di tanah atau rumput ya 🌱', 'Plant saplings on dirt or grass 🌱')); return; }
         this.saplings.push({ x, y, z, id: held.id, t: 0 });
         this.stats.planted++; this.kid.reward('plant');
@@ -1597,6 +1605,8 @@ export class Game {
       for (let i = 0; i < 5; i++) put(x, y + i, z, B.PALM_LOG);
       const t = y + 5; put(x, t, z, B.PALM_LEAVES);
       for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { put(x + dx, t, z + dz, B.PALM_LEAVES); put(x + dx * 2, t, z + dz * 2, B.PALM_LEAVES); put(x + dx * 3, t - 1, z + dz * 3, B.PALM_LEAVES); }
+    } else if (s.id === B.MANGROVE_SEEDLING) {
+      mangroveTree((a, b, c, id, roots) => { const cur = w.get(a, b, c); if (cur === B.AIR || cur === B.TALL_GRASS || (roots && cur === B.WATER) || (a === x && b === y && c === z)) w.set(a, b, c, id); }, x, y, z, 3);
     } else if (s.id === B.PINE_SAPLING) {
       for (let i = 0; i < 6; i++) put(x, y + i, z, B.PINE_LOG);
       for (let l = 0; l < 4; l++) { const r = l % 2 ? 1 : 2; for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (Math.abs(dx) + Math.abs(dz) <= r) put(x + dx, y + 2 + l, z + dz, B.PINE_LEAVES); }

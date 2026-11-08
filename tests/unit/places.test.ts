@@ -186,3 +186,17 @@ describe('treasure map', () => {
     for (const l of g.landmarks) expect(Math.hypot(l.x - t.x, l.z - t.z), l.id).toBeGreaterThan(20);
   });
 });
+
+describe('mangrove swamp', () => {
+  for (const seed of [1, 42, 777, 99999]) it(`seed ${seed}: shallow water over mud, mangrove trees on roots, a boardwalk and a planting spot`, () => {
+    const g = new Generator(seed), at = stamped(g), l = g.landmarks.find(l => l.id === 'mangrove')!;
+    const [cx, , cz] = l.at!.centre;
+    let roots = 0, logs = 0;
+    for (let dx = -13; dx <= 13; dx++) for (let dz = -13; dz <= 13; dz++) { if (at(cx + dx, SEA, cz + dz) === B.MANGROVE_ROOTS) roots++; if (at(cx + dx, SEA + 2, cz + dz) === B.MANGROVE_LOG) logs++; }
+    expect(roots).toBeGreaterThan(15); expect(logs).toBeGreaterThan(3);
+    expect(at(cx, SEA + 1, cz)).toBe(B.PLANKS); // the platform
+    const [px, py, pz] = l.at!.plant;
+    expect(at(px + 1, py, pz)).toBe(B.WATER); expect(at(px + 1, py - 1, pz)).toBe(B.MUD); expect(at(px + 1, py + 1, pz)).toBe(B.AIR);
+    expect(BLOCKS[B.MANGROVE_SEEDLING]!.aquatic).toBe(true);
+  });
+});

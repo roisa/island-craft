@@ -236,6 +236,23 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       return { ...r, ...e };
     });
+    await step('plant a mangrove seedling in shallow water', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); const l = G.gen.landmarks.find(l => l.id === 'mangrove'); const [x, y, z] = l.at.centre; G.player.pos.set(x, y + 1, z); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const r = await g(() => {
+        const G = __game; const l = G.gen.landmarks.find(l => l.id === 'mangrove'); const [x, y, z] = l.at.plant;
+        G.inv.add(69, 2); G.inv.sel = G.inv.slots.findIndex(s => s && s.id === 69);
+        const X = Math.floor(x) + 1, Z = Math.floor(z) + 1;
+        const dry = (() => { const before = G.stats.mangroves || 0; G.useBlock({ x: Math.floor(x) - 4, y: y, z: Math.floor(z), id: 20, nx: 0, ny: 1, nz: 0 }); return (G.stats.mangroves || 0) - before; })(); // on the boardwalk: refused
+        G.useBlock({ x: X, y: y - 1, z: Z, id: 70, nx: 0, ny: 1, nz: 0 });
+        const planted = G.world.get(X, y, Z);
+        G.ui.closeAllModals(); G.inv.sel = Math.max(0, G.inv.slots.findIndex((s, i) => i < 9 && !s)); G.player.pos.set(0.5, 47, 3.5);
+        return { dry, planted, mangroves: G.stats.mangroves };
+      });
+      if (r.dry !== 0 || r.planted !== 69 || r.mangroves !== 1) throw new Error(JSON.stringify(r));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
         if (!a) return { skipped: true };
@@ -244,7 +261,8 @@ async function run(name) {
       return r;
     });
     await step('collect a hijaiyah letter', async () => {
-      await g(() => { const G = __game; const s = G.gen.shrines[0]; G.collectLetter(s.letter, s.x, s.y, s.z); });
+      await p.waitForTimeout(300);
+      await g(() => { const G = __game; G.ui.closeAllModals(); const s = G.gen.shrines[0]; G.collectLetter(s.letter, s.x, s.y, s.z); });
       await p.waitForSelector('#lOk', { timeout: 5000 });
       touch ? await p.tap('#lOk') : await p.click('#lOk');
       return { letters: await g(() => __game.stats.letters.length) };

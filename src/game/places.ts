@@ -76,12 +76,14 @@ export class Places {
   private fishData: { r: number; h: number; sp: number; ph: number; wob: number }[] = [];
   private turtles: { g: THREE.Group; r: number; sp: number; ph: number; h: number }[] = [];
   private m = new THREE.Matrix4(); private q = new THREE.Quaternion(); private e = new THREE.Euler(); private s = new THREE.Vector3(1, 1, 1); private v = new THREE.Vector3();
-  private fall?: Landmark; private reef?: Landmark; private hill?: Landmark; private volcano?: Landmark;
+  private fall?: Landmark; private reef?: Landmark; private hill?: Landmark; private volcano?: Landmark; private swamp?: Landmark;
+  private crabs: { g: THREE.Group; ph: number; seg: number }[] = [];
+  private flies: THREE.Points | null = null; private flyPos = new Float32Array(30 * 3);
   private puffs: Puffs; private smokeT = 0; private steamT = 0; private crownT = 0;
 
   constructor(private g: Game) {
     const ls = g.gen.landmarks;
-    this.fall = ls.find(l => l.id === 'waterfall'); this.reef = ls.find(l => l.id === 'reef'); this.hill = ls.find(l => l.id === 'stargaze'); this.volcano = ls.find(l => l.id === 'volcano');
+    this.fall = ls.find(l => l.id === 'waterfall'); this.reef = ls.find(l => l.id === 'reef'); this.hill = ls.find(l => l.id === 'stargaze'); this.volcano = ls.find(l => l.id === 'volcano'); this.swamp = ls.find(l => l.id === 'mangrove');
     this.puffs = new Puffs(g.scene);
     if (this.fall?.at?.rainbow) {
       this.rainbow = new THREE.Sprite(new THREE.SpriteMaterial({ map: rainbowTexture(), transparent: true, depthWrite: false, opacity: 0 }));
@@ -104,6 +106,23 @@ export class Places {
       this.turtles.push({ g: t, r: 5 + i * 1.5, sp: 0.16 + i * 0.05, ph: i * Math.PI, h: 2 + i });
     }
     g.sky.onMeteor = () => this.meteor();
+    // crabs scuttling sideways along the swamp's boardwalk, and fireflies over it at night
+    if (this.swamp) {
+      for (let i = 0; i < 4; i++) {
+        const c = new THREE.Group(), red = mat(0xd9483b), dark = mat(0x9e2f25);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.24), red); body.position.y = 0.1; c.add(body);
+        for (const sd of [-1, 1]) {
+          const claw = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.12), dark); claw.position.set(sd * 0.22, 0.12, 0.16); c.add(claw);
+          const eye = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), mat(0x222222)); eye.position.set(sd * 0.06, 0.2, 0.1); c.add(eye);
+          for (let k = 0; k < 3; k++) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.03), dark); leg.position.set(sd * 0.2, 0.05, -0.08 + k * 0.08); c.add(leg); }
+        }
+        c.visible = false; g.scene.add(c);
+        this.crabs.push({ g: c, ph: i * 1.7, seg: i });
+      }
+      const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.BufferAttribute(this.flyPos, 3));
+      this.flies = new THREE.Points(fg, new THREE.PointsMaterial({ color: 0xd8ff7a, size: 0.25, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      this.flies.frustumCulled = false; this.flies.visible = false; g.scene.add(this.flies);
+    }
   }
 
   /** what the treasure chest at x,y,z holds when it belongs to a landmark */
@@ -194,6 +213,27 @@ export class Places {
       this.steamT = lite ? 0.7 : 0.35;
       const [x, y, z] = Math.random() < 0.5 ? v.spring1 : v.spring2; this.puffs.add(x + (Math.random() - 0.5), y - 0.4, z + (Math.random() - 0.5), 0xffffff, 0.9, 0.8, 2.5);
     }
+    // ---- mangrove swamp: crabs on the boardwalk, fireflies at night
+    const sw = this.swamp?.at?.centre, swOn = !!sw && this.near(this.swamp, 50);
+    for (const c of this.crabs) c.g.visible = swOn;
+    if (swOn) {
+      const [cx, cy, cz] = sw!;
+      for (const c of this.crabs) {
+        // each crab has its own stretch of boardwalk and walks sideways along it, stopping now and then
+        const base = cx - 11 + c.seg * 3.2, u = Math.sin(t * 0.7 + c.ph);
+        c.g.position.set(base + (Math.abs(u) > 0.2 ? u : Math.sign(u) * 0.2) * 1.4, cy + 1, cz + Math.sin(c.ph) * 0.2);
+        c.g.position.y += Math.abs(Math.sin(t * 12 + c.ph)) * 0.02;
+      }
+      if (this.flies) {
+        this.flies.visible = g.sky.night && !lite;
+        if (this.flies.visible) for (let i = 0; i < 30; i++) {
+          const a = i * 2.4 + t * 0.15, r = 2 + (i % 7) * 1.5;
+          this.flyPos.set([cx + Math.cos(a) * r + Math.sin(t + i) * 0.4, cy + 1.5 + (i % 4) * 0.8 + Math.sin(t * 1.3 + i) * 0.3, cz + Math.sin(a) * r], i * 3);
+        }
+        (this.flies.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+        (this.flies.material as THREE.PointsMaterial).opacity = 0.6 + Math.sin(t * 3) * 0.3;
+      }
+    } else if (this.flies) this.flies.visible = false;
     // ---- the treasure hunter's crown sparkles as you go
     if (g.hasHat('crown') && !lite && (this.crownT -= dt) <= 0) { this.crownT = 0.5; g.fx.sparkle(p.x + (Math.random() - 0.5) * 0.6, p.y + 2, p.z + (Math.random() - 0.5) * 0.6, 2, 0xffd874, 0.8); }
     // ---- stargazing hill: more shooting stars up there
