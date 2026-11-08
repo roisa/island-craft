@@ -68,6 +68,8 @@ export class UI {
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
   <div id="jmHud" class="pill hidden"></div>
+  <div id="raceHud" class="pill hidden"><span id="raceT"></span><button class="btn small ghost" id="raceX">${tr('Keluar', 'Exit')}</button></div>
+  <div id="raceCount" class="hidden"></div>
   <div id="bedHud" class="pill hidden"><span id="bedT"></span><button class="btn small gold" id="bedNow">😴 ${tr('Tidur sekarang', 'Sleep now')}</button></div>
   <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button><button class="skip" id="tutSkip">${tr('Lewati', 'Skip')} ›</button></div>
@@ -86,7 +88,7 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
-  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
+  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bRace" aria-label="${tr('Balapan', 'Race')}"><span class="mi">🏁</span><span>${tr('Balapan!', 'Race!')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
   <button class="pill hidden" id="bStroke" aria-label="Swimming stroke">${ic('swim')}<span class="sn"></span><span class="si"></span></button>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
@@ -118,6 +120,8 @@ export class UI {
     $('#coins').onclick = () => this.shop();
     $('#thirst').onclick = () => this.waterCard();
     $('#bMasjid').onclick = () => this.masjidPicker();
+    $('#bRace').onclick = () => { SFX.click(); this.g.race?.start(); };
+    $('#raceX').onclick = () => { SFX.click(); this.g.race?.quit(); };
     $('#bedNow').onclick = () => this.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
       text: tr('Sudah siap tidur? Permainan hari ini selesai dan rumahmu tersimpan. Besok kita lanjutkan ya! 🌙', 'Ready for bed? Today’s game ends here and your house is saved. We’ll carry on tomorrow! 🌙'),
@@ -312,6 +316,25 @@ export class UI {
     const txt = tr(id, en);
     if (b.querySelector('.sn')!.textContent !== txt) { b.querySelector('.si')!.textContent = ic2; b.querySelector('.sn')!.textContent = txt; }
     if (changed) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); this.toast(`${ic2} ${txt}!`, 1200); }
+  }
+  /** the 🏁 button at the race track */
+  showRace(on: boolean) { const b = $('#bRace'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
+  private raceShown = '';
+  /** lap, place and time while racing; null hides it */
+  raceHud(r: { lap: number; laps: number; place: number; of: number; time: number } | null) {
+    const el = $('#raceHud');
+    if (!r) { el.classList.add('hidden'); this.raceShown = ''; return; }
+    const nth = getLang() === 'id' ? `ke-${r.place}` : ['1st', '2nd', '3rd', '4th'][r.place - 1];
+    const txt = `🏁 ${tr('Putaran', 'Lap')} ${r.lap}/${r.laps} · <b>${nth}</b> / ${r.of} · ⏱️ ${r.time.toFixed(1)}`;
+    if (txt !== this.raceShown) { this.raceShown = txt; $('#raceT').innerHTML = txt; }
+    el.classList.remove('hidden');
+  }
+  /** the big 3 · 2 · 1 · GO! */
+  raceCount(t: string | null) {
+    const el = $('#raceCount');
+    if (!t) { el.classList.add('hidden'); return; }
+    if (el.textContent !== t) { el.textContent = t; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+    el.classList.remove('hidden');
   }
   /** the 🕌 button: shown while a prayer is waiting and you're not in a masjid */
   showMasjidBtn(on: boolean) { const b = $('#bMasjid'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
@@ -1050,11 +1073,13 @@ export class UI {
   private mapTab(body: HTMLElement) {
     const g = this.g;
     const zooms = [96, 200, 400];
-    body.innerHTML = `<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
+    const fun = g.funPlaces();
+    body.innerHTML = `${fun.length ? `<h3>✨ ${tr('Tempat seru — langsung ke sana', 'Fun places — go there')}</h3><div class="row funGo">${fun.map(l => `<button class="btn small" data-go="${l.id}">${l.icon} ${esc(t2(l.name))}</button>`).join('')}</div>` : ''}<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
       <div class="mapWrap"><canvas id="mapC" width="400" height="400"></canvas></div>
       <p style="margin-top:6px;font-size:12.5px">${tr('▲ = kamu · 🕌 = desa · ✨ = huruf belum ditemukan · ✓ = sudah ditemukan', '▲ = you · 🕌 = village · ✨ = letter not found yet · ✓ = found')}</p>
       <h3>🧭 ${tr('Jurnal Penjelajah', 'Explorer’s Journal')} <small>(${(g.stats.discovered || []).length}/${g.gen.landmarks.length})</small></h3>
       <div class="journal">${g.gen.landmarks.map(l => { const f = (g.stats.discovered || []).includes(l.id); return `<div class="jr ${f ? 'found' : ''}"><span class="ji">${f ? l.icon : '❔'}</span><div><b>${f ? esc(t2(l.name)) : tr('Belum ditemukan', 'Not found yet')}</b><small>${esc(t2(f ? l.fact : l.hint))}</small></div>${f ? '<span class="jok">✓</span>' : `<button class="btn small ${g.exploreTarget === l.id ? 'gold' : 'ghost'}" data-follow="${l.id}">🧭 ${g.exploreTarget === l.id ? tr('Diikuti', 'Following') : tr('Tunjukkan arah', 'Show the way')}</button>`}</div>`; }).join('')}</div>`;
+    body.querySelectorAll<HTMLElement>('[data-go]').forEach(b => (b.onclick = () => { SFX.click(); this.closeBook(); setTimeout(() => g.goPlace(b.dataset.go!), 80); }));
     body.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => (b.onclick = () => { const id = b.dataset.follow!; g.exploreTarget = g.exploreTarget === id ? null : id; SFX.click(); this.renderBook(); }));
     // the treasure map: one quarter for each piece found
     const tm = h(`<div class="tmap"><h3>🗺️ ${tr('Peta Harta Karun', 'Treasure Map')} <small>(${g.treasure.pieces.length}/4)</small></h3>

@@ -54,6 +54,7 @@ import { Deeds } from './game/deeds';
 import { Thirst, thirstSpeed } from './game/thirst';
 import { FishCoach } from './game/fishcoach';
 import { Fishers } from './game/fishers';
+import { Race } from './game/race';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
 import { Jamaah, rowPose } from './game/jamaah';
@@ -178,6 +179,8 @@ export class Game {
   fishCoach!: FishCoach;
   /** the villagers at the fishing pond (and where it is) */
   fishers: Fishers | null = null;
+  /** go-kart races at the race track */
+  race: Race | null = null;
   private attackCd = 0;
   /** extra quarter turns for the next furniture / turned block you place (the rotate button) */
   placeRot = 0;
@@ -368,6 +371,8 @@ export class Game {
     this.beacons = new Beacons(this.scene, this.sites);
     const fp = this.gen.landmarks.find(l => l.id === 'fish_pond');
     if (fp?.at?.spot) this.fishers = new Fishers(this, fp);
+    const rt = this.gen.landmarks.find(l => l.id === 'race_track');
+    if (rt?.at?.centre) this.race = new Race(this, rt);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -623,6 +628,24 @@ export class Game {
         : tr(`Sampai di ${site.name[0]}! 🕌`, `Here at ${site.name[1]}! 🕌`), 'alright', 6000);
     }, 600);
   }
+  /** the fun places you can go to straight away from the map (the ones that exist in this world) */
+  funPlaces() { return ['fish_pond', 'race_track', 'camp', 'tennis'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
+  /** quick travel to a place's entry point, with Baby Mo */
+  goPlace(id: string) {
+    if (id === 'fish_pond') return this.goToPond();
+    const l = this.gen.landmarks.find(x => x.id === id); if (!l) return false;
+    const e = l.at?.entry ?? [l.x + 0.5, l.y, l.z + 0.5];
+    if (this.fun.riding) this.fun.dismount();
+    if (this.race?.active) this.race.quit();
+    this.ui.sleepFade(true);
+    setTimeout(() => {
+      const p = this.player; p.pos.set(e[0], e[1], e[2]); p.vel.set(0, 0, 0); p.visY = e[1]; p.flying = false;
+      this.ents.mo.pos.set(e[0] + 1.2, e[1], e[2] + 1);
+      this.ui.sleepFade(false);
+      this.ui.toast(`${l.icon} ${tr('Sampai di', 'Here at')} ${t2(l.name)}!`, 3500);
+    }, 600);
+    return true;
+  }
   /** to the end of the pier at the fishing pond, looking out over the water, with Baby Mo */
   goToPond(then?: () => void) {
     const fp = this.fishers; if (!fp) return false;
@@ -652,7 +675,7 @@ export class Game {
     const site = this.masjidTarget(), p = this.player.pos;
     if (this.masjidGuide && (this.masjidGuide.inside(p) || Math.hypot(p.x - this.masjidGuide.spot.x, p.z - this.masjidGuide.spot.z) < 8)) this.masjidGuide = null;
     const ev = this.gameEvent;
-    this.ui.showMasjidBtn(!!ev && !ev.prayed && !this.jamaah && !this.siteAt(p) && !this.ui.isOpen() && !this.fun.riding);
+    this.ui.showMasjidBtn(!!ev && !ev.prayed && !this.jamaah && !this.siteAt(p) && !this.ui.isOpen() && !this.fun.riding && !this.race?.active);
     if (!site || (this.trailT -= dt) > 0) return;
     this.trailT = 0.45;
     // little golden lights on the ground, a few steps ahead towards the masjid
@@ -812,7 +835,7 @@ export class Game {
   /** busy play (walking, digging, swimming) makes you thirsty faster */
   private thirstTick(dt: number) {
     const p = this.player, busy = p.speed > 1 || !!this.mining || p.inWater || this.mineAnim > 0;
-    this.thirst.update(dt, busy && !this.fun.riding);
+    this.thirst.update(dt, busy && !this.fun.riding && !this.race?.active);
     p.thirstMul = thirstSpeed(this.thirst.h.me);
     this.ui.thirstHud(this.thirst.h);
   }
@@ -842,6 +865,7 @@ export class Game {
     const nearWater = this.nearFishingWater();
     this.ui.showFishHelp(rod || nearWater);
     this.ui.showBoat(nearWater && !this.fun.riding);
+    this.ui.showRace(!!this.race?.near(p.pos) && !this.race.active && !this.fun.riding);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
   }
   private fishTick(dt: number, t: number) {
@@ -1056,7 +1080,8 @@ export class Game {
     const ax = inp.axis();
     // while riding only the ✋ Use button gets you off; a tap on the world (looking around) doesn't
     if (this.fun.riding) { inp.tapAt = null; if (inp.takeUse()) this.fun.dismount(); }
-    if (!this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
+    if (this.race?.active) { inp.tapAt = null; if (inp.takeUse()) this.race.quit(); }
+    if (!this.race?.step(dt) && !this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
     this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }
 
@@ -2014,7 +2039,7 @@ export class Game {
       // over-the-shoulder camera that slides in when something is behind you
       const right = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
       const back = dir.clone().multiplyScalar(-1);
-      const want = this.fun?.riding?.kind === 'boat' ? 7 : 4.6; // further back on a boat, to see the sail
+      const want = this.fun?.riding?.kind === 'boat' ? 7 : this.race?.active ? 5.6 : 4.6; // further back on a boat, to see the sail
       const at = (s: number) => eye.clone().addScaledVector(back, s).addScaledVector(right, 0.55 * s / want).add(new THREE.Vector3(0, 0.55 * s / want, 0));
       let d = want;
       for (let s = 0.3; s <= want; s += 0.15) {
@@ -2031,7 +2056,7 @@ export class Game {
     const p = this.player;
     a.root.position.set(p.pos.x, p.visY, p.pos.z);
     a.root.rotation.y = p.yaw + Math.PI;
-    const riding = !!this.fun?.riding;
+    const riding = !!this.fun?.riding || !!this.race?.active;
     // the action layer: mine/chop while digging (held), build on place, collect, celebrate
     if (this.mining && this.mineAnim > 0) { this.anim.stop(this.mineKind === 'chop' ? 'mine' : 'chop'); this.anim.play(this.mineKind); }
     else { this.anim.stop('mine'); this.anim.stop('chop'); }

@@ -3,6 +3,7 @@
 // away from the village and the letter shrines. Each one has a treasure chest
 // and a "discovery" with a short fun fact when you first get close.
 import { B, I } from './blocks';
+import { cellKind, TRACK } from '../game/track';
 import { Biome, H, SEA, type Column } from './gen';
 import { mulberry32, hash3 } from './noise';
 import type { T2 } from '../i18n';
@@ -53,6 +54,8 @@ type Spec = Omit<Landmark, 'x' | 'y' | 'z'> & {
   relaxed?: Biome[];
   /** the direction from the village to look first (radians; -π/2 is north, behind the masjid) */
   angle?: number;
+  /** extra room needed around it (a big place like the race track); others keep that far away too */
+  clear?: number;
 };
 
 /** fill from the ground up to y (so buildings never float over a dip) */
@@ -766,6 +769,47 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    // a kart track: an oval with kerbs, a tyre wall, a start gantry and a grandstand (see game/race.ts)
+    id: 'race_track', icon: '🏎️', name: ['Sirkuit Balap', 'The Race Track'], biomes: [Biome.MEADOW, Biome.DESERT, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.DESERT, Biome.BEACH, Biome.FOREST, Biome.SNOWY], dist: [80, 260], r: 24, loose: true, clear: 22,
+    ok: c => c.h > SEA + 1 && c.h < SEA + 16,
+    hint: ['Ada lintasan balap oval dengan tribun penonton. Ayo balapan gokart bersama Baby Mo!', 'There’s an oval race track with a grandstand. Let’s race go-karts with Baby Mo!'],
+    fact: ['Di sirkuit ini kamu bisa balapan gokart bersama Baby Mo dan dua pembalap. Ketuk 🏁 Balapan! Pembalap yang baik selalu sportif: menang bersyukur, kalah tetap tersenyum dan memberi selamat.', 'Here you can race go-karts with Baby Mo and two racers. Tap 🏁 Race! A good racer is a good sport: say Alhamdulillah when you win, and smile and congratulate the others when you don’t.'],
+    loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 2], [I.APPLE, 3]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      const X0 = x - 37, X1 = x + 37, Z0 = z - 24, Z1 = z + 20;
+      foundation(b, X0, Z0, X1, Z1, y, B.DIRT);
+      b.box(X0, y, Z0, X1, y, Z1, B.GRASS);
+      b.box(X0, y + 1, Z0, X1, y + 14, Z1, B.AIR);
+      // the track, its red and white kerbs, and a chequered start line across the south straight
+      b.box(X0, y, Z0, X1, y, Z1, (X, _Y, Z) => {
+        const k = cellKind(X - x, Z - z);
+        if (k === 'track') return (X === x || X === x + 1) && Z > z ? ((X + Z) % 2 === 0 ? B.WOOL_WHITE : B.BASALT) : B.BASALT;
+        if (k === 'kerb') return Math.floor((X + Z) / 2) % 2 === 0 ? B.WOOL_RED : B.WOOL_WHITE;
+        return null;
+      });
+      // the tyre wall round the outside, with a gap by the grandstand to walk in
+      b.box(X0, y + 1, Z0, X1, y + 1, Z1, (X, _Y, Z) => (cellKind(X - x, Z - z) === 'wall' && !(Z < z && Math.abs(X - x) <= 2) ? ((X + Z) % 2 === 0 ? B.WOOL_RED : B.WOOL_WHITE) : null));
+      // the start gantry: two posts and a beam with the start lights
+      const zi = z + TRACK.R - TRACK.W / 2 - 1.5, zo = z + TRACK.R + TRACK.W / 2 + 1.5;
+      for (const pz of [Math.floor(zi), Math.ceil(zo)]) b.box(x, y + 1, pz, x, y + 5, pz, B.OAK_LOG);
+      b.box(x, y + 6, Math.floor(zi), x, y + 6, Math.ceil(zo), (_X, _Y, Z) => ((Z % 2) === 0 ? B.WOOL_WHITE : B.BASALT));
+      for (let pz = Math.floor(zi) + 2; pz <= Math.ceil(zo) - 2; pz += 2) b.stamp(x, y + 5, pz, B.LANTERN);
+      // a grandstand along the north straight, four steps of blue seats
+      for (let k = 0; k < 4; k++) b.box(x - 14, y + 1, z - 19 - k, x + 14, y + 1 + k, z - 19 - k, (X, Y) => (Y === y + 1 + k ? B.WOOL_BLUE : B.PLANKS));
+      b.box(x - 14, y + 1, z - 23, x + 14, y + 6, z - 23, B.PLANKS);
+      for (const lx of [x - 15, x + 15]) { b.stamp(lx, y + 1, z - 19, B.OAK_LOG); b.stamp(lx, y + 2, z - 19, B.LANTERN); }
+      // the pit box in the infield, with a chest
+      b.box(x - 6, y, z - 2, x + 6, y, z + 2, B.COBBLE);
+      b.stamp(x + 6, y + 1, z + 2, B.CHEST);
+      for (const fx of [x - 6, x - 2, x + 2]) { b.stamp(fx, y + 1, z - 2, B.OAK_LOG); b.stamp(fx, y + 2, z - 2, B.WOOL_RED); }
+      return {
+        y: y + 1,
+        at: { centre: [x + 0.5, y + 1, z + 0.5], start: [x + 0.5, y + 1, z + TRACK.R + 0.5], stand: [x + 0.5, y + 1, z - 17.5], entry: [x + 2.5, y + 1, z + 4.5] },
+      };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
@@ -831,9 +875,11 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
     const r0 = rnd(), a0 = s.angle ?? r0 * Math.PI * 2;
     for (let k = 0; k < 220 && !spot; k++) {
       // (with a preferred direction: sweep gently around it before going further)
-      const a = s.angle !== undefined ? a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.13 : a0 + k * 2.39996, d = s.dist[0] + (s.dist[1] - s.dist[0]) * ((k * 0.618 + rnd() * 0.3) % 1);
+      // (big places with extra room look close first and then further out, so they're not needlessly far)
+      const u = (k * 0.618 + rnd() * 0.3) % 1;
+      const a = s.angle !== undefined ? a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.13 : a0 + k * 2.39996, d = s.dist[0] + (s.dist[1] - s.dist[0]) * (s.clear ? k / 220 : u);
       const x = Math.round(Math.cos(a) * d), z = Math.round(Math.sin(a) * d);
-      if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18)) continue;
+      if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18 + (s.clear ?? 0))) continue;
       const c = b.column(x, z);
       const fits = s.ok ? s.ok(c) : true;
       if (fits && s.biomes.includes(c.biome)) {
@@ -846,7 +892,7 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
       for (let k = 0; k < 220 && !spot; k++) {
         const a = a0 + k * 2.39996, d = s.dist[0] + (s.dist[1] - s.dist[0]) * ((k * 0.618 + rnd() * 0.3) % 1);
         const x = Math.round(Math.cos(a) * d), z = Math.round(Math.sin(a) * d);
-        if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18)) continue;
+        if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18 + (s.clear ?? 0))) continue;
         const c = b.column(x, z);
         if (!s.relaxed.includes(c.biome) || c.h > SEA + 8) continue;
         if (s.plan) { const pl = s.plan(b, x, z, taken); if (!pl) continue; plan = pl; }
@@ -867,7 +913,7 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
     }
     if (s.loot) l.loot = s.loot;
     out.push(l);
-    taken.push({ x: l.x, z: l.z, r: 12 });
+    taken.push({ x: l.x, z: l.z, r: 12 + (s.clear ?? 0) });
   }
   return out;
 }

@@ -386,6 +386,27 @@ async function run(name) {
       if (cast === 'idle' || r.caught !== 1 || !r.near) throw new Error(JSON.stringify({ cast, ...r }));
       return { cast, ...r };
     });
+    await step('race track: the 🏁 button, countdown, driving round the track, and leaving the race', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'race_track'); return l && { entry: l.at.entry }; });
+      if (!L) throw new Error('no race track in this world');
+      // straight there from the map's fun places
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="race_track"]');
+      await g(() => document.querySelector('#vBook.on [data-go="race_track"]').click());
+      await p.waitForFunction(L => Math.hypot(__game.player.pos.x - L.entry[0], __game.player.pos.z - L.entry[2]) < 1, L, { timeout: 8000 });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => !document.querySelector('#bRace').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 300 });
+      await g(() => document.querySelector('#bRace').click());
+      await p.waitForFunction(() => __game.race.phase === 'go' || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 200 });
+      // after GO the kart drives by itself: it gets round the track
+      await p.waitForFunction(() => __game.race.total > 25 || (__game.ui.closeAllModals(), false), null, { timeout: 45000, polling: 300 });
+      const mid = await g(() => ({ karts: __game.race.karts.length, hud: document.querySelector('#raceHud').innerText.replace(/\s+/g, ' '), moSeat: !!__game.ents.mo.seat }));
+      await g(() => document.querySelector('#raceX').click());
+      const after = await g(() => ({ active: __game.race.active, karts: __game.race.karts.length, moSeat: !!__game.ents.mo.seat, hud: document.querySelector('#raceHud').classList.contains('hidden') }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (mid.karts !== 4 || !mid.moSeat || !/Lap|Putaran/.test(mid.hud) || after.active || after.karts || after.moSeat || !after.hud) throw new Error(JSON.stringify({ mid, after }));
+      return { mid, after };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');

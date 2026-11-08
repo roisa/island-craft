@@ -276,3 +276,14 @@ body.desktop #waterBtns { bottom: calc(100px + var(--safe-b)); }
 body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 /* the guide's buttons sit right under the title, so they're always in view */
 .fishGuide .fgBtns { margin: 4px 0 8px; }
+
+/* go-kart races */
+#bRace { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 12px; min-height: 44px; border-radius: 22px; font-weight: 800; font-size: 15px; background: linear-gradient(180deg, #ffffff, #eef1f5); color: #1c1c1e; box-shadow: 0 0 0 2px #1c1c1e inset; }
+#bRace .mi { font-size: 20px; }
+#raceHud { position: fixed; left: 50%; top: calc(64px + var(--safe-t)); transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; font-size: 16px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#raceHud .btn { margin: 0; }
+#raceCount { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); z-index: 9; font-size: 110px; font-weight: 900; color: #fff; text-shadow: 0 6px 0 rgba(0, 0, 0, .25), 0 0 24px rgba(0, 0, 0, .35); pointer-events: none; }
+#raceCount.pop { animation: rcPop .5s ease-out; }
+@keyframes rcPop { 0% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@media (max-width: 520px) { #raceHud { font-size: 13px; } #raceCount { font-size: 80px; } }
+.funGo { justify-content: center; gap: 6px; flex-wrap: wrap; margin: 4px 0 10px; }

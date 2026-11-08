@@ -70,6 +70,8 @@ export interface Stats {
   strokes?: string[];
   /** how thirsty you and Baby Mo are, and the water bottle's sips (see game/thirst.ts) */
   hydr?: import('./game/thirst').Hydration;
+  /** go-kart races started and won, and the best time (seconds) */
+  races?: number; raceWins?: number; raceBest?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

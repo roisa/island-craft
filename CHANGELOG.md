@@ -5,6 +5,57 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Race Track: go-kart races with Baby Mo 🏎️🏁
+
+Requested by a parent: a racing area where the player and some racers can
+drive a fun lap.
+
+- **The Race Track (Sirkuit Balap)** is a new place in every world.
+  - The search starts close to the village (80 blocks) and moves out,
+    since a place this big needs free room. That’s often 150–250
+    blocks away.
+  - So it’s one tap away: **✨ Fun places — go there** at the top of the
+    map lists the Fishing Pond and the Race Track (and the Camp and
+    Tennis Court when they exist). Tapping one takes you there with
+    Baby Mo.
+  - An oval track (two straights and two bends, 7 blocks wide) with red
+    and white kerbs, a red and white tyre wall round the outside (with a
+    gap to walk in), and a chequered start line under a gantry with
+    start lights.
+  - A four-step grandstand with blue seats, and a pit area in the
+    middle with a chest.
+  - It needs more room than other places, so a new `clear` setting
+    keeps other places that far away. Existing places don’t move.
+- **The shape** (new `src/game/track.ts`): one shared description of
+  the oval for the builder and the race.
+  - Each cell is track, kerb, wall or grass.
+  - For any point on the track, it gives how far round the lap it is,
+    and which way to drive there.
+- **Racing** (new `src/game/race.ts`):
+  - Tap **🏁 Race!** at the track. Four karts line up behind the start
+    line: you (red) and Baby Mo (green) in front, Kak Dina (blue) and
+    Bang Rizal (yellow) behind. Then a big 3 · 2 · 1 · GO!
+  - Easy to drive: after GO your kart goes by itself, you only steer
+    (pull the joystick back to brake). A gentle helper keeps you
+    pointing along the track, and you slow down on the grass. The tyre
+    wall bounces you back.
+  - The others follow the racing line. Anyone far ahead eases off and
+    anyone far behind speeds up, so the race stays close.
+  - Two laps. At the top: the lap, your place, and the time. **Exit**
+    (or ✋) leaves at any time.
+  - At the finish: your place and time, your best time, coins (100 /
+    60 / 40 / 30), confetti and a cheering Baby Mo. A message about good
+    sportsmanship, and **Race again**.
+- **Tested:**
+  - Unit tests for the track shape: every point on the line and the
+    lanes is on the track, the distance round the lap matches the
+    point, headings point forward, and the finishing order.
+  - A browser check: steering, the countdown, and a whole race to the
+    finish.
+  - Smoke: the 🏁 button, the countdown, the kart getting round the
+    track, then Exit, which removes the karts and frees Baby Mo.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### Thirst comes much less often 💧
 
 Requested by a parent: the thirsty reminder came too often; about every
