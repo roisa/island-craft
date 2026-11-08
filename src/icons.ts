@@ -2,6 +2,13 @@
 // Drawn for this game — not Apple's SF Symbols, which may only be used in
 // Apple's own platforms' apps. `ic('home')` returns inline SVG markup.
 const P: Record<string, string> = {
+  boat: '<path d="M3.5 15.5h17l-2.2 3.6a1.6 1.6 0 0 1-1.4.8H7.1a1.6 1.6 0 0 1-1.4-.8Z"/><path d="M12 15.5V3.8"/><path d="M12 4.6 18.5 13H12"/><path d="M12 7.2 7 13h5"/>',
+  fish: '<path d="M3.5 12c2.6-3.9 6-5.6 9.5-5.6 3.2 0 5.8 1.9 7.5 5.6-1.7 3.7-4.3 5.6-7.5 5.6-3.5 0-6.9-1.7-9.5-5.6Z"/><path d="M3.5 12 1.8 9M3.5 12l-1.7 3"/><circle cx="15.6" cy="11" r=".9" fill="currentColor"/>',
+  question: '<circle cx="12" cy="12" r="9"/><path d="M9.4 9.4a2.7 2.7 0 0 1 5.2 1c0 1.8-2.6 2.2-2.6 3.8"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>',
+  swim: '<circle cx="16.8" cy="6.2" r="1.9"/><path d="m5.2 12.6 4.6-3.4 3.2 2.6 2.2-1.9"/><path d="M2.5 16.5c1.6 0 1.6-1.2 3.2-1.2s1.6 1.2 3.2 1.2 1.6-1.2 3.2-1.2 1.6 1.2 3.2 1.2 1.6-1.2 3.2-1.2 1.6 1.2 3 1.2"/><path d="M2.5 20.2c1.6 0 1.6-1.2 3.2-1.2s1.6 1.2 3.2 1.2 1.6-1.2 3.2-1.2 1.6 1.2 3.2 1.2 1.6-1.2 3.2-1.2 1.6 1.2 3 1.2"/>',
+  coin: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5.6"/><path d="M12 9.2v5.6"/>',
+  cart: '<path d="M2.8 4.2h2.4l2.3 10.6a1.4 1.4 0 0 0 1.4 1.1h8.4a1.4 1.4 0 0 0 1.4-1.1L20.4 8H6.2"/><circle cx="9.5" cy="19.6" r="1.3"/><circle cx="17" cy="19.6" r="1.3"/>',
+  heart: '<path d="M12 19.5s-7.5-4.4-7.5-10a4.3 4.3 0 0 1 7.5-2.9 4.3 4.3 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10Z"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   home: '<path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M5.8 9.6V19a1 1 0 0 0 1 1h3.7v-5h3v5h3.7a1 1 0 0 0 1-1V9.6"/>',
   bag: '<rect x="4.5" y="7" width="15" height="13.5" rx="4"/><path d="M9 7V5.8a3 3 0 0 1 6 0V7M4.5 13h15M10 13v2.2h4V13"/>',

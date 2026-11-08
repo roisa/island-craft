@@ -61,7 +61,7 @@ export class UI {
     <button class="ibtn pill" id="bMenu" aria-label="Menu">${ic('menu')}</button>
     <button class="pill" id="compass"><span id="compassArrow">${ic('arrow')}</span><span id="compassText"></span></button>
     <button class="pill" id="stars"><span class="st">${ic('star')}</span><span class="sv"><b id="starN">0</b><small id="starLv"></small><i class="sbar"><i id="starBar"></i></i></span></button>
-    <button class="pill" id="coins" aria-label="Coins"><span class="ci">🪙</span><b id="coinN">0</b></button>
+    <button class="pill" id="coins" aria-label="Coins"><span class="ci">${ic('coin')}</span><b id="coinN">0</b></button>
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
   <div id="jmHud" class="pill hidden"></div>
@@ -82,8 +82,8 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
-  <div id="waterBtns"><button class="pill hidden" id="bBoat" aria-label="Boat">⛵ <span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">🎣 <b>?</b></button></div>
-  <button class="pill hidden" id="bStroke" aria-label="Swimming stroke"><span class="si"></span><span class="sn"></span></button>
+  <div id="waterBtns"><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
+  <button class="pill hidden" id="bStroke" aria-label="Swimming stroke">${ic('swim')}<span class="sn"></span><span class="si"></span></button>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
   <div id="desktopHint"></div>
@@ -305,7 +305,7 @@ export class UI {
   showBoat(on: boolean) {
     const b = $('#bBoat'), has = this.g.inv.count(I.BOAT) > 0;
     b.classList.toggle('hidden', !on || this.modals.length > 0);
-    const t = has ? tr('Berlayar', 'Sail') : '?';
+    const t = has ? tr('Berlayar', 'Sail') : tr('Perahu', 'Boat');
     const sp = b.querySelector('span')!; if (sp.textContent !== t) { sp.textContent = t; b.classList.toggle('q', !has); }
   }
   boatGuide() {

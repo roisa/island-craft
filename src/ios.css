@@ -1,0 +1,63 @@
+/* ==========================================================================
+   iOS look (latest iPhone style): the rounded system font, flat capsule
+   buttons in system colours, translucent "glass" bars and sheets with a
+   light edge, line icons, and large soft corner radii. Loaded last, so it
+   overrides the older game styles without touching their layout.
+   ========================================================================== */
+:root {
+  --ui: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Nunito', system-ui, sans-serif;
+  --ios-blue: #0A84FF; --ios-green: #30D158; --ios-orange: #FF9F0A; --ios-yellow: #FFD60A; --ios-red: #FF453A;
+  --ios-fill: rgba(120, 120, 128, .14); --ios-fill2: rgba(120, 120, 128, .24);
+  --glass: rgba(255, 255, 255, .62); --glass-b: rgba(255, 255, 255, .7);
+}
+html, body, button, input, select { font-family: var(--ui); }
+
+/* ---- buttons: flat capsules, no 3D ledge; a gentle press ---- */
+.btn { border-radius: 999px !important; box-shadow: none !important; font-weight: 700 !important; letter-spacing: -.01em; padding: 13px 20px; min-height: 48px; transition: transform .12s ease, filter .12s ease, background .2s; }
+.btn.small { min-height: 38px; padding: 8px 14px; }
+.btn:active { transform: scale(.97) !important; filter: brightness(.94); box-shadow: none !important; }
+.btn:not(.gold):not(.ghost) { background: var(--ios-blue) !important; color: #fff !important; }
+.btn.gold { background: linear-gradient(180deg, #FFD43B, #FFB800) !important; color: #2b1d00 !important; }
+.btn.ghost { background: var(--ios-fill) !important; color: var(--ios-blue) !important; }
+.btn.ghost:active { background: var(--ios-fill2) !important; }
+#dbtns .btn, .lvup .btn { margin-top: 8px; }
+
+/* ---- glass bars, pills and round buttons: translucent, with a light edge on top ---- */
+.pill, .ibtn, .abtn {
+  background: var(--glass) !important;
+  border: .5px solid var(--glass-b) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75), 0 6px 20px -8px rgba(0,0,0,.28) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important; backdrop-filter: blur(24px) saturate(180%) !important;
+}
+.abtn:active, .abtn.down { transform: scale(.92); background: rgba(255,255,255,.85) !important; }
+
+/* ---- sheets: big corners, a little grabber at the top, glass ---- */
+.panel { border-radius: 34px !important; background: rgba(248, 248, 250, .9) !important; -webkit-backdrop-filter: blur(34px) saturate(180%); backdrop-filter: blur(34px) saturate(180%); box-shadow: 0 30px 80px -24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.8) !important; }
+.veil.on .panel::before { content: ''; display: block; width: 38px; height: 5px; border-radius: 3px; background: rgba(60,60,67,.25); margin: -6px auto 8px; }
+#book.panel::before { display: none !important; }
+.veil { background: rgba(0, 0, 0, .28) !important; }
+
+/* ---- the new HUD buttons: line icons, iOS labels ---- */
+#coins .ci .ic { width: 20px; height: 20px; color: #E5A500; stroke-width: 2.2; }
+#bBoat, #bFishHelp, #bStroke { gap: 6px; font-weight: 700; font-size: 15px; color: var(--label, #1c1c1e); }
+#bBoat .ic, #bFishHelp .ic, #bStroke .ic { width: 22px; height: 22px; stroke-width: 2.1; }
+#bBoat .ic, #bStroke .ic { color: var(--ios-blue); }
+#bFishHelp > .ic { color: var(--ios-blue); }
+#bFishHelp b { background: none !important; width: auto !important; height: auto !important; }
+#bFishHelp b .ic { color: var(--ios-blue); }
+#bBoat.q span { background: none !important; width: auto !important; height: auto !important; color: var(--label, #1c1c1e) !important; display: inline !important; }
+#bStroke .si { font-size: 18px; }
+
+/* ---- lists and rows inside sheets: iOS grouped-list feel ---- */
+.qcard, .amalRow, .projRow, .shopRow, .fgStep { border-radius: 16px !important; }
+.fgN { background: var(--ios-blue) !important; }
+.amx { background: var(--ios-red) !important; border-radius: 999px !important; }
+
+/* ---- toasts and chips: dark glass capsules ---- */
+#toast { background: rgba(28, 28, 30, .82) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border-radius: 999px !important; font-weight: 700 !important; }
+.amalChip { border-radius: 999px !important; border-width: 0 !important; background: rgba(255, 255, 255, .86) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: 0 8px 24px -8px rgba(0,0,0,.3), inset 0 0 0 1.5px rgba(255, 196, 0, .9) !important; }
+
+/* ---- inputs ---- */
+.gateBox input { border-radius: 14px !important; border: 0 !important; background: var(--ios-fill) !important; font-weight: 700; }
+.gateBox, .lockBox { border-radius: 30px !important; }
+select { border-radius: 10px; }

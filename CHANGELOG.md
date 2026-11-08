@@ -5,6 +5,34 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### An iOS look for buttons, sheets and icons 📱
+
+Requested by a parent: icons and buttons like the latest iOS.
+
+- **A new `src/ios.css`** is loaded last, so it restyles everything without
+  changing any layout.
+- **Font:** the iPhone's rounded system font (SF Pro Rounded) on Apple
+  devices, falling back to Nunito elsewhere.
+- **Buttons:** flat capsules in iOS system colours with a gentle press
+  (scale and dim) instead of the old chunky 3D ledge.
+  - The main action is system blue; the reward or celebrate action is a
+    warm gold.
+  - Secondary buttons are grey fill with blue text.
+- **Glass bars and round buttons:** translucent with blur and a light top
+  edge, like iOS control bars.
+- **Sheets (pop-ups):** large 34 px corners, a frosted background, a grey
+  grabber at the top, and a softer dimmed backdrop.
+- **New line icons** in the game's own iOS-style set (drawn for the game,
+  not Apple's): boat, fish, question mark, swimmer, coin, cart and heart.
+  The coin counter, ⛵ boat, 🎣 fishing help and swim-stroke buttons now
+  use them instead of emoji.
+- **Toasts** are dark glass capsules; the good-deed chip is a light glass
+  capsule; rows, number badges and the ×27 badge use iOS shapes and
+  colours; the grown-ups answer box is an iOS text field.
+- **Tested:** screenshots of the HUD, a dialog, the shop and the settings
+  on an iPhone-sized screen; the smoke suite on 4 profiles and QA on 5
+  (button sizes, centring and fit all still pass).
+
 ### Swimming that looks and feels natural, with four strokes 🏊
 
 Requested for Ibra: a more natural swimming motion and more styles.
