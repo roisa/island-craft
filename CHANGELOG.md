@@ -5,6 +5,36 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Animals look right again 🐪🐄🐑🐐🐔🐱
+
+Reported by a parent: "the camel looks weird".
+
+- **The real cause, for every animal:** the draw-call optimisation in M8
+  merged each animal's boxes into one mesh. For a box with a single
+  material it kept only one of the box's six face groups. From most
+  angles the camel showed only its legs, and cows, sheep and hens lost
+  their heads or sides.
+  - The merge now keeps every face.
+  - A new unit test checks that three merged boxes keep all 108 vertices
+    and their full extent.
+- **The camel is rebuilt:**
+  - A round body with a lighter belly and one big hump in steps.
+  - A neck that reaches forward from the chest and then up.
+  - A head with a soft muzzle, nostrils, sleepy eyelids and ears.
+  - Long legs with knobbly knees and wide feet, and a tail.
+  - A red riding blanket.
+  - When you ride, you sit on the blanket in front of the hump, not inside
+    it.
+- **Small details for the others:**
+  - Cow: ears, a tail with a tuft and an udder.
+  - Sheep: a nose and a fluffy tail (it is sheared with the wool).
+  - Goat: floppy ears and a perky tail.
+  - Hen: tail feathers.
+- **Tested:**
+  - Front and side screenshots of all six animals before and after.
+  - All unit tests, and the smoke suite on four profiles, including
+    riding.
+
 ### Praying together, properly 🤲 — and coins 🪙
 
 Requested by a parent: the prayer was over by the time the child arrived,

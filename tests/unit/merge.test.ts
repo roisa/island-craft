@@ -50,3 +50,22 @@ describe('merging a rig', () => {
     expect(headMats).toContain(r.mats.face);
   });
 });
+
+describe('merging keeps whole boxes', () => {
+  it('keeps every face of every box (a box has six face groups but one material)', () => {
+    const root = new THREE.Group(), joint = new THREE.Group(); root.add(joint);
+    const m1 = new THREE.MeshBasicMaterial({ color: 0xff0000 }), m2 = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    joint.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), m1));
+    const b = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), m1); b.position.x = 2; joint.add(b);
+    const c = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), m2); c.position.y = 2; joint.add(c);
+    mergeRig(root, [joint]);
+    const merged = joint.children.find(o => o.name === 'merged') as THREE.Mesh;
+    expect(merged).toBeTruthy();
+    expect(merged.geometry.attributes.position.count).toBe(3 * 36); // 3 boxes × 6 faces × 2 triangles × 3 vertices
+    expect((merged.material as THREE.Material[]).length).toBe(2);
+    // and it is closed on every side: the bounding box spans all three boxes
+    merged.geometry.computeBoundingBox();
+    const bb = merged.geometry.boundingBox!;
+    expect(bb.min.x).toBeCloseTo(-0.5); expect(bb.max.x).toBeCloseTo(2.5); expect(bb.max.y).toBeCloseTo(2.5); expect(bb.min.z).toBeCloseTo(-0.5);
+  });
+});

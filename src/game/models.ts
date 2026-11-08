@@ -357,6 +357,7 @@ function buildAnimalParts(kind: AnimalKind): Rig & { wool?: THREE.Object3D } {
     const legs = [limb(0.06, 0.26, 0.06, mat(0xf2a33a), -0.08, 0.26, 0), limb(0.06, 0.26, 0.06, mat(0xf2a33a), 0.08, 0.26, 0)];
     body.add(...legs);
     body.add(box(0.06, 0.2, 0.3, w, -0.2, 0.44, -0.02), box(0.06, 0.2, 0.3, w, 0.2, 0.44, -0.02));
+    const tail = box(0.22, 0.24, 0.1, w, 0, 0.62, -0.25); tail.rotation.x = -0.4; body.add(tail); // tail feathers
     return { root, body, head, legs, height: 0.9 };
   }
   if (kind === 'sheep') {
@@ -368,6 +369,8 @@ function buildAnimalParts(kind: AnimalKind): Rig & { wool?: THREE.Object3D } {
     head.add(box(0.38, 0.14, 0.3, woolM, 0, 0.18, 0.02));
     head.add(box(0.36, 0.06, 0.04, eye, 0, 0.02, 0.24));
     head.add(box(0.06, 0.12, 0.16, face, -0.22, 0.02, 0), box(0.06, 0.12, 0.16, face, 0.22, 0.02, 0));
+    head.add(box(0.14, 0.08, 0.04, mat(0x2b2424), 0, -0.1, 0.235));   // a little nose
+    wool.add(box(0.18, 0.18, 0.12, woolM, 0, 0.12, -0.5));              // a fluffy tail
     return { root: q.root, body: q.body, head, legs: q.legs, height: 1.1, wool };
   }
   if (kind === 'cow') {
@@ -379,19 +382,47 @@ function buildAnimalParts(kind: AnimalKind): Rig & { wool?: THREE.Object3D } {
     head.add(box(0.36, 0.18, 0.08, mat(0xf2b8a8), 0, -0.1, 0.28));
     head.add(box(0.48, 0.06, 0.04, eye, 0, 0.08, 0.27));
     head.add(box(0.1, 0.16, 0.08, mat(0xeee6c8), -0.27, 0.24, 0.04), box(0.1, 0.16, 0.08, mat(0xeee6c8), 0.27, 0.24, 0.04));
+    head.add(box(0.14, 0.08, 0.1, hm, -0.3, 0.08, 0), box(0.14, 0.08, 0.1, hm, 0.3, 0.08, 0)); // ears
+    const tail = box(0.06, 0.5, 0.06, hm, 0, 0.82, -0.57); q.body.add(tail);
+    q.body.add(box(0.12, 0.14, 0.1, dark, 0, 0.55, -0.57));
+    q.body.add(box(0.24, 0.1, 0.2, mat(0xf2b8a8), 0, 0.46, -0.2)); // udder
     return { root: q.root, body: q.body, head, legs: q.legs, height: 1.4 };
   }
   if (kind === 'camel') {
-    const tan = mat(0xd2a86a), tanD = mat(0xb88a50);
-    const q = quad(0.62, 0.6, 1.2, 0.95, tan, tanD);
-    q.body.add(box(0.46, 0.4, 0.5, tan, 0, 1.75, -0.05));
-    const neck = new THREE.Group(); neck.position.set(0, 1.4, 0.55); q.body.add(neck);
-    neck.add(box(0.24, 0.7, 0.24, tan, 0, 0.3, 0.12));
-    const head = new THREE.Group(); head.position.set(0, 0.68, 0.22); neck.add(head);
-    head.add(box(0.3, 0.28, 0.5, tan, 0, 0, 0.12));
-    head.add(box(0.32, 0.05, 0.05, eye, 0, 0.06, 0.18));
-    head.add(box(0.08, 0.12, 0.06, tanD, -0.12, 0.18, -0.04), box(0.08, 0.12, 0.06, tanD, 0.12, 0.18, -0.04));
-    return { root: q.root, body: q.body, head, legs: q.legs, height: 2.3 };
+    // a dromedary: long thin legs with knobbly knees, a round body, one big hump,
+    // a neck that curves forward and up, and a head with a soft muzzle
+    const tan = mat(0xd9ae70), tanD = mat(0xb98a4e), tanL = mat(0xe8c48c), hoof = mat(0x6e5032);
+    const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+    const legH = 1.05, bodyY = legH + 0.3;
+    body.add(box(0.66, 0.56, 1.25, tan, 0, bodyY, 0));
+    body.add(box(0.58, 0.12, 1.1, tanL, 0, bodyY - 0.31, 0));            // lighter belly
+    body.add(box(0.5, 0.24, 0.62, tan, 0, bodyY + 0.39, -0.05));          // the hump, in two steps
+    body.add(box(0.34, 0.18, 0.4, tan, 0, bodyY + 0.58, -0.05));
+    body.add(box(0.2, 0.08, 0.2, tanL, 0, bodyY + 0.7, -0.05));
+    // a red riding blanket over the hump (you can ride camels)
+    body.add(box(0.7, 0.36, 0.3, mat(0xc0392b), 0, bodyY + 0.22, 0.38));
+    body.add(box(0.72, 0.06, 0.32, mat(0xf1c232), 0, bodyY + 0.05, 0.38));
+    // the neck: low and forward from the chest, then up
+    const n1 = box(0.26, 0.26, 0.5, tan, 0, bodyY + 0.12, 0.78); n1.rotation.x = 0.55; body.add(n1);
+    body.add(box(0.24, 0.62, 0.26, tan, 0, bodyY + 0.5, 0.98));
+    const head = new THREE.Group(); head.position.set(0, bodyY + 0.86, 1.02); body.add(head);
+    head.add(box(0.28, 0.26, 0.34, tan, 0, 0, 0.08));
+    head.add(box(0.22, 0.2, 0.22, tanL, 0, -0.04, 0.32));                 // muzzle
+    head.add(box(0.03, 0.04, 0.02, eye, -0.06, -0.01, 0.435), box(0.03, 0.04, 0.02, eye, 0.06, -0.01, 0.435)); // nostrils
+    head.add(box(0.3, 0.05, 0.05, eye, 0, 0.05, 0.16));                   // eyes
+    head.add(box(0.31, 0.03, 0.06, tanD, 0, 0.09, 0.16));                 // sleepy lids
+    head.add(box(0.06, 0.1, 0.05, tanD, -0.11, 0.17, -0.03), box(0.06, 0.1, 0.05, tanD, 0.11, 0.17, -0.03));
+    // long legs with knees and wide feet
+    const legs: THREE.Object3D[] = [];
+    for (const [x, z] of [[-0.21, 0.46], [0.21, 0.46], [-0.21, -0.46], [0.21, -0.46]]) {
+      const l = limb(0.13, legH, 0.13, tanD, x, legH, z);
+      l.add(box(0.17, 0.12, 0.17, tan, 0, -legH * 0.5, 0));                // knee
+      l.add(box(0.2, 0.07, 0.22, hoof, 0, -legH + 0.035, 0.02));            // foot
+      legs.push(l); body.add(l);
+    }
+    const tail = box(0.07, 0.4, 0.07, tanD, 0, bodyY - 0.05, -0.66); tail.rotation.x = -0.25; body.add(tail);
+    body.add(box(0.1, 0.1, 0.08, mat(0x5e3e25), 0, bodyY - 0.27, -0.71));
+    return { root, body, head, legs, height: 2.4 };
   }
   if (kind === 'goat') {
     const wh = mat(0xe9e4da), gr = mat(0x8c857a);
@@ -401,6 +432,8 @@ function buildAnimalParts(kind: AnimalKind): Rig & { wool?: THREE.Object3D } {
     head.add(box(0.32, 0.05, 0.04, eye, 0, 0.06, 0.24));
     head.add(box(0.06, 0.2, 0.06, gr, -0.1, 0.24, -0.04), box(0.06, 0.2, 0.06, gr, 0.1, 0.24, -0.04));
     head.add(box(0.08, 0.14, 0.06, wh, 0, -0.22, 0.18));
+    head.add(box(0.14, 0.06, 0.1, wh, -0.2, 0.06, -0.02), box(0.14, 0.06, 0.1, wh, 0.2, 0.06, -0.02)); // floppy ears
+    const tail = box(0.08, 0.16, 0.08, wh, 0, 0.98, -0.42); tail.rotation.x = -0.6; q.body.add(tail);
     return { root: q.root, body: q.body, head, legs: q.legs, height: 1.2 };
   }
   // cat

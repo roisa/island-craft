@@ -41,7 +41,8 @@ export function mergeRig(root: THREE.Object3D, joints: THREE.Object3D[], keep: T
       const groups = g.groups.length ? g.groups : [{ start: 0, count: pos.count, materialIndex: 0 }];
       const v = new THREE.Vector3();
       for (const gr of groups) {
-        const mat = mats[gr.materialIndex ?? 0]; if (!mat) continue;
+        // a single material covers every group (a box has six face groups, all drawn with it)
+        const mat = Array.isArray(mesh.material) ? mats[gr.materialIndex ?? 0] : mesh.material; if (!mat) continue;
         let b = buckets.get(mat); if (!b) buckets.set(mat, b = { p: [], n: [], u: [] });
         for (let i = gr.start; i < gr.start + gr.count; i++) {
           v.fromBufferAttribute(pos, i).applyMatrix4(m); b.p.push(v.x, v.y, v.z);

@@ -483,7 +483,7 @@ export class Fun {
       if (moving) a.yaw = Math.atan2(r.vx, r.vz);
       a.moving = moving; a.walk += dt * 8 * Math.min(1, Math.hypot(r.vx, r.vz) / 4);
       a.sync(performance.now() / 1000);
-      pl.pos.set(o.x, o.y + 1.55, o.z);
+      pl.pos.set(o.x + Math.sin(a.yaw) * 0.36, o.y + 1.68, o.z + Math.cos(a.yaw) * 0.36); // on the blanket, in front of the hump
     }
     pl.vel.set(0, 0, 0); pl.visY = pl.pos.y; pl.onGround = true;
     pl.speed = 0;
