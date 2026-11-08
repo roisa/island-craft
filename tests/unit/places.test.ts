@@ -168,3 +168,21 @@ describe('kites', () => {
     for (const k of [I.KITE_RED, I.KITE_BLUE, I.KITE_YELLOW]) expect(RECIPES.some(r => r.out === k && r.at === 'workbench')).toBe(true);
   });
 });
+
+import { MAP_PIECE_PLACES } from '../../src/world/landmarks';
+describe('treasure map', () => {
+  for (const seed of [1, 42, 777, 99999]) it(`seed ${seed}: four map pieces in four places, and a chest under a red X`, () => {
+    const g = new Generator(seed), at = stamped(g);
+    const scrolls: [number, number, number][] = [];
+    for (const list of g.stamps.values()) for (const [x, y, z, id] of list) if (id === B.MAP_SCROLL && at(x, y, z) === B.MAP_SCROLL) scrolls.push([x, y, z]);
+    expect(scrolls.length).toBe(4);
+    for (const id of MAP_PIECE_PLACES) { const l = g.landmarks.find(l => l.id === id)!; expect(scrolls.some(([x, , z]) => Math.hypot(x - l.x, z - l.z) < 6), id).toBe(true); }
+    const t = g.treasure;
+    expect(at(t.x, t.y, t.z)).toBe(B.CHEST);
+    expect(at(t.x, t.y + 1, t.z)).toBe(B.DIRT);
+    expect(at(t.x, t.y + 3, t.z)).toBe(B.WOOL_RED); // the middle of the X
+    expect(at(t.x + 1, t.y + 3, t.z + 1)).toBe(B.WOOL_RED);
+    expect(Math.hypot(t.x, t.z)).toBeGreaterThan(110);
+    for (const l of g.landmarks) expect(Math.hypot(l.x - t.x, l.z - t.z), l.id).toBeGreaterThan(20);
+  });
+});

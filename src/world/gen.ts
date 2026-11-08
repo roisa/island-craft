@@ -2,7 +2,7 @@
 // oases, snowy hills, mountains, beaches), caves, ores, trees, a starting
 // village with a masjid, and 28 hijaiyah letter shrines scattered over the world.
 import { B, LETTERS } from './blocks';
-import { placeLandmarks, type Landmark } from './landmarks';
+import { placeLandmarks, placeTreasure, type Landmark } from './landmarks';
 import { Simplex, mulberry32, hash3, clamp, lerp, smoothstep } from './noise';
 
 export const CS = 16;          // chunk size (x/z)
@@ -36,6 +36,8 @@ export class Generator {
   shrines: Shrine[] = [];
   /** handcrafted places to discover (see landmarks.ts) */
   landmarks: Landmark[] = [];
+  /** where the great treasure is buried (found with the four map pieces) */
+  treasure = { x: 0, y: 0, z: 0 };
 
   constructor(public seed: number) {
     this.nCont = new Simplex(seed + 1); this.nTemp = new Simplex(seed + 2); this.nMoist = new Simplex(seed + 3);
@@ -43,7 +45,9 @@ export class Generator {
     this.nCaveA = new Simplex(seed + 7); this.nCaveB = new Simplex(seed + 8); this.nCheese = new Simplex(seed + 9);
     this.buildVillage();
     this.placeShrines();
-    this.landmarks = placeLandmarks({ column: (x, z) => this.column(x, z), stamp: (x, y, z, id) => this.stamp(x, y, z, id), box: (a, b, c, d, e, f, id) => this.box(a, b, c, d, e, f, id) }, this.seed, this.shrines);
+    const builder = { column: (x: number, z: number) => this.column(x, z), stamp: (x: number, y: number, z: number, id: number) => this.stamp(x, y, z, id), box: (a: number, b: number, c: number, d: number, e: number, f: number, id: number | ((x: number, y: number, z: number) => number | null)) => this.box(a, b, c, d, e, f, id) };
+    this.landmarks = placeLandmarks(builder, this.seed, this.shrines);
+    this.treasure = placeTreasure(builder, this.seed, [...this.shrines.map(s => ({ x: s.x, z: s.z, r: 6 })), ...this.landmarks.map(l => ({ x: l.x, z: l.z, r: 18 }))], this.landmarks.filter(l => l.path).map(l => l.path!));
   }
 
   column(x: number, z: number): Column {

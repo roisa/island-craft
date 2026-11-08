@@ -171,6 +171,8 @@ const P: Record<string, Painter> = {
   obsidian: g => { g.noise('#221A33', ['#2A1F3D', '#1A1428', '#33284A'], 0.5); for (let i = 0; i < 5; i++) { const x = Math.floor(g.rnd() * 14), y = Math.floor(g.rnd() * 14); g.p(x, y, '#7E5FB8'); g.p(x + 1, y + 1, '#5A4390'); } },
   raft_top: g => { g.fill('#8C6A40'); for (let x = 0; x < 16; x += 4) { g.rect(x, 0, 3, 16, g.pick(['#B08A55', '#A47E4B', '#BC9660'])); g.rect(x, 0, 1, 16, '#C9A36D'); } g.rect(0, 3, 16, 1, '#E8D9A8'); g.rect(0, 12, 16, 1, '#E8D9A8'); },
   raft_side: g => { g.fill('#6E5232'); for (let x = 0; x < 16; x += 4) { g.rect(x, 4, 3, 8, '#A47E4B'); g.p(x + 1, 7, '#5E3E25'); } g.rect(0, 4, 16, 1, '#E8D9A8'); },
+  map_scroll: g => { g.clear(); g.rect(3, 9, 10, 5, '#E8D9A8'); g.rect(3, 9, 10, 1, '#F7EDCB'); g.rect(2, 9, 1, 5, '#C9A36D'); g.rect(13, 9, 1, 5, '#C9A36D'); g.rect(5, 11, 2, 1, '#B23A48'); g.p(9, 12, '#6E8B3D'); g.p(10, 11, '#6E8B3D'); g.rect(7, 13, 2, 1, '#2E6FE0'); g.p(8, 5, '#F1C232'); g.p(7, 6, '#F1C232'); g.p(9, 6, '#F1C232'); g.p(8, 7, '#F1C232'); },
+  i_map_piece: g => { g.clear(); g.rect(2, 2, 12, 12, '#E8D9A8'); g.rect(2, 2, 12, 1, '#F7EDCB'); g.rect(2, 13, 12, 1, '#C9A36D'); for (let i = 0; i < 4; i++) { g.p(4 + i, 5 + (i % 2), '#2E6FE0'); } g.p(10, 9, '#B23A48'); g.p(11, 10, '#B23A48'); g.p(11, 9, '#B23A48'); g.p(10, 10, '#B23A48'); g.rect(5, 9, 2, 2, '#6E8B3D'); g.p(13, 4, '#C9A36D'); g.p(12, 3, '#C9A36D'); },
   i_stick: g => { g.clear(); for (let i = 0; i < 11; i++) g.p(3 + i, 13 - i, i % 2 ? '#7B5131' : '#96683F'); },
   i_pick_wood: g => tool(g, '#C49A62', '#8F6A3E', 'pick'),
   i_pick_stone: g => tool(g, '#9DA4AB', '#6E757C', 'pick'),

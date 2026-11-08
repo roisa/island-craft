@@ -261,6 +261,25 @@ export class UI {
       <button class="btn gold" id="dOk">${tr('Subhanallah! ✨', 'Subhanallah! ✨')}</button></div>`, undefined, { onShow: () => { this.confetti(60); if (this.g.settings.moVoice) Speech.talk(t2(l.name) + '. ' + t2(l.fact), getLang(), false, 1); } });
     $('#dOk', el).onclick = () => close();
   }
+  /** a piece of the treasure map */
+  mapPiece(complete: boolean) {
+    const g = this.g;
+    const { el, close } = this.modal(`<div class="lvup treasure"><div class="burst">🗺️</div><div class="lvn">${complete ? tr('PETA LENGKAP!', 'THE MAP IS WHOLE!') : tr('POTONGAN PETA!', 'A MAP PIECE!')}</div>
+      <h2>${tr(`Potongan ${g.treasure.pieces.length} dari 4`, `Piece ${g.treasure.pieces.length} of 4`)}</h2>
+      <canvas class="tmc" width="200" height="200"></canvas>
+      <p>${complete ? tr('Lihat tanda ❌! Harta karun besar terkubur di sana. Panah emas akan menunjukkan jalannya.', 'Look at the ❌! The great treasure is buried there. The golden arrow will show the way.') : tr('Cari potongan lainnya di tempat-tempat istimewa.', 'Look for the other pieces at the special places.')}</p>
+      <button class="btn gold" id="mpOk">${complete ? tr('Ayo berburu harta! 🧭', 'Let’s go treasure hunting! 🧭') : tr('Hebat! ✨', 'Great! ✨')}</button></div>`, undefined, { onShow: () => this.confetti(complete ? 80 : 40) });
+    g.treasure.draw(el.querySelector('canvas')!);
+    $('#mpOk', el).onclick = () => close();
+  }
+  greatTreasure(gifts: [number, number][]) {
+    const { el, close } = this.modal(`<div class="lvup treasure"><div class="burst">👑</div><div class="lvn">${tr('HARTA KARUN BESAR!', 'THE GREAT TREASURE!')}</div><h2>${tr('Kamu menemukannya!', 'You found it!')}</h2>
+      <div class="gifts">${gifts.map(([id, n]) => `<span><img src="${iconURL(id)}" alt="">×${n}</span>`).join('')}</div>
+      <p>${tr('Dan sebuah <b>Mahkota Pemburu Harta</b> 👑 — pakai di 👕 Baju! Harta paling berharga adalah ilmu dan kebaikan yang kita bagi. 💛', 'And a <b>Treasure Hunter’s Crown</b> 👑 — wear it in 👕 Outfits! The best treasure is the knowledge and kindness we share. 💛')}</p>
+      <button class="btn gold" id="gtOk">${tr('Alhamdulillah! 🎉', 'Alhamdulillah! 🎉')}</button></div>`, undefined, { onShow: () => { this.confetti(120); SFX.fanfare(); } });
+    $('#gtOk', el).onclick = () => close();
+  }
+
   /** a secret spot inside a landmark */
   spotFound(sp: Spot) {
     const { el, close } = this.modal(`<div class="lvup discovery"><div class="burst">${sp.icon}</div><div class="lvn">${tr('TEMPAT RAHASIA!', 'SECRET PLACE!')}</div><h2>${esc(t2(sp.name))}</h2>
@@ -664,6 +683,14 @@ export class UI {
       <h3>🧭 ${tr('Jurnal Penjelajah', 'Explorer’s Journal')} <small>(${(g.stats.discovered || []).length}/${g.gen.landmarks.length})</small></h3>
       <div class="journal">${g.gen.landmarks.map(l => { const f = (g.stats.discovered || []).includes(l.id); return `<div class="jr ${f ? 'found' : ''}"><span class="ji">${f ? l.icon : '❔'}</span><div><b>${f ? esc(t2(l.name)) : tr('Belum ditemukan', 'Not found yet')}</b><small>${esc(t2(f ? l.fact : l.hint))}</small></div>${f ? '<span class="jok">✓</span>' : `<button class="btn small ${g.exploreTarget === l.id ? 'gold' : 'ghost'}" data-follow="${l.id}">🧭 ${g.exploreTarget === l.id ? tr('Diikuti', 'Following') : tr('Tunjukkan arah', 'Show the way')}</button>`}</div>`; }).join('')}</div>`;
     body.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => (b.onclick = () => { const id = b.dataset.follow!; g.exploreTarget = g.exploreTarget === id ? null : id; SFX.click(); this.renderBook(); }));
+    // the treasure map: one quarter for each piece found
+    const tm = h(`<div class="tmap"><h3>🗺️ ${tr('Peta Harta Karun', 'Treasure Map')} <small>(${g.treasure.pieces.length}/4)</small></h3>
+      <canvas width="240" height="240"></canvas>
+      <p>${g.stats.greatTreasure ? tr('Harta karun besar sudah kamu temukan! 👑', 'You found the great treasure! 👑') : g.treasure.complete ? tr('Peta lengkap! Pergi ke tanda ❌ dan gali ke bawah di tengahnya.', 'The map is whole! Go to the ❌ and dig straight down in the middle.') : tr('Potongan peta tersimpan di Mercusuar, Perkemahan Oasis, Rumah Salju dan Reruntuhan Perpustakaan.', 'Map pieces are kept at the Lighthouse, Oasis Camp, Igloo and Library Ruins.')}</p>
+      ${g.treasure.complete && !g.stats.greatTreasure ? `<button class="btn small ${g.exploreTarget === 'treasure' ? 'gold' : 'ghost'}" id="tmGo">🧭 ${tr('Tunjukkan arah ke ❌', 'Show the way to the ❌')}</button>` : ''}</div>`);
+    body.prepend(tm);
+    g.treasure.draw(tm.querySelector('canvas')!);
+    const go = tm.querySelector<HTMLElement>('#tmGo'); if (go) go.onclick = () => { g.exploreTarget = g.exploreTarget === 'treasure' ? null : 'treasure'; SFX.click(); this.renderBook(); };
     body.querySelectorAll<HTMLElement>('[data-z]').forEach(b => (b.onclick = () => { this.mapZoom = +b.dataset.z!; this.renderBook(); }));
     const c = $<HTMLCanvasElement>('#mapC', body), x = c.getContext('2d')!;
     const R = zooms[this.mapZoom], N = 100, step = (R * 2) / N, px = c.width / N;

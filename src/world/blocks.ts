@@ -15,8 +15,8 @@ export enum B {
   CORAL_PINK = 54, CORAL_ORANGE = 55, CORAL_PURPLE = 56, SEA_GRASS = 57, CORAL_FAN = 58, CLAM = 59, TELESCOPE = 60,
   // the volcano island
   BASALT = 61, MAGMA = 62, OBSIDIAN = 63,
-  // the river
-  RAFT_DOCK = 64, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  // the river, the treasure map
+  RAFT_DOCK = 64, MAP_SCROLL = 65, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -33,7 +33,7 @@ export enum I {
   SMALL_FISH = 245, BIG_FISH = 246, GOLDEN_FISH = 247, MEAT = 248, GRILLED_FISH = 249, FRIED_EGG = 250, STEAK = 251,
   // the pearl cave and the Eid bazaar
   PEARL = 252, KETUPAT_OPOR = 253, NASTAR = 254, ANGPAO = 255, FIREWORK = 256,
-  KITE_RED = 257, KITE_BLUE = 258, KITE_YELLOW = 259,
+  KITE_RED = 257, KITE_BLUE = 258, KITE_YELLOW = 259, MAP_PIECE = 260,
 }
 
 export type ToolKind = 'pick' | 'axe' | 'shovel' | 'sword';
@@ -147,6 +147,7 @@ blk(B.TELESCOPE, ['Teropong Bintang', 'Telescope'], 'telescope', { ...plant, col
 blk(B.BASALT, ['Batu Gunung Api', 'Basalt'], 'basalt', { color: 0x4a4a52, hardness: 2.4, tool: 'pick' });
 blk(B.MAGMA, ['Batu Magma Hangat', 'Warm Magma Rock'], 'magma', { color: 0xff7a1a, hardness: Infinity, light: 1 });
 blk(B.OBSIDIAN, ['Obsidian', 'Obsidian'], 'obsidian', { color: 0x2a1f3d, hardness: 4, tool: 'pick', tier: 3 });
+blk(B.MAP_SCROLL, ['Potongan Peta', 'Map Piece'], 'map_scroll', { ...plant, color: 0xe8d9a8, hardness: Infinity });
 blk(B.RAFT_DOCK, ['Rakit Sungai', 'River Raft'], ['raft_top', 'raft_side', 'raft_side'], { color: 0xb08a55, hardness: Infinity });
 const wool: [number, string, T2, number][] = [
   [B.WOOL_WHITE, 'wool_white', ['Wol Putih', 'White Wool'], 0xf2f2f2],
@@ -210,6 +211,7 @@ item(I.KETUPAT_OPOR, ['Ketupat & Opor', 'Ketupat & Opor'], 'i_ketupat_opor', { f
 item(I.NASTAR, ['Kue Nastar', 'Pineapple Tarts'], 'i_nastar', { food: true });
 item(I.ANGPAO, ['Amplop Lebaran', 'Eid Envelope'], 'i_angpao', { stack: 16 });
 item(I.FIREWORK, ['Kembang Api', 'Firework'], 'i_firework', { stack: 16 });
+item(I.MAP_PIECE, ['Potongan Peta Harta', 'Treasure Map Piece'], 'i_map_piece', { stack: 4 });
 item(I.KITE_RED, ['Layang-layang Merah', 'Red Kite'], 'i_kite_red', { stack: 1 });
 item(I.KITE_BLUE, ['Layang-layang Biru', 'Blue Kite'], 'i_kite_blue', { stack: 1 });
 item(I.KITE_YELLOW, ['Layang-layang Kuning', 'Yellow Kite'], 'i_kite_yellow', { stack: 1 });

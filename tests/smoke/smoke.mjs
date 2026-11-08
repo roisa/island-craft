@@ -219,6 +219,23 @@ async function run(name) {
       if (h.flying !== 257 || !(h.h > 1.6)) throw new Error(JSON.stringify(h));
       return h;
     });
+    await step('treasure map: four pieces, then dig up the great treasure', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals();
+        // the four scrolls, straight from the world generator's stamps
+        const found = [];
+        for (const list of G.gen.stamps.values()) for (const [x, y, z, id] of list) if (id === 65) found.push([x, y, z]);
+        for (const [x, y, z] of found) { G.player.pos.set(x + 0.5, y, z + 1.5); G.world.update(x, z, 40); G.treasure.collect(x, y, z); G.ui.closeAllModals(); }
+        return { scrolls: found.length, pieces: G.treasure.pieces.length, complete: G.treasure.complete, arrow: G.exploreTarget };
+      });
+      if (r.pieces !== 4 || !r.complete || r.arrow !== 'treasure') throw new Error(JSON.stringify(r));
+      await g(() => { const G = __game, t = G.gen.treasure; G.player.pos.set(t.x + 1.5, t.y + 4, t.z + 0.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const e = await g(() => { const G = __game, t = G.gen.treasure; const was = G.world.get(t.x, t.y, t.z); G.fun.openChest(t.x, t.y, t.z); G.ui.closeAllModals(); const out = { was, great: G.stats.greatTreasure, crown: G.fun.unlocked(G.OUTFITS_FOR_TEST ?? { level: 99, unlock: { test: s => !!s.greatTreasure } }) }; G.player.pos.set(0.5, 47, 3.5); G.exploreTarget = null; return out; });
+      if (e.was !== 52 || !e.great || !e.crown) throw new Error(JSON.stringify(e));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return { ...r, ...e };
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
         if (!a) return { skipped: true };

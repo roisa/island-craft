@@ -5,6 +5,32 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Treasure map 🗺️ and the great treasure
+
+- **Four map pieces** wait as scrolls in the Lighthouse (top platform), the
+  Oasis Camp tent, the Igloo and the Library Ruins.
+  - Each place gets just one extra block; nothing moves in existing
+    worlds.
+- **Tap a scroll** to pick up its piece. A card shows the hand-drawn map,
+  with one quarter revealed for each piece found.
+- **With all four,** the map shows a red ❌ and a dotted line from the
+  village, and the golden arrow points there.
+- **The ❌ on the ground:** a ring of stones around a red wool X, placed
+  far from the village and clear of every other place and the river.
+- **The great treasure** is buried 3 blocks under the middle of the X.
+  - Standing on the X, Baby Mo tells you to dig straight down.
+  - The chest holds gold, crystals, pearls, gold tiles and the new
+    **Treasure Hunter's Crown** 👑, which sparkles as you walk.
+- **The 🧭 Map tab** shows the treasure map with your position and a "show
+  the way to the ❌" button.
+- **New quest:** the treasure map.
+- **Tested:**
+  - Unit tests on 4 seeds: four scrolls, each in its place, and a chest
+    under the X, away from other places.
+  - A smoke step on all four profiles collects the four pieces and opens
+    the great chest.
+  - The saved-positions test confirms no older place moved.
+
 ### Kites 🪁 (layang-layang)
 
 - **Three kites** (red, blue and yellow), each made at the workbench from 2

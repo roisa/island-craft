@@ -86,6 +86,7 @@ const SPECS = (): Spec[] => specs ??= [
       b.box(x - 1, y + 16, z - 1, x + 1, y + 17, z + 1, (xx, _y, zz) => (xx === x && zz === z ? B.LANTERN : B.GLASS));
       b.box(x - 1, y + 18, z - 1, x + 1, y + 18, z + 1, B.WOOL_RED);
       b.stamp(x + 2, y + 16, z, B.CHEST);
+      b.stamp(x - 2, y + 16, z, B.MAP_SCROLL);
       for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) b.stamp(x + dx, y + 16, z + dz, B.TORCH);
       return y + 1;
     },
@@ -104,6 +105,7 @@ const SPECS = (): Spec[] => specs ??= [
       for (let yy = 1; yy <= 4; yy++) { const w = 4 - yy; b.box(x - w, y + yy, z - 3, x + w, y + yy, z - 3 + 5, (xx, _y, zz) => (Math.abs(xx - x) === w || yy === 4 ? ((xx + zz) % 2 ? B.WOOL_RED : B.WOOL_WHITE) : null)); }
       b.box(x - 1, y + 1, z + 2, x + 1, y + 2, z + 2, B.AIR); // door
       b.stamp(x, y + 1, z - 2, B.CHEST); b.stamp(x - 2, y + 1, z - 1, B.BED);
+      b.stamp(x + 1, y + 1, z - 1, B.MAP_SCROLL);
       b.stamp(x + 4, y + 1, z + 4, B.FURNACE); // the camp stove
       palm(b, x - 6, y, z + 1, 5); palm(b, x - 1, y, z + 6, 6); palm(b, x + 5, y, z - 5, 5);
       for (const [dx, dz] of [[3, 3], [-3, 3]]) b.stamp(x + dx, y + 1, z + dz, B.TORCH);
@@ -144,6 +146,7 @@ const SPECS = (): Spec[] => specs ??= [
       b.box(x + 1, y + 1, z - 3, x + 3, y + 2, z - 3, B.BOOKSHELF);
       b.stamp(x, y + 1, z, B.CHEST);
       b.stamp(x - 1, y + 1, z - 1, B.LANTERN);
+      b.stamp(x + 2, y + 1, z - 2, B.MAP_SCROLL);
       return y + 1;
     },
   },
@@ -161,6 +164,7 @@ const SPECS = (): Spec[] => specs ??= [
       }
       b.box(x, y + 1, z + 3, x, y + 2, z + 4, B.AIR); b.box(x - 1, y + 1, z + 4, x + 1, y + 3, z + 5, (xx, yy) => (Math.abs(xx - x) === 1 || yy === y + 3 ? B.SNOW : B.AIR));
       b.stamp(x, y + 1, z - 2, B.CHEST); b.stamp(x - 2, y + 1, z, B.BED); b.stamp(x + 1, y + 3, z - 1, B.LANTERN);
+      b.stamp(x + 1, y + 1, z, B.MAP_SCROLL);
       return y + 1;
     },
   },
@@ -526,6 +530,36 @@ const SPECS = (): Spec[] => specs ??= [
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
+/** the four places that each keep a piece of the treasure map */
+export const MAP_PIECE_PLACES = ['lighthouse', 'oasis', 'igloo', 'ruins'];
+
+/**
+ * The great treasure: buried under a red X far from the village, found with
+ * the four map pieces. Placed after everything else so nothing else moves.
+ */
+export function placeTreasure(b: Builder, seed: number, avoid: { x: number; z: number; r?: number }[], paths: [number, number][][]): { x: number; y: number; z: number } {
+  const rnd = mulberry32(seed ^ 0x7e45);
+  let best: { x: number; z: number; h: number } | null = null;
+  for (let k = 0; k < 400 && !best; k++) {
+    const a = rnd() * Math.PI * 2, d = 120 + rnd() * 140;
+    const x = Math.round(Math.cos(a) * d), z = Math.round(Math.sin(a) * d), c = b.column(x, z);
+    if (c.biome === Biome.OCEAN || c.biome === Biome.VILLAGE || c.h <= SEA + 1 || c.h > SEA + 22) continue;
+    if (avoid.some(t => Math.hypot(t.x - x, t.z - z) < (t.r ?? 12) + 12)) continue;
+    if (paths.some(pt => pt.some(([px, pz]) => Math.hypot(px - x, pz - z) < 10))) continue;
+    best = { x, z, h: c.h };
+  }
+  best ??= { x: 140, z: 140, h: b.column(140, 140).h };
+  const { x, z, h } = best;
+  // a ring of stones around a red X, flat on the ground, with the chest three blocks below
+  for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+    const d = Math.hypot(dx, dz); if (d > 3.4) continue;
+    b.stamp(x + dx, h, z + dz, d > 2.5 ? B.COBBLE : (Math.abs(dx) === Math.abs(dz) && d < 2.5) ? B.WOOL_RED : B.GRASS);
+    b.box(x + dx, h + 1, z + dz, x + dx, h + 6, z + dz, B.AIR);
+  }
+  b.box(x, h - 3, z, x, h - 1, z, (_x, yy) => (yy === h - 3 ? B.CHEST : B.DIRT));
+  b.stamp(x + 3, h + 1, z - 3, B.DEAD_BUSH);
+  return { x, y: h - 3, z };
+}
 
 /**
  * Find a fitting spot for every landmark and stamp it. Uses its own random

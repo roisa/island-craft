@@ -77,7 +77,7 @@ export class Places {
   private turtles: { g: THREE.Group; r: number; sp: number; ph: number; h: number }[] = [];
   private m = new THREE.Matrix4(); private q = new THREE.Quaternion(); private e = new THREE.Euler(); private s = new THREE.Vector3(1, 1, 1); private v = new THREE.Vector3();
   private fall?: Landmark; private reef?: Landmark; private hill?: Landmark; private volcano?: Landmark;
-  private puffs: Puffs; private smokeT = 0; private steamT = 0;
+  private puffs: Puffs; private smokeT = 0; private steamT = 0; private crownT = 0;
 
   constructor(private g: Game) {
     const ls = g.gen.landmarks;
@@ -194,6 +194,8 @@ export class Places {
       this.steamT = lite ? 0.7 : 0.35;
       const [x, y, z] = Math.random() < 0.5 ? v.spring1 : v.spring2; this.puffs.add(x + (Math.random() - 0.5), y - 0.4, z + (Math.random() - 0.5), 0xffffff, 0.9, 0.8, 2.5);
     }
+    // ---- the treasure hunter's crown sparkles as you go
+    if (g.hasHat('crown') && !lite && (this.crownT -= dt) <= 0) { this.crownT = 0.5; g.fx.sparkle(p.x + (Math.random() - 0.5) * 0.6, p.y + 2, p.z + (Math.random() - 0.5) * 0.6, 2, 0xffd874, 0.8); }
     // ---- stargazing hill: more shooting stars up there
     g.sky.meteorBoost = this.near(this.hill, 30);
   }

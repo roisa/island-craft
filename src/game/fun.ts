@@ -21,7 +21,7 @@ export interface OutfitItem {
   unlock?: { test: (s: Stats) => boolean; how: T2 };
 }
 /** hats with a power: anyone can wear them, even over a hijab */
-export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'hat_diver', 'explorer']);
+export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'hat_diver', 'crown', 'explorer']);
 /** the matching item you get the first time you put one on */
 export const HAT_GIFTS: Record<string, [number, number][]> = { hat_straw: [[B.SAPLING, 3]], hat_fisher: [[I.FISHING_ROD, 1]], hat_miner: [[B.TORCH, 8]], hat_chef: [[I.EGG, 2], [I.MEAT, 1]], hat_diver: [[B.LANTERN, 2]], explorer: [[I.CRYSTAL, 1]] };
 export const OUTFITS: OutfitItem[] = [
@@ -36,6 +36,7 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'hat_miner', slot: 'hat', name: ['Helm Penambang', 'Miner’s Helmet'], icon: '⛑️', level: 3, perk: ['Lampu di kepala & menggali lebih cepat', 'A head lamp & faster digging'] },
   { id: 'hat_chef', slot: 'hat', name: ['Topi Koki', 'Chef’s Hat'], icon: '👨‍🍳', level: 3, perk: ['Zona hijau memasak lebih lebar', 'A wider green zone when cooking'] },
   { id: 'hat_diver', slot: 'hat', name: ['Masker Selam', 'Diving Mask'], icon: '🤿', level: 4, perk: ['Berenang cepat & melihat jelas di dalam air', 'Swim fast & see clearly underwater'], unlock: { test: s => !!s.discovered?.includes('reef'), how: ['Temukan Taman Karang', 'Find the Coral Reef'] } },
+  { id: 'crown', slot: 'hat', name: ['Mahkota Pemburu Harta', 'Treasure Hunter’s Crown'], icon: '👑', level: 99, perk: ['Berkilau di mana pun kamu pergi', 'Sparkles wherever you go'], unlock: { test: s => !!s.greatTreasure, how: ['Temukan harta karun besar', 'Find the great treasure'] } },
   { id: 'h_teal', slot: 'hijab', name: ['Hijab Toska', 'Teal Hijab'], icon: '🟦', level: 1, color: 0x2aa198 },
   { id: 'h_pink', slot: 'hijab', name: ['Hijab Merah Muda', 'Pink Hijab'], icon: '🩷', level: 1, color: 0xf48aa3 },
   { id: 'h_purple', slot: 'hijab', name: ['Hijab Ungu', 'Purple Hijab'], icon: '🟪', level: 2, color: 0x9b59b6 },
@@ -91,6 +92,11 @@ export function dressUp(rig: { head: THREE.Object3D; body: THREE.Group; neck?: n
     const band = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.04, 0.12, hs + 0.04), white); band.position.y = hs + 0.06; head.add(band);
     const puff = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.14, 0.26, hs + 0.14), white); puff.position.y = hs + 0.26; head.add(puff);
     for (const [x, z] of [[-0.1, 0], [0.1, 0.05], [0, -0.1]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.16), white); b.position.set(x, hs + 0.42, z); head.add(b); }
+  } else if (hat === 'crown') {
+    const gold = mat(0xf1c232), dark = mat(0xc99a12), gems = [0xe4423a, 0x2e6fe0, 0x3fa34d];
+    const band = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.06, 0.14, hs + 0.06), gold); band.position.y = hs + 0.06; head.add(band);
+    for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.08), x && z ? dark : gold); s.position.set(x * (hs / 2), hs + 0.18, z * (hs / 2)); head.add(s); }
+    gems.forEach((c, i) => { const gm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.03), new THREE.MeshBasicMaterial({ color: c })); gm.position.set((i - 1) * 0.12, hs + 0.07, hs / 2 + 0.04); head.add(gm); });
   } else if (hat === 'hat_diver') {
     const frame = mat(0x2b3a4a), glass = new THREE.MeshBasicMaterial({ color: 0x9fe3ff, transparent: true, opacity: 0.75 }), strap = mat(0x1f8a8a), tube = mat(0xf4c430);
     const f = new THREE.Mesh(new THREE.BoxGeometry(hs * 0.86, 0.2, 0.06), frame); f.position.set(0, hs * 0.62, hs / 2 + 0.03); head.add(f);
@@ -250,6 +256,7 @@ export class Fun {
   // ---------- treasure chests ----------
   openChest(x: number, y: number, z: number) {
     const g = this.g;
+    if (g.treasure?.isGreatChest(x, y, z)) { g.treasure.openGreat(); return; }
     const loot: [number, number][][] = [
       [[I.GOLD_INGOT, 2], [B.LANTERN, 3]], [[I.CRYSTAL, 2], [B.MOSAIC, 4]], [[B.GOLD_TILE, 6], [I.DATES, 4]],
       [[I.IRON_INGOT, 4], [I.KOLAK, 1]], [[B.WOOL_PURPLE, 4], [B.WOOL_YELLOW, 4], [I.APPLE, 3]], [[B.MARBLE, 12], [B.LANTERN, 2]],

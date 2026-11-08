@@ -45,6 +45,7 @@ import { Eid, type EidMode } from './game/eid';
 import { moonPhase } from './game/moon';
 import { Sanctuary } from './game/sanctuary';
 import { Kites, isKite } from './game/kites';
+import { Treasure } from './game/treasure';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -91,6 +92,7 @@ export class Game {
   places!: Places;
   sanctuary!: Sanctuary;
   kites!: Kites;
+  treasure!: Treasure;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -295,6 +297,7 @@ export class Game {
     this.places = new Places(this);
     this.sanctuary = new Sanctuary(this);
     this.kites = new Kites(this);
+    this.treasure = new Treasure(this);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -414,7 +417,7 @@ export class Game {
   compass() {
     let best: { rot: number; dist: number; landmark?: string } | null = null, bd = Infinity;
     const p = this.player?.pos; if (!p) return null;
-    const lm: { x: number; z: number; icon: string } | null | undefined = this.exploreTarget ? (this.sanctuary?.target(this.exploreTarget) ?? this.gen.landmarks.find(l => l.id === this.exploreTarget)) : null;
+    const lm: { x: number; z: number; icon: string } | null | undefined = this.exploreTarget ? (this.sanctuary?.target(this.exploreTarget) ?? this.treasure?.target(this.exploreTarget) ?? this.gen.landmarks.find(l => l.id === this.exploreTarget)) : null;
     if (lm) {
       const ta = Math.atan2(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
       return { rot: -(ta - la), dist: Math.hypot(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), landmark: lm.icon };
@@ -986,6 +989,7 @@ export class Game {
     if (hit.id === B.BEDUG) { this.festive.bedug(); this.input.mineHeld = false; this.input.pointerMine = false; return; }
     if (hit.id === B.TELESCOPE) { this.input.mineHeld = false; this.input.pointerMine = false; this.ui.telescope(); return; }
     if (hit.id === B.RAFT_DOCK) { this.input.mineHeld = false; this.input.pointerMine = false; this.startRaft(); return; }
+    if (hit.id === B.MAP_SCROLL) { this.input.mineHeld = false; this.input.pointerMine = false; this.treasure.collect(hit.x, hit.y, hit.z); return; }
     if (isLetter(hit.id)) {
       const sh = this.gen.shrines.find(s => s.x === hit.x && s.y === hit.y && s.z === hit.z);
       if (sh && !this.stats.letters.includes(sh.letter)) { this.collectLetter(sh.letter, hit.x, hit.y, hit.z); return; }
@@ -1224,6 +1228,7 @@ export class Game {
       if (hit.id === B.BEDUG) { this.festive.bedug(); return; }
       if (hit.id === B.TELESCOPE) { this.ui.telescope(); return; }
       if (hit.id === B.RAFT_DOCK) { this.startRaft(); return; }
+      if (hit.id === B.MAP_SCROLL) { this.treasure.collect(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
       if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS).filter(k => k !== 'takbir'); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, ic('book') + tr('Doa sehari-hari', 'Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
@@ -1550,6 +1555,7 @@ export class Game {
       this.checkQuests(); this.saveSoon();
     }
     this.places?.checkSpots();
+    this.treasure?.update();
   }
   private slowChecks() {
     const p = this.player.pos;
