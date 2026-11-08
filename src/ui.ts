@@ -82,6 +82,8 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
+  <button class="pill hidden" id="bFishHelp" aria-label="How to fish">🎣 <b>?</b></button>
+  <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
   <div id="desktopHint"></div>
   <div id="stick"><div id="knob"></div></div>
@@ -108,6 +110,7 @@ export class UI {
     $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: ic('home') + tr('Ya, pulang!', 'Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: ic('up') + tr('Naik ke permukaan', 'Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
     $('#stars').onclick = () => this.openBook('quests');
     $('#coins').onclick = () => this.shop();
+    $('#bFishHelp').onclick = () => this.fishGuide();
     $('#bUndo').onclick = () => g.doUndo();
     $('#pbRot').onclick = () => g.fun.rotatePlan();
     $('#pbBuild').onclick = () => g.fun.build();
@@ -280,6 +283,27 @@ export class UI {
       <button class="btn gold" id="dOk">${tr('Subhanallah! ✨', 'Subhanallah! ✨')}</button></div>`, undefined, { onShow: () => { this.confetti(60); if (this.g.settings.moVoice) Speech.talk(t2(l.name) + '. ' + t2(l.fact), getLang(), false, 1); } });
     $('#dOk', el).onclick = () => close();
   }
+  // ---------- fishing, explained for a seven-year-old ----------
+  /** the 🎣? button: shown by the water or while holding a rod */
+  showFishHelp(on: boolean) { $('#bFishHelp').classList.toggle('hidden', !on || this.modals.length > 0); }
+  /** a big "TAP!" by the Use button while a fish bites */
+  fishCue(on: boolean) { $('#fishCue').classList.toggle('hidden', !on); $('#bUse').classList.toggle('glow', on); }
+  fishGuide() {
+    const g = this.g, hasRod = g.inv.count(I.FISHING_ROD) > 0;
+    const step = (n: number, icon: string, text: string) => `<div class="fgStep"><span class="fgN">${n}</span><span class="fgI">${icon}</span><p>${text}</p></div>`;
+    const { el, close } = this.modal(`<div class="fishGuide"><h2>🎣 ${tr('Cara memancing', 'How to fish')}</h2>
+      ${step(1, '🎣', hasRod ? tr('Kamu sudah punya <b>pancingan</b>! 👍', 'You have a <b>fishing rod</b>! 👍') : tr('Buat <b>pancingan</b> di meja kerja: <b>3 tongkat + 1 wol putih</b>. Atau beli di toko Bu Aminah.', 'Make a <b>fishing rod</b> at a workbench: <b>3 sticks + 1 white wool</b>. Or buy one at Bu Aminah’s shop.'))}
+      ${step(2, '✋', tr('<b>Pegang</b> pancingannya: ketuk kotaknya di bawah layar.', '<b>Hold</b> the rod: tap its box at the bottom of the screen.'))}
+      ${step(3, '🌊', tr('Berdiri di <b>pinggir air</b>, lihat ke air, lalu ketuk tombol <b>✋ Pakai</b>. Pelampung merah terbang ke air!', 'Stand at the <b>edge of the water</b>, look at the water, then tap <b>✋ Use</b>. The red float flies into the water!'))}
+      ${step(4, '⏳', tr('<b>Tunggu</b> dengan sabar… pelampungnya bergoyang pelan.', '<b>Wait</b> patiently… the float bobs gently.'))}
+      ${step(5, '❗', tr('Saat pelampung <b>tenggelam</b> dan muncul <b>KETUK!</b>, cepat ketuk <b>✋ Pakai</b>!', 'When the float <b>dips down</b> and you see <b>TAP!</b>, quickly tap <b>✋ Use</b>!'))}
+      ${step(6, '🐟', tr('Dapat ikan! Kecil, besar, atau <b>ikan emas</b> ✨. Masak di tungku, atau jual ke Bu Aminah.', 'You caught a fish! Small, big, or a <b>golden fish</b> ✨. Cook it at a furnace, or sell it to Bu Aminah.'))}
+      <p class="fgTip">💡 ${tr('Terlalu cepat? Tidak apa-apa, coba lagi! Topi Pemancing 🎣 membuat ikan lebih cepat menggigit.', 'Too early? That’s OK, just try again! The Fishing Hat 🎣 makes fish bite sooner.')}</p>
+      <button class="btn gold" id="fgOk">${tr('Ayo memancing! 🎣', 'Let’s go fishing! 🎣')}</button></div>`, undefined, { onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Cara memancing. Pegang pancingan, berdiri di pinggir air, ketuk pakai. Tunggu sampai pelampung tenggelam, lalu cepat ketuk lagi!', 'How to fish. Hold the rod, stand at the edge of the water and tap Use. Wait until the float dips, then quickly tap again!'), getLang(), false, 1); } });
+    $('#fgOk', el).onclick = () => close();
+    g.stats.fishGuide = true;
+  }
+
   // ---------- the Amal Book ----------
   private amalQ: { d: Deed; first: boolean }[] = []; private amalBusy = false;
   /** a small "✨ Praying together ×27" chip; the first time, a card with what Rasulullah ﷺ said */

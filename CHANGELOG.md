@@ -5,6 +5,31 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A fishing guide for young players 🎣?
+
+Requested for Ibra: "he wants to try fishing but isn't sure how".
+
+- **A 🎣? button** appears whenever you stand by water or hold a fishing
+  rod. It sits above the action buttons, or beside them on a phone in
+  landscape so it never covers Jump.
+- **It opens "How to fish":** six numbered picture steps in short
+  sentences.
+  1. Get a rod (3 sticks + 1 white wool at a workbench, or Bu Aminah's
+     shop).
+  2. Hold it.
+  3. Stand at the water's edge and tap ✋ Use.
+  4. Wait.
+  5. When the float dips and **TAP!** appears, tap ✋ Use quickly.
+  6. You get a small, big or golden fish to cook or sell.
+- **Friendly extras:** a tip that being too early is OK and that the
+  Fishing Hat helps. Baby Mo reads the steps aloud if voice is on.
+- **The guide opens by itself** the first time you hold a rod.
+- **While a fish bites:** a big bouncing **TAP! 👆** appears and the ✋ Use
+  button glows yellow. Both go away when you reel in, the fish escapes,
+  or you put the rod away.
+- **Tested:** screenshots on an iPhone-sized landscape screen (button,
+  guide and the TAP! cue); the smoke suite on 4 profiles and QA on 5.
+
 ### Pop-ups centred
 
 Reported by a parent: pop-up content sat a little to the left.

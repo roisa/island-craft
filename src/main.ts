@@ -670,6 +670,7 @@ export class Game {
     if (f.busy) {
       const at = f.float.clone();
       const r = f.reel();
+      this.ui.fishCue(false);
       if (r === 'caught') this.landFish(at);
       else if (r === 'early') { SFX.splash(); this.ui.toast(tr('Terlalu cepat! Tunggu pelampungnya tenggelam dulu 🎣', 'Too soon! Wait for the float to dip 🎣')); }
       return;
@@ -679,10 +680,25 @@ export class Game {
     f.cast(this.rodTip(), w, this.skillLv('fishing'), this.hasHat('hat_fisher'));
     this.anim.play('build'); SFX.jump();
   }
+  private fishHelpT = 0;
+  /** the 🎣? button by the water; the guide opens by itself the first time you hold a rod */
+  private fishHelpTick(dt: number) {
+    if ((this.fishHelpT -= dt) > 0) return;
+    this.fishHelpT = 0.5;
+    const p = this.player, rod = this.inv.held()?.id === I.FISHING_ROD;
+    let nearWater = false;
+    if (!p.inWater && !this.fun.riding) {
+      const bx = Math.floor(p.pos.x), by = Math.floor(p.pos.y), bz = Math.floor(p.pos.z);
+      search: for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -2; dy <= 0; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER && this.world.get(bx + dx, by + dy + 1, bz + dz) === B.AIR) { nearWater = true; break search; }
+    }
+    this.ui.showFishHelp(rod || nearWater);
+    if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
+  }
   private fishTick(dt: number, t: number) {
     const f = this.fishing;
-    if (this.inv.held()?.id !== I.FISHING_ROD || f.float.distanceTo(this.player.pos) > 14) { f.stop(); return; }
+    if (this.inv.held()?.id !== I.FISHING_ROD || f.float.distanceTo(this.player.pos) > 14) { f.stop(); this.ui.fishCue(false); return; }
     const ev = f.update(dt, t, this.rodTip());
+    this.ui.fishCue(f.state === 'bite');
     if (ev === 'bite') { SFX.splash(); haptic([20, 30, 20]); this.ui.toast(tr('❗ Ada yang menggigit! Ketuk sekarang!', '❗ Something’s biting! Tap now!'), 1400); this.fx.sparkle(f.float.x, f.float.y + 0.2, f.float.z, 8, 0x8fd3ec, 1.5); }
     if (ev === 'escaped') this.ui.toast(tr('Yah, ikannya lepas. Tunggu lagi ya 🐟', 'Aw, it got away. Wait for the next one 🐟'), 1800);
   }
@@ -991,6 +1007,7 @@ export class Game {
     this.fun.update(dt);
     this.festive.update(t);
     this.places.update(dt, t);
+    this.fishHelpTick(dt);
     this.rowTick(dt, t);
     this.sanctuary.update(dt);
     this.kites.update(dt, t);

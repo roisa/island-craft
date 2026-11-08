@@ -167,3 +167,19 @@
 #book .tabs { margin-left: 46px !important; margin-right: 46px !important; justify-content: center; }
 @media (max-width: 520px), (max-height: 520px) { #book .tabs { justify-content: flex-start; } }
 .shop h2, .shop .shopHave { text-align: center; }
+
+/* ---- fishing help ---- */
+#bFishHelp { position: absolute; right: calc(14px + var(--safe-r)); bottom: calc(252px + var(--safe-b)); pointer-events: auto; z-index: 6; display: flex; align-items: center; gap: 4px; padding: 8px 14px; font-size: 18px; min-height: 44px; border-radius: 22px; }
+#bFishHelp b { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #0A84FF; color: #fff; font-size: 15px; }
+body.desktop #bFishHelp { bottom: calc(100px + var(--safe-b)); }
+#fishCue { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); z-index: 7; pointer-events: none; font-size: 44px; font-weight: 900; color: #fff; -webkit-text-stroke: 2px #c0392b; text-shadow: 0 3px 0 rgba(0,0,0,.25); animation: cue .5s ease-in-out infinite alternate; }
+#fishCue small { -webkit-text-stroke: 0; }
+@keyframes cue { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.15); } }
+#bUse.glow { box-shadow: 0 0 0 4px #FFD60A, 0 0 22px 6px rgba(255, 214, 10, .8) !important; animation: pk .5s ease-in-out infinite alternate; }
+.fishGuide { text-align: center; max-width: 420px; margin: 0 auto; }
+.fgStep { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; border-radius: 14px; background: #eef6ff; margin: 6px 0; }
+.fgN { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #0A84FF; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 14px; }
+.fgI { flex: none; font-size: 28px; width: 34px; text-align: center; }
+.fgStep p { margin: 0; font-size: 14.5px; line-height: 1.35; }
+.fgTip { font-size: 13px; opacity: .85; margin: 8px 0; }
+@media (max-height: 520px) { #bFishHelp { right: calc(196px + var(--safe-r)); bottom: calc(72px + var(--safe-b)); } .fgStep { padding: 5px 8px; margin: 4px 0; } .fgI { font-size: 22px; } }
