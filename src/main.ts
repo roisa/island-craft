@@ -47,6 +47,7 @@ import { Sanctuary } from './game/sanctuary';
 import { Kites, isKite } from './game/kites';
 import { Treasure } from './game/treasure';
 import { mangroveTree } from './world/landmarks';
+import { Weather } from './game/weather';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -94,6 +95,7 @@ export class Game {
   sanctuary!: Sanctuary;
   kites!: Kites;
   treasure!: Treasure;
+  weather!: Weather;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -299,6 +301,7 @@ export class Game {
     this.sanctuary = new Sanctuary(this);
     this.kites = new Kites(this);
     this.treasure = new Treasure(this);
+    this.weather = new Weather(this);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -970,6 +973,7 @@ export class Game {
     this.places.update(dt, t);
     this.sanctuary.update(dt);
     this.kites.update(dt, t);
+    this.weather.update(dt, t);
     this.eid.update(dt, t);
     if ((this.eidT -= dt) <= 0) { this.eidT = 20; this.eid.refresh(); }
     this.picnicCheck();

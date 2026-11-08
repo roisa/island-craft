@@ -39,6 +39,9 @@ export class Sky {
   meteorBoost = false;
   /** wearing the diving mask: you see further underwater */
   diver = false;
+  /** weather of the day: morning mist (0..1) and wind (clouds race) */
+  mist = 0; windy = false;
+  private cloudOff = 0;
   onMeteor?: () => void;
   horizon = new THREE.Color();
 
@@ -245,13 +248,14 @@ export class Sky {
     this.u.uDay.value = day;
     this.u.uSkyTint.value.copy(tint);
     if (underwater) { this.u.uFogColor.value.set(0x1e5f8a).multiplyScalar(Math.max(day, 0.3)); this.u.uUnderwater.value = this.diver ? 2 : 1; }
-    else { this.u.uFogColor.value.copy(hor); this.u.uUnderwater.value = 0; }
-    this.u.uFogNear.value = fogFar * 0.55 * (1 - this.rainAmount * 0.3);
-    this.u.uFogFar.value = fogFar * (1 - this.rainAmount * 0.25);
+    else { this.u.uFogColor.value.copy(hor).lerp(new THREE.Color(0xe4eaee).multiplyScalar(Math.max(day, 0.35)), this.mist * 0.85); this.u.uUnderwater.value = 0; }
+    this.u.uFogNear.value = fogFar * 0.55 * (1 - this.rainAmount * 0.3) * (1 - this.mist * 0.97);
+    this.u.uFogFar.value = fogFar * (1 - this.rainAmount * 0.25) * (1 - this.mist * 0.8);
 
     // clouds follow the player, drift slowly
     this.clouds.position.x = center.x; this.clouds.position.z = center.z;
-    this.cloudTex.offset.set(center.x / 400 + performance.now() / 1e6 * 4, -center.z / 400);
+    this.cloudOff += dt * (this.windy ? 0.02 : 0.004);
+    this.cloudTex.offset.set(center.x / 400 + this.cloudOff, -center.z / 400);
     const cm = this.clouds.material as THREE.MeshBasicMaterial;
     cm.color.setRGB(0.4 + day * 0.6, 0.4 + day * 0.6, 0.45 + day * 0.55).lerp(new THREE.Color(1, 0.75, 0.6), sunsetK * 0.6);
     cm.opacity = (0.35 + 0.45 * Math.min(1, day * 1.3)) + this.rainAmount * 0.2;

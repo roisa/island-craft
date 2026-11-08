@@ -219,3 +219,14 @@ describe('night glow', () => {
     void idx;
   });
 });
+
+import { weatherFor } from '../../src/game/weather';
+describe('weather of the day', () => {
+  it('is the same for the same world and day, and every kind turns up', () => {
+    expect(weatherFor(42, 7)).toBe(weatherFor(42, 7));
+    const seen = new Set<string>(); for (let d = 1; d <= 60; d++) seen.add(weatherFor(42, d));
+    expect([...seen].sort()).toEqual(['blossom', 'misty', 'sunny', 'windy']);
+    const sunny = Array.from({ length: 400 }, (_, d) => weatherFor(9, d)).filter(k => k === 'sunny').length;
+    expect(sunny).toBeGreaterThan(100); expect(sunny).toBeLessThan(220); // sunny is the most common
+  });
+});

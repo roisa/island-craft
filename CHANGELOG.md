@@ -5,6 +5,24 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Weather of the day 🌤️
+
+- **Every game day has its own weather,** the same for the same world and
+  day. Rain still comes and goes on its own.
+  - ☀️ **Sunny** (most days).
+  - 🌫️ **Misty morning:** whitish fog from dawn until a couple of hours
+    after sunrise, then it lifts.
+  - 💨 **Windy:** clouds race and kites fly higher (wind now drives the
+    kite height).
+  - 🌸 **Blossom day:** pink petals drift down around you outdoors in the
+    daytime (not in deserts, snow or at sea).
+- **The weather icon** shows next to the clock, and Baby Mo says what kind
+  of day it is when a new day starts. A misty morning comes with a little
+  lesson: mist is a cloud near the ground.
+- **Tested:** a unit test that the weather is stable per day and that all
+  four kinds turn up, with sunny the most common; screenshot checks of
+  mist and petals; the smoke suite on desktop and Android.
+
 ### Night glow 🍄
 
 - **Glowing mushrooms** grow in forests, a couple per forest chunk. They

@@ -410,7 +410,7 @@ export class UI {
     const g = this.g;
     this.updateStars();
     // clock + next in-game prayer
-    $('#clockT').innerHTML = ic('clock') + fmtHour(g.hour);
+    $('#clockT').innerHTML = ic('clock') + fmtHour(g.hour) + (g.weather ? ` <span class="wx" title="${esc(t2(g.weather.info.name))}">${g.weather.info.icon}</span>` : '');
     const np = g.nextGamePrayer();
     const rs = g.ramadhan;
     const ram = rs.inRamadhan ? tr(`🌙 Ramadhan hari ${rs.day}`, `🌙 Ramadan day ${rs.day}`) : '';
