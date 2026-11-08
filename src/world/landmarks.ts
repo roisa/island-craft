@@ -631,6 +631,92 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    // the big masjid near the village: a men's hall in front, the women's hall behind a curtain,
+    // each with its own door and wudu place; at prayer time it fills with people (see game/congregation.ts)
+    id: 'grand_masjid', icon: '🕌', name: ['Masjid Raya', 'The Grand Masjid'], biomes: [Biome.MEADOW, Biome.BEACH, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.BEACH, Biome.FOREST, Biome.DESERT, Biome.SNOWY], dist: [58, 130], r: 20, loose: true,
+    ok: c => c.h > SEA && c.h < SEA + 14,
+    hint: ['Dekat desa ada masjid besar dengan kubah emas dan dua menara. Saat waktu sholat, banyak orang sholat berjamaah di sana.', 'Near the village stands a big masjid with a golden dome and two minarets. At prayer time, lots of people pray there together.'],
+    fact: ['Masjid Raya punya ruang sholat laki-laki di depan dan ruang perempuan di belakang tirai, masing-masing dengan pintu dan tempat wudhu sendiri. Rasulullah ﷺ bersabda: luruskan shaf, karena shaf yang lurus termasuk kesempurnaan sholat (HR. Bukhari 723).', 'The Grand Masjid has a men’s hall in front and a women’s hall behind a curtain, each with its own door and wudu place. The Prophet ﷺ said: straighten your rows, for straight rows are part of a complete prayer (Bukhari 723).'],
+    loot: [[I.PRAYER_MAT, 3], [I.BOOK_STAND, 1], [B.LANTERN, 4]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      foundation(b, x - 16, z - 15, x + 16, z + 18, y, B.STONE);
+      b.box(x - 16, y, z - 15, x + 16, y, z + 18, B.MARBLE);
+      b.box(x - 16, y + 1, z - 15, x + 16, y + 27, z + 18, B.AIR);
+      // the hall: 21 × 17 inside, walls 7 high
+      const X0 = x - 11, X1 = x + 11, Z0 = z - 12, Z1 = z + 6, TOP = y + 7;
+      b.box(X0, y + 1, Z0, X1, TOP, Z1, (X, Y, Z) => {
+        const wall = X === X0 || X === X1 || Z === Z0 || Z === Z1;
+        if (!wall) return B.AIR;
+        if ((X === X0 || X === X1) && Z >= z - 6 && Z <= z - 4 && Y <= y + 3) return B.AIR;   // the men's doors, east and west
+        if (Z === Z1 && Math.abs(X - x) <= 1 && Y <= y + 3) return B.AIR;                    // the women's door, at the back
+        if (Z === Z0 && Math.abs(X - x) <= 1 && Y <= y + 4) return X === x ? B.MOSAIC : B.GOLD_TILE; // the mihrab
+        if (Y === TOP) return B.MOSAIC;
+        if ((Y === y + 3 || Y === y + 4) && (X + Z) % 3 === 0) return B.GLASS;
+        return B.MARBLE;
+      });
+      // carpets: green and red rows for the men, purple and blue for the women
+      b.box(X0 + 1, y, Z0 + 1, X1 - 1, y, z - 2, (_X, _Y, Z) => ((Z - z) % 2 === 0 ? B.WOOL_GREEN : B.WOOL_RED));
+      b.box(X0 + 1, y, z, X1 - 1, y, Z1 - 1, (_X, _Y, Z) => ((Z - z) % 2 === 0 ? B.WOOL_PURPLE : B.WOOL_BLUE));
+      // the partition: a wooden screen with a white curtain on top, all across the hall
+      b.box(X0 + 1, y + 1, z - 1, X1 - 1, y + 2, z - 1, B.PLANKS);
+      b.box(X0 + 1, y + 3, z - 1, X1 - 1, y + 3, z - 1, B.WOOL_WHITE);
+      for (let X = X0 + 2; X <= X1 - 2; X += 4) b.stamp(X, y + 4, z - 1, B.LANTERN);
+      // the minbar beside the mihrab, and bookshelves of Qur'ans
+      b.stamp(x + 2, y + 1, Z0 + 1, B.PLANKS); b.stamp(x + 3, y + 1, Z0 + 1, B.PLANKS); b.stamp(x + 3, y + 2, Z0 + 1, B.PLANKS);
+      for (const bx of [X0 + 1, X1 - 1]) { b.stamp(bx, y + 1, Z0 + 1, B.BOOKSHELF); b.stamp(bx, y + 1, z + 4, B.BOOKSHELF); }
+      b.stamp(x + 5, y + 1, Z0 + 1, B.CHEST);
+      // the roof, open under the big dome so you can look up into it
+      const dcx = x, dcz = z - 5, dcy = TOP;
+      b.box(X0, TOP + 1, Z0, X1, TOP + 1, Z1, (X, _Y, Z) => (Math.hypot(X - dcx, Z - dcz) < 5.2 ? B.AIR : B.MARBLE));
+      for (const [lx, lz] of [[x - 7, z - 9], [x + 7, z - 9], [x - 7, z - 4], [x + 7, z - 4], [x - 6, z + 3], [x + 6, z + 3], [x, z + 3]]) b.stamp(lx, TOP, lz, B.LANTERN);
+      // the big golden dome over the men's hall
+      for (let dx = -7; dx <= 7; dx++) for (let dz = -7; dz <= 7; dz++) for (let dy = 1; dy <= 7; dy++) {
+        const r = Math.hypot(dx, dz, dy * 1.05);
+        if (r <= 6.6 && r > 5.5) b.stamp(dcx + dx, dcy + dy, dcz + dz, (dx + dy + dz) % 5 === 0 ? B.MOSAIC : B.GOLD_TILE);
+      }
+      b.stamp(dcx, dcy + 8, dcz, B.GOLD_TILE); b.stamp(dcx, dcy + 9, dcz, B.GOLD_TILE); b.stamp(dcx, dcy + 10, dcz, B.LANTERN);
+      // a small dome over the women's hall
+      for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = 1; dy <= 3; dy++) {
+        const r = Math.hypot(dx, dz, dy * 1.1);
+        if (r <= 3.3 && r > 2.3) b.stamp(x + dx, TOP + 1 + dy, z + 3 + dz, B.GOLD_TILE);
+      }
+      // two minarets at the front corners, with a balcony and a lantern on top
+      const MT = 20;
+      for (const tx of [x - 14, x + 14]) {
+        const tz = z - 11;
+        b.box(tx - 1, y + 1, tz - 1, tx + 1, y + MT, tz + 1, (_X, Y) => ((Y - y) % 5 === 0 ? B.MOSAIC : B.MARBLE));
+        b.box(tx - 2, y + MT - 2, tz - 2, tx + 2, y + MT - 2, tz + 2, B.MARBLE);
+        for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) b.stamp(tx + dx, y + MT - 1, tz + dz, B.LANTERN);
+        b.stamp(tx, y + MT + 1, tz, B.GOLD_TILE); b.stamp(tx, y + MT + 2, tz, B.GOLD_TILE); b.stamp(tx, y + MT + 3, tz, B.LANTERN);
+      }
+      // the men's wudu place by the west door: a long basin
+      b.box(x - 15, y, z - 8, x - 13, y, z - 2, (X, _Y, Z) => (X === x - 14 && Z > z - 8 && Z < z - 2 ? B.WATER : B.MOSAIC));
+      b.stamp(x - 15, y + 1, z - 8, B.OAK_LOG); b.stamp(x - 15, y + 2, z - 8, B.LANTERN);
+      // the women's wudu place in the courtyard, behind a little screen
+      b.box(x + 7, y, z + 9, x + 10, y, z + 12, (X, _Y, Z) => (X > x + 7 && X < x + 10 && Z > z + 9 && Z < z + 12 ? B.WATER : B.MOSAIC));
+      b.box(x + 6, y + 1, z + 8, x + 11, y + 2, z + 13, (X, _Y, Z) => (X === x + 6 && Z <= z + 10 ? null : (X === x + 6 || X === x + 11 || Z === z + 8 || Z === z + 13) ? B.PLANKS : null));
+      // the courtyard: a path from the women's door, a fountain, flowers and date palms
+      b.box(x - 1, y, Z1 + 1, x + 1, y, z + 18, B.MOSAIC);
+      b.box(x - 2, y, z + 13, x + 2, y, z + 15, (X, _Y, Z) => (Math.abs(X - x) <= 1 && Math.abs(Z - (z + 14)) <= 0 ? B.WATER : B.MOSAIC));
+      for (const [fx, fz] of [[x - 6, z + 9], [x - 8, z + 12], [x - 4, z + 16], [x + 4, z + 16], [x - 10, z + 8]]) b.stamp(fx, y + 1, fz, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE][(fx + fz + 64) % 4]);
+      for (const [px, pz] of [[x - 13, z + 15], [x + 13, z + 15], [x - 13, z + 8]]) palm(b, px, y, pz, 5);
+      for (const [lx, lz] of [[x - 3, z + 18], [x + 3, z + 18], [x - 12, z - 7], [x + 12, z - 3]]) { b.stamp(lx, y + 1, lz, B.OAK_LOG); b.stamp(lx, y + 2, lz, B.LANTERN); }
+      return {
+        y: y + 1,
+        spots: [
+          { id: 'men_hall', icon: '🧔', name: ['Ruang Sholat Laki-laki', 'The Men’s Hall'], fact: ['Laki-laki sholat di shaf depan, rapat bahu ke bahu dan lurus. Anak laki-laki boleh ikut di shaf bersama ayahnya.', 'Men pray in the front rows, shoulder to shoulder in straight lines. Boys can stand in the rows with their dads.'], x: x + 0.5, y: y + 1, z: z - 7.5, r: 4 },
+          { id: 'women_hall', icon: '🧕', name: ['Ruang Sholat Perempuan', 'The Women’s Hall'], fact: ['Perempuan punya ruang sendiri di belakang tirai, dengan pintu dan tempat wudhu sendiri, supaya semua bisa sholat dengan nyaman. Di masjid Nabi ﷺ, shaf perempuan ada di belakang shaf laki-laki.', 'Women have their own hall behind the curtain, with their own door and wudu place, so everyone can pray in comfort. In the Prophet’s ﷺ masjid, the women’s rows were behind the men’s.'], x: x + 0.5, y: y + 1, z: z + 2.5, r: 3 },
+        ],
+        at: {
+          imam: [x + 0.5, y + 1, Z0 + 1.5], men: [x + 0.5, y + 1, z - 8.5], women: [x + 0.5, y + 1, z + 1.5],
+          menDoor: [X0 - 1.5, y + 1, z - 4.5], womenDoor: [x + 0.5, y + 1, Z1 + 2.5], top: [dcx + 0.5, dcy + 11, dcz + 0.5],
+          hall: [x + 0.5, y + 1, z - 3], size: [X1 - X0, 0, Z1 - Z0],
+        },
+      };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);

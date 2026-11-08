@@ -5,6 +5,83 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Grand Masjid, the way to the masjid, and masjid lights 🕌✨
+
+Requested by a parent: an easy way for Ibra to get to the nearest masjid on
+time from anywhere, a light that shows where a masjid is, and a bigger
+masjid where more people pray, with separate places for men and women.
+
+- **The Grand Masjid (Masjid Raya)**, a new landmark 58–130 blocks from
+  the village, in every world. It's added last, so existing worlds keep
+  all their other places and gain the new masjid.
+  - **Men’s hall in front:** green and red rows, the mihrab and a
+    minbar, under a big golden dome you can look up into from inside.
+    Men’s doors are on both sides, with a long wudu basin by the west
+    door.
+  - **Women’s hall behind** a wooden screen with a white curtain, all
+    across the hall: purple and blue rows, a small dome, its own door at
+    the back, and its own wudu place in the courtyard behind a little
+    screen.
+  - **Outside:** two minarets with balconies and lanterns, a courtyard
+    with a fountain, flowers and date palms, and a treasure chest.
+  - Walking into each hall shows a short card about it: straight rows
+    (HR. Bukhari 723), and why women have their own hall (as in the
+    Prophet’s ﷺ masjid).
+- **It fills up at prayer time** (new `src/game/masjids.ts`):
+  - An imam, two rows of men (some boys) in caps and robes, and two rows
+    of women in white and pastel mukena. That's 37 people, or 19 on low
+    graphics.
+  - Some sit and wait until the prayer starts. Everyone prays the same
+    movements together, then sits for dhikr afterwards.
+  - Your place in the row glows. Boys join the men’s row (Baby Mo next
+    to them); girls (Ais) join the women’s row.
+  - Praying there counts like the village masjid: ×27 in the Amal Book,
+    100 coins, steps to the masjid.
+  - The village masjid works as before. The prayer checks now work for
+    any masjid (“sites”), not only the village one.
+- **Getting to the masjid on time:**
+  - **🕌 To the masjid button:** a pulsing gold button appears while a
+    prayer is waiting and you’re not in a masjid. It lists both masjids
+    with distances:
+    - **Take me there:** a quick fade, with Baby Mo, to the right door
+      (men’s side door for boys, women’s door for girls). Off the boat
+      or camel first.
+    - **Show me the way:** a trail of little golden lights on the ground
+      leads you there.
+  - **The golden arrow** points to the nearest masjid during prayer time
+    (🕌 and the distance), then goes back to letters.
+  - **Prayer tab:** a **Go to a masjid** button, any time.
+- **Masjid lights:**
+  - A golden beam of light rises over each masjid.
+  - It pulses brightly while a prayer is waiting, glows softly at night,
+    and is off during the day.
+  - A glowing crescent-and-star marker floats above the dome during
+    prayer time, visible from far away.
+- **Pets follow you onto raised places again.**
+  - The “you’re up in a building” check from the last fix now compares
+    your height with the ground just around you, not the natural ground.
+  - Animals follow you onto raised places such as the sanctuary pen and
+    the Grand Masjid platform, but still wait below towers and upper
+    floors.
+  - Found by a smoke test that sometimes failed.
+- **Tested:**
+  - Unit tests:
+    - every world has the Grand Masjid near the village;
+    - the women’s hall is behind the men’s, with the screen and curtain
+      across the whole hall;
+    - boys and girls have different doors and places;
+    - the rows leave your place and Baby Mo’s free;
+    - the arrow picks the nearest masjid.
+  - Smoke:
+    - far away at Asr, the 🕌 button and the arrow appear;
+    - choosing the Grand Masjid takes you there;
+    - standing in your place starts the prayer with a full masjid, and
+      finishing it counts.
+  - Screenshots: the button and picker, the door, inside both halls, the
+    whole row in ruku’, a view from above, and the beams and crescents
+    from far away at evening.
+  - The unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### Fixes: animals stay outside, no rain indoors, the boat stays put 🐱🐪⛵🌧️
 
 Reported by a parent after Ibra played.

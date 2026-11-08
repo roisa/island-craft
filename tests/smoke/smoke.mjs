@@ -324,6 +324,33 @@ async function run(name) {
       if (!(r.drained > 5) || r.after.me !== 50 || r.after.mo !== 50 || r.after.sips !== 2 || r.after.gave < 1 || r.refilled !== 4) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
+      if (!L) throw new Error('no Grand Masjid in this world');
+      const state = () => g(() => { const G = __game, ev = G.gameEvent, P = G.player.pos; return JSON.stringify({ ev: ev && { p: ev.p, prayed: ev.prayed }, btn: !document.querySelector('#bMasjid').classList.contains('hidden'), open: G.ui.isOpen(), book: document.querySelector('#vBook')?.classList.contains('on'), modals: G.ui.modals.length, site: G.siteAt(P)?.id, riding: !!G.fun.riding, jam: !!G.jamaah, pos: [P.x.toFixed(1), P.y.toFixed(1), P.z.toFixed(1)], paused: G.paused, locked: G.ui.locked, speed: G.player.speed }); });
+      const wait = (what, fn, arg, ms) => p.waitForFunction(fn, arg, { timeout: ms, polling: 200 }).catch(async e => { throw new Error(what + ': ' + (await state())); });
+      // far from any masjid when Asr comes: the 🕌 button and the golden arrow point the way
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(30.5, 70, 30.5); G.player.vel.set(0, 0, 0); G.gameEvent = null; G.hour = G.schedule.asr - 0.002; G.lastHour = G.hour; });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await wait('🕌 button', () => !document.querySelector('#bMasjid').classList.contains('hidden') || (__game.ui.closeAllModals(), __game.ui.closeBook(), false), null, 15000);
+      const arrow = await g(() => __game.compass()?.masjid === true);
+      // tap it and choose the Grand Masjid
+      await g(() => document.querySelector('#bMasjid').click());
+      await wait('picker', () => !!document.querySelector('.veil.on #dbtns button') || (__game.ui.closeAllModals(), __game.ui.masjidPicker(), false), null, 15000);
+      await g(() => [...document.querySelectorAll('.veil.on #dbtns button')].find(b => /Masjid Raya|Grand Masjid/.test(b.textContent)).click());
+      await wait('travel', L => Math.hypot(__game.player.pos.x - L.x, __game.player.pos.z - L.z) < 25, L, 8000);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      // into your place in the men's row: the prayer starts with a full masjid
+      await g(L => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); }, L);
+      await wait('prayer start', () => !!__game.jamaah || (__game.ui.closeAllModals(), false), null, 15000);
+      const mid = await g(() => ({ site: __game.jamaahSite.id, people: __game.congregation.count, jamaah: __game.stats.jamaah }));
+      await g(() => { const j = __game.jamaah; j.i = j.plan.length - 1; j.t = 0; });
+      await p.waitForFunction(() => !__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
+      const after = await g(() => __game.stats.jamaah);
+      if (!arrow || mid.site !== 'grand' || mid.people < 15 || after !== mid.jamaah + 1) throw new Error(JSON.stringify({ arrow, mid, after }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      return { ...mid, after };
+    });
     await step('Amal Book: wudu, tasbih, charity box, and a village project gets built', async () => {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
       await p.waitForSelector('.veil.on .wudu');

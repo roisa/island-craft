@@ -264,3 +264,8 @@ body.desktop #waterBtns { bottom: calc(100px + var(--safe-b)); }
   .lockScr.night .lockBox { width: min(380px, 46vw); max-height: calc(100vh - 32px); overflow: auto; }
 }
 @media (max-height: 520px) { .lockScr.night .lockBox p { font-size: 13px; margin: 4px 0; } .nightDua { margin: 4px auto; padding: 4px 8px; } .nightDua .ar { font-size: 18px; } }
+
+/* 🕌 to the masjid (at prayer time) */
+#bMasjid { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 12px; min-height: 44px; border-radius: 22px; font-weight: 800; font-size: 15px; background: linear-gradient(180deg, #FFE27A, #F5B82E); color: #4a3200; box-shadow: 0 0 0 0 rgba(255, 210, 74, .7); animation: mqPulse 1.6s ease-out infinite; }
+#bMasjid .mi { font-size: 20px; }
+@keyframes mqPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 210, 74, .75); } 100% { box-shadow: 0 0 0 16px rgba(255, 210, 74, 0); } }

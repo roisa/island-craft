@@ -6,7 +6,7 @@ import { B } from '../../src/world/blocks';
 const SEEDS = [1, 42, 777, 123456789, 99999];
 
 describe('landmarks', () => {
-  it('every world gets all 8 landmarks, the same ones for the same seed', () => {
+  it('every world gets all its landmarks, the same ones for the same seed', () => {
     for (const seed of SEEDS) {
       const a = new Generator(seed).landmarks, b = new Generator(seed).landmarks;
       expect(a.map(l => l.id).sort(), `seed ${seed}`).toEqual(landmarkIds().slice().sort());

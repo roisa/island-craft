@@ -148,7 +148,10 @@ export class Animal extends Entity {
     if (this.follow) {
       const f = this.follow(), d = Math.hypot(f.x - this.pos.x, f.z - this.pos.z);
       // animals wait outside while you're indoors (a house, the masjid, a cave) or up in a building
-      const away = this.world.roofed(f.x, f.y, f.z) || f.y - this.world.gen.column(Math.floor(f.x), Math.floor(f.z)).h > 3.5;
+      // (up a building: you're well above the ground just around you; a hill or a raised platform doesn't count)
+      const W = this.world, top = (x: number, z: number) => W.heightAt(Math.floor(x), Math.floor(z));
+      const around = Math.min(top(f.x + 4, f.z), top(f.x - 4, f.z), top(f.x, f.z + 4), top(f.x, f.z - 4));
+      const away = W.roofed(f.x, f.y, f.z) || f.y - (around + 1) > 3.5;
       if (away) { if (this.target && this.world.roofed(this.target.x, this.pos.y, this.target.z)) this.target = null; this.waiting = true; }
       else if (d > 18 || Math.abs(f.y - this.pos.y) > 6) { this.pos.set(f.x - 1.5, f.y, f.z + 1.5); this.target = null; this.waiting = false; }
       else if (d > 3) { this.target = new THREE.Vector3(f.x + (this.pos.x - f.x) / d * 2, f.y, f.z + (this.pos.z - f.z) / d * 2); this.wait = 0; this.waiting = false; }

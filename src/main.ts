@@ -53,6 +53,7 @@ import { Projects } from './game/projects';
 import { Deeds } from './game/deeds';
 import { Thirst, thirstSpeed } from './game/thirst';
 import { Bedtime } from './game/bedtime';
+import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
 import { Jamaah, rowPose } from './game/jamaah';
 import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './game/amal';
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
@@ -73,12 +74,10 @@ export interface Settings {
   eid?: EidMode;
 }
 const SPAWN = new THREE.Vector3(0.5, VILLAGE_Y + 1, 3.5);
-const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
 // the jama'ah row, facing the qibla wall (north): Ayah Ibrahim leads in front,
 // the others stand in a straight row behind him with places for you and Baby Mo
 const ROW = { imam: new THREE.Vector3(0.5, VILLAGE_Y + 1, -20.5), player: new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5), mo: new THREE.Vector3(2.0, VILLAGE_Y + 1, -18.5),
   others: [new THREE.Vector3(-1.0, VILLAGE_Y + 1, -18.5), new THREE.Vector3(-2.5, VILLAGE_Y + 1, -18.5), new THREE.Vector3(3.5, VILLAGE_Y + 1, -18.5)] };
-const inMasjidArea = (p: THREE.Vector3) => p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3;
 /** where you can make wudu: the village well and the fountain (once built) */
 const WUDU_SPOTS: [number, number][] = [[8.5, 8.5], [16.5, -2.5]];
 const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK, I.GRILLED_FISH, I.FRIED_EGG, I.STEAK, I.KETUPAT_OPOR, I.NASTAR]);
@@ -112,6 +111,16 @@ export class Game {
   deeds!: Deeds;
   thirst!: Thirst;
   bedtime!: Bedtime;
+  /** the masjids you can pray in together (the village one, and the Grand Masjid) */
+  sites: MasjidSite[] = [VILLAGE_SITE];
+  /** where the prayer you're in (or about to join) takes place */
+  jamaahSite: MasjidSite = VILLAGE_SITE;
+  congregation: Congregation | null = null;
+  beacons: Beacons | null = null;
+  /** "show me the way": the golden arrow and a trail of light lead here */
+  masjidGuide: MasjidSite | null = null;
+  siteAt(p: THREE.Vector3) { return this.sites.find(s => s.inside(p)) ?? null; }
+  get girl() { return this.settings.avatar === 'girl'; }
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -150,7 +159,7 @@ export class Game {
   placeRot = 0;
   private blockGhost!: THREE.Group;
   private aimDeco: ReturnType<Decor['raycast']> = null;
-  private gameEvent: { p: Prayer; until: number; attended: boolean; prayed?: boolean } | null = null;
+  gameEvent: { p: Prayer; until: number; attended: boolean; prayed?: boolean } | null = null;
   /** the prayer together in progress (everyone moves as one) */
   jamaah: Jamaah | null = null;
   private rowStill = 0;
@@ -329,6 +338,9 @@ export class Game {
     this.sky.roofAt = (x, z) => this.world.heightAt(x, z);
     this.thirst = new Thirst(this);
     this.bedtime = new Bedtime(this);
+    const gl = this.gen.landmarks.find(l => l.id === 'grand_masjid'), gs = gl ? grandSite(gl) : null;
+    if (gl && gs) { this.sites.push(gs); this.congregation = new Congregation(this, gs, new THREE.Vector3(...gl.at!.imam)); }
+    this.beacons = new Beacons(this.scene, this.sites);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -447,9 +459,21 @@ export class Game {
   }
   /** a landmark the child chose to follow from the journal (the golden arrow points there instead) */
   exploreTarget: string | null = null;
+  /** the masjid the golden arrow points to: the one you asked for, or the nearest one while a prayer waits */
+  masjidTarget(): MasjidSite | null {
+    const p = this.player?.pos, ev = this.gameEvent; if (!p) return null;
+    if (this.masjidGuide) return this.masjidGuide;
+    if (ev && !ev.prayed && !this.jamaah && !this.siteAt(p)) return nearestSite(this.sites, p);
+    return null;
+  }
   compass() {
-    let best: { rot: number; dist: number; landmark?: string } | null = null, bd = Infinity;
+    let best: { rot: number; dist: number; landmark?: string; masjid?: boolean } | null = null, bd = Infinity;
     const p = this.player?.pos; if (!p) return null;
+    const ms = this.masjidTarget();
+    if (ms) {
+      const ta = Math.atan2(ms.spot.x - p.x, ms.spot.z - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
+      return { rot: -(ta - la), dist: Math.hypot(ms.spot.x - p.x, ms.spot.z - p.z), landmark: '🕌', masjid: true };
+    }
     const lm: { x: number; z: number; icon: string } | null | undefined = this.exploreTarget ? (this.sanctuary?.target(this.exploreTarget) ?? this.treasure?.target(this.exploreTarget) ?? this.gen.landmarks.find(l => l.id === this.exploreTarget)) : null;
     if (lm) {
       const ta = Math.atan2(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
@@ -554,6 +578,47 @@ export class Game {
     const [x, y, z] = u.cells[0]; this.fx.sparkle(x + 0.5, y + 0.5, z + 0.5, 10, 0xffffff, 1.5);
   }
 
+  /** fast travel to a masjid's door (boys: the men's door, girls: the women's), with Baby Mo */
+  goToMasjid(site: MasjidSite) {
+    if (this.fun.riding) { this.fun.dismount(); if (this.fun.riding) { this.scene.remove(this.fun.riding.obj); if (this.fun.riding.kind === 'boat') this.inv.add(I.BOAT, 1); this.fun.riding = null; this.ents.mo.seat = null; } }
+    this.ui.sleepFade(true);
+    setTimeout(() => {
+      const d = site.door(this.girl), p = this.player;
+      p.pos.copy(d); p.vel.set(0, 0, 0); p.visY = d.y; p.flying = false;
+      p.yaw = Math.atan2(-(site.spot.x - d.x), -(site.spot.z - d.z)); // facing the masjid
+      this.ents.mo.pos.set(d.x + 1.2, d.y, d.z + 0.6);
+      this.masjidGuide = null;
+      this.ui.sleepFade(false);
+      this.fx.sparkle(d.x, d.y + 1, d.z, 24, 0xffd874, 3); SFX.pickup();
+      const ev = this.gameEvent;
+      this.ui.say(ev && !ev.prayed
+        ? tr(`Sampai di ${site.name[0]}! 🕌 Masuk, lalu berdiri di tanda yang bersinar ✨ di barisan.`, `Here at ${site.name[1]}! 🕌 Go in and stand on the glowing mark ✨ in the row.`)
+        : tr(`Sampai di ${site.name[0]}! 🕌`, `Here at ${site.name[1]}! 🕌`), 'alright', 6000);
+    }, 600);
+  }
+  /** "show me the way": the golden arrow points to the masjid and a trail of light leads there */
+  guideTo(site: MasjidSite) {
+    this.masjidGuide = site;
+    this.ui.say(tr('Ikuti panah emas dan jejak cahaya ✨ ke masjid. Setiap langkah ke masjid ada pahalanya!', 'Follow the golden arrow and the trail of light ✨ to the masjid. Every step to the masjid is rewarded!'), 'idea', 6000);
+  }
+  private trailT = 0;
+  private masjidTrail(dt: number) {
+    const site = this.masjidTarget(), p = this.player.pos;
+    if (this.masjidGuide && (this.masjidGuide.inside(p) || Math.hypot(p.x - this.masjidGuide.spot.x, p.z - this.masjidGuide.spot.z) < 8)) this.masjidGuide = null;
+    const ev = this.gameEvent;
+    this.ui.showMasjidBtn(!!ev && !ev.prayed && !this.jamaah && !this.siteAt(p) && !this.ui.isOpen() && !this.fun.riding);
+    if (!site || (this.trailT -= dt) > 0) return;
+    this.trailT = 0.45;
+    // little golden lights on the ground, a few steps ahead towards the masjid
+    const dx = site.spot.x - p.x, dz = site.spot.z - p.z, d = Math.hypot(dx, dz);
+    if (d < 6) return;
+    for (let i = 1; i <= 6; i++) {
+      const k = Math.min(d - 2, i * 2.4), x = p.x + dx / d * k, z = p.z + dz / d * k;
+      const top = this.world.heightAt(Math.floor(x), Math.floor(z));
+      const y = Math.abs(top - p.y) < 6 ? top + 1.15 : p.y + 0.15;
+      this.fx.sparkle(x, y, z, 1, 0xffd874, 0.25);
+    }
+  }
   goHome(fx = false) {
     this.player.pos.copy(SPAWN); this.player.vel.set(0, 0, 0); this.player.visY = SPAWN.y; this.player.yaw = 0; this.player.flying = false;
     this.ents.mo.pos.set(SPAWN.x + 1.5, SPAWN.y, SPAWN.z + 1);
@@ -590,15 +655,20 @@ export class Game {
   private prayCamBefore: 'first' | 'third' | null = null;
   get prayingTogether() { return this.prayCamBefore !== null; }
   /** can the "Pray together" button be offered right now? */
-  canPrayTogether() { return !!this.gameEvent && !this.gameEvent.prayed && !this.jamaah && this.picnicToMasjid < 0 && this.player.pos.distanceTo(MASJID_SPOT) < 22 && !this.fun?.riding; }
+  canPrayTogether() {
+    const ev = this.gameEvent, s = nearestSite(this.sites, this.player.pos);
+    return !!ev && !ev.prayed && !this.jamaah && (this.picnicToMasjid < 0 || s.id !== 'village') && this.player.pos.distanceTo(s.spot) < 22 && !this.fun?.riding;
+  }
   /** step into the row next to Baby Mo, facing the qibla, with the camera behind you so you can follow along */
   prayTogether() {
     if (!this.canPrayTogether()) return;
     const p = this.player;
-    p.pos.copy(ROW.player); p.vel.set(0, 0, 0); p.visY = p.pos.y; p.yaw = 0; p.pitch = -0.25; p.flying = false;
+    const site = nearestSite(this.sites, p.pos), row = site.row(this.girl);
+    this.jamaahSite = site;
+    p.pos.copy(row.player); p.vel.set(0, 0, 0); p.visY = p.pos.y; p.yaw = 0; p.pitch = -0.25; p.flying = false;
     if (this.prayCamBefore === null) this.prayCamBefore = this.settings.cam;
     this.settings.cam = 'third';
-    this.ents.mo.prayAt = ROW.mo; this.ents.mo.pos.copy(ROW.mo);
+    this.ents.mo.prayAt = row.mo; this.ents.mo.pos.copy(row.mo);
     this.startJamaah();
   }
   /** walking off (or the prayer ending) gives you your own camera back */
@@ -1635,7 +1705,8 @@ export class Game {
     if (this.gameEvent) {
       const ev = this.gameEvent;
       const p = this.player.pos;
-      if (!ev.attended && inMasjidArea(p) && this.picnicToMasjid < 0) {
+      const here = this.siteAt(p);
+      if (!ev.attended && here && (this.picnicToMasjid < 0 || here.id !== 'village')) {
         ev.attended = true;
         SFX.chime();
         this.ui.say(tr(`Warga menunggumu! Berdiri di tempatmu di barisan (tanda yang bersinar ✨) atau tekan 🤲 Sholat bersama — sholat ${prayerName(ev.p)} dimulai bersama-sama.`, `The villagers are waiting for you! Stand in your place in the row (the glowing mark ✨) or press 🤲 Pray together — then ${prayerName(ev.p)} prayer starts together.`), 'alright', 8000);
@@ -1646,9 +1717,9 @@ export class Game {
       }
       // Baby Mo joins the row whenever you're in the masjid during prayer time (not during the iftar picnic)
       const prayingNow = this.picnicToMasjid < 0;
-      this.ents.mo.prayAt = prayingNow && inMasjidArea(p) ? ROW.mo : null;
+      this.ents.mo.prayAt = here && (prayingNow || here.id !== 'village') ? (this.jamaah ? this.jamaahSite : here).row(this.girl).mo : null;
       // still on your way to the masjid: they wait a little longer
-      if (this.crossed(ev.until) && !this.jamaah && p.distanceTo(MASJID_SPOT) < 30) ev.until = (this.hour + 0.25) % 24;
+      if (this.crossed(ev.until) && !this.jamaah && this.sites.some(s => p.distanceTo(s.spot) < 30)) ev.until = (this.hour + 0.25) % 24;
       else if (this.crossed(ev.until) && !this.jamaah) this.endPrayerTime();
     }
     this.lastHour = this.hour;
@@ -1656,28 +1727,35 @@ export class Game {
 
   /** the glowing place in the row, and starting the prayer when you stand on it */
   private rowTick(dt: number, t: number) {
-    const ev = this.gameEvent, waiting = !!ev && !ev.prayed && !this.jamaah && this.picnicToMasjid < 0;
+    const site = this.jamaah ? this.jamaahSite : nearestSite(this.sites, this.player.pos), row = site.row(this.girl).player;
+    const ev = this.gameEvent, waiting = !!ev && !ev.prayed && !this.jamaah && (this.picnicToMasjid < 0 || site.id !== 'village');
     if (waiting && !this.rowMark) {
       this.rowMark = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.48, 24), new THREE.MeshBasicMaterial({ color: 0xffd874, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
-      this.rowMark.rotation.x = -Math.PI / 2; this.rowMark.position.set(ROW.player.x, ROW.player.y + 0.03, ROW.player.z);
+      this.rowMark.rotation.x = -Math.PI / 2;
       this.scene.add(this.rowMark);
     }
+    if (this.rowMark) this.rowMark.position.set(row.x, row.y + 0.03, row.z);
     if (this.rowMark) { this.rowMark.visible = waiting; (this.rowMark.material as THREE.MeshBasicMaterial).opacity = 0.5 + Math.sin(t * 4) * 0.3; }
     // steps to the masjid at prayer time, counted when you arrive
     if (ev && !ev.prayed) {
-      const q = this.player.pos, d = q.distanceTo(MASJID_SPOT);
+      const q = this.player.pos, d = q.distanceTo(site.spot);
       if (this.stepPrev && d < 70) { const moved = Math.hypot(q.x - this.stepPrev.x, q.z - this.stepPrev.z); if (moved < 3 && d < this.stepPrevD) this.stepAcc += moved; }
       this.stepPrev = (this.stepPrev ?? new THREE.Vector3()).copy(q); this.stepPrevD = d;
-      if (this.stepAcc > 2 && inMasjidArea(q)) { const n = Math.max(1, Math.round(this.stepAcc / 0.7)); this.stepAcc = 0; this.amal('steps'); this.ui.toast(tr(`👣 ${n} langkah ke masjid — setiap langkah mengangkat derajat dan menghapus kesalahan`, `👣 ${n} steps to the masjid — each step raises you up and wipes away a mistake`), 4500); }
+      if (this.stepAcc > 2 && this.siteAt(q)) { const n = Math.max(1, Math.round(this.stepAcc / 0.7)); this.stepAcc = 0; this.amal('steps'); this.ui.toast(tr(`👣 ${n} langkah ke masjid — setiap langkah mengangkat derajat dan menghapus kesalahan`, `👣 ${n} steps to the masjid — each step raises you up and wipes away a mistake`), 4500); }
     } else { this.stepAcc = 0; this.stepPrev = null; }
     if (waiting) {
       const p = this.player;
-      const inPlace = Math.hypot(p.pos.x - ROW.player.x, p.pos.z - ROW.player.z) < 0.7 && Math.abs(p.pos.y - ROW.player.y) < 1 && p.speed < 0.3;
+      const inPlace = Math.hypot(p.pos.x - row.x, p.pos.z - row.z) < 0.7 && Math.abs(p.pos.y - row.y) < 1 && p.speed < 0.3;
       this.rowStill = inPlace ? this.rowStill + dt : 0;
-      if (this.rowStill > 0.6) this.startJamaah();
+      if (this.rowStill > 0.6) { this.jamaahSite = site; this.startJamaah(); }
     }
     if (this.jamaah) this.jamaahTick(dt);
     this.ui.jamaahHud(this.jamaah);
+    // the Grand Masjid fills up at prayer time while you're nearby
+    const gs = this.sites.find(s => s.id === 'grand'), pp = this.player.pos;
+    if (this.congregation && gs) this.congregation.update(!!ev && Math.hypot(pp.x - gs.spot.x, pp.z - gs.spot.z) < 80, !!this.jamaah && this.jamaahSite === gs, !!ev?.prayed);
+    this.beacons?.update(t, this.camera.position, !!ev && !ev.prayed && !this.jamaah && !this.siteAt(pp), !!this.sky.night);
+    this.masjidTrail(dt);
   }
   private endPrayerTime() {
     for (const n of this.ents.npcs) n.goPray(false, n.home);
@@ -1687,15 +1765,17 @@ export class Game {
   /** you're in your place in the row: the prayer starts, everyone together */
   startJamaah() {
     const ev = this.gameEvent;
-    if (!ev || ev.prayed || this.jamaah || this.picnicToMasjid >= 0) return;
+    if (!ev || ev.prayed || this.jamaah || (this.picnicToMasjid >= 0 && this.jamaahSite.id === 'village')) return;
     this.jamaah = new Jamaah(ev.p);
-    this.ents.mo.prayAt = ROW.mo;
+    this.ents.mo.prayAt = this.jamaahSite.row(this.girl).mo;
+    this.masjidGuide = null;
     SFX.chime();
     this.ui.say(tr(`Allahu Akbar. Sholat ${prayerName(ev.p)} ${this.jamaah.total} rakaat dimulai. Diam di tempat dan ikuti gerakannya ya 🤲`, `Allahu Akbar. ${prayerName(ev.p)} prayer, ${this.jamaah.total} rakaat, begins. Stay in your place and follow along 🤲`), 'alright', 5000);
   }
   private jamaahTick(dt: number) {
     const j = this.jamaah!, p = this.player.pos;
-    if (j.joined && Math.hypot(p.x - ROW.player.x, p.z - ROW.player.z) > 1.6) {
+    const row = this.jamaahSite.row(this.girl).player;
+    if (j.joined && Math.hypot(p.x - row.x, p.z - row.z) > 1.6) {
       j.joined = false;
       this.ui.toast(tr('Kamu meninggalkan barisan. Warga menyelesaikan sholatnya 🙂', 'You left the row. The villagers finish their prayer 🙂'), 4000);
     }
@@ -1772,7 +1852,7 @@ export class Game {
   private slowChecks() {
     const p = this.player.pos;
     this.checkDiscoveries();
-    this.deeds?.jumuah(inMasjidArea(this.player.pos));
+    this.deeds?.jumuah(!!this.siteAt(this.player.pos));
     const col = this.gen.column(Math.floor(p.x), Math.floor(p.z));
     const bn = Biome[col.biome];
     if (!this.stats.biomes.includes(bn)) {
@@ -1912,7 +1992,7 @@ export class Game {
     const cape = a.body.getObjectByName('cape'); if (cape) cape.rotation.x = 0.15 + Math.min(0.9, p.speed * 0.12) + Math.sin(t * 6) * 0.05;
     if (a.blink) { const ph = t % 4.6; a.blink(ph < 0.13); }
     // standing still in the masjid at prayer time: pray along with the villagers
-    const inMasjid = inMasjidArea(p.pos);
+    const inMasjid = !!this.siteAt(p.pos);
     if (this.prayCamBefore !== null && (p.speed > 1 || !inMasjid)) this.endPrayTogether();
     if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, this.jamaah?.joined ? rowPose.pose : 'qiyam'); a.head.rotation.y = this.jamaah?.joined ? rowPose.head : 0; this.prayingPose = true; }
     else if (this.prayingPose) { clearPose(a); this.prayingPose = false; }

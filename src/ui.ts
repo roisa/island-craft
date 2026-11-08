@@ -86,7 +86,7 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
-  <div id="waterBtns"><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
+  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
   <button class="pill hidden" id="bStroke" aria-label="Swimming stroke">${ic('swim')}<span class="sn"></span><span class="si"></span></button>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
@@ -117,6 +117,7 @@ export class UI {
     $('#stars').onclick = () => this.openBook('quests');
     $('#coins').onclick = () => this.shop();
     $('#thirst').onclick = () => this.waterCard();
+    $('#bMasjid').onclick = () => this.masjidPicker();
     $('#bedNow').onclick = () => this.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
       text: tr('Sudah siap tidur? Permainan hari ini selesai dan rumahmu tersimpan. Besok kita lanjutkan ya! 🌙', 'Ready for bed? Today’s game ends here and your house is saved. We’ll carry on tomorrow! 🌙'),
@@ -311,6 +312,24 @@ export class UI {
     const txt = tr(id, en);
     if (b.querySelector('.sn')!.textContent !== txt) { b.querySelector('.si')!.textContent = ic2; b.querySelector('.sn')!.textContent = txt; }
     if (changed) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); this.toast(`${ic2} ${txt}!`, 1200); }
+  }
+  /** the 🕌 button: shown while a prayer is waiting and you're not in a masjid */
+  showMasjidBtn(on: boolean) { const b = $('#bMasjid'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
+  /** which masjid, and how: go there now, or follow the golden arrow and a trail of light */
+  masjidPicker() {
+    const g = this.g, p = g.player.pos, ev = g.gameEvent;
+    const list = g.sites.map(s => ({ s, d: Math.round(Math.hypot(s.spot.x - p.x, s.spot.z - p.z)) })).sort((a, b) => a.d - b.d);
+    this.dialog({
+      face: '🕌', who: tr('Ke masjid', 'To the masjid'),
+      text: ev && !ev.prayed
+        ? tr(`Sudah masuk waktu <b>${prayerName(ev.p)}</b>! Yuk ke masjid supaya bisa sholat berjamaah tepat waktu. Mau ke masjid mana?`, `It’s <b>${prayerName(ev.p)}</b> time! Let’s get to the masjid so we can pray together on time. Which masjid?`)
+        : tr('Mau ke masjid mana? Masjid yang bercahaya ✨ adalah tempat sholat berjamaah.', 'Which masjid would you like to go to? The glowing ones ✨ are where we pray together.'),
+      buttons: [
+        ...list.map(({ s, d }, i) => ({ label: `✨ ${t2(s.name)} · ${d} m`, cls: i === 0 ? 'gold' : '', fn: () => g.goToMasjid(s) })),
+        { label: '👣 ' + tr('Tunjukkan jalannya', 'Show me the way'), fn: () => g.guideTo(list[0].s) },
+        { label: tr('Nanti', 'Later'), cls: 'ghost' },
+      ],
+    });
   }
   /** the ⛵ button by the shore: sail if you have a boat, otherwise how to get one */
   showBoat(on: boolean) {
@@ -1156,11 +1175,12 @@ export class UI {
       <div class="set"><span>${tile('map', C.red)}${tr('Kota', 'City')}</span><select id="selCity"><option value="">${esc(g.loc.name)}</option>${CITIES.map((c, i) => `<option value="${i}">${c.i} ${c.n}</option>`).join('')}<option value="gps">${ic('map')} ${tr('Pakai lokasiku', 'Use my location')}</option></select></div>
       <div class="set"><span>${tile('clock', C.indigo)}${tr('Metode', 'Method')}</span><select id="selMethod">${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
-      <div class="row amalBtns"><button class="btn small gold" id="prSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button><button class="btn small ghost" id="prWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
+      <div class="row amalBtns"><button class="btn small gold" id="prGo">🕌 ${tr('Ke masjid', 'Go to a masjid')}</button><button class="btn small ghost" id="prSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button><button class="btn small ghost" id="prWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
       <h3>${tr('Di dalam game', 'Inside the game')}</h3>
       <p>${tr('Matahari di dunia Baby Mo mengikuti jadwal di atas: fajar saat Subuh, terbenam saat Maghrib. Saat waktu sholat tiba di game, warga desa berjalan ke masjid — kamu boleh ikut!', 'The sun in Baby Mo’s world follows this schedule: dawn at Fajr, sunset at Maghrib. When it is prayer time in the game, villagers walk to the masjid — you can join them!')}</p>
       <p style="font-size:11.5px;margin-top:6px">${tr('Waktu dihitung otomatis di perangkat, dan bisa berbeda beberapa menit dari jadwal masjid setempat.', 'Times are calculated on the device and may differ a few minutes from your local masjid.')}</p>`;
     $('#prSholat', body).onclick = () => this.poseGuide('sholat');
+    $('#prGo', body).onclick = () => { this.closeBook(); setTimeout(() => this.masjidPicker(), 50); };
     $('#prWudu', body).onclick = () => this.poseGuide('wudu');
     $<HTMLSelectElement>('#selCity', body).onchange = e => {
       const v = (e.target as HTMLSelectElement).value;
