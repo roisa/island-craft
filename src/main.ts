@@ -44,6 +44,7 @@ import { Places } from './game/places';
 import { Eid, type EidMode } from './game/eid';
 import { moonPhase } from './game/moon';
 import { Sanctuary } from './game/sanctuary';
+import { Kites, isKite } from './game/kites';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -89,6 +90,7 @@ export class Game {
   festive!: Festive;
   places!: Places;
   sanctuary!: Sanctuary;
+  kites!: Kites;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -292,6 +294,7 @@ export class Game {
     this.festive = new Festive(this);
     this.places = new Places(this);
     this.sanctuary = new Sanctuary(this);
+    this.kites = new Kites(this);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -962,6 +965,7 @@ export class Game {
     this.festive.update(t);
     this.places.update(dt, t);
     this.sanctuary.update(dt);
+    this.kites.update(dt, t);
     this.eid.update(dt, t);
     if ((this.eidT -= dt) <= 0) { this.eidT = 20; this.eid.refresh(); }
     this.picnicCheck();
@@ -1226,6 +1230,7 @@ export class Game {
     }
     if (held && held.id === I.BOAT) { this.fun.tryBoat(); return; }
     if (held && held.id === I.ANGPAO) { this.eid.openAngpao(); return; }
+    if (held && isKite(held.id)) { this.kites.toggle(held.id); return; }
     if (held && held.id === I.FIREWORK) { this.eid.launch(); return; }
     if (held && isDeco(held.id)) { if (hit) this.placeDeco(hit, held.id); return; }
     if (held && FOOD.has(held.id)) { this.eat(); return; }

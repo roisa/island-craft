@@ -5,6 +5,23 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Kites 🪁 (layang-layang)
+
+- **Three kites** (red, blue and yellow), each made at the workbench from 2
+  sticks + 2 wool.
+- **Flying one:** hold it and tap 👆 Use to let it fly; tap again to reel it
+  in. It has a diamond face, a string to your hand and a fluttering tail
+  of bows.
+- **Height:** the kite climbs higher the higher you stand (beach about 6
+  blocks, a tall hill 13+), and higher still with more wind. Wind will be
+  driven by the weather of the day in a later step.
+- **It is put away** when you change what you hold, ride or swim. It needs
+  open sky.
+- **The first flight:** Baby Mo talks about kite flying in Indonesia.
+- **New quest:** a kite up high (fly it really high on a hill).
+- **Tested:** a unit test for the height rules and recipes; a smoke step
+  on all four profiles makes a kite at a workbench and flies it.
+
 ### Animal Sanctuary 🏡 and lost animals
 
 - **A new landmark:** a fenced pen two blocks high with a gate, a shelter

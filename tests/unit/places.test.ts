@@ -155,3 +155,16 @@ describe('animal sanctuary', () => {
     }
   });
 });
+
+import { kiteHeight } from '../../src/game/kites';
+import { RECIPES } from '../../src/game/inventory';
+import { I } from '../../src/world/blocks';
+describe('kites', () => {
+  it('fly higher on hills and windy days, and can be made at the workbench', () => {
+    expect(kiteHeight(SEA + 1, 0)).toBeLessThan(kiteHeight(SEA + 25, 0));
+    expect(kiteHeight(SEA + 10, 1)).toBeGreaterThan(kiteHeight(SEA + 10, 0));
+    expect(kiteHeight(SEA + 2, 0.4)).toBeLessThan(12);  // a beach is not quite enough for "up high"
+    expect(kiteHeight(SEA + 26, 0.4)).toBeGreaterThan(12); // a tall hill is
+    for (const k of [I.KITE_RED, I.KITE_BLUE, I.KITE_YELLOW]) expect(RECIPES.some(r => r.out === k && r.at === 'workbench')).toBe(true);
+  });
+});

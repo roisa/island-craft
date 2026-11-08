@@ -61,6 +61,13 @@ function coral(g: Grid, pal: string[], tip: string) {
   for (let i = 0; i < 14; i++) { const x = Math.floor(g.rnd() * 15), y = Math.floor(g.rnd() * 15); g.p(x, y, tip); g.p(x + 1, y, pal[2]); }
   for (let i = 0; i < 5; i++) { const x = Math.floor(g.rnd() * 14), y = Math.floor(g.rnd() * 14); g.rect(x, y, 2, 2, pal[2]); }
 }
+function kiteIcon(g: Grid, a: string, b: string) {
+  g.clear();
+  for (let y = 0; y < 12; y++) { const w = y < 5 ? y : 11 - y; for (let x = 8 - w; x <= 8 + w; x++) g.p(x, y + 1, (x < 8) === (y < 5) ? a : b); }
+  for (let y = 1; y < 13; y++) g.p(8, y, '#5E3E25');
+  for (let x = 4; x <= 12; x++) g.p(x, 5, '#5E3E25');
+  for (const [x, y, c] of [[8, 13, a], [7, 14, b], [8, 15, a]] as [number, number, string][]) g.p(x, y, c);
+}
 function flower(g: Grid, petal: string, center: string) {
   g.clear();
   for (let y = 8; y < 16; y++) g.p(7, y, '#3F8A46');
@@ -211,6 +218,9 @@ const P: Record<string, Painter> = {
   i_nastar: g => { g.clear(); g.rect(2, 9, 12, 5, '#E4423A'); g.rect(2, 8, 12, 1, '#FF6B5E'); for (const [x, y] of [[3, 4], [7, 3], [11, 4], [5, 6], [9, 6]]) { g.rect(x, y, 3, 3, '#F2B33A'); g.p(x + 1, y, '#C98A12'); g.p(x + 1, y + 1, '#E07A22'); } },
   i_angpao: g => { g.clear(); g.rect(2, 3, 12, 10, '#1F8A4C'); g.rect(2, 3, 12, 1, '#2FAE64'); for (let i = 0; i < 6; i++) { g.p(2 + i, 4 + i, '#17703C'); g.p(13 - i, 4 + i, '#17703C'); } g.rect(6, 8, 4, 3, '#F1C232'); g.p(7, 9, '#FFE07A'); g.p(8, 9, '#FFE07A'); },
   i_firework: g => { g.clear(); g.rect(6, 7, 4, 7, '#E4423A'); g.rect(6, 9, 4, 1, '#F4C430'); g.rect(6, 12, 4, 1, '#F4C430'); g.rect(7, 5, 2, 2, '#2E6FE0'); g.p(8, 4, '#8C5E33'); g.p(9, 3, '#8C5E33'); for (const [x, y, c] of [[11, 2, '#FFD874'], [13, 4, '#FF8FB1'], [4, 2, '#8FD3EC'], [2, 5, '#FFD874'], [12, 7, '#B388FF']] as [number, number, string][]) g.p(x, y, c); },
+  i_kite_red: g => kiteIcon(g, '#E4423A', '#F4C430'),
+  i_kite_blue: g => kiteIcon(g, '#2E6FE0', '#FFFFFF'),
+  i_kite_yellow: g => kiteIcon(g, '#F4C430', '#3FA34D'),
   i_kolak: g => { g.clear(); g.rect(2, 8, 12, 5, '#F4C430'); g.rect(2, 7, 12, 1, '#FFFFFF'); g.rect(3, 6, 10, 1, '#E4423A'); g.rect(7, 4, 2, 2, '#E4423A'); g.rect(2, 13, 12, 1, '#C78A1E'); },
 };
 

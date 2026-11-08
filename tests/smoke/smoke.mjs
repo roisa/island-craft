@@ -200,6 +200,25 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       return fed;
     });
+    await step('make and fly a kite', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals();
+        const w = G.world, x = 3, z = 9; let y = 100; while (y > 1 && !w.get(x, y, z)) y--; w.set(x + 1, y + 1, z, 31); // a workbench
+        G.player.pos.set(x + 0.5, y + 1, z + 0.5);
+        G.inv.add(200, 2); G.inv.add(46, 2);
+        const made = G.craft(G.findRecipe(257));
+        const slot = G.inv.slots.findIndex(s => s && s.id === 257); G.inv.sel = slot;
+        G.ui.closeAllModals(); G.kites.toggle(257);
+        return { made, slot, flying: G.kites.flying };
+      });
+      if (!r.made || r.slot < 0 || r.flying !== 257) throw new Error(JSON.stringify(r));
+      // pop-ups (a level-up after crafting) pause the game: close them while the kite climbs
+      await p.waitForFunction(() => __game.kites.h > 1.6 || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 }).catch(() => {});
+      const h = await g(() => { const G = __game; const out = { flying: G.kites.flying, h: +G.kites.h.toFixed(1) }; G.kites.stop(); G.ui.closeAllModals(); return out; });
+      // it climbs from 1.5 towards its height
+      if (h.flying !== 257 || !(h.h > 1.6)) throw new Error(JSON.stringify(h));
+      return h;
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
         if (!a) return { skipped: true };
