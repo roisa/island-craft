@@ -133,6 +133,7 @@ const P: Record<string, Painter> = {
   furnace_front: g => { P.cobble(g); g.rect(4, 7, 8, 6, '#2B2B2B'); g.rect(5, 10, 6, 3, '#F2872E'); g.rect(6, 11, 4, 2, '#FFD766'); g.rect(4, 3, 8, 2, '#5E656C'); },
   lantern: g => { g.clear(); g.rect(3, 0, 10, 2, '#9B6818'); g.rect(2, 2, 12, 12, '#9B6818'); g.rect(3, 3, 10, 10, '#FFD766'); g.rect(5, 4, 6, 8, '#FFF2B3'); for (let y = 3; y < 13; y += 3) g.rect(3, y, 10, 1, '#C78A1E'); g.rect(7, 3, 2, 10, '#C78A1E'); g.rect(3, 14, 10, 2, '#9B6818'); },
   lantern_top: g => { g.fill('#9B6818'); g.rect(5, 5, 6, 6, '#E0B84D'); g.rect(7, 7, 2, 2, '#FFF2B3'); },
+  campfire: g => { g.clear(); g.rect(1, 13, 14, 2, '#7B5131'); g.rect(3, 11, 10, 2, '#9A6A3F'); g.rect(1, 14, 14, 1, '#5E3B1A'); for (const [x, w, h, c] of [[4, 8, 6, '#FF7A1A'], [5, 6, 8, '#FF9F2E'], [6, 4, 9, '#FFC94D'], [7, 2, 10, '#FFE9A0']] as [number, number, number, string][]) g.rect(x, 11 - h + 2, w, h - 2, c); g.p(3, 4, '#FFB347'); g.p(12, 5, '#FFB347'); g.p(10, 2, '#FFD27A'); },
   torch: g => { g.clear(); g.rect(7, 6, 2, 10, '#8A5C38'); g.rect(6, 3, 4, 3, '#FFB347'); g.rect(7, 2, 2, 2, '#FFE07A'); g.p(7, 1, '#FFF2B3'); },
   flower_red: g => flower(g, '#E4423A', '#FFD65C'),
   flower_yellow: g => flower(g, '#F4C430', '#FF9F1C'),

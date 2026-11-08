@@ -407,6 +407,26 @@ async function run(name) {
       if (mid.karts !== 4 || !mid.moSeat || !/Lap|Putaran/.test(mid.hud) || after.active || after.karts || after.moSeat || !after.hud) throw new Error(JSON.stringify({ mid, after }));
       return { mid, after };
     });
+    await step('waterfall camp: go there from the map, the campfire grills like a furnace, a stream to fish in', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'camp'); return l && { entry: l.at.entry, fire: l.at.fire, stream: l.at.stream }; });
+      if (!L) throw new Error('no camp in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="camp"]');
+      await g(() => document.querySelector('#vBook.on [data-go="camp"]').click());
+      await p.waitForFunction(L => Math.hypot(__game.player.pos.x - L.entry[0], __game.player.pos.z - L.entry[2]) < 1, L, { timeout: 8000 });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const r = await g(L => {
+        const G = __game, f = L.fire.map(Math.floor), s = L.stream.map(Math.floor);
+        G.player.pos.set(L.fire[0] + 2, L.fire[1], L.fire[2] + 1.5);
+        return { fire: G.world.get(f[0], f[1], f[2]), stream: G.world.get(s[0], s[1], s[2]), grill: G.stations().has('furnace') };
+      }, L);
+      // tapping the fire opens cooking
+      await g(L => { const G = __game, f = L.fire.map(Math.floor); G.ui.closeAllModals(); G.useBlock({ x: f[0], y: f[1], z: f[2], id: 74, nx: 0, ny: 1, nz: 0 }); }, L);
+      const craft = await g(() => document.querySelector('#vBook')?.classList.contains('on') && __game.ui.tab === 'craft');
+      await g(() => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (r.fire !== 74 || r.stream !== 11 || !r.grill || !craft) throw new Error(JSON.stringify({ ...r, craft }));
+      return { ...r, craft };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');

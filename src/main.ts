@@ -529,7 +529,7 @@ export class Game {
     const s = new Set<Station>(); const p = this.player.pos;
     for (let x = -4; x <= 4; x++) for (let y = -2; y <= 3; y++) for (let z = -4; z <= 4; z++) {
       const id = this.world.get(Math.floor(p.x) + x, Math.floor(p.y) + y, Math.floor(p.z) + z);
-      if (id === B.WORKBENCH) s.add('workbench'); else if (id === B.FURNACE) s.add('furnace');
+      if (id === B.WORKBENCH) s.add('workbench'); else if (id === B.FURNACE || id === B.CAMPFIRE) s.add('furnace'); // (a campfire grills like a furnace)
     }
     return s;
   }
@@ -627,6 +627,16 @@ export class Game {
         ? tr(`Sampai di ${site.name[0]}! 🕌 Masuk, lalu berdiri di tanda yang bersinar ✨ di barisan.`, `Here at ${site.name[1]}! 🕌 Go in and stand on the glowing mark ✨ in the row.`)
         : tr(`Sampai di ${site.name[0]}! 🕌`, `Here at ${site.name[1]}! 🕌`), 'alright', 6000);
     }, 600);
+  }
+  private fireT = 0; private campFire: THREE.Vector3 | null | undefined;
+  /** the camp's campfire flickers: flames and sparks rising, and a little smoke */
+  private campfireTick(dt: number) {
+    if (this.campFire === undefined) { const c = this.gen.landmarks.find(l => l.id === 'camp')?.at?.fire; this.campFire = c ? new THREE.Vector3(...c) : null; }
+    const f = this.campFire; if (!f || this.settings.lowGfx || (this.fireT -= dt) > 0) return;
+    this.fireT = 0.12;
+    if (this.player.pos.distanceTo(f) > 36) return;
+    this.fx.sparkle(f.x + (Math.random() - 0.5) * 0.4, f.y + 0.3, f.z + (Math.random() - 0.5) * 0.4, 2, Math.random() < 0.5 ? 0xff8a2b : 0xffc94d, 0.9);
+    if (Math.random() < 0.15) this.fx.sparkle(f.x, f.y + 1.2, f.z, 1, 0x9a9a9a, 0.5);
   }
   /** the fun places you can go to straight away from the map (the ones that exist in this world) */
   funPlaces() { return ['fish_pond', 'race_track', 'camp', 'tennis'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
@@ -1026,6 +1036,7 @@ export class Game {
     if (this.fishing?.busy) this.fishTick(dt, t);
     this.fishCoach?.update(dt);
     this.fishers?.update(dt, t);
+    this.campfireTick(dt);
     if (this.ambient) {
       this.ambient.enabled = !this.settings.lowGfx;
       const q = this.player.pos, top = this.world.chunkAt(q.x, q.z)?.hm?.[(((Math.floor(q.z) % 16) + 16) % 16) * 16 + (((Math.floor(q.x) % 16) + 16) % 16)] ?? 0;
@@ -1462,6 +1473,7 @@ export class Game {
       if (hit.id === B.RAFT_DOCK) { this.startRaft(); return; }
       if (hit.id === B.MAP_SCROLL) { this.treasure.collect(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.WORKBENCH || hit.id === B.FURNACE) { this.ui.openBook('craft'); return; }
+      if (hit.id === B.CAMPFIRE) { this.ui.toast(tr('🔥 Api unggun! Pilih ikan bakar atau steak untuk dipanggang', '🔥 Campfire! Choose grilled fish or steak to cook'), 3500); this.ui.openBook('craft'); return; }
       if (hit.id === B.BOOKSHELF) { const ks = Object.keys(DUAS).filter(k => k !== 'takbir'); const d = DUAS[ks[Math.floor(Math.random() * ks.length)]]; this.ui.duaCard(d, ic('book') + tr('Doa sehari-hari', 'Daily du’a')); return; }
       if (isLetter(hit.id) && !(held && isBlockId(held.id))) { this.ui.letterCard(hit.id - B.LETTER_0, false); return; }
     }

@@ -56,6 +56,8 @@ type Spec = Omit<Landmark, 'x' | 'y' | 'z'> & {
   angle?: number;
   /** extra room needed around it (a big place like the race track); others keep that far away too */
   clear?: number;
+  /** build right next to this place (tried at these offsets from it, in order) */
+  near?: { id: string; at: [number, number][] };
 };
 
 /** fill from the ground up to y (so buildings never float over a dip) */
@@ -810,6 +812,49 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    // a camp in front of the waterfall, by a little stream: tents to sleep in and a campfire to grill fish and meat on
+    id: 'camp', icon: '🏕️', name: ['Perkemahan Air Terjun', 'The Waterfall Camp'], biomes: [Biome.MEADOW, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.BEACH, Biome.SNOWY, Biome.DESERT], dist: [70, 220], r: 11, loose: true,
+    near: { id: 'waterfall', at: [[0, 17], [-11, 17], [11, 17], [0, 24], [-19, 6], [19, 6], [-19, 15], [19, 15], [-14, 26], [14, 26]] },
+    ok: c => c.h > SEA && c.h < SEA + 20,
+    hint: ['Di depan air terjun ada tenda dan api unggun di tepi sungai kecil. Bawa ikan atau daging untuk dibakar!', 'In front of the waterfall there are tents and a campfire by a little stream. Bring fish or meat to grill!'],
+    fact: ['Ketuk api unggun untuk memanggang ikan atau daging, seperti di tungku. Malam hari kamu bisa tidur di tenda. Ingat adab makan: Bismillah sebelum makan, Alhamdulillah sesudahnya, dan berbagi dengan teman.', 'Tap the campfire to grill fish or meat, just like at a furnace. At night you can sleep in a tent. Remember the manners of eating: Bismillah before, Alhamdulillah after, and share with your friends.'],
+    loot: [[I.MEAT, 2], [I.SMALL_FISH, 2], [I.DATES, 3]],
+    build(b, x, y, z, plan?: { floor: number; wx: number; wz: number }) {
+      y = plan ? plan.floor : Math.max(y, SEA + 1);
+      foundation(b, x - 11, z - 7, x + 11, z + 9, y, B.DIRT);
+      b.box(x - 11, y, z - 7, x + 11, y, z + 9, B.GRASS);
+      b.box(x - 11, y + 1, z - 7, x + 11, y + 10, z + 9, B.AIR);
+      // the stream: from the waterfall's pool, past the camp (or just through it, if it stands alone)
+      const sx = x + 3, z0 = plan ? plan.wz + 4 : z - 7;
+      for (let Z = z0; Z <= z + 9; Z++) for (const X of [sx, sx + 1]) { b.stamp(X, y - 1, Z, B.SAND); b.stamp(X, y, Z, B.WATER); b.box(X, y + 1, Z, X, y + 4, Z, B.AIR); }
+      // a little footbridge over it
+      b.box(sx, y, z + 5, sx + 1, y, z + 5, B.PLANKS); b.box(sx - 1, y, z + 5, sx + 2, y, z + 5, B.PLANKS);
+      // the campfire in a ring of stones, with log benches round it
+      const fx = x - 3, fz = z + 1;
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) b.stamp(fx + dx, y, fz + dz, B.COBBLE);
+      b.stamp(fx, y + 1, fz, B.CAMPFIRE);
+      for (const [bx, bz] of [[fx - 3, fz], [fx + 3, fz], [fx, fz - 3], [fx, fz + 3], [fx - 2, fz + 2]]) b.stamp(bx, y + 1, bz, B.OAK_LOG);
+      // a pile of firewood
+      b.box(fx - 5, y + 1, fz - 4, fx - 4, y + 1, fz - 4, B.OAK_LOG); b.stamp(fx - 5, y + 2, fz - 4, B.OAK_LOG);
+      // tents: an A-frame of coloured cloth, open at the front, a bed inside
+      const tent = (tx: number, tz: number, cloth: number) => {
+        for (let dz = 0; dz <= 3; dz++) {
+          const back = dz === 3;
+          for (const [dx, dy] of [[-2, 1], [2, 1], [-1, 2], [1, 2], [0, 3]]) b.stamp(tx + dx, y + dy, tz - dz, cloth);
+          if (back) for (const [dx, dy] of [[-1, 1], [0, 1], [1, 1], [0, 2]]) b.stamp(tx + dx, y + dy, tz - dz, cloth);
+        }
+        b.stamp(tx, y + 1, tz - 2, B.BED);
+      };
+      tent(x - 8, z - 2, B.WOOL_RED); tent(x - 8, z + 6, B.WOOL_BLUE); tent(x + 8, z - 2, B.WOOL_GREEN);
+      b.stamp(x - 5, y + 1, z - 5, B.CHEST);
+      for (const [lx, lz] of [[x - 11, z - 7], [x + 11, z - 7], [x - 11, z + 9], [x + 11, z + 9], [x, z - 6]]) { b.stamp(lx, y + 1, lz, B.OAK_LOG); b.stamp(lx, y + 2, lz, B.LANTERN); }
+      return {
+        y: y + 1,
+        at: { fire: [fx + 0.5, y + 1, fz + 0.5], entry: [x - 0.5, y + 1, z + 4.5], stream: [sx + 1, y, z + 2] },
+      };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
@@ -873,6 +918,14 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
     let fallback: { x: number; z: number; h: number } | null = null;
     let plan: unknown = undefined;
     const r0 = rnd(), a0 = s.angle ?? r0 * Math.PI * 2;
+    // next to another place (the camp in front of the waterfall)
+    const nl = s.near ? out.find(o => o.id === s.near!.id) : undefined;
+    if (nl && s.near) for (const [ox, oz] of s.near.at) {
+      const x = nl.x + ox, z = nl.z + oz;
+      if (taken.some(t => !(t.x === nl.x && t.z === nl.z) && Math.hypot(t.x - x, t.z - z) < t.r + 18)) continue;
+      spot = { x, z, h: b.column(x, z).h }; plan = { floor: nl.y - 1, wx: nl.x, wz: nl.z };
+      break;
+    }
     for (let k = 0; k < 220 && !spot; k++) {
       // (with a preferred direction: sweep gently around it before going further)
       // (big places with extra room look close first and then further out, so they're not needlessly far)

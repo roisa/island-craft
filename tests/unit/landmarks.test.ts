@@ -20,7 +20,9 @@ describe('landmarks', () => {
         // (the fishing pond is meant to be close, just past the village’s edge behind the masjid)
         expect(Math.hypot(l.x, l.z), `${seed} ${l.id}`).toBeGreaterThan(l.id === 'fish_pond' ? 40 : 55);
         for (const s of g.shrines) expect(Math.hypot(s.x - l.x, s.z - l.z), `${seed} ${l.id} vs letter ${s.letter}`).toBeGreaterThan(14);
-        for (const o of g.landmarks) if (o !== l) expect(Math.hypot(o.x - l.x, o.z - l.z)).toBeGreaterThan(20);
+        // (the camp is built right in front of the waterfall on purpose)
+        const besides = (o: { id: string }) => (l.id === 'camp' && o.id === 'waterfall') || (l.id === 'waterfall' && o.id === 'camp');
+        for (const o of g.landmarks) if (o !== l && !besides(o)) expect(Math.hypot(o.x - l.x, o.z - l.z), `${l.id} vs ${o.id}`).toBeGreaterThan(20);
         expect(l.y).toBeGreaterThan(1); expect(l.y).toBeLessThan(H);
       }
     }
@@ -69,5 +71,22 @@ describe('the fishing pond', () => {
     const [sx, sy, sz] = l.at!.spot.map(Math.floor);
     expect(m.get(`${sx},${sy - 1},${sz}`)).toBe(B.PLANKS);
     for (let k = 1; k <= 3; k++) expect(m.get(`${sx},${sy - 1},${sz - k}`), `water ${k} ahead`).toBe(B.WATER);
+  });
+});
+
+describe('the waterfall camp', () => {
+  it('stands in front of the waterfall when there is one, with a campfire and a stream from its pool', () => {
+    let nearFall = 0;
+    for (const seed of SEEDS) {
+      const g = new Generator(seed), c = g.landmarks.find(l => l.id === 'camp')!, w = g.landmarks.find(l => l.id === 'waterfall');
+      expect(c, `seed ${seed}`).toBeTruthy();
+      if (w && Math.hypot(c.x - w.x, c.z - w.z) < 30) nearFall++;
+      const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+      const [fx, fy, fz] = c.at!.fire.map(Math.floor);
+      expect(m.get(`${fx},${fy},${fz}`), `campfire seed ${seed}`).toBe(B.CAMPFIRE);
+      const [sx, sy, sz] = c.at!.stream.map(Math.floor);
+      expect(m.get(`${sx},${sy},${sz}`), `stream seed ${seed}`).toBe(B.WATER);
+    }
+    expect(nearFall).toBeGreaterThanOrEqual(3);
   });
 });

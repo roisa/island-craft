@@ -5,6 +5,44 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Waterfall Camp: tents and a campfire to grill on 🏕️🔥
+
+Requested by a parent: tents and a campfire to grill fish and meat, near a
+river and the waterfall.
+
+- **The Waterfall Camp (Perkemahan Air Terjun)** is a new place, built
+  right in front of the Waterfall Valley.
+  - A new `near` setting tries spots around the waterfall in turn. In 56
+    of 60 test worlds it’s by the waterfall; otherwise it stands on its
+    own.
+  - **A little stream** runs from the waterfall’s pool past the camp
+    (the camp has its own if it stands alone), with a wooden footbridge.
+    You can fish in it.
+  - **Three tents** (red, blue and green A-frames, open at the front),
+    each with a bed inside, so you can sleep there at night.
+  - **A campfire** in a ring of stones, with log benches, a pile of
+    firewood, lantern posts, and a chest with meat, fish and dates.
+- **The campfire** (a new block):
+  - It glows at night. Flames, sparks and a little smoke rise from it
+    while you’re near (not on low graphics).
+  - **Tap it to grill:** it opens the cooking list. It counts as a
+    furnace, so grilled fish and steak can be made there with the usual
+    cooking game.
+  - The discovery card reminds you of the manners of eating: Bismillah
+    before, Alhamdulillah after, and share.
+- **Fun places in the map** now include the camp.
+- **Tested:**
+  - Unit tests: the camp stands in front of the waterfall in most
+    worlds, with the campfire and water in the stream.
+  - Smoke:
+    - from the map to the camp;
+    - the campfire is there and counts as a furnace;
+    - the stream has water;
+    - tapping the fire opens cooking.
+  - Screenshots of the camp, the tents and stream from above, and the
+    campfire at night.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### The Race Track: go-kart races with Baby Mo 🏎️🏁
 
 Requested by a parent: a racing area where the player and some racers can

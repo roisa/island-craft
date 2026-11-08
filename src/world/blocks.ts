@@ -22,7 +22,9 @@ export enum B {
   // night glow
   GLOW_MUSHROOM = 71,
   // good deeds: a stone fallen on the path, the masjid's charity box
-  PATH_ROCK = 72, CHARITY_BOX = 73, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  PATH_ROCK = 72, CHARITY_BOX = 73,
+  // the camp by the waterfall: a campfire to grill fish and meat on
+  CAMPFIRE = 74, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -159,6 +161,7 @@ blk(B.MANGROVE_LEAVES, ['Daun Bakau', 'Mangrove Leaves'], 'mangrove_leaves', { c
 blk(B.MANGROVE_ROOTS, ['Akar Bakau', 'Mangrove Roots'], 'mangrove_roots', { ...plant, color: 0x7a4a32, hardness: 0.6, tool: 'axe', aquatic: true, drops: () => [[I.STICK, 2]] });
 blk(B.MANGROVE_SEEDLING, ['Bibit Bakau', 'Mangrove Seedling'], 'mangrove_seedling', { ...plant, color: 0x4f9e48, aquatic: true });
 blk(B.MUD, ['Lumpur', 'Mud'], 'mud', { color: 0x5a4636, hardness: 0.5, tool: 'shovel' });
+blk(B.CAMPFIRE, ['Api Unggun', 'Campfire'], 'campfire', { color: 0xff8a2b, hardness: Infinity, light: 1, render: 'cross', solid: false, opaque: false });
 blk(B.GLOW_MUSHROOM, ['Jamur Bercahaya', 'Glowing Mushroom'], 'glow_mushroom', { ...plant, color: 0x7ef0e0, light: 0.6 });
 blk(B.PATH_ROCK, ['Batu di Jalan', 'Stone on the Path'], 'path_rock', { ...plant, color: 0x8d949b, hardness: 0.15, drops: () => [] });
 blk(B.CHARITY_BOX, ['Kotak Sedekah', 'Charity Box'], ['charity_top', 'charity_side', 'planks', 'charity_front'], { color: 0x3fa34d, hardness: Infinity });
