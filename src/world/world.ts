@@ -77,6 +77,8 @@ export class World {
     const b = BLOCKS[c.data[idx(x - c.cx * CS, y, z - c.cz * CS)]];
     return !!b && b.solid;
   }
+  /** a roof or a floor above this spot (inside a house, the masjid, or a cave) */
+  roofed(x: number, y: number, z: number) { return this.heightAt(Math.floor(x), Math.floor(z)) > y + 1.5; }
   heightAt(x: number, z: number) {
     const c = this.chunkAt(x, z);
     if (!c) return this.gen.column(x, z).h;

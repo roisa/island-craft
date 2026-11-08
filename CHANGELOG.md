@@ -5,6 +5,46 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Fixes: animals stay outside, no rain indoors, the boat stays put 🐱🐪⛵🌧️
+
+Reported by a parent after Ibra played.
+
+- **Pets followed you up to the 3rd floor.**
+  - Before: a following pet teleported to you whenever you were 6+
+    blocks higher, and walked straight through walls when blocked.
+  - Now pets (and animals you're bringing to the sanctuary) wait
+    outside while you're indoors (anywhere with a roof: a house, the
+    masjid, a cave) or up in a building (more than 3½ blocks above the
+    ground). They catch up when you come back out.
+  - Pets no longer pass through walls. They still swim after you.
+- **The camel walked into the masjid.**
+  - A camel you ride stops at any doorway with a roof over it. A
+    message says camels wait outside: get off with ✋ and go in.
+  - Animals wandering on their own no longer step indoors either.
+- **Rain, snow and blossom petals inside the masjid.**
+  - Each raindrop, snowflake and petal is checked against the roof
+    above it, so they stop at roofs (and under trees) and never fall
+    inside. You can still see the rain outside through doors and
+    windows.
+  - New `world.roofed(x, y, z)` (is there a roof above this spot?) is
+    shared by all of these fixes.
+- **The boat disappeared when Ibra used it.**
+  - Cause: while riding, any quick tap on the world ended the ride. On
+    a tablet, tapping to look around right after launching put the boat
+    straight back in the bag, with no message.
+  - Now only the ✋ Use button gets you off. Getting off says the boat
+    is back in your bag, and to tap ⛵ at the water to sail again.
+- **Tested:**
+  - A browser check:
+    - the pet stays outside while you're in the masjid hall;
+    - it stays at the bottom while you stand on a 9-block tower, then
+      rejoins you when you come down;
+    - a ridden camel stops at the masjid door;
+    - no rain inside the masjid.
+  - The smoke boat step now taps the world while sailing and checks the
+    ride goes on.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### Bedtime instead of a sudden stop 🌙😴
 
 Requested by a parent: Ibra was sad when time ran out in the middle of

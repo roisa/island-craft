@@ -62,7 +62,11 @@ export class Weather {
       this.pos[k] += (Math.sin(t * 0.8 + i) * 0.4 + 0.5) * dt;
       this.pos[k + 1] -= this.vel[i] * dt;
       this.pos[k + 2] += Math.cos(t * 0.6 + i * 1.3) * 0.4 * dt;
-      if (this.pos[k + 1] < p.y - 1 || Math.abs(this.pos[k] - p.x) > 11 || Math.abs(this.pos[k + 2] - p.z) > 11) this.pos.set([p.x + (Math.random() - 0.5) * 18, p.y + 3 + Math.random() * 5, p.z + (Math.random() - 0.5) * 18], k);
+      if (this.pos[k + 1] < p.y - 1 || Math.abs(this.pos[k] - p.x) > 11 || Math.abs(this.pos[k + 2] - p.z) > 11 || g.world.roofed(this.pos[k], this.pos[k + 1] - 1.5, this.pos[k + 2])) {
+        this.pos.set([p.x + (Math.random() - 0.5) * 18, p.y + 3 + Math.random() * 5, p.z + (Math.random() - 0.5) * 18], k);
+        // petals only drift where there's open sky: none inside the masjid or a house
+        if (g.world.roofed(this.pos[k], this.pos[k + 1] - 1.5, this.pos[k + 2])) this.pos[k + 1] = -1000;
+      }
     }
     (this.petals.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
   }

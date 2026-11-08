@@ -24,6 +24,8 @@ export class Sky {
   daylight = 1;
   night = false;
   raining = false; rainAmount = 0; snowy = false;
+  /** the top of each column (set by the game), so rain stops at roofs and never falls indoors */
+  roofAt: ((x: number, z: number) => number) | null = null;
   private dome: THREE.Mesh; private domeMat: THREE.ShaderMaterial;
   private sunSpr: THREE.Sprite; private moonSpr: THREE.Sprite; private stars: THREE.Points;
   private clouds: THREE.Mesh; private cloudTex: THREE.CanvasTexture;
@@ -273,6 +275,11 @@ export class Sky {
         p[i + 1] -= fall;
         if (this.snowy) p[i] += Math.sin(performance.now() / 700 + i) * dt * 0.5;
         if (p[i + 1] < -6) { p[i + 1] = 24; p[i] = (Math.random() - 0.5) * 40; p[i + 2] = (Math.random() - 0.5) * 40; }
+        // a drop that reaches a roof is gone (respawned high up), so it never falls inside a house or the masjid
+        if (this.roofAt && this.roofAt(Math.floor(center.x + p[i]), Math.floor(center.z + p[i + 2])) > center.y + p[i + 1]) {
+          p[i + 1] = 24; p[i] = (Math.random() - 0.5) * 40; p[i + 2] = (Math.random() - 0.5) * 40;
+          if (this.roofAt(Math.floor(center.x + p[i]), Math.floor(center.z + p[i + 2])) > center.y + 24) p[i + 1] = -1000;
+        }
       }
       this.rain.geometry.attributes.position.needsUpdate = true;
       this.rain.position.set(center.x, center.y, center.z);

@@ -368,6 +368,10 @@ async function run(name) {
       await g(() => document.querySelector('.veil.on #bgOk').click());
       await p.waitForFunction(() => __game.fun.riding?.kind === 'boat', null, { timeout: 10000 });
       const r = await g(() => ({ mo: !!__game.ents.mo.seat, gift: __game.stats.boatGift }));
+      // a tap on the world (looking around) must not end the ride: only ✋ gets you off
+      await g(() => { __game.input.tapAt = { x: 200, y: 200 }; });
+      await p.waitForTimeout(400);
+      if (!(await g(() => __game.fun.riding?.kind === 'boat'))) throw new Error('a tap on the world ended the boat ride');
       await g(() => { const G = __game; G.fun.riding.obj.position.set(G.player.pos.x, G.player.pos.y, G.player.pos.z); G.fun.dismount(); if (G.fun.riding) { G.scene.remove(G.fun.riding.obj); G.fun.riding = null; G.ents.mo.seat = null; G.inv.add(220, 1); } G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       const back = await g(() => __game.inv.count(220));

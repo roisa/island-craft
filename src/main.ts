@@ -326,6 +326,7 @@ export class Game {
     this.projects = new Projects(this);
     this.projects.restore();
     this.deeds = new Deeds(this);
+    this.sky.roofAt = (x, z) => this.world.heightAt(x, z);
     this.thirst = new Thirst(this);
     this.bedtime = new Bedtime(this);
     this.eid = new Eid(this);
@@ -928,7 +929,8 @@ export class Game {
     inp.lookDX = inp.lookDY = 0;
     if (inp.wheel) { this.inv.sel = (this.inv.sel + Math.sign(inp.wheel) + 9) % 9; inp.wheel = 0; this.ui.refreshHotbar(); this.ui.flashHeld(); }
     const ax = inp.axis();
-    if (this.fun.riding && (inp.takeUse() || inp.tapAt)) { inp.tapAt = null; this.fun.dismount(); }
+    // while riding only the ✋ Use button gets you off; a tap on the world (looking around) doesn't
+    if (this.fun.riding) { inp.tapAt = null; if (inp.takeUse()) this.fun.dismount(); }
     if (!this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
     this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }

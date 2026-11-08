@@ -462,6 +462,7 @@ export class Fun {
     this.dismount();
     g.checkQuests(); g.saveSoon();
   }
+  private camelMsgAt = 0;
   rideCamel(a: Animal) {
     if (this.riding) return;
     a.target = null; a.ridden = true;
@@ -489,7 +490,7 @@ export class Fun {
     }
     if (r.kind === 'boat' && !spot) { g.ui.toast(tr('Dekati daratan dulu untuk turun 🏝️', 'Get closer to land to step off 🏝️')); return; }
     if (r.kind === 'raft') { g.scene.remove(r.obj); g.ents.mo.seat = null; }
-    if (r.kind === 'boat') { g.scene.remove(r.obj); g.inv.add(I.BOAT, 1); g.ents.mo.seat = null; }
+    if (r.kind === 'boat') { g.scene.remove(r.obj); g.inv.add(I.BOAT, 1); g.ents.mo.seat = null; g.ui.toast(tr('⛵ Turun dari perahu. Perahunya disimpan di tas — ketuk ⛵ di tepi air untuk berlayar lagi', '⛵ Off the boat. It’s back in your bag — tap ⛵ at the water to sail again'), 4000); }
     if (r.animal) { r.animal.ridden = false; }
     if (spot) { p.copy(spot); g.player.visY = spot.y; }
     else p.y += 1.2;
@@ -527,7 +528,12 @@ export class Fun {
     } else {
       const a = r.animal!;
       const gy = groundY(g.world, nx, o.y, nz);
-      if (gy !== null && Math.abs(gy - o.y) <= 1.1) { o.x = nx; o.z = nz; o.y += (gy - o.y) * Math.min(1, dt * 10); }
+      // a camel stays outside: it can't walk in under a roof (houses, the masjid)
+      if (gy !== null && g.world.roofed(nx, gy, nz) && !g.world.roofed(o.x, o.y, o.z)) {
+        r.vx = 0; r.vz = 0;
+        const now = performance.now();
+        if (now - this.camelMsgAt > 5000) { this.camelMsgAt = now; g.ui.toast(tr('🐪 Unta menunggu di luar ya. Ketuk ✋ untuk turun, lalu masuk', '🐪 Camels wait outside. Tap ✋ to get off, then go in'), 3500); }
+      } else if (gy !== null && Math.abs(gy - o.y) <= 1.1) { o.x = nx; o.z = nz; o.y += (gy - o.y) * Math.min(1, dt * 10); }
       else { r.vx = 0; r.vz = 0; }
       const moving = Math.hypot(r.vx, r.vz) > 0.4;
       if (moving) a.yaw = Math.atan2(r.vx, r.vz);

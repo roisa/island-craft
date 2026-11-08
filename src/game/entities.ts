@@ -84,6 +84,8 @@ export class Animal extends Entity {
   hop = 0;
   chunk = '';
   follow: (() => THREE.Vector3) | null = null;   // pets follow their friend
+  /** a following friend waiting outside while you're indoors or upstairs */
+  waiting = false;
   /** lives in a pen: wanders only inside this circle */
   pen: { x: number; z: number; r: number } | null = null;
   tagObj?: THREE.Object3D;
@@ -145,8 +147,12 @@ export class Animal extends Entity {
     if (this.ridden) return; // moved by the rider
     if (this.follow) {
       const f = this.follow(), d = Math.hypot(f.x - this.pos.x, f.z - this.pos.z);
-      if (d > 18 || Math.abs(f.y - this.pos.y) > 6) { this.pos.set(f.x - 1.5, f.y, f.z + 1.5); this.target = null; }
-      else if (d > 3) { this.target = new THREE.Vector3(f.x + (this.pos.x - f.x) / d * 2, f.y, f.z + (this.pos.z - f.z) / d * 2); this.wait = 0; }
+      // animals wait outside while you're indoors (a house, the masjid, a cave) or up in a building
+      const away = this.world.roofed(f.x, f.y, f.z) || f.y - this.world.gen.column(Math.floor(f.x), Math.floor(f.z)).h > 3.5;
+      if (away) { if (this.target && this.world.roofed(this.target.x, this.pos.y, this.target.z)) this.target = null; this.waiting = true; }
+      else if (d > 18 || Math.abs(f.y - this.pos.y) > 6) { this.pos.set(f.x - 1.5, f.y, f.z + 1.5); this.target = null; this.waiting = false; }
+      else if (d > 3) { this.target = new THREE.Vector3(f.x + (this.pos.x - f.x) / d * 2, f.y, f.z + (this.pos.z - f.z) / d * 2); this.wait = 0; this.waiting = false; }
+      else this.waiting = false;
     }
     if (!this.target) {
       this.moving = false;
@@ -163,7 +169,10 @@ export class Animal extends Entity {
         const sp = (this.follow ? 4.2 : this.kind === 'chicken' || this.kind === 'cat' ? 1.4 : this.kind === 'camel' ? 1.1 : 1.0) * (this.flee > 0 ? 3 : 1) * dt;
         const nx = this.pos.x + dx / d * sp, nz = this.pos.z + dz / d * sp;
         const gy = groundY(this.world, nx, this.pos.y, nz);
-        if (gy === null || Math.abs(gy - this.pos.y) > 1.1) { if (this.follow) { this.pos.x = nx; this.pos.z = nz; const sy = waterSurface(this.world, nx, this.pos.y, nz); if (sy !== null) this.pos.y = sy - 0.5; } else { this.target = null; this.wait = 1 + Math.random() * 2; } }
+        // never walk indoors (through a door into a house or the masjid), and never through walls
+        const sy = gy === null ? waterSurface(this.world, nx, this.pos.y, nz) : null;
+        if (this.world.roofed(nx, gy ?? this.pos.y, nz) && !this.world.roofed(this.pos.x, this.pos.y, this.pos.z)) { this.target = null; this.wait = 1 + Math.random() * 2; }
+        else if (gy === null || Math.abs(gy - this.pos.y) > 1.1) { if (this.follow && sy !== null) { this.pos.x = nx; this.pos.z = nz; this.pos.y = sy - 0.5; } else { this.target = null; this.wait = this.follow ? 0.3 : 1 + Math.random() * 2; } }
         else { this.pos.x = nx; this.pos.z = nz; this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10); }
         const want = Math.atan2(dx, dz);
         let diff = want - this.yaw; while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;
