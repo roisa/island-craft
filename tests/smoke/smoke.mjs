@@ -307,6 +307,23 @@ async function run(name) {
       if (sold.gained !== 40) throw new Error(JSON.stringify(sold));
       return { ...r, sold };
     });
+    await step('water bottle: you and Baby Mo get thirsty, drink, and fill it at the well', async () => {
+      // Baby Mo hands it over once the tutorial is done and nothing else is showing
+      await g(() => { const G = __game; G.stats.tut = 99; G.ui.tutorial(null); });
+      await p.waitForFunction(() => __game.inv.count(261) === 1 || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      const r = await g(() => {
+        const G = __game, h = G.stats.hydr; G.ui.closeAllModals();
+        h.me = 100; G.thirst.update(60, true); const drained = 100 - h.me;
+        h.me = 10; h.mo = 10; h.sips = 4;
+        G.thirst.use(false); G.thirst.giveMo(); G.ui.closeAllModals();
+        const after = { me: h.me, mo: h.mo, sips: h.sips, gave: G.stats.amal.total.water };
+        G.player.pos.set(8.5, G.player.pos.y, 6.5); h.sips = 0; G.thirst.use(G.nearDrinkingWater());
+        const bars = document.querySelector('#twMe').style.height;
+        return { drained, after, refilled: h.sips, bars };
+      });
+      if (!(r.drained > 5) || r.after.me !== 50 || r.after.mo !== 50 || r.after.sips !== 2 || r.after.gave < 1 || r.refilled !== 4) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('Amal Book: wudu, tasbih, charity box, and a village project gets built', async () => {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
       await p.waitForSelector('.veil.on .wudu');

@@ -231,3 +231,13 @@ body.desktop #waterBtns { bottom: calc(100px + var(--safe-b)); }
   .wBody .wsteps { flex: 1; grid-template-columns: repeat(3, 1fr); }
   .wBody .wPic p { font-size: 13px; }
 }
+
+/* water bars (you and Baby Mo) */
+#thirst { display: flex; align-items: center; gap: 4px; padding-left: 8px; padding-right: 8px; }
+#thirst .twd { font-size: 15px; }
+#thirst .tw { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+#thirst .tw small { font-size: 8.5px; font-weight: 800; line-height: 1; opacity: .7; }
+#thirst .tb { position: relative; display: block; width: 8px; height: 20px; border-radius: 4px; background: rgba(79, 179, 232, .18); overflow: hidden; }
+#thirst .tb i { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: #4FB3E8; border-radius: 4px; transition: height .6s ease; }
+#thirst .tb i.low { background: #F59E0B; }
+#thirst.low { animation: pk 1s ease-in-out infinite alternate; }

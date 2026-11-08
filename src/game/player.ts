@@ -23,6 +23,8 @@ export class Player {
   diver = false;
   /** how fast the chosen stroke is (freestyle is quickest) */
   strokeSpeed = 1;
+  /** a little slower when thirsty (see game/thirst.ts) */
+  thirstMul = 1;
   flying = false;
   visY = 0;           // smoothed y for camera after step-ups
   speed = 0;
@@ -84,6 +86,7 @@ export class Player {
 
     let sp = this.flying ? (inp.sprint ? 11 : 7) : inp.sprint ? 6.2 : 4.4;
     if (this.inWater && !this.flying) sp *= (this.diver ? 1.05 : 0.6) * this.strokeSpeed;
+    sp *= this.thirstMul;
     let fx = inp.fx, fz = inp.fz;
     const len = Math.hypot(fx, fz); if (len > 1) { fx /= len; fz /= len; }
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw);

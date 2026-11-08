@@ -40,6 +40,7 @@ export enum I {
   // the pearl cave and the Eid bazaar
   PEARL = 252, KETUPAT_OPOR = 253, NASTAR = 254, ANGPAO = 255, FIREWORK = 256,
   KITE_RED = 257, KITE_BLUE = 258, KITE_YELLOW = 259, MAP_PIECE = 260,
+  BOTTLE = 261,
 }
 
 export type ToolKind = 'pick' | 'axe' | 'shovel' | 'sword';
@@ -229,6 +230,7 @@ item(I.MAP_PIECE, ['Potongan Peta Harta', 'Treasure Map Piece'], 'i_map_piece', 
 item(I.KITE_RED, ['Layang-layang Merah', 'Red Kite'], 'i_kite_red', { stack: 1 });
 item(I.KITE_BLUE, ['Layang-layang Biru', 'Blue Kite'], 'i_kite_blue', { stack: 1 });
 item(I.KITE_YELLOW, ['Layang-layang Kuning', 'Yellow Kite'], 'i_kite_yellow', { stack: 1 });
+item(I.BOTTLE, ['Botol Air', 'Water Bottle'], 'i_bottle', { stack: 1 });
 
 // ---- hijaiyah letters ---------------------------------------------------
 export interface Letter { g: string; ar: string; name: string; lat: string; }

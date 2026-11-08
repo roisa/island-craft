@@ -51,6 +51,7 @@ import { mangroveTree } from './world/landmarks';
 import { Weather } from './game/weather';
 import { Projects } from './game/projects';
 import { Deeds } from './game/deeds';
+import { Thirst, thirstSpeed } from './game/thirst';
 import { Jamaah, rowPose } from './game/jamaah';
 import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './game/amal';
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
@@ -108,6 +109,7 @@ export class Game {
   weather!: Weather;
   projects!: Projects;
   deeds!: Deeds;
+  thirst!: Thirst;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -322,6 +324,7 @@ export class Game {
     this.projects = new Projects(this);
     this.projects.restore();
     this.deeds = new Deeds(this);
+    this.thirst = new Thirst(this);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -566,6 +569,7 @@ export class Game {
   drankWater() {
     this.stats.water = (this.stats.water || 0) + 1;
     this.waterSec = 0;
+    this.thirst.refillAll();
     setTimeout(() => this.kid.reward('water'), 3400); // after the drink, so a level-up can't interrupt it
     const mo = this.ents.mo;
     mo.holdGlass(3.2); mo.anim?.play('drink', 3.2);
@@ -682,6 +686,22 @@ export class Game {
     if (!w) { this.ui.toast(tr('Arahkan pancingan ke air ya 🌊', 'Point the rod at some water 🌊')); return; }
     f.cast(this.rodTip(), w, this.skillLv('fishing'), this.hasHat('hat_fisher'));
     this.anim.play('build'); SFX.jump();
+  }
+  /** busy play (walking, digging, swimming) makes you thirsty faster */
+  private thirstTick(dt: number) {
+    const p = this.player, busy = p.speed > 1 || !!this.mining || p.inWater || this.mineAnim > 0;
+    this.thirst.update(dt, busy && !this.fun.riding);
+    p.thirstMul = thirstSpeed(this.thirst.h.me);
+    this.ui.thirstHud(this.thirst.h);
+  }
+  /** the sea, a river or a pond close by, or the village well: the bottle can be filled */
+  nearDrinkingWater() {
+    const p = this.player;
+    if (p.inWater || this.fun.riding) return true;
+    if (WUDU_SPOTS.some(([wx, wz]) => Math.hypot(p.pos.x - wx, p.pos.z - wz) < 3.5 && Math.abs(p.pos.y - VILLAGE_Y) < 4)) return true;
+    const bx = Math.floor(p.pos.x), by = Math.floor(p.pos.y), bz = Math.floor(p.pos.z);
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = -3; dy <= 1; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER) return true;
+    return false;
   }
   private fishHelpT = 0;
   /** the 🎣? button by the water; the guide opens by itself the first time you hold a rod */
@@ -982,7 +1002,7 @@ export class Game {
       else if (T.bugHit) this.attackBug(T.bugHit);
       else if (T.decoHit && !isDeco(this.inv.held()?.id ?? -1)) this.turnDeco(T.decoHit.d);
       else if (T.entCloser && T.ent) this.useEntity(T.ent);
-      else if (T.hit) this.useBlock(T.hit);
+      else if (T.hit || this.inv.held()?.id === I.BOTTLE) this.useBlock(T.hit);
     }
 
     // letters near the player
@@ -1010,6 +1030,7 @@ export class Game {
     this.ui.updateMoHi(); this.ui.updatePray();
     if (this.undo && performance.now() > this.undo.until) { this.undo = null; this.ui.showUndo(false); }
     this.playTime(dt);
+    this.thirstTick(dt);
     this.fun.update(dt);
     this.festive.update(t);
     this.places.update(dt, t);
@@ -1060,7 +1081,7 @@ export class Game {
         this.mining = { key, t: 0, need: Infinity };
         return;
       }
-      const need = this.inv.creative ? 0.18 : Math.max(0.12, def.hardness * 0.55 / tool.speed / (this.hasHat('hat_miner') ? 1.35 : 1));
+      const need = this.inv.creative ? 0.18 : Math.max(0.12, def.hardness * 0.55 / tool.speed / (this.hasHat('hat_miner') ? 1.35 : 1) / thirstSpeed(this.thirst.h.me));
       this.mining = { key, t: 0, need };
     }
     if (this.mining.need === Infinity) return;
@@ -1273,6 +1294,7 @@ export class Game {
 
   private useBlock(hit: ReturnType<World['raycast']>) {
     const held = this.inv.held();
+    if (held?.id === I.BOTTLE && hit?.id !== B.BED && hit?.id !== B.CHARITY_BOX) { this.thirst.use(this.nearDrinkingWater()); return; }
     if (hit) {
       // interactive blocks
       if (hit.id === B.BED) { this.sleep(); return; }
@@ -1335,6 +1357,7 @@ export class Game {
 
   useEntity(e: unknown) {
     const held = this.inv.held();
+    if (e instanceof Companion && held?.id === I.BOTTLE) { this.thirst.giveMo(); return; }
     if (e instanceof Companion) {
       const now = performance.now();
       if (now - this.moTapAt < 900 && !(held && FOOD.has(held.id))) return; // one hello at a time

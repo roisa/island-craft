@@ -15,6 +15,7 @@ import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
 import { DEEDS, type Deed } from './game/amal';
 import { WUDU } from './game/deeds';
+import { LOW, SIPS } from './game/thirst';
 import { WUDU_GUIDE, SHOLAT_GUIDE, poseFrames, type GuideStep } from './game/tutorials';
 import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
@@ -63,6 +64,7 @@ export class UI {
     <button class="pill" id="compass"><span id="compassArrow">${ic('arrow')}</span><span id="compassText"></span></button>
     <button class="pill" id="stars"><span class="st">${ic('star')}</span><span class="sv"><b id="starN">0</b><small id="starLv"></small><i class="sbar"><i id="starBar"></i></i></span></button>
     <button class="pill" id="coins" aria-label="Coins"><span class="ci">${ic('coin')}</span><b id="coinN">0</b></button>
+    <button class="pill" id="thirst" aria-label="${tr('Minum', 'Water')}"><span class="twd">💧</span><span class="tw"><i class="tb"><i id="twMe"></i></i><small>${tr('Aku', 'Me')}</small></span><span class="tw"><i class="tb"><i id="twMo"></i></i><small>Mo</small></span></button>
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
   <div id="jmHud" class="pill hidden"></div>
@@ -112,6 +114,7 @@ export class UI {
     $('#bHome').onclick = () => this.dialog({ face: '🏠', who: tr('Pulang', 'Go home'), text: tr('Mau pulang ke desa Baby Mo?', 'Go back to Baby Mo’s village?'), speak: true, buttons: [{ label: ic('home') + tr('Ya, pulang!', 'Yes, take me home!'), cls: 'gold', fn: () => g.goHome(true) }, { label: ic('up') + tr('Naik ke permukaan', 'Just go up to the surface'), fn: () => g.kid.rescueUp() }, { label: tr('Tidak', 'No'), cls: 'ghost' }] });
     $('#stars').onclick = () => this.openBook('quests');
     $('#coins').onclick = () => this.shop();
+    $('#thirst').onclick = () => this.waterCard();
     $('#bFishHelp').onclick = () => this.fishGuide();
     $('#bStroke').onclick = () => this.g.nextStroke();
     $('#bBoat').onclick = () => { if (this.g.inv.count(I.BOAT) > 0) this.g.fun.launchBoat(); else this.boatGuide(); };
@@ -506,6 +509,32 @@ export class UI {
     const c = $('#coins'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump');
   }
   /** the prayer together: which rakaat and which movement */
+  private thirstShown = '';
+  /** the two little water bars in the top bar: you and Baby Mo */
+  thirstHud(h: { me: number; mo: number }) {
+    const key = Math.round(h.me) + ':' + Math.round(h.mo);
+    if (key === this.thirstShown) return;
+    this.thirstShown = key;
+    const me = $('#twMe'), mo = $('#twMo');
+    me.style.height = Math.max(4, h.me) + '%'; mo.style.height = Math.max(4, h.mo) + '%';
+    me.classList.toggle('low', h.me < LOW); mo.classList.toggle('low', h.mo < LOW);
+    $('#thirst').classList.toggle('low', h.me < LOW || h.mo < LOW);
+  }
+  /** tap the water bars: how thirsty everyone is, with a drink right there */
+  waterCard() {
+    const g = this.g, h = g.thirst.h, pct = (n: number) => Math.round(n) + '%';
+    const has = g.inv.count(I.BOTTLE) > 0;
+    this.dialog({
+      face: 'img/baby-mo-ok.webp', img: true, who: tr('Botol air', 'Water bottle'),
+      text: tr(`💧 Kamu: <b>${pct(h.me)}</b> · Baby Mo: <b>${pct(h.mo)}</b><br>Botol: <b>${h.sips} / ${SIPS} teguk</b>${h.sips ? '' : ' — isi di laut, sungai atau sumur desa'}<br><small>Bekerja dan berenang bikin haus. Jangan lupa minum, juga di dunia nyata! 😊</small>`,
+        `💧 You: <b>${pct(h.me)}</b> · Baby Mo: <b>${pct(h.mo)}</b><br>Bottle: <b>${h.sips} / ${SIPS} sips</b>${h.sips ? '' : ' — fill it at the sea, a river or the village well'}<br><small>Working and swimming make you thirsty. Remember to drink in real life too! 😊</small>`),
+      buttons: has ? [
+        ...(g.nearDrinkingWater() && h.sips < SIPS ? [{ label: '🫙 ' + tr('Isi botol', 'Fill the bottle'), cls: 'gold', fn: () => g.thirst.use(true) }] : []),
+        ...(h.sips ? [{ label: '😋 ' + tr('Aku minum', 'I’ll drink'), cls: 'gold', fn: () => g.thirst.use(false) }, { label: '🧸 ' + tr('Beri Mo minum', 'Give Mo a drink'), fn: () => g.thirst.giveMo() }] : []),
+        { label: tr('Nanti', 'Later'), cls: 'ghost' },
+      ] : [{ label: 'OK', cls: 'gold' }],
+    });
+  }
   private jmPic: ReturnType<UI['frames']> | null = null; private jmTxt = '';
   jamaahHud(j: { step: { name: T2; rakaat: number; pose: import('./game/models').PrayerPose; head?: number }; total: number; joined: boolean } | null) {
     const el = $('#jmHud');

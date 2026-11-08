@@ -48,6 +48,8 @@ export const DEEDS: Deed[] = [
     hadith: ['Senyummu kepada saudaramu adalah sedekah.', 'Your smile to your brother or sister is charity.'], src: 'HR. Tirmidzi 1956' },
   { id: 'path', icon: '🪨', name: ['Menyingkirkan halangan di jalan', 'Clearing the path'], kind: 'kind',
     hadith: ['Menyingkirkan gangguan dari jalan adalah sedekah.', 'Removing something harmful from the path is charity.'], src: 'HR. Bukhari 2989, Muslim 1009' },
+  { id: 'water', icon: '🚰', name: ['Memberi minum', 'Giving water'], kind: 'kind',
+    hadith: ['Sa’ad bertanya sedekah apa yang paling baik. Rasulullah ﷺ menjawab: “Air.”', 'Sa’d asked which charity is best. The Prophet ﷺ answered: “Water.”'], src: 'HR. Abu Dawud 1679' },
   { id: 'sadaqah', icon: '💰', name: ['Sedekah', 'Giving charity'], kind: 'kind',
     hadith: ['Sedekah tidak mengurangi harta.', 'Charity never makes your wealth less.'], src: 'HR. Muslim 2588' },
   { id: 'honest', icon: '🤝', name: ['Jujur', 'Being honest'], kind: 'kind',

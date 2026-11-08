@@ -5,6 +5,51 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A water bottle: you and Baby Mo need to drink 💧
+
+Requested by a parent: a water bottle, and the player and Baby Mo need to
+drink to keep playing and working.
+
+- **New `src/game/thirst.ts`:**
+  - Your water level and Baby Mo’s drop while you work: walking, digging,
+    building or swimming. From full to empty takes about 10 minutes of
+    busy play, or 30 while resting. Nothing drops while a pop-up is open,
+    the game is paused, or you are praying together.
+- **The water bottle** (a new item):
+  - Baby Mo gives you one the first time, and a new one if it’s ever
+    gone. It holds 4 sips.
+  - Hold it and tap **Use** to drink. A sip brings back 40%, with a
+    reminder of the sunnah: Bismillah, sit, right hand, three breaths.
+    This counts as Bismillah in the Amal Book.
+  - Hold it and tap **Baby Mo** to give him a drink. He drinks from a
+    glass and thanks you.
+  - **Fill it** by using it near the sea, a river, a pond or the village
+    well.
+- **A new good deed in the Amal Book: Giving water.** “Sa’d asked which
+  charity is best. The Prophet ﷺ answered: ‘Water.’” (HR. Abu Dawud
+  1679). It helps build the village’s kindness projects.
+- **Two little water bars in the top bar** (Me and Mo):
+  - They turn orange and pulse when someone is thirsty.
+  - Tap them to see the levels and sips, with **I’ll drink**, **Give Mo
+    a drink** and **Fill the bottle** right there.
+- **Kept gentle:**
+  - When you’re thirsty you only walk and dig a little slower (at worst
+    80% speed). Nothing is lost.
+  - Baby Mo says once when you look thirsty. When he is thirsty himself,
+    he asks for a drink every 90 seconds, with little water drops over
+    his head.
+- **The real-life water break** (drinking a real glass) fills you, Baby
+  Mo and the bottle back to full.
+- **Old saves:** the water levels start full the first time the game
+  loads.
+- **Tested:**
+  - Unit tests: draining, sips, the gentle slow-down, the item and the
+    deed.
+  - Smoke: drinking, giving Mo a drink, the deed, and refilling at the
+    well.
+  - A screenshot of the water bars and Baby Mo drinking.
+  - The unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### Picture guides for wudu and sholat 🧒💧🕌
 
 Requested by a parent, with the Baby Mo pose renders from their Drive
