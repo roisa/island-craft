@@ -62,6 +62,8 @@ export interface Stats {
   given?: number; smileDay?: number; jumuahDay?: string; wudu?: number;
   /** the fishing guide has been shown */
   fishGuide?: boolean;
+  /** caught the first fish in practice with Baby Mo */
+  fishPractice?: boolean;
   /** boat trips started */
   sailed?: number; boatGift?: boolean;
   /** swimming strokes tried */

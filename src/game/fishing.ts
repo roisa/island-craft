@@ -2,11 +2,14 @@
 // to reel in. Tapping too early just pulls the float back: no losing.
 import * as THREE from 'three';
 import { biteDelay, biteWindow } from './skills';
+import { PRACTICE } from './fishcoach';
 
 export type FishEvent = 'bite' | 'escaped' | null;
 
 export class Fishing {
   state: 'idle' | 'flying' | 'waiting' | 'bite' = 'idle';
+  /** practice with Baby Mo: the fish bites soon and stays on longer */
+  practice = false;
   private bobber: THREE.Group;
   private line: THREE.Line;
   private linePos = new Float32Array(6);
@@ -28,8 +31,8 @@ export class Fishing {
     this.from.copy(rodTip); this.to.copy(water);
     this.state = 'flying'; this.t = 0;
     this.bobber.position.copy(rodTip); // start at the rod, not at the world's origin
-    this.waitFor = biteDelay(level, hat, Math.random());
-    this.window = biteWindow(level);
+    this.waitFor = this.practice ? PRACTICE.wait : biteDelay(level, hat, Math.random());
+    this.window = this.practice ? PRACTICE.window : biteWindow(level);
     this.bobber.visible = true; this.line.visible = true;
   }
   /** pull the line back in (Use pressed); says what happened */
@@ -58,7 +61,7 @@ export class Fishing {
       if (this.t >= this.waitFor) { this.state = 'bite'; this.t = 0; ev = 'bite'; }
     } else if (this.state === 'bite') {
       b.copy(this.to); b.y -= 0.12 + Math.sin(t * 30) * 0.04; // pulled under
-      if (this.t > this.window) { this.state = 'waiting'; this.t = 0; this.waitFor = 1.5 + Math.random() * 2.5; ev = 'escaped'; }
+      if (this.t > this.window) { this.state = 'waiting'; this.t = 0; this.waitFor = this.practice ? PRACTICE.again : 1.5 + Math.random() * 2.5; ev = 'escaped'; }
     }
     this.linePos.set([rodTip.x, rodTip.y, rodTip.z, b.x, b.y + 0.06, b.z]);
     (this.line.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;

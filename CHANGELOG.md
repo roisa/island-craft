@@ -5,6 +5,66 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Fishing practice with Baby Mo 🎣🧸
+
+Requested by a parent: a live practice catch where Baby Mo walks Ibra
+through fishing, step by step.
+
+- **New `src/game/fishcoach.ts`.** Baby Mo coaches on the card at the
+  bottom of the screen (“Step 3 of 6”), and reads each step aloud. A step
+  only moves on once you’ve done it:
+  1. **Hold the rod:** the rod’s box in the bar at the bottom glows. If
+     you don’t have a rod, Baby Mo gives you one (yours to keep), and
+     puts it in the bar if it was only in the bag.
+  2. **Go to the water:** a trail of golden sparkles leads to the
+     nearest sea, river or pond. If none is close, Baby Mo offers to take
+     you to the beach.
+  3. **Throw:** “Look at the water, then tap ✋ Use” (on a computer,
+     right-click), and the ✋ button glows.
+  4. **Wait:** “Watch the red float. Don’t tap yet!”
+  5. **Tap now:** when the float dips, the card says NOW!, next to the
+     big TAP! cue.
+  6. **Caught it!** Confetti, Baby Mo cheers, and +50 coins: “You’re a
+     real fisher now. Remember: throw, wait, then tap when the float
+     dips.”
+- **Forgiving:**
+  - The practice fish bites after 3½ seconds and stays on for 3.2
+    seconds (more time than a beginner normally gets).
+  - Tapping too early just says “Oops, too early, let’s throw again”.
+  - A fish that gets away just means waiting for the next one.
+- **Starting it:**
+  - **🧸 Practise with Baby Mo** in the fishing guide (🎣❓) starts it
+    any time.
+  - The first time, **Let’s go fishing!** starts it too.
+  - **Skip** on the card stops it.
+  - The guide’s two buttons now sit right under the title, so they’re
+    always in view on a phone held sideways.
+- **Less clutter:** during practice, the ⛵ and 🎣❓ buttons are hidden so
+  they don’t cover the card.
+- **Taken to real open water:**
+  - The trip to the beach skips frozen shores. Where it’s snowy, the sea
+    surface is ice.
+  - Once the ground has loaded, Baby Mo steps you right to the water’s
+    edge, facing the water, so the first throw lands on water.
+- **Pets hop the fence:**
+  - A following animal stuck at a fence or wall while you’re outside now
+    hops over to you after a moment.
+  - Since the last fix, followers no longer walk through walls, so a
+    rescued animal could get stuck at the sanctuary fence.
+  - Inside buildings and upstairs they still wait for you.
+- **Smoke tests:**
+  - The boat step skips frozen shores too, and looks further for one.
+  - The bedtime step closes a leftover reward pop-up before checking
+    the game has started again.
+- **Tested:**
+  - Unit tests: the steps go in order, an early tap goes back to
+    throwing, a fish that gets away goes back to waiting, and the
+    practice fish is more forgiving.
+  - Smoke: the whole practice, from the guide, the glowing rod slot and
+    the trip to the beach, through an early tap and the first catch.
+  - Screenshots of every step on an 844×390 phone.
+  - The unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### The Grand Masjid, the way to the masjid, and masjid lights 🕌✨
 
 Requested by a parent: an easy way for Ibra to get to the nearest masjid on

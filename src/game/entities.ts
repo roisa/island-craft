@@ -86,6 +86,7 @@ export class Animal extends Entity {
   follow: (() => THREE.Vector3) | null = null;   // pets follow their friend
   /** a following friend waiting outside while you're indoors or upstairs */
   waiting = false;
+  private stuckT = 0;
   /** lives in a pen: wanders only inside this circle */
   pen: { x: number; z: number; r: number } | null = null;
   tagObj?: THREE.Object3D;
@@ -175,8 +176,15 @@ export class Animal extends Entity {
         // never walk indoors (through a door into a house or the masjid), and never through walls
         const sy = gy === null ? waterSurface(this.world, nx, this.pos.y, nz) : null;
         if (this.world.roofed(nx, gy ?? this.pos.y, nz) && !this.world.roofed(this.pos.x, this.pos.y, this.pos.z)) { this.target = null; this.wait = 1 + Math.random() * 2; }
-        else if (gy === null || Math.abs(gy - this.pos.y) > 1.1) { if (this.follow && sy !== null) { this.pos.x = nx; this.pos.z = nz; this.pos.y = sy - 0.5; } else { this.target = null; this.wait = this.follow ? 0.3 : 1 + Math.random() * 2; } }
-        else { this.pos.x = nx; this.pos.z = nz; this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10); }
+        else if (gy === null || Math.abs(gy - this.pos.y) > 1.1) {
+          if (this.follow && sy !== null) { this.pos.x = nx; this.pos.z = nz; this.pos.y = sy - 0.5; }
+          else {
+            this.target = null; this.wait = this.follow ? 0.3 : 1 + Math.random() * 2;
+            // a friend stuck at a fence or a wall while you're outside hops over to you
+            if (this.follow && !this.waiting && (this.stuckT += dt + this.wait) > 1.2) { const f = this.follow(); this.pos.set(f.x - 1, f.y, f.z + 1); this.stuckT = 0; this.hop = 0.5; }
+          }
+        }
+        else { this.pos.x = nx; this.pos.z = nz; this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10); this.stuckT = 0; }
         const want = Math.atan2(dx, dz);
         let diff = want - this.yaw; while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;
         this.yaw += diff * Math.min(1, dt * 5);

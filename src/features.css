@@ -269,3 +269,10 @@ body.desktop #waterBtns { bottom: calc(100px + var(--safe-b)); }
 #bMasjid { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 12px; min-height: 44px; border-radius: 22px; font-weight: 800; font-size: 15px; background: linear-gradient(180deg, #FFE27A, #F5B82E); color: #4a3200; box-shadow: 0 0 0 0 rgba(255, 210, 74, .7); animation: mqPulse 1.6s ease-out infinite; }
 #bMasjid .mi { font-size: 20px; }
 @keyframes mqPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 210, 74, .75); } 100% { box-shadow: 0 0 0 16px rgba(255, 210, 74, 0); } }
+
+/* fishing practice: the slot to tap glows */
+#hotbar .slot.coachHi { box-shadow: 0 0 0 3px #FFD60A, 0 0 18px 6px rgba(255, 214, 10, .85) !important; animation: pk .5s ease-in-out infinite alternate; }
+.fishGuide .row { justify-content: center; gap: 8px; flex-wrap: wrap; }
+body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
+/* the guide's buttons sit right under the title, so they're always in view */
+.fishGuide .fgBtns { margin: 4px 0 8px; }

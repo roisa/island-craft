@@ -132,7 +132,7 @@ export class UI {
     $('#pbCancel').onclick = () => g.fun.cancelPlan();
     $('#bubbleSay').onclick = () => Speech.talk($('#bubbleTxt').textContent || '', getLang(), true, 1);
     $('#tutSay').onclick = () => Speech.talk($('#tutTxt').textContent || '', getLang(), true, 1);
-    $('#tutSkip').onclick = () => { SFX.click(); this.g.kid.skipStep(); };
+    $('#tutSkip').onclick = () => { SFX.click(); if (this.g.fishCoach?.active) this.g.fishCoach.stop(); else this.g.kid.skipStep(); };
     $('#moHi').onclick = e => { e.stopPropagation(); this.g.useEntity(this.g.ents.mo); };
     $('#bPray').onclick = e => { e.stopPropagation(); this.g.prayTogether(); };
     $('#bRot').onclick = e => { e.stopPropagation(); this.g.rotatePlacement(); const b = e.currentTarget as HTMLElement; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); };
@@ -357,6 +357,7 @@ export class UI {
     const g = this.g, hasRod = g.inv.count(I.FISHING_ROD) > 0;
     const step = (n: number, icon: string, text: string) => `<div class="fgStep"><span class="fgN">${n}</span><span class="fgI">${icon}</span><p>${text}</p></div>`;
     const { el, close } = this.modal(`<div class="fishGuide"><h2>🎣 ${tr('Cara memancing', 'How to fish')}</h2>
+      <div class="row fgBtns"><button class="btn gold" id="fgPractice">🧸 ${tr('Latihan bersama Baby Mo', 'Practise with Baby Mo')}</button><button class="btn ghost" id="fgOk">${tr('Ayo memancing! 🎣', 'Let’s go fishing! 🎣')}</button></div>
       ${step(1, '🎣', hasRod ? tr('Kamu sudah punya <b>pancingan</b>! 👍', 'You have a <b>fishing rod</b>! 👍') : tr('Buat <b>pancingan</b> di meja kerja: <b>3 tongkat + 1 wol putih</b>. Atau beli di toko Bu Aminah.', 'Make a <b>fishing rod</b> at a workbench: <b>3 sticks + 1 white wool</b>. Or buy one at Bu Aminah’s shop.'))}
       ${step(2, '✋', tr('<b>Pegang</b> pancingannya: ketuk kotaknya di bawah layar.', '<b>Hold</b> the rod: tap its box at the bottom of the screen.'))}
       ${step(3, '🌊', tr('Berdiri di <b>pinggir air</b>, lihat ke air, lalu ketuk tombol <b>✋ Pakai</b>. Pelampung merah terbang ke air!', 'Stand at the <b>edge of the water</b>, look at the water, then tap <b>✋ Use</b>. The red float flies into the water!'))}
@@ -364,8 +365,10 @@ export class UI {
       ${step(5, '❗', tr('Saat pelampung <b>tenggelam</b> dan muncul <b>KETUK!</b>, cepat ketuk <b>✋ Pakai</b>!', 'When the float <b>dips down</b> and you see <b>TAP!</b>, quickly tap <b>✋ Use</b>!'))}
       ${step(6, '🐟', tr('Dapat ikan! Kecil, besar, atau <b>ikan emas</b> ✨. Masak di tungku, atau jual ke Bu Aminah.', 'You caught a fish! Small, big, or a <b>golden fish</b> ✨. Cook it at a furnace, or sell it to Bu Aminah.'))}
       <p class="fgTip">💡 ${tr('Terlalu cepat? Tidak apa-apa, coba lagi! Topi Pemancing 🎣 membuat ikan lebih cepat menggigit.', 'Too early? That’s OK, just try again! The Fishing Hat 🎣 makes fish bite sooner.')}</p>
-      <button class="btn gold" id="fgOk">${tr('Ayo memancing! 🎣', 'Let’s go fishing! 🎣')}</button></div>`, undefined, { onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Cara memancing. Pegang pancingan, berdiri di pinggir air, ketuk pakai. Tunggu sampai pelampung tenggelam, lalu cepat ketuk lagi!', 'How to fish. Hold the rod, stand at the edge of the water and tap Use. Wait until the float dips, then quickly tap again!'), getLang(), false, 1); } });
-    $('#fgOk', el).onclick = () => close();
+      </div>`, undefined, { onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Cara memancing. Pegang pancingan, berdiri di pinggir air, ketuk pakai. Tunggu sampai pelampung tenggelam, lalu cepat ketuk lagi!', 'How to fish. Hold the rod, stand at the edge of the water and tap Use. Wait until the float dips, then quickly tap again!'), getLang(), false, 1); } });
+    // the first time, "Let's go fishing" starts the practice too
+    $('#fgOk', el).onclick = () => { close(); if (!g.stats.fishPractice) setTimeout(() => g.fishCoach.start(), 300); };
+    $('#fgPractice', el).onclick = () => { close(); setTimeout(() => g.fishCoach.start(), 300); };
     g.stats.fishGuide = true;
   }
 

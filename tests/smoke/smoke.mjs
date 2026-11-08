@@ -324,6 +324,43 @@ async function run(name) {
       if (!(r.drained > 5) || r.after.me !== 50 || r.after.mo !== 50 || r.after.sips !== 2 || r.after.gave < 1 || r.refilled !== 4) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('fishing practice: Baby Mo coaches each step until the first catch', async () => {
+      const seen = [];
+      const now = () => g(() => __game.fishCoach.step);
+      const dump = () => g(() => { const G = __game, P = G.player.pos; return JSON.stringify({ step: G.fishCoach.step, fish: G.fishing.state, held: G.inv.held()?.id, pos: [P.x.toFixed(1), P.y.toFixed(1), P.z.toFixed(1)], ground: G.player.onGround, water: G.nearFishingWater(), ahead: !!G.waterAhead(), open: G.ui.isOpen(), paused: G.paused }); });
+      const until = (what, fn, ms) => p.waitForFunction(fn, null, { timeout: ms, polling: 200 }).catch(async () => { throw new Error(what + ': ' + (await dump()) + ' seen ' + seen.join(',')); });
+      // start in the middle of the village, away from the well (its water counts as water too)
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.player.vel.set(0, 0, 0); G.inv.remove(244, 9); G.stats.fishPractice = false; G.inv.sel = 0; G.ui.fishGuide(); });
+      await p.waitForSelector('.veil.on #fgPractice');
+      await g(() => document.querySelector('.veil.on #fgPractice').click());
+      await p.waitForFunction(() => __game.fishCoach.step === 'rod' || __game.fishCoach.step === 'water', null, { timeout: 5000 });
+      seen.push(await now());
+      // the rod's slot glows; tapping it moves on to the water
+      const glowed = await g(() => { const b = document.querySelector('#hotbar .slot.coachHi'); if (b) b.click(); else __game.inv.sel = __game.inv.slots.findIndex(s => s && s.id === 244); return !!b || __game.fishCoach.step === 'water'; });
+      if (!glowed) throw new Error('the rod’s slot did not glow');
+      await p.waitForFunction(() => __game.fishCoach.step === 'water', null, { timeout: 5000 }); seen.push('water');
+      // Baby Mo takes you to the beach
+      await g(() => { __game.ui.closeAllModals(); __game.fishCoach.toShore(); });
+      await p.waitForTimeout(900);
+      await p.waitForFunction(() => __game.nearFishingWater() || (__game.world.update(__game.player.pos.x, __game.player.pos.z, 40), __game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 }).catch(() => {});
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await until('at the water', () => __game.fishCoach.step === 'cast' || (__game.ui.closeAllModals(), false), 15000); seen.push('cast');
+      // a too-early tap: just throw again
+      await g(() => { __game.ui.closeAllModals(); __game.player.pitch = -0.5; __game.fishAction(); });
+      await p.waitForTimeout(900);
+      await g(() => __game.fishAction());
+      const early = await now();
+      // throw, wait for the dip, tap
+      await g(() => __game.fishAction());
+      // (game time is capped per frame, so on a slow software-rendered machine 3½ game seconds can take much longer)
+      await until('the bite', () => __game.fishCoach.step === 'bite' || (__game.ui.closeAllModals(), false), 45000); seen.push('bite');
+      const fish = await g(() => __game.stats.fish || 0);
+      await g(() => __game.fishAction());
+      const r = await g(f => ({ done: __game.stats.fishPractice, caught: (__game.stats.fish || 0) - f, step: __game.fishCoach.step, coachOn: document.body.classList.contains('coach-on') }), fish);
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (early !== 'cast' || !r.done || r.caught !== 1 || r.coachOn) throw new Error(JSON.stringify({ seen, early, r }));
+      return { seen, early, ...r };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');
@@ -381,7 +418,7 @@ async function run(name) {
     });
     await step('boat: the ⛵ button by the shore, a free boat, sailing with Baby Mo', async () => {
       // shore spots from the generator; a landmark may have changed one, so try a few
-      const spots = await g(() => { const G = __game, out = []; G.ui.closeAllModals(); for (let r = 20; r < 400 && out.length < 6; r += 3) for (let a = 0; a < 6.28 && out.length < 6; a += 0.1) { const x = Math.round(Math.cos(a) * r), z = Math.round(Math.sin(a) * r); const c = G.gen.column(x, z); if (c.h >= 40 && c.h <= 42 && !G.gen.landmarks.some(l => Math.hypot(l.x - x, l.z - z) < 20) && !out.some(o => Math.hypot(o[0] - x, o[1] - z) < 25)) for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { if (G.gen.column(x + dx, z + dz).h < 39 && G.gen.column(x + 2 * dx, z + 2 * dz).h < 39) { out.push([x, z, c.h]); break; } } } return out; });
+      const spots = await g(() => { const G = __game, out = []; G.ui.closeAllModals(); for (let r = 20; r < 600 && out.length < 6; r += 3) for (let a = 0; a < 6.28 && out.length < 6; a += 0.1) { const x = Math.round(Math.cos(a) * r), z = Math.round(Math.sin(a) * r); const c = G.gen.column(x, z); if (c.h >= 40 && c.h <= 42 && !G.gen.landmarks.some(l => Math.hypot(l.x - x, l.z - z) < 20) && !out.some(o => Math.hypot(o[0] - x, o[1] - z) < 25)) for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { const w1 = G.gen.column(x + dx, z + dz), w2 = G.gen.column(x + 2 * dx, z + 2 * dz); if (w1.h < 39 && w2.h < 39 && w1.snow <= 0.55 && w2.snow <= 0.55) { out.push([x, z, c.h]); break; } } } return out; });
       if (!spots.length) return { skipped: 'no shore' };
       let shown = false;
       for (const spot of spots) {
@@ -517,6 +554,8 @@ async function run(name) {
       await p.fill('.gateScr #pgIn', String(ans)); await g(() => document.querySelector('.gateScr #pgOk').click());
       await g(() => document.querySelector('.lockScr [data-add="15"]').click());
       await p.waitForTimeout(600);
+      await g(() => __game.ui.closeAllModals()); // a reward pop-up from earlier play may open once the lock lifts
+      await p.waitForTimeout(200);
       const woke = await g(() => ({ lock: !!document.querySelector('.lockScr'), mo: __game.ents.mo.sleeping, slept: __game.stats.play.slept, phase: __game.bedtime.phase, paused: __game.paused }));
       if (woke.lock || woke.mo || woke.slept || woke.paused || woke.phase !== 0) throw new Error(JSON.stringify(woke));
       await g(() => { __game.stats.play.sec = 0; __game.stats.play.extra = 0; });

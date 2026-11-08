@@ -52,6 +52,7 @@ import { Weather } from './game/weather';
 import { Projects } from './game/projects';
 import { Deeds } from './game/deeds';
 import { Thirst, thirstSpeed } from './game/thirst';
+import { FishCoach } from './game/fishcoach';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
 import { Jamaah, rowPose } from './game/jamaah';
@@ -154,6 +155,7 @@ export class Game {
   deco!: Decor;
   bugs!: BugSwarm;
   fishing!: Fishing;
+  fishCoach!: FishCoach;
   private attackCd = 0;
   /** extra quarter turns for the next furniture / turned block you place (the rotate button) */
   placeRot = 0;
@@ -280,6 +282,7 @@ export class Game {
     this.bugs = new BugSwarm(this.scene, this.world);
     this.bugs.onBump = b => this.bugBump(b);
     this.fishing = new Fishing(this.scene);
+    this.fishCoach = new FishCoach(this);
     this.blockGhost = this.makeBlockGhost();
     if (meta) {
       this.deco.load(cleanDeco(meta.deco));
@@ -729,7 +732,7 @@ export class Game {
     return new THREE.Vector3(p.pos.x + f.x * 0.7 - Math.cos(p.yaw) * -0.25, p.visY + 1.55 + Math.max(0, f.y) * 0.4, p.pos.z + f.z * 0.7 + Math.sin(p.yaw) * -0.25);
   }
   /** a point on the water surface along the look direction (within 9 blocks) */
-  private waterAhead(): THREE.Vector3 | null {
+  waterAhead(): THREE.Vector3 | null {
     // from the real head position (the camera's smoothed height can lag after stepping or teleporting)
     const d = this.player.look(), e = new THREE.Vector3(this.player.pos.x, this.player.pos.y + 1.6, this.player.pos.z);
     for (let s = 1; s < 10; s += 0.25) {
@@ -752,14 +755,15 @@ export class Game {
       const at = f.float.clone();
       const r = f.reel();
       this.ui.fishCue(false);
-      if (r === 'caught') this.landFish(at);
-      else if (r === 'early') { SFX.splash(); this.ui.toast(tr('Terlalu cepat! Tunggu pelampungnya tenggelam dulu 🎣', 'Too soon! Wait for the float to dip 🎣')); }
+      if (r === 'caught') { this.landFish(at); this.fishCoach.on('caught'); }
+      else if (r === 'early') { SFX.splash(); if (this.fishCoach.active) this.fishCoach.on('early'); else this.ui.toast(tr('Terlalu cepat! Tunggu pelampungnya tenggelam dulu 🎣', 'Too soon! Wait for the float to dip 🎣')); }
       return;
     }
     const w = this.waterAhead();
     if (!w) { this.ui.toast(tr('Arahkan pancingan ke air ya 🌊', 'Point the rod at some water 🌊')); return; }
     f.cast(this.rodTip(), w, this.skillLv('fishing'), this.hasHat('hat_fisher'));
     this.anim.play('build'); SFX.jump();
+    this.fishCoach.on('cast');
   }
   /** busy play (walking, digging, swimming) makes you thirsty faster */
   private thirstTick(dt: number) {
@@ -777,17 +781,21 @@ export class Game {
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = -3; dy <= 1; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER) return true;
     return false;
   }
+  /** standing on dry ground at the edge of open water (where you can fish or launch a boat) */
+  nearFishingWater() {
+    const p = this.player;
+    if (p.inWater || this.fun.riding || !p.onGround) return false;
+    const bx = Math.floor(p.pos.x), by = Math.floor(p.pos.y), bz = Math.floor(p.pos.z);
+    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -4; dy <= 0; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER && this.world.get(bx + dx, by + dy + 1, bz + dz) === B.AIR) return true;
+    return false;
+  }
   private fishHelpT = 0;
   /** the 🎣? button by the water; the guide opens by itself the first time you hold a rod */
   private fishHelpTick(dt: number) {
     if ((this.fishHelpT -= dt) > 0) return;
     this.fishHelpT = 0.5;
     const p = this.player, rod = this.inv.held()?.id === I.FISHING_ROD;
-    let nearWater = false;
-    if (!p.inWater && !this.fun.riding && p.onGround) {
-      const bx = Math.floor(p.pos.x), by = Math.floor(p.pos.y), bz = Math.floor(p.pos.z);
-      search: for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -4; dy <= 0; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER && this.world.get(bx + dx, by + dy + 1, bz + dz) === B.AIR) { nearWater = true; break search; }
-    }
+    const nearWater = this.nearFishingWater();
     this.ui.showFishHelp(rod || nearWater);
     this.ui.showBoat(nearWater && !this.fun.riding);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
@@ -797,6 +805,7 @@ export class Game {
     if (this.inv.held()?.id !== I.FISHING_ROD || f.float.distanceTo(this.player.pos) > 14) { f.stop(); this.ui.fishCue(false); return; }
     const ev = f.update(dt, t, this.rodTip());
     this.ui.fishCue(f.state === 'bite');
+    if (ev) this.fishCoach.on(ev);
     if (ev === 'bite') { SFX.splash(); haptic([20, 30, 20]); this.ui.toast(tr('❗ Ada yang menggigit! Ketuk sekarang!', '❗ Something’s biting! Tap now!'), 1400); this.fx.sparkle(f.float.x, f.float.y + 0.2, f.float.z, 8, 0x8fd3ec, 1.5); }
     if (ev === 'escaped') this.ui.toast(tr('Yah, ikannya lepas. Tunggu lagi ya 🐟', 'Aw, it got away. Wait for the next one 🐟'), 1800);
   }
@@ -947,6 +956,7 @@ export class Game {
       this.bugs.update(this.paused ? 0 : dt, t, q, { night: this.sky.night || (this.hour > this.schedule.maghrib - 0.6 && this.hour < this.schedule.maghrib + 2), forest: col.biome === Biome.FOREST, active: this.settings.beetles !== false && !this.prayingTogether, underground: q.y < top - 4 });
     }
     if (this.fishing?.busy) this.fishTick(dt, t);
+    this.fishCoach?.update(dt);
     if (this.ambient) {
       this.ambient.enabled = !this.settings.lowGfx;
       const q = this.player.pos, top = this.world.chunkAt(q.x, q.z)?.hm?.[(((Math.floor(q.z) % 16) + 16) % 16) * 16 + (((Math.floor(q.x) % 16) + 16) % 16)] ?? 0;
