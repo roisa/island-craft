@@ -15,6 +15,7 @@ import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
 import { DEEDS, type Deed } from './game/amal';
 import { WUDU } from './game/deeds';
+import { WUDU_GUIDE, SHOLAT_GUIDE, poseFrames, type GuideStep } from './game/tutorials';
 import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
 import { levelOf, starsFor } from './game/kid';
@@ -389,11 +390,17 @@ export class UI {
     const g = this.g;
     let i = 0;
     const { el, close } = this.modal(`<div class="wudu"><h2>💧 ${tr('Berwudhu', 'Making wudu')}</h2>
-      <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}"><span>${w.icon}</span><small>${esc(t2(w.name))}${w.times > 1 ? ' ×' + w.times : ''}</small></button>`).join('')}</div>
+      <div class="wBody"><div class="wPic"><div class="pgFrames" id="wPic"></div><p id="wSay"></p></div>
+      <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}"><span>${w.icon}</span><small>${esc(t2(w.name))}${w.times > 1 ? ' ×' + w.times : ''}</small></button>`).join('')}</div></div>
       <p id="wMsg">${tr('Ketuk langkahnya satu per satu, mulai dari yang bersinar ✨', 'Tap the steps one by one, starting with the glowing one ✨')}</p>
-      <button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div>`);
+      <div class="row"><button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
     const btns = el.querySelectorAll<HTMLElement>('.ws');
-    const mark = () => btns.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('next', k === i); });
+    const pic = this.frames($('#wPic', el));
+    const mark = () => {
+      btns.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('next', k === i); });
+      const st = WUDU_GUIDE[Math.min(i, WUDU_GUIDE.length - 1)];
+      pic.set(st.frames); $('#wSay', el).textContent = t2(st.say);
+    };
     mark();
     btns.forEach(b => (b.onclick = () => {
       const k = +b.dataset.k!;
@@ -405,19 +412,67 @@ export class UI {
         g.amal('wudu'); g.checkQuests();
       }
     }));
-    $('#wX', el).onclick = () => close();
+    $('#wX', el).onclick = () => { pic.stop(); close(); };
+    $('#wGuide', el).onclick = () => { pic.stop(); close(); setTimeout(() => this.poseGuide('wudu'), 30); };
+  }
+  /** a picture that flips through its frames like a little cartoon, with a soft crossfade */
+  private frames(box: HTMLElement, ms = 900) {
+    box.innerHTML = '<img alt=""><img alt="">';
+    const im = box.querySelectorAll('img');
+    let list: string[] = [], k = 0, top = 0;
+    const show = (src: string) => { top ^= 1; im[top].src = src; im[top].classList.add('on'); im[top ^ 1].classList.remove('on'); };
+    const timer = setInterval(() => { if (!box.isConnected) { clearInterval(timer); return; } if (list.length > 1) { k = (k + 1) % list.length; show(list[k]); } }, ms);
+    return {
+      set(f: string[]) { if (f.join() === list.join()) return; list = f; k = 0; show(f[0]); },
+      stop() { clearInterval(timer); },
+    };
+  }
+  /** the picture guide: Baby Mo shows each step of wudu or sholat, one at a time */
+  poseGuide(kind: 'wudu' | 'sholat') {
+    const steps: GuideStep[] = kind === 'wudu' ? WUDU_GUIDE : SHOLAT_GUIDE;
+    const title = kind === 'wudu' ? `💧 ${tr('Cara berwudhu', 'How to make wudu')}` : `🕌 ${tr('Cara sholat', 'How to pray')}`;
+    let i = 0, playing = true, stepT = 0;
+    const { el, close } = this.modal(`<div class="poseGuide"><h2>${title}</h2>
+      <div class="pgBody"><div class="pgFrames big" id="pgPic"></div><div class="pgInfo">
+      <div class="pgN" id="pgN"></div><h3 id="pgName"></h3><p id="pgSay"></p>
+      <div class="pgDots">${steps.map((_, k) => `<button data-k="${k}" aria-label="${k + 1}"></button>`).join('')}</div>
+      <div class="row"><button class="btn ghost small" id="pgPrev" aria-label="Back">◀</button><button class="btn small gold" id="pgPlay"></button><button class="btn ghost small" id="pgNext" aria-label="Next">▶</button><button class="btn ghost small" id="pgSpeak" aria-label="Listen">${ic('speaker')}</button></div>
+      <button class="btn ghost small" id="pgX">${tr('Tutup', 'Close')}</button></div></div></div>`, () => { pic.stop(); clearInterval(auto); Speech.stop(1); });
+    const pic = this.frames($('#pgPic', el));
+    const say = () => { if (this.g.settings.moVoice) Speech.talk(t2(steps[i].name) + '. ' + t2(steps[i].say), getLang(), true, 1); };
+    const show = (n: number, talk = true) => {
+      i = (n + steps.length) % steps.length; stepT = 0;
+      const s = steps[i];
+      pic.set(s.frames);
+      $('#pgN', el).textContent = `${tr('Langkah', 'Step')} ${i + 1} / ${steps.length}`;
+      $('#pgName', el).textContent = t2(s.name); $('#pgSay', el).textContent = t2(s.say);
+      el.querySelectorAll<HTMLElement>('.pgDots button').forEach((b, k) => b.classList.toggle('on', k === i));
+      if (talk) say();
+    };
+    const playBtn = () => { $('#pgPlay', el).textContent = playing ? '⏸ ' + tr('Jeda', 'Pause') : '▶️ ' + tr('Putar', 'Play'); };
+    // each step stays long enough to read it aloud, then the next one comes
+    const auto = setInterval(() => { if (!el.isConnected) { clearInterval(auto); return; } if (!playing) return; stepT += 0.5; if (stepT >= 7) { if (i === steps.length - 1) { playing = false; playBtn(); this.g.amal('learn'); return; } show(i + 1); } }, 500);
+    $('#pgPrev', el).onclick = () => { SFX.click(); show(i - 1); };
+    $('#pgNext', el).onclick = () => { SFX.click(); show(i + 1); };
+    $('#pgPlay', el).onclick = () => { playing = !playing; if (playing && i === steps.length - 1) show(0); playBtn(); SFX.click(); };
+    $('#pgSpeak', el).onclick = () => say();
+    el.querySelectorAll<HTMLElement>('.pgDots button').forEach(b => (b.onclick = () => { SFX.click(); show(+b.dataset.k!); }));
+    $('#pgX', el).onclick = () => close();
+    playBtn(); show(0, false);
+    setTimeout(say, 300);
   }
   private amalTab(body: HTMLElement) {
     const g = this.g, log = g.stats.amal, total = (id: string) => log?.total[id] || 0, today = (id: string) => (log && log.day === new Date().toDateString() ? log.today[id] || 0 : 0);
     const all = DEEDS.reduce((a, d) => a + total(d.id), 0), allToday = DEEDS.reduce((a, d) => a + today(d.id), 0);
     body.innerHTML = `<div class="amalHead"><b>📖 ${tr('Buku Amal Kebaikan', 'My Good Deeds Book')}</b><small>${tr(`Hari ini <b>${allToday}</b> kebaikan · semuanya <b>${all}</b>`, `Today <b>${allToday}</b> good deeds · all together <b>${all}</b>`)}</small></div>
-      <div class="row amalBtns"><button class="btn small gold" id="amTasbih">📿 ${tr('Tasbih', 'Tasbih')}</button><button class="btn small ghost" id="amWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
+      <div class="row amalBtns"><button class="btn small gold" id="amTasbih">📿 ${tr('Tasbih', 'Tasbih')}</button><button class="btn small ghost" id="amWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button><button class="btn small ghost" id="amSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button></div>
       ${g.projects ? g.projects.html() : ''}
       <div class="amalList">${DEEDS.map(d => { const n = total(d.id); return `<div class="amalRow ${n ? '' : 'off'}"><div class="ic">${n ? d.icon : '❔'}</div><div class="tx"><b>${esc(t2(d.name))}${d.times ? ` <span class="amx">×${d.times}</span>` : ''} <span class="amn">${n ? `${today(d.id)} ${tr('hari ini', 'today')} · ${n}` : tr('belum', 'not yet')}</span></b><small>“${esc(t2(d.hadith))}” <i>${esc(d.src)}</i></small></div></div>`; }).join('')}</div>
       <p class="tip">💡 ${tr('Kebaikan lain: wudhu di sumur desa, singkirkan batu di jalan, sedekah di kotak masjid, tersenyum pada Baby Mo, doa sebelum tidur, dan jujur saat berbelanja.', 'More good deeds: make wudu at the village well, clear stones from the path, give at the masjid’s charity box, smile at Baby Mo, say the du’a before sleeping, and be honest when shopping.')}</p>
       <p class="note">${tr('Pahala yang sebenarnya ada di sisi Allah. Buku ini membantu kita ingat betapa Allah menyukai kebaikan. Yang paling penting: niat karena Allah. 💛', 'The real reward is with Allah. This book helps us remember how much He loves good deeds. What matters most is doing them for Allah. 💛')}</p>`;
     $('#amTasbih', body).onclick = () => this.tasbih();
-    $('#amWudu', body).onclick = () => this.wudu();
+    $('#amWudu', body).onclick = () => this.poseGuide('wudu');
+    $('#amSholat', body).onclick = () => this.poseGuide('sholat');
   }
 
   // ---------- coins & the village shop ----------
@@ -451,11 +506,14 @@ export class UI {
     const c = $('#coins'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump');
   }
   /** the prayer together: which rakaat and which movement */
-  jamaahHud(j: { step: { name: T2; rakaat: number }; total: number; joined: boolean } | null) {
+  private jmPic: ReturnType<UI['frames']> | null = null; private jmTxt = '';
+  jamaahHud(j: { step: { name: T2; rakaat: number; pose: import('./game/models').PrayerPose; head?: number }; total: number; joined: boolean } | null) {
     const el = $('#jmHud');
-    if (!j) { if (!el.classList.contains('hidden')) el.classList.add('hidden'); return; }
+    if (!j) { if (!el.classList.contains('hidden')) { el.classList.add('hidden'); this.jmPic?.stop(); this.jmPic = null; el.innerHTML = ''; this.jmTxt = ''; } return; }
+    if (!this.jmPic) { el.innerHTML = '<div class="pgFrames jm"></div><span class="jmT"></span>'; this.jmPic = this.frames($('.pgFrames', el), 700); }
+    this.jmPic.set(poseFrames(j.step.pose, j.step.name.join(' '), j.step.head ?? 0));
     const txt = `🤲 ${tr('Rakaat', 'Rakaat')} ${j.step.rakaat}/${j.total} · <b>${esc(t2(j.step.name))}</b>${j.joined ? '' : ' · ' + tr('kamu keluar barisan', 'you left the row')}`;
-    if (el.innerHTML !== txt) el.innerHTML = txt;
+    if (this.jmTxt !== txt) { this.jmTxt = txt; $('.jmT', el).innerHTML = txt; }
     el.classList.remove('hidden');
   }
   /** Bu Aminah's village shop: spend coins, and see the sum each time */
@@ -1047,9 +1105,12 @@ export class UI {
       <div class="set"><span>${tile('map', C.red)}${tr('Kota', 'City')}</span><select id="selCity"><option value="">${esc(g.loc.name)}</option>${CITIES.map((c, i) => `<option value="${i}">${c.i} ${c.n}</option>`).join('')}<option value="gps">${ic('map')} ${tr('Pakai lokasiku', 'Use my location')}</option></select></div>
       <div class="set"><span>${tile('clock', C.indigo)}${tr('Metode', 'Method')}</span><select id="selMethod">${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
+      <div class="row amalBtns"><button class="btn small gold" id="prSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button><button class="btn small ghost" id="prWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
       <h3>${tr('Di dalam game', 'Inside the game')}</h3>
       <p>${tr('Matahari di dunia Baby Mo mengikuti jadwal di atas: fajar saat Subuh, terbenam saat Maghrib. Saat waktu sholat tiba di game, warga desa berjalan ke masjid — kamu boleh ikut!', 'The sun in Baby Mo’s world follows this schedule: dawn at Fajr, sunset at Maghrib. When it is prayer time in the game, villagers walk to the masjid — you can join them!')}</p>
       <p style="font-size:11.5px;margin-top:6px">${tr('Waktu dihitung otomatis di perangkat, dan bisa berbeda beberapa menit dari jadwal masjid setempat.', 'Times are calculated on the device and may differ a few minutes from your local masjid.')}</p>`;
+    $('#prSholat', body).onclick = () => this.poseGuide('sholat');
+    $('#prWudu', body).onclick = () => this.poseGuide('wudu');
     $<HTMLSelectElement>('#selCity', body).onchange = e => {
       const v = (e.target as HTMLSelectElement).value;
       if (v === 'gps') {

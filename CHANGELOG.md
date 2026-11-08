@@ -5,6 +5,42 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Picture guides for wudu and sholat 🧒💧🕌
+
+Requested by a parent, with the Baby Mo pose renders from their Drive
+(wudu and sholat folders) to use as a picture tutorial.
+
+- **The pictures:** 37 poses, cropped and resized to 360×360 WebP
+  (about 600 KB in all), in `public/img/poses/`. Steps with several
+  pictures play them in a loop with a soft crossfade, like a little
+  cartoon.
+- **New `src/game/tutorials.ts`:** a short sentence a child can follow, in
+  Indonesian and English, for each of 10 wudu steps and 10 sholat steps
+  (intention, takbir, standing, ruku’, sujud, the first and final
+  sitting, salam right and left, du’a).
+- **Picture guide pop-up:**
+  - Step counter and dots, ◀ ▶ buttons, and play/pause. Each step stays
+    about 7 seconds.
+  - Baby Mo’s voice reads each step aloud, and 🔊 repeats it.
+  - Watching to the end counts as seeking knowledge in the Amal Book.
+- **Where to find it:**
+  - **How to pray** and **How to make wudu** in the Amal Book and on the
+    Prayer tab.
+  - **Watch how** in the wudu pop-up.
+- **The wudu pop-up at the well** now shows the picture for the glowing
+  step, and the du’a picture when you finish.
+- **Praying together:** the prayer pill shows the picture of what the row
+  is doing right now: takbir, standing, ruku’, sujud, sitting, or salam to
+  the right and left.
+- **Short landscape phones:** the picture sits beside the words, so
+  nothing needs scrolling.
+- **Tested:**
+  - Smoke checks that the prayer pill shows a pose picture, the du’a
+    picture appears after wudu, and the sholat guide has 10 steps and
+    moves on with ▶.
+  - Screenshots on desktop and an 844×390 phone.
+  - 146 unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### Steadier smoke tests on slow CI machines
 
 - **The problem:** three publish runs failed on GitHub's slower runners.

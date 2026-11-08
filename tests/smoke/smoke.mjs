@@ -272,6 +272,8 @@ async function run(name) {
       await g(() => { const G = __game; G.player.pos.set(0.5, 46, -18.5); G.player.vel.set(0, 0, 0); });
       await p.waitForFunction(() => !!__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 200 });
       const hud = await g(() => document.querySelector('#jmHud').innerText);
+      // the row's movement is shown as a Baby Mo picture
+      await p.waitForFunction(() => /img\/poses\/s\d/.test(document.querySelector('#jmHud img.on')?.src || ''), null, { timeout: 5000 });
       // skip ahead to the salam, then it finishes by itself
       await g(() => { const j = __game.jamaah; j.i = j.plan.length - 1; j.t = 0; });
       await p.waitForFunction(() => !__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
@@ -309,6 +311,12 @@ async function run(name) {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
       await p.waitForSelector('.veil.on .wudu');
       for (let k = 0; k < 9; k++) await g(k => document.querySelector(`.veil.on .ws[data-k="${k}"]`).click(), k);
+      if (!(await g(() => document.querySelector('.veil.on #wPic img.on')?.src || '')).includes('w10')) throw new Error('no du’a picture after wudu');
+      // the picture guide for sholat: ten steps, each with a picture
+      await g(() => { __game.ui.closeAllModals(); __game.ui.poseGuide('sholat'); });
+      await p.waitForSelector('.veil.on .poseGuide #pgPic img.on');
+      const pg = await g(() => { document.querySelector('.veil.on #pgNext').click(); return { n: document.querySelectorAll('.veil.on .pgDots button').length, at: document.querySelector('.veil.on #pgN').textContent }; });
+      if (pg.n !== 10 || !pg.at.includes('2')) throw new Error(JSON.stringify(pg));
       await g(() => { __game.ui.closeAllModals(); __game.ui.tasbih(); });
       await p.waitForSelector('.veil.on #tsTap');
       for (let k = 0; k < 33; k++) await g(() => document.querySelector('.veil.on #tsTap').click());

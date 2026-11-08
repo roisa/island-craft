@@ -194,3 +194,40 @@ body.desktop #waterBtns { bottom: calc(100px + var(--safe-b)); }
 #bStroke .si { font-size: 22px; }
 #bStroke.bump { animation: pk .45s ease-out; }
 @media (max-height: 520px) { #bStroke { bottom: calc(66px + var(--safe-b)); left: auto; right: calc(196px + var(--safe-r)); transform: none; } }
+
+/* picture guides (wudu & sholat poses) */
+.pgFrames { position: relative; width: 150px; height: 150px; margin: 4px auto; border-radius: 24px; background: radial-gradient(circle at 50% 40%, #fff 0, #e9f4fb 70%); overflow: hidden; }
+.pgFrames img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .35s ease; }
+.pgFrames img.on { opacity: 1; }
+.pgFrames.big { width: min(260px, 62vw, 40vh); height: min(260px, 62vw, 40vh); }
+.pgFrames.jm { width: 64px; height: 64px; border-radius: 16px; margin: 0; flex: none; }
+.poseGuide { text-align: center; max-width: 400px; margin-left: auto; margin-right: auto; }
+.poseGuide h3 { margin: 2px 0; font-size: 18px; }
+.poseGuide p { margin: 4px 0 8px; font-size: 15px; line-height: 1.35; min-height: 2.7em; }
+.pgN { font-size: 12px; opacity: .65; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.pgDots { display: flex; justify-content: center; gap: 6px; margin: 6px 0 10px; }
+.pgDots button { width: 10px; height: 10px; min-width: 0; min-height: 0; padding: 0; border-radius: 50%; border: 0; background: #cfdde6; }
+.pgDots button.on { background: #F1C232; transform: scale(1.3); }
+.poseGuide .row, .wudu .row { justify-content: center; gap: 6px; flex-wrap: wrap; }
+.wPic p { font-size: 14px; margin: 2px 0 4px; min-height: 2.6em; }
+#jmHud { display: flex; align-items: center; gap: 10px; }
+@media (max-height: 520px) {
+  .pgFrames { width: 96px; height: 96px; }
+  .pgFrames.big { width: 150px; height: 150px; }
+  .poseGuide p { min-height: 0; font-size: 14px; }
+  .wPic p { min-height: 0; }
+  .pgFrames.jm { width: 48px; height: 48px; }
+}
+/* short landscape phones: picture beside the words, so everything fits without scrolling */
+@media (max-height: 520px) and (min-width: 600px) {
+  .poseGuide { max-width: 640px; }
+  .pgBody, .wBody { display: flex; align-items: center; gap: 14px; text-align: left; }
+  .pgBody .pgFrames.big { width: 170px; height: 170px; margin: 0; flex: none; }
+  .pgInfo { flex: 1; min-width: 0; }
+  .pgInfo .pgDots { justify-content: flex-start; }
+  .pgInfo .row { justify-content: flex-start; }
+  .wudu { max-width: 700px; }
+  .wBody .wPic { width: 170px; flex: none; text-align: center; }
+  .wBody .wsteps { flex: 1; grid-template-columns: repeat(3, 1fr); }
+  .wBody .wPic p { font-size: 13px; }
+}
