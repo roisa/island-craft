@@ -32,7 +32,7 @@ import { BugSwarm, type Bug } from './game/bugs';
 import { Fishing } from './game/fishing';
 import { skillLevel, hitPower, catchFor, type Skill } from './game/skills';
 import { heldModel } from './game/held';
-import { SFX, Music, Speech, audioState, haptic } from './game/audio';
+import { SFX, Music, Speech, audioState, haptic, adhan } from './game/audio';
 import * as Save from './game/save';
 import { SAVE_VERSION, chooseSave, cleanEdits, makeExport, parseExport, type SaveMeta, type Edits } from './game/persist';
 import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
@@ -62,7 +62,7 @@ import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean;
+  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; adhan?: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean;
   /** minutes of play between water breaks (0 = off) */
   water: number;
   /** naughty beetles at dusk (parents can turn them off) */
@@ -121,6 +121,25 @@ export class Game {
   /** "show me the way": the golden arrow and a trail of light lead here */
   masjidGuide: MasjidSite | null = null;
   siteAt(p: THREE.Vector3) { return this.sites.find(s => s.inside(p)) ?? null; }
+  /** wudu done and not yet used for a prayer: needed before praying together */
+  wuduValid = false;
+  private wuduAsked = false;
+  /** the wudu pop-up was closed before the end: ask again in a moment if you're still in your place */
+  wuduLater() { setTimeout(() => { this.wuduAsked = false; }, 6000); }
+  /** the wudu pop-up was finished */
+  wuduDone() { this.wuduValid = true; }
+  /** places to make wudu: the village well and fountain, and the Grand Masjid's two wudu places */
+  wuduSpots(): [number, number, number][] {
+    const out: [number, number, number][] = WUDU_SPOTS.map(([x, z]) => [x, VILLAGE_Y, z]);
+    const gl = this.gen.landmarks.find(l => l.id === 'grand_masjid');
+    if (gl) out.push([gl.x - 13.5, gl.y - 1, gl.z - 4.5], [gl.x + 9, gl.y - 1, gl.z + 11]);
+    return out;
+  }
+  /** no wudu yet: Baby Mo reminds you, and the wudu pop-up opens; the prayer starts when it's done */
+  private askWudu(then?: () => void) {
+    this.ui.say(tr('Eits, wudhu dulu sebelum sholat ya! 💧 Ikuti langkahnya satu per satu.', 'Wait — wudu first before we pray! 💧 Follow the steps one by one.'), 'idea', 6000);
+    this.ui.wudu(true, then);
+  }
   get girl() { return this.settings.avatar === 'girl'; }
   eid!: Eid;
   private eidT = 0;
@@ -665,6 +684,7 @@ export class Game {
   /** step into the row next to Baby Mo, facing the qibla, with the camera behind you so you can follow along */
   prayTogether() {
     if (!this.canPrayTogether()) return;
+    if (!this.wuduValid) { this.askWudu(() => this.prayTogether()); return; }
     const p = this.player;
     const site = nearestSite(this.sites, p.pos), row = site.row(this.girl);
     this.jamaahSite = site;
@@ -776,7 +796,7 @@ export class Game {
   nearDrinkingWater() {
     const p = this.player;
     if (p.inWater || this.fun.riding) return true;
-    if (WUDU_SPOTS.some(([wx, wz]) => Math.hypot(p.pos.x - wx, p.pos.z - wz) < 3.5 && Math.abs(p.pos.y - VILLAGE_Y) < 4)) return true;
+    if (this.wuduSpots().some(([wx, wy, wz]) => Math.hypot(p.pos.x - wx, p.pos.z - wz) < 3.5 && Math.abs(p.pos.y - wy) < 4)) return true;
     const bx = Math.floor(p.pos.x), by = Math.floor(p.pos.y), bz = Math.floor(p.pos.z);
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = -3; dy <= 1; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER) return true;
     return false;
@@ -1385,7 +1405,7 @@ export class Game {
       if (hit.id === B.BED) { this.sleep(); return; }
       if (hit.id === B.CHARITY_BOX) { this.deeds.charityBox(); return; }
       // the village well and the fountain: make wudu
-      if ((!held || !isBlockId(held.id)) && WUDU_SPOTS.some(([wx, wz]) => Math.hypot(hit.x + 0.5 - wx, hit.z + 0.5 - wz) < 2.2 && Math.abs(hit.y - VILLAGE_Y) < 4)) { this.ui.wudu(); return; }
+      if ((!held || !isBlockId(held.id)) && this.wuduSpots().some(([wx, wy, wz]) => Math.hypot(hit.x + 0.5 - wx, hit.z + 0.5 - wz) < 2.6 && Math.abs(hit.y - wy) < 4)) { this.ui.wudu(); return; }
       if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.BEDUG) { this.festive.bedug(); return; }
       if (hit.id === B.TELESCOPE) { this.ui.telescope(); return; }
@@ -1694,7 +1714,9 @@ export class Game {
         const next = PRAYERS.map(q => s[q]).filter(h => h > s[p]).sort((a, b) => a - b)[0] ?? s.fajr + 24;
         this.gameEvent = { p, until: Math.min(s[p] + 3, next - 0.15) % 24, attended: false };
         this.stats.prayersSeen++;
-        SFX.drum(3); setTimeout(() => SFX.chime(), 1400);
+        // the call to prayer (a short adhan), or the drum if a parent turned it off
+        if (this.settings.adhan !== false && adhan() > 0) this.ui.toast(tr(`🕌 Allāhu Akbar… Waktunya sholat ${prayerName(p)}!`, `🕌 Allāhu Akbar… It’s time for ${prayerName(p)}!`), 6000);
+        else { SFX.drum(3); setTimeout(() => SFX.chime(), 1400); }
         if (p === 'maghrib') {
           // iftar first: everyone sits down together on the plaza, then goes to pray
           this.festive.setPicnic(true);
@@ -1719,7 +1741,7 @@ export class Game {
       if (!ev.attended && here && (this.picnicToMasjid < 0 || here.id !== 'village')) {
         ev.attended = true;
         SFX.chime();
-        this.ui.say(tr(`Warga menunggumu! Berdiri di tempatmu di barisan (tanda yang bersinar ✨) atau tekan 🤲 Sholat bersama — sholat ${prayerName(ev.p)} dimulai bersama-sama.`, `The villagers are waiting for you! Stand in your place in the row (the glowing mark ✨) or press 🤲 Pray together — then ${prayerName(ev.p)} prayer starts together.`), 'alright', 8000);
+        this.ui.say(tr(`Warga menunggumu! Berwudhu dulu 💧, lalu berdiri di tempatmu di barisan (tanda yang bersinar ✨) atau tekan 🤲 Sholat bersama — sholat ${prayerName(ev.p)} dimulai bersama-sama.`, `The villagers are waiting for you! Make wudu 💧, then stand in your place in the row (the glowing mark ✨) or press 🤲 Pray together — then ${prayerName(ev.p)} prayer starts together.`), 'alright', 8000);
       }
       if (this.picnicToMasjid >= 0 && this.crossed(this.picnicToMasjid)) {
         this.picnicToMasjid = -1;
@@ -1757,7 +1779,9 @@ export class Game {
       const p = this.player;
       const inPlace = Math.hypot(p.pos.x - row.x, p.pos.z - row.z) < 0.7 && Math.abs(p.pos.y - row.y) < 1 && p.speed < 0.3;
       this.rowStill = inPlace ? this.rowStill + dt : 0;
-      if (this.rowStill > 0.6) { this.jamaahSite = site; this.startJamaah(); }
+      if (!inPlace) this.wuduAsked = false;
+      if (this.rowStill > 0.6 && !this.wuduValid) { if (!this.wuduAsked && !this.ui.isOpen()) { this.wuduAsked = true; this.askWudu(); } }
+      else if (this.rowStill > 0.6) { this.jamaahSite = site; this.startJamaah(); }
     }
     if (this.jamaah) this.jamaahTick(dt);
     this.ui.jamaahHud(this.jamaah);
@@ -1794,6 +1818,7 @@ export class Game {
     const joined = j.joined, ev = this.gameEvent;
     this.jamaah = null;
     if (joined) {
+      this.wuduValid = false; // a fresh wudu for the next prayer
       this.stats.jamaah++; this.kid.reward('jamaah'); this.amal('jamaah');
       this.addCoins(100, from => this.ui.coinPop(100, from));
       SFX.fanfare(); this.ui.confetti(40);
@@ -1835,7 +1860,7 @@ export class Game {
       const diff = (+now - +t) / 60000;
       if (diff >= 0 && diff < 10 && !this.remindersShown.has(k)) {
         this.remindersShown.add(k);
-        if (!this.ui.isOpen()) { SFX.chime(); this.ui.reminder(prayerName(p), fmtTime(t, this.loc.lng), this.loc.name); }
+        if (!this.ui.isOpen()) { if (this.settings.adhan === false || !adhan()) SFX.chime(); this.ui.reminder(prayerName(p), fmtTime(t, this.loc.lng), this.loc.name); }
         return;
       }
     }

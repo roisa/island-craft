@@ -229,8 +229,63 @@ export const Music = (() => {
       }
     },
     setNight(v: boolean) { night = v; },
+    /** quieter for a while (the adhan) */
+    duck(secs: number) {
+      if (!master || !ctx || !running) return;
+      master.gain.setTargetAtTime(0.04, ctx.currentTime, 0.3);
+      setTimeout(() => { if (running && master && ctx) master.gain.setTargetAtTime(0.5, ctx.currentTime, 1.5); }, secs * 1000);
+    },
   };
 })();
+
+// ---- the call to prayer ----------------------------------------------------------
+// A short, gentle "Allāhu Akbar, Allāhu Akbar" in the style of the adhan, sung by a
+// synthesized voice (a buzzing tone shaped by vowel formants, with vibrato and a
+// little melisma), in a hall-like echo. Made in code: no recording is used.
+const VOWEL: Record<'a' | 'u' | 'o', [number, number]> = { a: [760, 1180], u: [330, 760], o: [480, 860] };
+function sing(c: AudioContext, out: AudioNode, t0: number, dur: number, path: [number, number][], vowel: 'a' | 'u' | 'o', peak = 0.22) {
+  const o = c.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(path[0][1], t0);
+  for (const [k, f] of path.slice(1)) o.frequency.linearRampToValueAtTime(f, t0 + k * dur);
+  // vibrato, growing as the note is held
+  const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 5.4;
+  lg.gain.setValueAtTime(0, t0); lg.gain.linearRampToValueAtTime(path[0][1] * 0.012, t0 + Math.min(0.6, dur));
+  lfo.connect(lg); lg.connect(o.frequency);
+  const env = c.createGain();
+  env.gain.setValueAtTime(0, t0); env.gain.linearRampToValueAtTime(peak, t0 + 0.07);
+  env.gain.setValueAtTime(peak, t0 + dur - 0.12); env.gain.linearRampToValueAtTime(0, t0 + dur);
+  for (const [fq, q, g] of [[VOWEL[vowel][0], 7, 1], [VOWEL[vowel][1], 9, 0.55], [2600, 5, 0.12]] as [number, number, number][]) {
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = fq; bp.Q.value = q;
+    const gg = c.createGain(); gg.gain.value = g;
+    o.connect(bp); bp.connect(gg); gg.connect(env);
+  }
+  env.connect(out);
+  o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+}
+export function adhan(): number {
+  const c = actx(); if (!c || !audioState.sfx) return 0;
+  const out = c.createGain(); out.gain.value = 0.9;
+  // a soft hall: a filtered echo
+  const dl = c.createDelay(1); dl.delayTime.value = 0.21;
+  const fb = c.createGain(); fb.gain.value = 0.32;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+  out.connect(c.destination); out.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(c.destination);
+  const D = 293.66, E = 329.63, F = 349.23, G = 392, A = 440;
+  let t = c.currentTime + 0.15;
+  // two phrases: "Al-lāāā-hu Ak-baaar", the second a little higher, ending back home
+  const phrase = (lift: number) => {
+    const k = Math.pow(2, lift / 12);
+    sing(c, out, t, 0.32, [[0, D * k], [1, D * k]], 'a'); t += 0.3;
+    sing(c, out, t, 1.5, [[0, E * k], [0.25, F * k], [0.45, G * k], [0.62, F * k], [0.8, E * k], [1, E * k]], 'a'); t += 1.45;
+    sing(c, out, t, 0.36, [[0, E * k], [1, D * k]], 'u'); t += 0.38;
+    sing(c, out, t, 0.32, [[0, D * k], [1, E * k]], 'a'); t += 0.3;
+    sing(c, out, t, 1.6, [[0, F * k], [0.3, G * k], [0.5, (lift ? A : F) * k], [0.75, E * k], [1, D * k]], 'a'); t += 1.75;
+  };
+  phrase(0); phrase(2);
+  const secs = t - c.currentTime;
+  Music.duck(secs + 1);
+  return secs;
+}
 
 // ---- speech ------------------------------------------------------------------
 export const Speech = {

@@ -5,6 +5,52 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Wudu before praying, an adhan at prayer time, and a 2-hour play limit 💧🕌
+
+Requested by a parent: Ibra went straight into the prayer without wudu;
+add 90 and 120 minute timers; and a little adhan so prayer time is easy to
+notice.
+
+- **Wudu before the prayer:**
+  - Standing in your place in the row, or pressing 🤲 Pray together,
+    without wudu: Baby Mo says “Wait — wudu first before we pray! 💧”
+    and the wudu pop-up opens, titled **Wudu before we pray**. It has
+    the picture for each step.
+  - Tap the 9 steps in order. The pop-up shows the du’a and closes by
+    itself, and the prayer starts.
+  - Closed it early, or went to watch the picture guide? Baby Mo asks
+    again a few seconds later if you’re still in your place.
+  - Wudu made at the village well or fountain beforehand counts too. A
+    fresh wudu is asked for each prayer.
+  - The Grand Masjid’s two wudu places (the men’s basin by the west
+    door, the women’s pool in the courtyard) now open the wudu pop-up
+    too.
+  - The villagers’ “we’re waiting for you” message now says to make wudu
+    first.
+- **The adhan at prayer time** (`adhan()` in `src/game/audio.ts`):
+  - A short, gentle “Allāhu Akbar, Allāhu Akbar” in the style of the
+    adhan, about 8 seconds, with a big “🕌 Allāhu Akbar… It’s time for
+    Dhuhr!” message.
+  - It’s made in code: a synthesized voice with vowel shaping,
+    vibrato, a little melisma and a hall echo. No recording is used.
+  - The background music goes quiet while it plays.
+  - It plays when a prayer time comes in the game, and with the
+    real-time prayer reminders.
+  - **For grown-ups:** an **Adhan sound at prayer time** switch with a
+    🔊 preview. When it’s off, the old drum and chime play instead.
+- **Daily play limit:** now 20, 30, 45, 60, 90 or **120 minutes** (90
+  was already there).
+- **Tested:**
+  - Smoke:
+    - standing in the row without wudu opens the wudu pop-up and the
+      prayer waits;
+    - after the 9 steps, the pop-up closes and the prayer starts.
+  - The Grand Masjid smoke step and the QA prayer check now make wudu
+    first, since they test other things.
+  - The adhan plays without errors in the headless browser. Listening
+    to it needs a real device.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### Fishing practice with Baby Mo 🎣🧸
 
 Requested by a parent: a live practice catch where Baby Mo walks Ibra

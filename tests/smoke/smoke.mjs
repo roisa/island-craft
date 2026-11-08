@@ -269,8 +269,13 @@ async function run(name) {
       // the prayer waits for you
       await p.waitForTimeout(1000);
       if (await g(() => !!__game.jamaah)) throw new Error('started without you');
-      await g(() => { const G = __game; G.player.pos.set(0.5, 46, -18.5); G.player.vel.set(0, 0, 0); });
-      await p.waitForFunction(() => !!__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 200 });
+      // in your place without wudu: the wudu pop-up opens first, and the prayer waits
+      await g(() => { const G = __game; G.wuduValid = false; G.ui.closeAllModals(); G.player.pos.set(0.5, 46, -18.5); G.player.vel.set(0, 0, 0); });
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .wudu') || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 15000, polling: 200 });
+      if (await g(() => !!__game.jamaah)) throw new Error('prayed without wudu');
+      for (let k = 0; k < 9; k++) await g(k => document.querySelector(`.veil.on .ws[data-k="${k}"]`).click(), k);
+      // wudu done: the pop-up closes by itself and the prayer starts
+      await p.waitForFunction(() => !!__game.jamaah || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 20000, polling: 200 });
       const hud = await g(() => document.querySelector('#jmHud').innerText);
       // the row's movement is shown as a Baby Mo picture
       await p.waitForFunction(() => /img\/poses\/s\d/.test(document.querySelector('#jmHud img.on')?.src || ''), null, { timeout: 5000 });
@@ -378,7 +383,7 @@ async function run(name) {
       await wait('travel', L => Math.hypot(__game.player.pos.x - L.x, __game.player.pos.z - L.z) < 25, L, 8000);
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       // into your place in the men's row: the prayer starts with a full masjid
-      await g(L => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); }, L);
+      await g(L => { const G = __game; G.ui.closeAllModals(); G.wuduDone(); G.player.pos.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); }, L);
       // (a slow frame on a busy CI machine can drop you through the floor; step back into your place)
       await wait('prayer start', L => { const G = __game, P = G.player.pos; if (G.jamaah) return true; G.ui.closeAllModals(); if (Math.hypot(P.x - L.men[0], P.z - L.men[2]) > 0.5 || Math.abs(P.y - L.men[1]) > 0.5) { P.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); } return false; }, L, 20000);
       const mid = await g(() => ({ site: __game.jamaahSite.id, people: __game.congregation.count, jamaah: __game.stats.jamaah }));
@@ -390,6 +395,7 @@ async function run(name) {
       return { ...mid, after };
     });
     await step('Amal Book: wudu, tasbih, charity box, and a village project gets built', async () => {
+      const wudu0 = await g(() => __game.stats.amal?.total.wudu || 0); // (the prayer step already made wudu once)
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
       await p.waitForSelector('.veil.on .wudu');
       for (let k = 0; k < 9; k++) await g(k => document.querySelector(`.veil.on .ws[data-k="${k}"]`).click(), k);
@@ -409,7 +415,7 @@ async function run(name) {
         G.ui.closeAllModals();
         const t = G.stats.amal.total; return { wudu: t.wudu, dhikr: t.dhikr, sadaqah: t.sadaqah, built: G.stats.projects };
       });
-      if (r.wudu !== 1 || r.dhikr !== 1 || r.sadaqah !== 1 || !r.built?.includes('fountain')) throw new Error(JSON.stringify(r));
+      if (r.wudu !== wudu0 + 1 || r.dhikr !== 1 || r.sadaqah !== 1 || !r.built?.includes('fountain')) throw new Error(JSON.stringify(r));
       await g(() => { __game.player.pos.set(12.5, 46, -2.5); });
       await p.waitForFunction(() => (__game.stats.projectsPlaced || []).includes('fountain') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
       const block = await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); return G.world.get(16, 46, -3); });

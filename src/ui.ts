@@ -9,7 +9,7 @@ import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from '.
 import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri } from './game/prayer';
-import { SFX, playLetter, Speech, haptic } from './game/audio';
+import { SFX, playLetter, Speech, haptic, adhan } from './game/audio';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
@@ -417,11 +417,11 @@ export class UI {
     };
     $('#tsX', el).onclick = () => close();
   }
-  /** wudu, step by step: tap each step in order */
-  wudu() {
+  /** wudu, step by step: tap each step in order (before praying: it closes by itself when done, then the prayer starts) */
+  wudu(forPrayer = false, then?: () => void) {
     const g = this.g;
     let i = 0;
-    const { el, close } = this.modal(`<div class="wudu"><h2>💧 ${tr('Berwudhu', 'Making wudu')}</h2>
+    const { el, close } = this.modal(`<div class="wudu"><h2>💧 ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
       <div class="wBody"><div class="wPic"><div class="pgFrames" id="wPic"></div><p id="wSay"></p></div>
       <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}"><span>${w.icon}</span><small>${esc(t2(w.name))}${w.times > 1 ? ' ×' + w.times : ''}</small></button>`).join('')}</div></div>
       <p id="wMsg">${tr('Ketuk langkahnya satu per satu, mulai dari yang bersinar ✨', 'Tap the steps one by one, starting with the glowing one ✨')}</p>
@@ -440,12 +440,15 @@ export class UI {
       i++; SFX.splash(); g.fx.sparkle(g.player.pos.x, g.player.pos.y + 1.2, g.player.pos.z, 4, 0x8fd3ec, 1); mark();
       if (i === WUDU.length) {
         g.stats.wudu = (g.stats.wudu || 0) + 1; SFX.chime(); this.confetti(30);
+        g.wuduDone();
+        if (forPrayer) setTimeout(() => { pic.stop(); close(); if (then) setTimeout(then, 250); }, 2600);
         $('#wMsg', el).innerHTML = tr('Wudhu selesai! Doa: <b>Asyhadu an laa ilaaha illallah…</b> Sekarang kamu siap sholat 🤲', 'Wudu done! Say: <b>Ash-hadu an laa ilaaha illallah…</b> Now you’re ready to pray 🤲');
         g.amal('wudu'); g.checkQuests();
       }
     }));
-    $('#wX', el).onclick = () => { pic.stop(); close(); };
-    $('#wGuide', el).onclick = () => { pic.stop(); close(); setTimeout(() => this.poseGuide('wudu'), 30); };
+    const notDone = () => { if (forPrayer && i < WUDU.length) g.wuduLater(); };
+    $('#wX', el).onclick = () => { pic.stop(); close(); notDone(); };
+    $('#wGuide', el).onclick = () => { pic.stop(); close(); notDone(); setTimeout(() => this.poseGuide('wudu'), 30); };
   }
   /** a picture that flips through its frames like a little cartoon, with a soft crossfade */
   private frames(box: HTMLElement, ms = 900) {
@@ -1278,7 +1281,8 @@ export class UI {
       </div>
       ${learned ? `<p style="margin-top:6px">${tr('Huruf yang sudah dikenal', 'Letters met so far')}: <span class="arrow-row">${st.letters.slice().sort((a, b) => a - b).map(i => arImg(LETTERS[i].g, { size: 24, w: 30, h: 34 })).join('')}</span></p>` : ''}
       <h3>${ic('gear')} ${tr('Pengaturan', 'Settings')}</h3>
-      <div class="set"><span>${tile('timer', C.orange)}${tr('Batas main per hari', 'Daily play limit')}</span><select id="pLim">${[0, 20, 30, 45, 60, 90].map(n => `<option value="${n}" ${s.playLimit === n ? 'selected' : ''}>${n ? n + ' ' + tr('menit', 'min') : tr('Tanpa batas', 'No limit')}</option>`).join('')}</select></div>
+      <div class="set"><span>${tile('timer', C.orange)}${tr('Batas main per hari', 'Daily play limit')}</span><select id="pLim">${[0, 20, 30, 45, 60, 90, 120].map(n => `<option value="${n}" ${s.playLimit === n ? 'selected' : ''}>${n ? n + ' ' + tr('menit', 'min') : tr('Tanpa batas', 'No limit')}</option>`).join('')}</select></div>
+      <div class="set"><span>${tile('bell', C.green)}${tr('Suara adzan saat waktu sholat', 'Adhan sound at prayer time')}</span><button class="btn ghost small" id="pAdhanTry">🔊</button><button class="toggle ${s.adhan !== false ? 'on' : ''}" id="pAdhan"></button></div>
       <div class="set"><span>${tile('drop', C.blue)}${tr('Pengingat minum air', 'Water break reminder')}</span><select id="pWater">${[0, 15, 20, 30, 45].map(n => `<option value="${n}" ${(s.water ?? 20) === n ? 'selected' : ''}>${n ? tr(`tiap ${n} menit`, `every ${n} min`) : tr('Mati', 'Off')}</option>`).join('')}</select></div>
       <div class="set"><span>${tile('shield', C.green)}${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
       <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
@@ -1298,6 +1302,8 @@ export class UI {
     $('#pBug', el).onclick = e => { s.beetles = s.beetles === false; (e.currentTarget as HTMLElement).classList.toggle('on', s.beetles !== false); g.saveSoon(); };
     $<HTMLSelectElement>('#pEid', el).onchange = e => { s.eid = (e.target as HTMLSelectElement).value as 'auto' | 'on' | 'off'; g.eid.refresh(); g.saveSoon(); };
     $<HTMLSelectElement>('#pLim', el).onchange = e => { s.playLimit = +(e.target as HTMLSelectElement).value; g.applySettings(); };
+    const adh = $('#pAdhan', el); adh.onclick = () => { s.adhan = s.adhan === false; adh.classList.toggle('on', s.adhan !== false); SFX.click(); g.saveSoon(); if (s.adhan) adhan(); };
+    $('#pAdhanTry', el).onclick = () => adhan();
     $<HTMLSelectElement>('#pWater', el).onchange = e => { s.water = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();
     $('#pExp', el).onclick = async () => {

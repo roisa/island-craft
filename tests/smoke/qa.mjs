@@ -186,6 +186,7 @@ for (const name of profiles) {
     await p.waitForTimeout(800);
     await closeAll();
     const btn = await p.isVisible('#bPray');
+    await g(() => __game.wuduDone()); // (the wudu itself is checked in the smoke test)
     if (btn) await tap('#bPray'); else await g(() => __game.prayTogether());
     await p.waitForTimeout(1500);
     const r = await g(() => ({ event: __game.gameEvent?.p, npcsPraying: __game.ents.npcs.filter(n => n.praying).length, moPraying: __game.ents.mo.praying, me: __game.prayingPose }));
