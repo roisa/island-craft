@@ -52,7 +52,7 @@ import { Weather } from './game/weather';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean; outfitV3?: boolean;
+  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean;
   /** minutes of play between water breaks (0 = off) */
   water: number;
   /** naughty beetles at dusk (parents can turn them off) */
@@ -84,7 +84,7 @@ export class Game {
   input: Input; inv = new Inventory(); ui: UI;
   settings: Settings = {
     sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 24, sens: 1,
-    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true, playLimit: 0, water: 20,
+    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true, playLimit: 60, water: 20,
     // older/low-memory phones start in light graphics mode
     lowGfx: ((navigator as any).deviceMemory ?? 4) <= 3 || (navigator.hardwareConcurrency ?? 8) <= 4,
   };
@@ -360,6 +360,8 @@ export class Game {
     // Baby Ais now wears pink by default
     if (girl && this.settings.outfit && !this.settings.outfitV3 && this.settings.outfit.shirt === 's_blue' && this.settings.outfit.hijab === 'h_teal') { this.settings.outfit.shirt = 's_pink'; this.settings.outfit.hijab = 'h_pink'; }
     this.settings.outfitV3 = true;
+    // a daily play limit of one hour is now the default; older saves that never chose one get it too
+    if (!this.settings.limitV2) { if (!this.settings.playLimit) this.settings.playLimit = 60; this.settings.limitV2 = true; }
     this.settings.outfitV2 = true;
     const o = this.settings.outfit ??= defaultOutfit(girl);
     const shirt = outfitItem(o.shirt)?.color ?? (girl ? 0xf28fa6 : 0x2f6fde);
@@ -792,6 +794,7 @@ export class Game {
     if (!this.running) return;
     const t = performance.now() / 1000;
     this.uniforms.uTime.value = t;
+    if (this.ui.locked && !this.paused) this.pause(true); // the play-time lock holds, whatever else opens or closes
     if (!this.paused) this.tick(dt, t);
     this.watchFps(dt);
     this.ents.update(this.paused ? 0 : dt, t, this.player.pos, this.fun?.riding ? 0 : this.player.speed);
@@ -850,10 +853,11 @@ export class Game {
     const today = new Date().toDateString();
     const pl = this.stats.play && this.stats.play.day === today ? this.stats.play : (this.stats.play = { day: today, sec: 0 });
     pl.sec += dt; this.stats.playTotal = (this.stats.playTotal || 0) + dt;
-    const lim = this.settings.playLimit * 60;
-    if (!lim) return;
+    if (!this.settings.playLimit) return;
+    const lim = this.settings.playLimit * 60 + (pl.extra || 0);
     if (pl.sec > lim - 300 && pl.sec - dt <= lim - 300) this.ui.say(tr('5 menit lagi kita istirahat ya 😊', '5 more minutes, then we take a break 😊'), 'idea', 6000);
-    if (pl.sec >= lim && !this.ui.isOpen()) { this.save(); this.ui.restScreen(); }
+    if (pl.sec > lim - 60 && pl.sec - dt <= lim - 60) this.ui.toast(tr('⏱️ 1 menit lagi waktunya istirahat', '⏱️ 1 minute until break time'), 4000);
+    if (pl.sec >= lim && !this.ui.locked) this.ui.lockScreen();
   }
 
   private tick(dt: number, t: number) {

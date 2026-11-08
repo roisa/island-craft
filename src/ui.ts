@@ -12,6 +12,7 @@ import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HI
 import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark, Spot } from './world/landmarks';
+import { adultSum } from './game/gate';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
@@ -851,12 +852,34 @@ export class UI {
 
   // ---------- parents ----------
   /** a simple grown-up check: tap the right answer to an addition */
-  parentGate(ok: () => void) {
-    const a = 6 + Math.floor(Math.random() * 4), b = 5 + Math.floor(Math.random() * 4), ans = a + b;
-    const opts = [ans, ans + 2, ans - 3].sort(() => Math.random() - 0.5);
-    const { el, close } = this.modal(`<div style="text-align:center"><h2>${ic('family')} ${tr('Khusus orang tua', 'Grown-ups only')}</h2><p>${tr('Berapa', 'What is')} <b style="font-size:22px">${a} + ${b}</b>?</p><div class="row" id="pg">${opts.map(o => `<button class="btn ghost" data-v="${o}">${o}</button>`).join('')}</div><button class="btn small ghost" id="pgX">${tr('Batal', 'Cancel')}</button></div>`, undefined, { now: true });
-    el.querySelectorAll<HTMLElement>('#pg button').forEach(bt => (bt.onclick = () => { close(); if (+bt.dataset.v! === ans) setTimeout(ok, 30); else this.toast(tr('Jawaban kurang tepat', 'Not quite right')); }));
-    $('#pgX', el).onclick = () => close();
+  /**
+   * Grown-ups only: a sum a young child can't do in their head (e.g. 17 × 8),
+   * typed in, with no answers to pick from. Shown on top of everything,
+   * including the play-time lock.
+   */
+  parentGate(ok: () => void, onCancel?: () => void) {
+    const { a, b, ans } = adultSum();
+    const wrap = document.createElement('div');
+    wrap.className = 'gateScr';
+    wrap.innerHTML = `<div class="gateBox"><h2>${ic('family')} ${tr('Khusus orang tua', 'Grown-ups only')}</h2>
+      <p>${tr('Berapa hasil', 'What is')} <b class="gateQ">${a} × ${b}</b>?</p>
+      <input id="pgIn" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="4" aria-label="answer">
+      <p class="gateMsg" id="pgMsg"></p>
+      <div class="row"><button class="btn gold" id="pgOk">${tr('Lanjut', 'Continue')}</button><button class="btn ghost" id="pgX">${tr('Batal', 'Cancel')}</button></div></div>`;
+    document.body.appendChild(wrap);
+    const inp = wrap.querySelector<HTMLInputElement>('#pgIn')!, msg = wrap.querySelector<HTMLElement>('#pgMsg')!;
+    let tries = 0;
+    const done = () => wrap.remove();
+    const check = () => {
+      if (+inp.value.trim() === ans) { done(); setTimeout(ok, 30); return; }
+      tries++; inp.value = ''; SFX.error();
+      msg.textContent = tries >= 3 ? tr('Minta bantuan ayah atau ibu ya 😊', 'Please ask a grown-up 😊') : tr('Jawaban kurang tepat', 'Not quite right');
+      if (tries >= 3) { done(); onCancel?.(); }
+    };
+    wrap.querySelector<HTMLElement>('#pgOk')!.onclick = check;
+    inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') check(); };
+    wrap.querySelector<HTMLElement>('#pgX')!.onclick = () => { done(); onCancel?.(); };
+    setTimeout(() => inp.focus(), 50);
   }
   parentsPanel() {
     const g = this.g, s = g.settings, st = g.stats;
@@ -966,15 +989,40 @@ export class UI {
     };
     $('#wGlass', el).onclick = () => { if (!done) ask(); };
   }
-  restScreen() {
+  /**
+   * Play time is up for today: the game stops behind a full-screen card that
+   * can't be closed. Only a grown-up (with the sum above) can add more time.
+   */
+  lockScreen() {
     const g = this.g;
-    const { el } = this.modal(`<div style="text-align:center"><img src="img/baby-mo-pose-01.webp" style="width:110px" alt=""><h2>😴 ${tr('Waktunya istirahat!', 'Time for a break!')}</h2>
-      <p>${tr('Kamu sudah bermain cukup lama hari ini. Baby Mo juga mau istirahat. Yuk minum air, gerakkan badan, atau bantu ayah & ibu. Sampai jumpa besok! 💚', 'You’ve played for a good while today. Baby Mo needs a rest too. Drink some water, stretch, or help mum and dad. See you tomorrow! 💚')}</p>
-      <button class="btn" id="rsWater">💧 ${tr('Minum air dulu bareng Baby Mo', 'Drink some water with Baby Mo')}</button>
-      <button class="btn ghost small" id="rsMore">${ic('family')} ${tr('Orang tua: tambah 15 menit', 'Parents: add 15 minutes')}</button></div>`, undefined, { now: true, onShow: () => { if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang()); } });
-    $('#rsWater', el).onclick = () => this.waterBreak(true);
-    $('#rsMore', el).onclick = () => this.parentGate(() => { if (g.stats.play) g.stats.play.sec -= 15 * 60; this.closeModal(); });
+    if (document.querySelector('.lockScr')) return;
+    this.closeAllModals(); this.closeBook();
+    g.pause(true);
+    const mins = Math.round((g.stats.play?.sec || 0) / 60);
+    const lock = document.createElement('div');
+    lock.className = 'lockScr';
+    lock.innerHTML = `<div class="lockBox"><img src="img/baby-mo-pose-01.webp" alt="">
+      <h2>😴 ${tr('Waktunya istirahat!', 'Time for a break!')}</h2>
+      <p>${tr(`Kamu sudah bermain <b>${mins} menit</b> hari ini. Baby Mo juga mau istirahat. Yuk minum air, gerakkan badan, atau bantu ayah & ibu. Sampai jumpa besok! 💚`, `You’ve played for <b>${mins} minutes</b> today. Baby Mo needs a rest too. Drink some water, stretch, or help mum and dad. See you tomorrow! 💚`)}</p>
+      <p class="lockSaved">💾 ${tr('Permainanmu sudah tersimpan.', 'Your game is saved.')}</p>
+      <button class="btn ghost small" id="lkParent">${ic('family')} ${tr('Untuk orang tua', 'For grown-ups')}</button>
+      <div class="lockMore hidden" id="lkMore"><p>${tr('Tambah waktu bermain hari ini:', 'Add play time for today:')}</p>
+        <div class="row"><button class="btn small" data-add="15">+15 ${tr('menit', 'min')}</button><button class="btn small" data-add="30">+30 ${tr('menit', 'min')}</button><button class="btn small" data-add="60">+60 ${tr('menit', 'min')}</button></div></div></div>`;
+    document.body.appendChild(lock);
+    if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang());
+    g.save();
+    lock.querySelector<HTMLElement>('#lkParent')!.onclick = () => this.parentGate(() => {
+      lock.querySelector('#lkMore')!.classList.remove('hidden');
+      lock.querySelector('#lkParent')!.classList.add('hidden');
+    });
+    lock.querySelectorAll<HTMLElement>('[data-add]').forEach(b => (b.onclick = () => {
+      const add = +b.dataset.add! * 60, pl = g.stats.play;
+      if (pl) pl.extra = (pl.extra || 0) + add;
+      lock.remove(); g.pause(false); g.saveSoon();
+      this.toast(tr(`⏱️ Tambah ${b.dataset.add} menit. Selamat bermain!`, `⏱️ ${b.dataset.add} more minutes. Have fun!`));
+    }));
   }
+  get locked() { return !!document.querySelector('.lockScr'); }
 
   // ---------- modals ----------
   /**

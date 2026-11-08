@@ -221,17 +221,39 @@ for (const name of profiles) {
     if (w1 !== w0 + 1) throw new Error('not counted');
     return { water: w1 };
   });
-  await check('parents: gate with a sum, report and settings', async () => {
+  await check('parents: gate with a grown-up sum, report and settings', async () => {
     await g(() => __game.ui.parentGate(() => __game.ui.parentsPanel()));
-    await p.waitForSelector('.veil.on #pg');
+    await p.waitForSelector('.gateScr #pgIn');
     await layout('parent gate');
-    const sum = await g(() => { const t = document.querySelector('.veil.on .panel b').innerText.match(/(\d+)\s*\+\s*(\d+)/); return +t[1] + +t[2]; });
-    await g(s => [...document.querySelectorAll('.veil.on #pg button')].find(b => +b.dataset.v === s).click(), sum);
+    // a wrong answer keeps it shut
+    await p.fill('.gateScr #pgIn', '1'); await g(() => document.querySelector('.gateScr #pgOk').click());
+    if (await g(() => !!document.querySelector('.veil.on .report'))) throw new Error('opened with a wrong answer');
+    const ans = await g(() => { const t = document.querySelector('.gateScr .gateQ').innerText.match(/(\d+)\s*×\s*(\d+)/); return +t[1] * +t[2]; });
+    await p.fill('.gateScr #pgIn', String(ans)); await g(() => document.querySelector('.gateScr #pgOk').click());
     await p.waitForSelector('.veil.on .report'); await p.waitForTimeout(300);
     await layout('parents panel');
     const report = await g(() => document.querySelectorAll('.veil.on .report > div').length);
     await closeAll();
     return { reportTiles: report };
+  });
+  await check('play-time lock: stops the game until a grown-up adds time', async () => {
+    await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.play = { day: new Date().toDateString(), sec: G.settings.playLimit * 60 + 1 }; });
+    await p.waitForSelector('.lockScr', { timeout: 10000 });
+    await layout('play-time lock');
+    const before = await g(() => ({ paused: __game.paused, hour: __game.hour }));
+    await p.waitForTimeout(800);
+    const still = await g(h => __game.paused && __game.hour === h, before.hour);
+    if (!still) throw new Error('game kept running behind the lock');
+    await g(() => document.querySelector('.lockScr #lkParent').click());
+    await p.waitForSelector('.gateScr #pgIn');
+    const ans = await g(() => { const t = document.querySelector('.gateScr .gateQ').innerText.match(/(\d+)\s*×\s*(\d+)/); return +t[1] * +t[2]; });
+    await p.fill('.gateScr #pgIn', String(ans)); await g(() => document.querySelector('.gateScr #pgOk').click());
+    await g(() => document.querySelector('.lockScr [data-add="15"]').click());
+    await p.waitForTimeout(400);
+    const after = await g(() => ({ lock: !!document.querySelector('.lockScr'), paused: __game.paused, extra: __game.stats.play.extra }));
+    if (after.lock || after.paused || after.extra !== 900) throw new Error(JSON.stringify(after));
+    await g(() => { __game.stats.play.sec = 0; __game.stats.play.extra = 0; });
+    return after;
   });
   await check('switch language to English and back', async () => {
     await g(() => __game.ui.openBook('settings')); await p.waitForTimeout(200);

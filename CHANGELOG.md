@@ -5,6 +5,38 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Play-time lock with a grown-ups check 🔒
+
+Requested by a parent: one hour of play by default, then the game stops
+until an adult continues it.
+
+- **Daily play limit** is now 1 hour by default.
+  - Older saves that never chose a limit get 1 hour once.
+  - Parents can still choose 20–90 minutes or no limit in the parents
+    panel.
+- **Before the end:** a reminder at 5 minutes and a toast at 1 minute.
+- **When time is up:** a full-screen card that can't be closed stops the
+  game.
+  - It shows how long was played and says the game is saved.
+  - It stays after a reload, because play time is counted per day and
+    saved.
+  - The game stays paused behind it even if another pop-up opens or
+    closes.
+- **Only a grown-up can continue:** "For grown-ups" asks a multiplication
+  such as 17 × 8 (12–19 × 6–9, answers 72–171).
+  - The answer is typed in, with no choices to guess from.
+  - After 3 wrong tries it asks to fetch a grown-up.
+  - Then they can add 15, 30 or 60 minutes for today.
+- **The same harder check** now protects the parents panel and "new
+  world". It used to be a simple sum like 7 + 6 with three buttons, which
+  a young child could answer.
+- **Tested:**
+  - A unit test for the sum range.
+  - QA on desktop, iPhone landscape and portrait, iPad and Android: a
+    wrong answer keeps the panel shut; the lock appears and keeps the game
+    paused; the right answer and "+15" unlock it.
+  - The smoke suite.
+
 ### The Hilltop Masjid 🕌
 
 - **A new landmark** on a high hill: a white marble masjid on a terrace.

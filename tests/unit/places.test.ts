@@ -248,3 +248,10 @@ describe('hilltop masjid', () => {
     expect(at(top.x, top.y, top.z)).toBe(B.AIR); expect(at(top.x, top.y - 1, top.z)).toBe(B.MARBLE);
   });
 });
+
+import { adultSum } from '../../src/game/gate';
+describe('grown-ups check', () => {
+  it('asks a multiplication too hard to do in your head at seven (over 70)', () => {
+    for (let i = 0; i < 200; i++) { const { a, b, ans } = adultSum(); expect(ans).toBe(a * b); expect(ans).toBeGreaterThanOrEqual(72); expect(a).toBeGreaterThanOrEqual(12); }
+  });
+});

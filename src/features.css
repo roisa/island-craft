@@ -71,3 +71,17 @@
 .tmap { text-align: center; margin-bottom: 10px; }
 .tmap canvas, .lvup canvas.tmc { width: 200px; height: 200px; max-width: 70vw; max-height: 70vw; border-radius: 10px; display: block; margin: 6px auto; image-rendering: pixelated; box-shadow: 0 2px 8px rgba(94,62,37,.25); }
 @media (max-height: 520px) { .lvup canvas.tmc { width: 130px; height: 130px; } }
+
+/* ---- play-time lock and the grown-ups check ---- */
+.lockScr { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(7, 18, 46, 0.86); backdrop-filter: blur(6px); }
+.lockBox { background: #fff; border-radius: 24px; padding: 20px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.35); max-height: 92vh; overflow: auto; }
+.lockBox img { width: 96px; }
+.lockBox .lockSaved { font-size: 13px; opacity: .75; }
+.lockBox .row { justify-content: center; gap: 8px; }
+.gateScr { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.55); }
+.gateBox { background: #fff; border-radius: 22px; padding: 20px; max-width: 360px; width: 100%; text-align: center; }
+.gateBox .gateQ { font-size: 26px; }
+.gateBox input { font-size: 26px; width: 140px; text-align: center; padding: 8px; border-radius: 12px; border: 3px solid #cfd8dc; margin: 6px 0; }
+.gateBox .gateMsg { min-height: 1.2em; color: #c0392b; font-size: 14px; }
+.gateBox .row { justify-content: center; gap: 8px; }
+@media (max-height: 520px) { .lockBox img { width: 56px; } .lockBox { padding: 12px; } }
