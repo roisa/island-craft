@@ -5,6 +5,37 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A real boat for the sea, lakes and rivers ⛵
+
+Requested by Ibra: he was curious about a boat.
+
+- **A ⛵ button** appears whenever you stand at the water's edge.
+  - With a boat in your bag it says **Sail** and launches the boat on
+    the nearest open water, facing out from the shore.
+  - Without one it shows **?** and a short "Going by boat" guide.
+  - The first time, Kakek Yusuf gives you a boat so you can try at once.
+  - You can still make a boat (5 planks at the workbench) or buy one, and
+    using it while held still works.
+- **The boat is rebuilt:** a hull with a pointed bow, two benches, a mast
+  with a green-and-white striped sail and a little flag, and oars at the
+  sides.
+- **Sailing:**
+  - Move like walking to row; the oars row while you move.
+  - The boat turns smoothly towards where you're going and rocks gently.
+    The sail leans with the speed, and a wake trails behind.
+  - You sit at the back and **Baby Mo sits at the front**.
+  - The camera sits further back on a boat so you can see the sail.
+- **Getting off:** tap ✋ near land; the boat goes back into your bag.
+- **Fixed:** the boat recipe was listed under "decorations"; it is now a
+  tool.
+- **Tested:**
+  - Screenshots on an iPhone-sized landscape screen of the button, the
+    guide, rowing, and sailing to Volcano Island.
+  - A smoke step on four profiles: finds a shore, the button appears, the
+    free boat and guide, sailing with Baby Mo seated, and the boat back in
+    the bag after landing.
+  - QA on five profiles.
+
 ### A fishing guide for young players 🎣?
 
 Requested for Ibra: "he wants to try fishing but isn't sure how".

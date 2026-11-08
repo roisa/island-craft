@@ -322,6 +322,23 @@ async function run(name) {
       if (block !== 11) throw new Error('fountain not built: ' + block);
       return r;
     });
+    await step('boat: the ⛵ button by the shore, a free boat, sailing with Baby Mo', async () => {
+      const spot = await g(() => { const G = __game; G.ui.closeAllModals(); for (let r = 20; r < 320; r += 3) for (let a = 0; a < 6.28; a += 0.1) { const x = Math.round(Math.cos(a) * r), z = Math.round(Math.sin(a) * r); const c = G.gen.column(x, z); if (c.h >= 40 && c.h <= 42) for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { if (G.gen.column(x + dx, z + dz).h < 39 && G.gen.column(x + 2 * dx, z + 2 * dz).h < 39) return [x, z, c.h]; } } return null; });
+      if (!spot) return { skipped: 'no shore' };
+      await g(s => { const G = __game; G.player.pos.set(s[0] + 0.5, s[2] + 1, s[1] + 0.5); G.player.vel.set(0, 0, 0); }, spot);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => !document.querySelector('#bBoat').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      await g(() => { const G = __game; G.inv.remove(220, G.inv.count(220)); document.querySelector('#bBoat').click(); });
+      await p.waitForSelector('.veil.on #bgOk');
+      await g(() => document.querySelector('.veil.on #bgOk').click());
+      await p.waitForFunction(() => __game.fun.riding?.kind === 'boat', null, { timeout: 10000 });
+      const r = await g(() => ({ mo: !!__game.ents.mo.seat, gift: __game.stats.boatGift }));
+      await g(() => { const G = __game; G.fun.riding.obj.position.set(G.player.pos.x, G.player.pos.y, G.player.pos.z); G.fun.dismount(); if (G.fun.riding) { G.scene.remove(G.fun.riding.obj); G.fun.riding = null; G.ents.mo.seat = null; G.inv.add(220, 1); } G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const back = await g(() => __game.inv.count(220));
+      if (!r.mo || !r.gift || back < 1) throw new Error(JSON.stringify({ r, back }));
+      return { ...r, boatInBag: back };
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
         if (!a) return { skipped: true };

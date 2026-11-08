@@ -82,7 +82,7 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
-  <button class="pill hidden" id="bFishHelp" aria-label="How to fish">🎣 <b>?</b></button>
+  <div id="waterBtns"><button class="pill hidden" id="bBoat" aria-label="Boat">⛵ <span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">🎣 <b>?</b></button></div>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
   <div id="desktopHint"></div>
@@ -111,6 +111,7 @@ export class UI {
     $('#stars').onclick = () => this.openBook('quests');
     $('#coins').onclick = () => this.shop();
     $('#bFishHelp').onclick = () => this.fishGuide();
+    $('#bBoat').onclick = () => { if (this.g.inv.count(I.BOAT) > 0) this.g.fun.launchBoat(); else this.boatGuide(); };
     $('#bUndo').onclick = () => g.doUndo();
     $('#pbRot').onclick = () => g.fun.rotatePlan();
     $('#pbBuild').onclick = () => g.fun.build();
@@ -286,6 +287,26 @@ export class UI {
   // ---------- fishing, explained for a seven-year-old ----------
   /** the 🎣? button: shown by the water or while holding a rod */
   showFishHelp(on: boolean) { $('#bFishHelp').classList.toggle('hidden', !on || this.modals.length > 0); }
+  /** the ⛵ button by the shore: sail if you have a boat, otherwise how to get one */
+  showBoat(on: boolean) {
+    const b = $('#bBoat'), has = this.g.inv.count(I.BOAT) > 0;
+    b.classList.toggle('hidden', !on || this.modals.length > 0);
+    const t = has ? tr('Berlayar', 'Sail') : '?';
+    const sp = b.querySelector('span')!; if (sp.textContent !== t) { sp.textContent = t; b.classList.toggle('q', !has); }
+  }
+  boatGuide() {
+    const g = this.g, first = !g.stats.boatGift;
+    const step = (n: number, icon: string, text: string) => `<div class="fgStep"><span class="fgN">${n}</span><span class="fgI">${icon}</span><p>${text}</p></div>`;
+    const { el, close } = this.modal(`<div class="fishGuide"><h2>⛵ ${tr('Naik perahu', 'Going by boat')}</h2>
+      ${first ? `<div class="fgGift">🎁 ${tr('<b>Kakek Yusuf membuatkanmu sebuah perahu!</b> Sudah ada di tasmu.', '<b>Grandpa Yusuf made you a boat!</b> It’s in your bag.')}</div>` : step(1, '🪵', tr('Buat <b>perahu</b> di meja kerja dari <b>5 papan kayu</b>, atau beli di toko Bu Aminah.', 'Make a <b>boat</b> at a workbench from <b>5 planks</b>, or buy one at Bu Aminah’s shop.'))}
+      ${step(2, '🌊', tr('Pergi ke <b>pinggir laut, danau atau sungai</b>, lalu ketuk tombol <b>⛵ Berlayar</b>.', 'Go to the <b>edge of the sea, a lake or a river</b>, then tap <b>⛵ Sail</b>.'))}
+      ${step(3, '🕹️', tr('<b>Gerakkan</b> seperti berjalan untuk mendayung. Baby Mo ikut naik!', '<b>Move</b> like walking to row. Baby Mo comes along!'))}
+      ${step(4, '🏝️', tr('Dekati <b>daratan</b> dan ketuk <b>✋ Pakai</b> untuk turun. Perahunya kembali ke tasmu.', 'Get close to <b>land</b> and tap <b>✋ Use</b> to get off. The boat goes back into your bag.'))}
+      <p class="fgTip">💡 ${tr('Berlayarlah ke Pulau Gunung Api 🌋 atau Taman Karang 🪸!', 'Sail to Volcano Island 🌋 or the Coral Reef 🪸!')}</p>
+      <button class="btn gold" id="bgOk">${tr('Ayo berlayar! ⛵', 'Let’s sail! ⛵')}</button></div>`);
+    if (first) { g.stats.boatGift = true; g.inv.add(I.BOAT, 1); this.pickup(I.BOAT, 1); SFX.quest(); g.saveSoon(); }
+    $('#bgOk', el).onclick = () => { close(); if (g.inv.count(I.BOAT) > 0) setTimeout(() => g.fun.launchBoat(), 80); };
+  }
   /** a big "TAP!" by the Use button while a fish bites */
   fishCue(on: boolean) { $('#fishCue').classList.toggle('hidden', !on); $('#bUse').classList.toggle('glow', on); }
   fishGuide() {

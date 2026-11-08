@@ -687,11 +687,12 @@ export class Game {
     this.fishHelpT = 0.5;
     const p = this.player, rod = this.inv.held()?.id === I.FISHING_ROD;
     let nearWater = false;
-    if (!p.inWater && !this.fun.riding) {
+    if (!p.inWater && !this.fun.riding && p.onGround) {
       const bx = Math.floor(p.pos.x), by = Math.floor(p.pos.y), bz = Math.floor(p.pos.z);
       search: for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -2; dy <= 0; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER && this.world.get(bx + dx, by + dy + 1, bz + dz) === B.AIR) { nearWater = true; break search; }
     }
     this.ui.showFishHelp(rod || nearWater);
+    this.ui.showBoat(nearWater && !this.fun.riding);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
   }
   private fishTick(dt: number, t: number) {
@@ -1832,7 +1833,7 @@ export class Game {
       // over-the-shoulder camera that slides in when something is behind you
       const right = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
       const back = dir.clone().multiplyScalar(-1);
-      const want = 4.6;
+      const want = this.fun?.riding?.kind === 'boat' ? 7 : 4.6; // further back on a boat, to see the sail
       const at = (s: number) => eye.clone().addScaledVector(back, s).addScaledVector(right, 0.55 * s / want).add(new THREE.Vector3(0, 0.55 * s / want, 0));
       let d = want;
       for (let s = 0.3; s <= want; s += 0.15) {

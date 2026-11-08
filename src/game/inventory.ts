@@ -114,7 +114,7 @@ export const RECIPES: Recipe[] = [
   { out: I.IRON_SHOVEL, n: 1, ins: [[I.IRON_INGOT, 1], [I.STICK, 2]], at: 'workbench' },
   { out: B.FURNACE, n: 1, ins: [[B.COBBLE, 8]], at: 'workbench' },
   { out: B.LANTERN, n: 2, ins: [[B.GLASS, 1], [B.TORCH, 1], [I.STICK, 2]], at: 'workbench', tag: 'deco' },
-  { out: I.BOAT, n: 1, ins: [[B.PLANKS, 5]], at: 'workbench', tag: 'deco' },
+  { out: I.BOAT, n: 1, ins: [[B.PLANKS, 5]], at: 'workbench', tag: 'tool' },
   { out: B.BED, n: 1, ins: [[B.WOOL_WHITE, 3], [B.PLANKS, 3]], at: 'workbench', tag: 'deco' },
   { out: B.BOOKSHELF, n: 1, ins: [[B.PLANKS, 6]], at: 'workbench', tag: 'deco' },
   { out: B.SANDSTONE, n: 4, ins: [[B.SAND, 4]], at: 'workbench' },

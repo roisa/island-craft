@@ -62,6 +62,8 @@ export interface Stats {
   given?: number; smileDay?: number; jumuahDay?: string; wudu?: number;
   /** the fishing guide has been shown */
   fishGuide?: boolean;
+  /** boat trips started */
+  sailed?: number; boatGift?: boolean;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

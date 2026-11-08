@@ -374,7 +374,7 @@ export class Fun {
       const x = p.pos.x + look.x * d, z = p.pos.z + look.z * d;
       const sy = waterSurface(g.world, x, p.pos.y + look.y * d, z);
       if (sy !== null) {
-        const boat = this.boatModel(); boat.position.set(Math.floor(x) + 0.5, sy - 0.25, Math.floor(z) + 0.5);
+        const boat = this.boatModel(); boat.position.set(Math.floor(x) + 0.5, sy - 0.25, Math.floor(z) + 0.5); boat.rotation.y = p.yaw + Math.PI;
         g.scene.add(boat);
         g.inv.useHeld();
         this.mount('boat', boat);
@@ -384,16 +384,56 @@ export class Fun {
     g.ui.toast(tr('🛶 Arahkan perahu ke air ya', '🛶 Point the boat at some water'));
     return false;
   }
+  /** a little wooden boat: a hull with a pointed bow, two benches, oars that row, and a striped sail */
   private boatModel() {
-    const grp = new THREE.Group(), wood = mat(0xa9743f), dark = mat(0x7a5129), white = mat(0xf4f4f0);
-    const add = (w: number, h: number, d: number, m: THREE.Material, x: number, y: number, z: number) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); grp.add(b); };
-    add(1.3, 0.18, 2.4, wood, 0, 0, 0);
-    add(0.14, 0.35, 2.4, dark, -0.65, 0.18, 0); add(0.14, 0.35, 2.4, dark, 0.65, 0.18, 0);
-    add(1.3, 0.35, 0.14, dark, 0, 0.18, 1.2); add(1.0, 0.35, 0.14, dark, 0, 0.18, -1.2);
-    add(0.08, 1.6, 0.08, dark, 0, 0.9, -0.5); add(0.05, 0.9, 0.7, white, 0, 1.1, -0.15);
+    const grp = new THREE.Group(), wood = mat(0xb07a43), dark = mat(0x7a5129), light = mat(0xd9a96b), white = mat(0xf4f4f0), green = mat(0x2f8a55);
+    const add = (w: number, h: number, d: number, m: THREE.Material, x: number, y: number, z: number, parent: THREE.Object3D = grp) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); parent.add(b); return b; };
+    add(1.2, 0.16, 2.0, dark, 0, 0, -0.1);                       // bottom
+    add(0.12, 0.42, 2.0, wood, -0.62, 0.17, -0.1); add(0.12, 0.42, 2.0, wood, 0.62, 0.17, -0.1); // sides
+    add(1.36, 0.06, 0.1, light, 0, 0.4, -0.1 - 1.0); add(1.36, 0.06, 2.0, light, -0.64, 0.4, -0.1).scale.set(0.12 / 1.36, 1, 1);
+    add(1.24, 0.42, 0.12, wood, 0, 0.17, -1.1);                  // stern
+    // the bow narrows to a point in three steps
+    add(0.96, 0.42, 0.24, wood, 0, 0.17, 1.0); add(0.66, 0.42, 0.22, wood, 0, 0.19, 1.2); add(0.34, 0.42, 0.2, wood, 0, 0.22, 1.38);
+    add(0.12, 0.12, 0.14, dark, 0, 0.46, 1.46);
+    add(1.12, 0.08, 0.3, light, 0, 0.26, 0.35); add(1.12, 0.08, 0.3, light, 0, 0.26, -0.6); // benches
+    // mast and sail
+    add(0.08, 2.0, 0.08, dark, 0, 1.15, 0.7);
+    const sail = new THREE.Group(); sail.position.set(0, 1.25, 0.66); grp.add(sail);
+    for (let i = 0; i < 4; i++) add(0.04, 0.3, 0.9 - i * 0.12, i % 2 ? green : white, 0, 0.45 - i * 0.3, -0.45 + i * 0.06, sail);
+    add(0.3, 0.16, 0.02, mat(0xf1c232), 0, 1.15, 0.72);         // a little flag
+    // oars, pivoting at the sides
+    const oars: THREE.Group[] = [];
+    for (const sd of [-1, 1]) {
+      const o = new THREE.Group(); o.position.set(sd * 0.68, 0.42, -0.15); grp.add(o);
+      add(0.05, 0.05, 1.5, light, sd * 0.45, -0.1, 0, o).rotation.y = sd * 0.35;
+      add(0.04, 0.22, 0.36, light, sd * 0.85, -0.22, 0.25 * sd * 0, o);
+      oars.push(o);
+    }
+    grp.userData.oars = oars; grp.userData.sail = sail;
     return grp;
   }
-  /** float down the river on the raft from the dock, all by itself; Baby Mo sits behind you */
+  /** launch your boat on the nearest water (the ⛵ button by the shore) */
+  launchBoat(): boolean {
+    const g = this.g, p = g.player.pos;
+    if (this.riding || g.inv.count(I.BOAT) < 1) return false;
+    let best: THREE.Vector3 | null = null, bd = Infinity;
+    for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) {
+      const x = Math.floor(p.x) + dx + 0.5, z = Math.floor(p.z) + dz + 0.5;
+      const sy = waterSurface(g.world, x, p.y + 1, z);
+      if (sy === null || g.world.solidAt(Math.floor(x), Math.floor(sy), Math.floor(z))) continue;
+      // open water around it, so the boat isn't stuck at once
+      let open = 0; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (waterSurface(g.world, x + a, p.y + 1, z + b) !== null) open++;
+      const d = Math.hypot(dx, dz) - open * 0.4;
+      if (open >= 2 && d < bd) { bd = d; best = new THREE.Vector3(x, sy, z); }
+    }
+    if (!best) { g.ui.toast(tr('⛵ Tidak ada air yang cukup di dekat sini', '⛵ There isn’t enough water near here')); return false; }
+    const boat = this.boatModel(); boat.position.set(best.x, best.y - 0.25, best.z); boat.rotation.y = Math.atan2(best.x - p.x, best.z - p.z);
+    g.scene.add(boat);
+    g.inv.remove(I.BOAT, 1);
+    this.mount('boat', boat);
+    return true;
+  }
+    /** float down the river on the raft from the dock, all by itself; Baby Mo sits behind you */
   raftRide(path: [number, number][]) {
     const g = this.g;
     if (this.riding || path.length < 2) return;
@@ -431,7 +471,8 @@ export class Fun {
     this.riding = { kind, obj, animal, vx: 0, vz: 0 };
     this.g.player.flying = false;
     SFX.jump();
-    this.g.ui.toast(kind === 'boat' ? tr('🛶 Berlayar! Ketuk ✋ untuk turun', '🛶 Sailing! Tap ✋ to get off') : tr('🐪 Naik unta! Ketuk ✋ untuk turun', '🐪 Camel ride! Tap ✋ to get off'), 3500);
+    this.g.ui.toast(kind === 'boat' ? tr('⛵ Berlayar! Gerakkan untuk mendayung, ketuk ✋ di dekat daratan untuk turun', '⛵ Sailing! Move to row, tap ✋ near land to get off') : tr('🐪 Naik unta! Ketuk ✋ untuk turun', '🐪 Camel ride! Tap ✋ to get off'), 3500);
+    if (kind === 'boat') { this.g.ents.mo.seat = { pos: new THREE.Vector3(), yaw: 0 }; this.g.stats.sailed = (this.g.stats.sailed || 0) + 1; }
     this.g.stats.rides = (this.g.stats.rides || 0) + 1;
     this.g.checkQuests();
   }
@@ -448,7 +489,7 @@ export class Fun {
     }
     if (r.kind === 'boat' && !spot) { g.ui.toast(tr('Dekati daratan dulu untuk turun 🏝️', 'Get closer to land to step off 🏝️')); return; }
     if (r.kind === 'raft') { g.scene.remove(r.obj); g.ents.mo.seat = null; }
-    if (r.kind === 'boat') { g.scene.remove(r.obj); g.inv.add(I.BOAT, 1); }
+    if (r.kind === 'boat') { g.scene.remove(r.obj); g.inv.add(I.BOAT, 1); g.ents.mo.seat = null; }
     if (r.animal) { r.animal.ridden = false; }
     if (spot) { p.copy(spot); g.player.visY = spot.y; }
     else p.y += 1.2;
@@ -472,8 +513,17 @@ export class Fun {
       const sy = waterSurface(g.world, nx, o.y + 0.5, nz);
       if (sy !== null && !g.world.solidAt(Math.floor(nx), Math.floor(sy), Math.floor(nz))) { o.x = nx; o.z = nz; o.y = sy - 0.25 + Math.sin(performance.now() / 500) * 0.04; }
       else { r.vx *= -0.3; r.vz *= -0.3; }
-      if (Math.hypot(r.vx, r.vz) > 0.3) r.obj.rotation.y = Math.atan2(r.vx, r.vz);
-      pl.pos.set(o.x, o.y + 0.25, o.z);
+      const spd = Math.hypot(r.vx, r.vz);
+      if (spd > 0.3) { const want = Math.atan2(r.vx, r.vz); let d = want - r.obj.rotation.y; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; r.obj.rotation.y += d * Math.min(1, dt * 4); }
+      const yaw = r.obj.rotation.y, now = performance.now() / 1000;
+      // gentle rocking, the oars row while moving, the sail leans with the speed
+      r.obj.rotation.z = Math.sin(now * 1.3) * 0.03; r.obj.rotation.x = Math.sin(now * 0.9) * 0.02 - Math.min(0.05, spd * 0.008);
+      const oars = r.obj.userData.oars as THREE.Group[], row = spd > 0.4 ? now * 5 : 0;
+      oars?.forEach((oa, k) => { oa.rotation.y = Math.sin(row) * 0.5 * (k ? -1 : 1); oa.rotation.z = (Math.cos(row) * 0.2 + 0.1) * (k ? -1 : 1); });
+      const sail = r.obj.userData.sail as THREE.Group; if (sail) sail.rotation.y = Math.sin(now * 0.8) * 0.08 + Math.min(0.3, spd * 0.04);
+      if (spd > 2 && !g.settings.lowGfx && Math.random() < dt * 8) g.fx.sparkle(o.x - Math.sin(yaw) * 1.2 + (Math.random() - 0.5) * 0.6, o.y + 0.3, o.z - Math.cos(yaw) * 1.2, 2, 0xe8f7ff, 0.8);
+      pl.pos.set(o.x - Math.sin(yaw) * 0.55, o.y + 0.32, o.z - Math.cos(yaw) * 0.55);
+      const seat = g.ents.mo.seat; if (seat) { seat.pos.set(o.x + Math.sin(yaw) * 0.45, o.y + 0.32, o.z + Math.cos(yaw) * 0.45); seat.yaw = yaw + Math.PI; }
     } else {
       const a = r.animal!;
       const gy = groundY(g.world, nx, o.y, nz);
