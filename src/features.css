@@ -90,8 +90,8 @@
 #coins { display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
 #coins .ci { font-size: 18px; }
 #coins.bump { animation: pk .45s ease-out; }
-.coinPop { position: fixed; left: 50%; top: 32%; transform: translate(-50%, 0); z-index: 46; pointer-events: none; text-align: center; animation: coinUp 2.6s ease-out forwards; }
-.coinPop b { display: block; font-size: 44px; color: #F1C232; -webkit-text-stroke: 2px #8a5a00; text-shadow: 0 3px 0 rgba(0,0,0,.2); }
+.coinPop { position: fixed; left: 50%; top: calc(58px + var(--safe-t)); transform: translate(-50%, 0); z-index: 46; pointer-events: none; text-align: center; animation: coinUp 2.6s ease-out forwards; }
+.coinPop b { display: block; font-size: 38px; color: #F1C232; -webkit-text-stroke: 2px #8a5a00; text-shadow: 0 3px 0 rgba(0,0,0,.2); }
 .coinPop small { display: inline-block; margin-top: 4px; background: rgba(255,255,255,.92); color: #5e3e25; padding: 3px 10px; border-radius: 12px; font-weight: 700; font-size: 16px; }
 @keyframes coinUp { 0% { opacity: 0; transform: translate(-50%, 20px) scale(.6); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 25% { transform: translate(-50%, 0) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60px); } }
 #jmHud { position: fixed; left: 50%; top: calc(64px + var(--safe-t)); transform: translateX(-50%); z-index: 7; padding: 8px 16px; font-size: 16px; white-space: nowrap; }
@@ -112,3 +112,32 @@
 .qcard .tx .bar i { display: block; height: 100%; background: var(--green, #3fa34d); }
 .shop .scTabs { display: flex; gap: 8px; justify-content: center; margin: 4px 0 6px; }
 .shop .scTabs .btn { width: auto; margin: 0; }
+
+/* ---- the Amal Book ---- */
+.amalChip { position: fixed; left: 50%; bottom: calc(150px + var(--safe-b)); transform: translateX(-50%); z-index: 44; pointer-events: none; background: rgba(255, 250, 228, .96); color: #5e3e25; border: 3px solid #F1C232; border-radius: 18px; padding: 6px 14px; font-weight: 800; font-size: 16px; white-space: nowrap; animation: amalUp 1.9s ease-out forwards; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+.amalChip b { color: #C0392B; }
+@keyframes amalUp { 0% { opacity: 0; transform: translate(-50%, 16px) scale(.8); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 25% { transform: translate(-50%, 0) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -24px); } }
+.amalCard { text-align: center; max-width: 380px; }
+.amalCard .burst { font-size: 54px; }
+.amalCard .hadith { font-size: 17px; font-weight: 700; line-height: 1.45; margin: 10px 0 4px; }
+.amalCard .src, .amalRow i { font-size: 12px; opacity: .7; }
+.amalCard .note, .amalList + .note { font-size: 12.5px; opacity: .8; margin-top: 10px; }
+.amx { display: inline-block; background: #C0392B; color: #fff; border-radius: 10px; padding: 0 7px; font-size: 13px; vertical-align: middle; }
+.amalHead { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 8px; }
+.amalHead b { font-size: 18px; }
+.amalList { display: flex; flex-direction: column; gap: 6px; }
+.amalRow { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 14px; background: rgba(241, 194, 50, .12); }
+.amalRow.off { opacity: .55; }
+.amalRow .ic { font-size: 26px; width: 34px; text-align: center; flex: none; }
+.amalRow .tx { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.amalRow .amn { font-weight: 600; font-size: 12px; color: var(--green-d, #2f8a3c); margin-left: 4px; }
+.amalRow small { font-size: 12.5px; line-height: 1.35; }
+.projList { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.projRow { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 14px; background: rgba(63, 163, 77, .1); }
+.projRow.built { background: rgba(63, 163, 77, .25); }
+.projRow .ic { font-size: 30px; width: 38px; text-align: center; flex: none; }
+.projRow .tx { flex: 1; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.projRow .bar { height: 8px; border-radius: 4px; background: rgba(0,0,0,.1); overflow: hidden; }
+.projRow .bar i { display: block; height: 100%; background: linear-gradient(90deg, #3fa34d, #f1c232); }
+/* eleven book tabs now wrap to a third row on wide screens: keep each one big enough to tap */
+.tab { min-height: 34px; }

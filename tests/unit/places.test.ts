@@ -296,3 +296,33 @@ describe('today’s three goals', () => {
     expect(dailyFor(d, s, 'day B', 1)).not.toBe(d);
   });
 });
+
+import { DEEDS, newLog, record, kindTotal } from '../../src/game/amal';
+import { PROJECTS } from '../../src/game/projects';
+describe('the Amal Book', () => {
+  it('every deed has a hadith in both languages, a source, and a project it helps', () => {
+    for (const d of DEEDS) { expect(d.hadith[0] && d.hadith[1] && d.name[0] && d.name[1]).toBeTruthy(); expect(d.src).toMatch(/HR\. /); expect(['kind', 'learn', 'worship']).toContain(d.kind); }
+    expect(DEEDS.find(d => d.id === 'jamaah')!.times).toBe(27);
+    expect(DEEDS.find(d => d.id === 'letter')!.times).toBe(10);
+    for (const k of ['kind', 'learn', 'worship'] as const) expect(PROJECTS.some(p => p.kind === k)).toBe(true);
+  });
+  it('records deeds per day and in total, and says when one is new', () => {
+    const log = newLog();
+    expect(record(log, 'jamaah', 'd1')).toBe(true);
+    expect(record(log, 'jamaah', 'd1')).toBe(false);
+    record(log, 'plant', 'd1', 2);
+    expect(log.today.jamaah).toBe(2); expect(log.total.plant).toBe(2);
+    record(log, 'plant', 'd2');
+    expect(log.today.plant).toBe(1); expect(log.total.plant).toBe(3); expect(log.today.jamaah).toBeUndefined();
+    expect(kindTotal(log, 'worship')).toBe(2); expect(kindTotal(log, 'kind')).toBe(3);
+    expect(record(log, 'nonsense', 'd2')).toBe(false);
+  });
+  it('village projects are inside the village and do not overlap each other', () => {
+    const owner = new Map<string, string>();
+    for (const p of PROJECTS) for (const [x, y, z] of p.cells()) {
+      expect(Math.hypot(x, z), p.id).toBeLessThan(30);
+      const k = `${x},${y},${z}`, o = owner.get(k);
+      expect(!o || o === p.id, `${p.id} overlaps ${o} at ${k}`).toBe(true); owner.set(k, p.id);
+    }
+  });
+});

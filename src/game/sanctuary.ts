@@ -103,7 +103,7 @@ export class Sanctuary {
     if (!held || ![I.APPLE, I.DATES, I.MILK].includes(held.id) || a.petCd > 0) return false;
     g.inv.useHeld(); a.petCd = 1.5; a.cheer(); a.spin = 0.7;
     g.fx.hearts(a.pos.x, a.pos.y + a.rig.height, a.pos.z, 6); SFX.pet(); SFX.critter(a.kind);
-    g.stats.fed = (g.stats.fed || 0) + 1;
+    g.stats.fed = (g.stats.fed || 0) + 1; g.amal('animal');
     g.kid.reward('give');
     g.ui.toast(tr(`😋 ${this.friend(this.owns(a)!).name} kenyang dan senang!`, `😋 ${this.friend(this.owns(a)!).name} is full and happy!`));
     g.checkQuests(); g.saveSoon();
@@ -112,7 +112,7 @@ export class Sanctuary {
 
   private welcomeHome(id: string, a: Animal) {
     const g = this.g, f = this.friend(id);
-    this.rescued.push(id);
+    this.rescued.push(id); g.amal('animal', 3);
     a.follow = null; a.pen = { x: this.pen!.x, z: this.pen!.z, r: 4 }; a.target = new THREE.Vector3(this.pen!.x, a.pos.y, this.pen!.z);
     this.retag(a, '🏡 ' + f.name, '#B8F2B0');
     SFX.fanfare(); haptic([15, 40, 15]); g.ui.confetti(60);

@@ -13,6 +13,7 @@ import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
+import { DEEDS, type Deed } from './game/amal';
 import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
 import { levelOf, starsFor } from './game/kid';
@@ -41,7 +42,7 @@ const SELL: [number, number][] = [
   [I.IRON_INGOT, 10], [I.EGG, 4], [I.MILK, 5], [B.WOOL_WHITE, 3], [I.APPLE, 3], [I.DATES, 2], [B.OBSIDIAN, 12],
 ];
 
-export type Tab = 'bag' | 'craft' | 'build' | 'wardrobe' | 'map' | 'letters' | 'quests' | 'ramadhan' | 'prayer' | 'settings';
+export type Tab = 'bag' | 'craft' | 'build' | 'wardrobe' | 'map' | 'letters' | 'quests' | 'amal' | 'ramadhan' | 'prayer' | 'settings';
 interface Btn { label: string; cls?: string; fn?: () => void; keep?: boolean }
 
 export class UI {
@@ -278,6 +279,41 @@ export class UI {
       <button class="btn gold" id="dOk">${tr('Subhanallah! ✨', 'Subhanallah! ✨')}</button></div>`, undefined, { onShow: () => { this.confetti(60); if (this.g.settings.moVoice) Speech.talk(t2(l.name) + '. ' + t2(l.fact), getLang(), false, 1); } });
     $('#dOk', el).onclick = () => close();
   }
+  // ---------- the Amal Book ----------
+  private amalQ: { d: Deed; first: boolean }[] = []; private amalBusy = false;
+  /** a small "✨ Praying together ×27" chip; the first time, a card with what Rasulullah ﷺ said */
+  amalPop(d: Deed, first: boolean) {
+    // the first time: a card with the hadith, shown after whatever the deed itself opens (the letter card, a dialog…)
+    if (first) { setTimeout(() => this.amalCard(d), 60); return; }
+    if (this.amalQ.length < 4) this.amalQ.push({ d, first });
+    if (!this.amalBusy) this.nextAmal();
+  }
+  private amalCard(d: Deed) {
+    {
+      const { el, close } = this.modal(`<div class="amalCard"><div class="burst">${d.icon}</div><div class="lvn">${tr('AMAL BARU DI BUKU!', 'A NEW GOOD DEED!')}</div><h2>${esc(t2(d.name))}${d.times ? ` <span class="amx">×${d.times}</span>` : ''}</h2>
+        <p class="hadith">“${esc(t2(d.hadith))}”</p><p class="src">${esc(d.src)}</p>
+        <p class="note">${tr('Pahala yang sebenarnya ada di sisi Allah. Buku Amal membantu kita ingat betapa Allah menyukai kebaikan. 💛', 'The real reward is with Allah. The Amal Book helps us remember how much He loves good deeds. 💛')}</p>
+        <button class="btn gold" id="amOk">${tr('Masya Allah! ✨', 'Masha Allah! ✨')}</button></div>`, undefined, { onShow: () => { SFX.chime(); if (this.g.settings.moVoice) Speech.talk(t2(d.hadith), getLang(), false, 1); } });
+      $('#amOk', el).onclick = () => close();
+    }
+  }
+  private nextAmal() {
+    const it = this.amalQ.shift(); if (!it) { this.amalBusy = false; return; }
+    this.amalBusy = true;
+    const el = document.createElement('div'); el.className = 'amalChip';
+    el.innerHTML = `✨ ${it.d.icon} ${esc(t2(it.d.name))}${it.d.times ? ` <b>×${it.d.times}</b>` : ''}`;
+    document.body.appendChild(el); SFX.pop(6);
+    setTimeout(() => { el.remove(); this.nextAmal(); }, 1900);
+  }
+  private amalTab(body: HTMLElement) {
+    const g = this.g, log = g.stats.amal, total = (id: string) => log?.total[id] || 0, today = (id: string) => (log && log.day === new Date().toDateString() ? log.today[id] || 0 : 0);
+    const all = DEEDS.reduce((a, d) => a + total(d.id), 0), allToday = DEEDS.reduce((a, d) => a + today(d.id), 0);
+    body.innerHTML = `<div class="amalHead"><b>📖 ${tr('Buku Amal Kebaikan', 'My Good Deeds Book')}</b><small>${tr(`Hari ini <b>${allToday}</b> kebaikan · semuanya <b>${all}</b>`, `Today <b>${allToday}</b> good deeds · all together <b>${all}</b>`)}</small></div>
+      ${g.projects ? g.projects.html() : ''}
+      <div class="amalList">${DEEDS.map(d => { const n = total(d.id); return `<div class="amalRow ${n ? '' : 'off'}"><div class="ic">${n ? d.icon : '❔'}</div><div class="tx"><b>${esc(t2(d.name))}${d.times ? ` <span class="amx">×${d.times}</span>` : ''} <span class="amn">${n ? `${today(d.id)} ${tr('hari ini', 'today')} · ${n}` : tr('belum', 'not yet')}</span></b><small>“${esc(t2(d.hadith))}” <i>${esc(d.src)}</i></small></div></div>`; }).join('')}</div>
+      <p class="note">${tr('Pahala yang sebenarnya ada di sisi Allah. Buku ini membantu kita ingat betapa Allah menyukai kebaikan. Yang paling penting: niat karena Allah. 💛', 'The real reward is with Allah. This book helps us remember how much He loves good deeds. What matters most is doing them for Allah. 💛')}</p>`;
+  }
+
   // ---------- coins & the village shop ----------
   private coinShown = 0; private coinRaf = 0;
   /** the coin counter in the top bar; counts up to the new total */
@@ -450,7 +486,7 @@ export class UI {
       step++; SFX.pop(step);
       if (step < cur.path.length) return;
       const first = !done.includes(cur.id);
-      if (first) { done.push(cur.id); g.kid.reward('quiz', 4); g.checkQuests(); g.saveSoon(); }
+      if (first) { done.push(cur.id); g.kid.reward('quiz', 4); g.amal('learn'); g.checkQuests(); g.saveSoon(); }
       SFX.fanfare(); this.confetti(40);
       tip.innerHTML = `⭐ <b>${esc(t2(cur.name))}</b>! ${esc(t2(cur.fact))}`;
       const btn = body.querySelector<HTMLElement>(`[data-c="${cur.id}"]`); if (btn) { btn.classList.remove('gold'); btn.classList.add('ghost'); if (!btn.textContent!.includes('✓')) btn.textContent += ' ✓'; }
@@ -547,7 +583,7 @@ export class UI {
   }
   renderBook() {
     const tabs: [Tab, string, string][] = [
-      ['bag', 'bag', tr('Tas', 'Bag')], ['craft', 'hammer', tr('Buat', 'Craft')], ['build', 'blueprint', tr('Rancang', 'Blueprints')], ['wardrobe', 'shirt', tr('Baju', 'Outfits')], ['map', 'map', tr('Peta', 'Map')], ['letters', 'book', tr('Huruf', 'Letters')], ['quests', 'star', tr('Misi', 'Quests')],
+      ['bag', 'bag', tr('Tas', 'Bag')], ['craft', 'hammer', tr('Buat', 'Craft')], ['build', 'blueprint', tr('Rancang', 'Blueprints')], ['wardrobe', 'shirt', tr('Baju', 'Outfits')], ['map', 'map', tr('Peta', 'Map')], ['letters', 'book', tr('Huruf', 'Letters')], ['quests', 'star', tr('Misi', 'Quests')], ['amal', 'sparkles', tr('Amal', 'Good deeds')],
       ['ramadhan', 'moon', tr('Ramadhan', 'Ramadan')], ['prayer', 'mosque', tr('Sholat', 'Prayer')], ['settings', 'gear', tr('Atur', 'Settings')],
     ];
     const el = $('#book');
@@ -555,7 +591,7 @@ export class UI {
     $('#bx', el).onclick = () => this.closeBook();
     el.querySelectorAll<HTMLElement>('.tab').forEach(b => (b.onclick = () => { this.tab = b.dataset.t as Tab; this.renderBook(); SFX.click(); }));
     const body = $('#tabBody', el);
-    ({ bag: () => this.bag(body), craft: () => this.craftTab(body), build: () => this.buildTab(body), wardrobe: () => this.wardrobeTab(body), map: () => this.mapTab(body), letters: () => this.letters(body), quests: () => this.quests(body), ramadhan: () => this.ramadhanTab(body), prayer: () => this.prayer(body), settings: () => this.settingsTab(body) })[this.tab]();
+    ({ bag: () => this.bag(body), craft: () => this.craftTab(body), build: () => this.buildTab(body), wardrobe: () => this.wardrobeTab(body), map: () => this.mapTab(body), letters: () => this.letters(body), quests: () => this.quests(body), amal: () => this.amalTab(body), ramadhan: () => this.ramadhanTab(body), prayer: () => this.prayer(body), settings: () => this.settingsTab(body) })[this.tab]();
   }
 
   private slotHTML(i: number) {
@@ -1238,7 +1274,7 @@ export class UI {
       if (done) return;
       const o = +b.dataset.o!;
       if (o === ans) {
-        done = true; b.classList.add('right'); SFX.letter(); g.stats.quiz++; g.kid.reward('quiz'); this.confetti(14); g.checkQuests();
+        done = true; b.classList.add('right'); SFX.letter(); g.stats.quiz++; g.kid.reward('quiz'); g.amal('learn'); this.confetti(14); g.checkQuests();
         this.toast(tr(`Benar! Itu huruf ${L.name} ⭐`, `Correct! That's ${L.name} ⭐`));
         setTimeout(() => { close(); this.quiz(); }, 1100);
       } else { b.classList.add('wrong'); SFX.error(); this.toast(tr('Hampir! Coba lagi ya 😊', 'Almost! Try again 😊')); }

@@ -52,6 +52,12 @@ export interface Stats {
   coins?: number; bought?: number; sold?: number;
   /** today's three small goals (see game/daily.ts) */
   daily?: import('./game/daily').Daily;
+  /** the Amal Book: good deeds done (see game/amal.ts) */
+  amal?: import('./game/amal').AmalLog;
+  /** the game day each villager was last greeted */
+  salamDay?: Record<string, number>;
+  /** village projects finished, and the ones already placed in the world */
+  projects?: string[]; projectsPlaced?: string[]; projectBase?: Record<string, number>;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

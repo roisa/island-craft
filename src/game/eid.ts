@@ -244,7 +244,7 @@ export class Eid {
   greet(npcId: string, who: string, face: string, img: boolean, at: THREE.Vector3): boolean {
     const g = this.g, gr = (g.stats.eidGreet ??= {});
     if (!this.open || gr[npcId] === g.day) return false;
-    gr[npcId] = g.day;
+    gr[npcId] = g.day; g.amal('salam');
     g.inv.add(I.ANGPAO, 1); g.collectFx(I.ANGPAO, 1, at.clone().setY(at.y + 1.3));
     SFX.quest(); g.fx.hearts(at.x, at.y + 2, at.z, 4);
     g.kid.reward('give');

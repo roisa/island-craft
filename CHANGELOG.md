@@ -5,6 +5,61 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Amal Book 📖 and village projects (sadaqah jariyah) 🏗️
+
+Requested by a parent: link the game to Islamic values. For example,
+praying together is worth 27 times more.
+
+- **A new "Good deeds" tab: the Amal Book.**
+  - 17 kinds of good deed, each with what Rasulullah ﷺ (or the Qur'an)
+    said about it and the source.
+  - The numbers come from the hadith itself and are shown as his words,
+    not as a score:
+    - **×27** for praying together (Bukhari 645, Muslim 650);
+    - **×10** for each letter of the Qur'an (Tirmidhi 2910).
+  - The page shows today's and all-time counts.
+  - A note on the page and on each card: *"The real reward is with Allah.
+    This book helps us remember how much He loves good deeds. What
+    matters most is doing them for Allah."*
+- **Deeds already in the game now count:**
+  - praying together;
+  - walking to the masjid at prayer time (counted when you arrive, with
+    "each step raises you a degree");
+  - bismillah when eating;
+  - finding a letter of the Qur'an;
+  - the letter quiz and star pictures (seeking knowledge);
+  - planting;
+  - petting, feeding and rescuing animals;
+  - sharing food, iftar together, and salam to each villager once a day.
+- **When you do a deed:**
+  - A small "✨ 🕌 Praying together ×27" chip appears.
+  - The first time, a card shows the hadith, after anything the deed
+    itself shows (such as the letter card). Baby Mo reads it aloud if
+    voice is on.
+- **Village projects (sadaqah jariyah):** so the book has something to
+  grow, good deeds build things for the whole village.
+  - ⛲ **A water fountain for everyone:** 20 deeds of kindness and
+    sharing, with the story of Sa'd ibn 'Ubadah's well.
+  - 🏫 **The village madrasah:** 15 deeds of learning.
+  - 🌳 **The masjid garden:** 15 deeds of worship.
+  - Each project has a progress bar in the book.
+  - When one is complete: a celebration, +150 coins, and the hadith "when
+    a person dies their deeds end except three…" (Muslim 1631).
+  - It is then built in the village and saved with the world.
+  - The villagers start using it: Ayah Ibrahim teaches in the madrasah;
+    Kakek Yusuf waters at the fountain and sits in the garden.
+- **Coin pop-ups** now appear by the coin counter, so they don't cover
+  cards.
+- **Book tabs** are at least 34 px tall now that there are eleven.
+- **Tested:**
+  - Unit tests: every deed has both languages, a source and a project;
+    ×27 and ×10 are set; the log counts per day and in total and spots a
+    new deed; the projects fit inside the village and don't overlap.
+  - Screenshots of the hadith card, the chip, the book and the built
+    fountain.
+  - The smoke suite on 4 profiles and QA on 5 (QA caught the letter card
+    waiting behind a hadith card, and the tab size).
+
 ### A reason for everything, and a rewarding 5–10 minutes 📅
 
 - **Audit: every item now has a use.**

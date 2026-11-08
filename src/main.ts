@@ -48,7 +48,9 @@ import { Kites, isKite } from './game/kites';
 import { Treasure } from './game/treasure';
 import { mangroveTree } from './world/landmarks';
 import { Weather } from './game/weather';
+import { Projects } from './game/projects';
 import { Jamaah, rowPose } from './game/jamaah';
+import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './game/amal';
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
 
 export interface Settings {
@@ -98,6 +100,7 @@ export class Game {
   kites!: Kites;
   treasure!: Treasure;
   weather!: Weather;
+  projects!: Projects;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -140,6 +143,7 @@ export class Game {
   /** the prayer together in progress (everyone moves as one) */
   jamaah: Jamaah | null = null;
   private rowStill = 0;
+  private stepAcc = 0; private stepPrev: THREE.Vector3 | null = null; private stepPrevD = 0;
   private rowMark: THREE.Mesh | null = null;
   private lastHour = 0;
   private remindersShown = new Set<string>();
@@ -308,6 +312,8 @@ export class Game {
     this.kites = new Kites(this);
     this.treasure = new Treasure(this);
     this.weather = new Weather(this);
+    this.projects = new Projects(this);
+    this.projects.restore();
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -509,7 +515,7 @@ export class Game {
       face: '🧕', who: 'Bu Aminah',
       text: tr('Ayo berbuka bersama, Nak! Duduk di sini. Ini takjil untukmu 🍽️', 'Come and break the fast with us, dear! Sit here. This takjil is for you 🍽️'),
       buttons: [{ label: tr('Bismillah 🤲', 'Bismillah 🤲'), cls: 'gold', fn: () => {
-        this.stats.iftar++; this.stats.gave++; this.kid.reward('iftar'); this.ui.confetti(30);
+        this.stats.iftar++; this.stats.gave++; this.kid.reward('iftar'); this.ui.confetti(30); this.amal('iftar');
         this.inv.add(I.TAKJIL, 1); this.ui.pickup(I.TAKJIL, 1);
         this.ui.duaCard(DUAS.iftar, tr('🌇 Doa berbuka puasa', '🌇 Du’a for breaking the fast'));
         this.checkQuests();
@@ -984,6 +990,7 @@ export class Game {
     this.sanctuary.update(dt);
     this.kites.update(dt, t);
     this.weather.update(dt, t);
+    this.projects.update();
     this.eid.update(dt, t);
     if ((this.eidT -= dt) <= 0) { this.eidT = 20; this.eid.refresh(); }
     this.picnicCheck();
@@ -1269,13 +1276,13 @@ export class Game {
         // mangroves grow in shallow water: the seedling goes in water one block deep, on mud or sand
         if (cur !== B.WATER || ![B.MUD, B.SAND, B.DIRT, B.GRASS, B.CLAY, B.GRAVEL].includes(below) || this.world.get(x, y + 1, z) === B.WATER) { this.ui.toast(tr('🌿 Tanam bibit bakau di air dangkal ya', '🌿 Plant mangrove seedlings in shallow water')); return; }
         this.saplings.push({ x, y, z, id: held.id, t: 0 });
-        this.stats.planted++; this.stats.mangroves = (this.stats.mangroves || 0) + 1; this.kid.reward('plant');
+        this.stats.planted++; this.stats.mangroves = (this.stats.mangroves || 0) + 1; this.kid.reward('plant'); this.amal('plant');
         this.ui.say(tr('Masya Allah! Bibit bakau ini akan tumbuh dan melindungi pantai dari ombak 🌿', 'Masha Allah! This mangrove will grow and protect the coast from the waves 🌿'), 'ok');
       } else if (cur === B.WATER && !def.aquatic) { this.ui.toast(tr('Tanaman ini tidak bisa tumbuh di air', 'This plant can’t grow in water')); return; }
       else if ((held.id === B.SAPLING || held.id === B.PALM_SAPLING || held.id === B.PINE_SAPLING)) {
         if (![B.GRASS, B.DIRT, B.SNOW_GRASS, B.SAND].includes(below)) { this.ui.toast(tr('Tanam bibit di tanah atau rumput ya 🌱', 'Plant saplings on dirt or grass 🌱')); return; }
         this.saplings.push({ x, y, z, id: held.id, t: 0 });
-        this.stats.planted++; this.kid.reward('plant');
+        this.stats.planted++; this.kid.reward('plant'); this.amal('plant');
         this.ui.say(tr('Masya Allah, pohonnya nanti tumbuh! Menanam pohon itu sedekah 🌱', 'Masha Allah, it will grow into a tree! Planting trees is a good deed 🌱'), 'ok');
       }
     }
@@ -1319,7 +1326,7 @@ export class Game {
       e.petCd = 1.5; e.cheer();
       this.fx.hearts(e.pos.x, e.pos.y + e.rig.height, e.pos.z, 3);
       SFX.pet(); SFX.critter(e.kind); haptic(10);
-      this.stats.petted++; this.kid.reward('pet');
+      this.stats.petted++; this.kid.reward('pet'); this.amal('animal');
       const from = new THREE.Vector3(e.pos.x, e.pos.y + e.rig.height * 0.6, e.pos.z);
       const share = (id: number, n: number) => { this.inv.add(id, n); this.collectFx(id, n, from); this.anim.play('collect'); };
       if (e.cooldown <= 0) {
@@ -1332,7 +1339,7 @@ export class Game {
     }
   }
   private giveFood(at: THREE.Vector3) {
-    this.inv.useHeld(); this.stats.gave++; this.kid.reward('give'); this.ui.confetti(20);
+    this.inv.useHeld(); this.stats.gave++; this.kid.reward('give'); this.ui.confetti(20); this.amal('share');
     this.fx.hearts(at.x, at.y + 2, at.z, 5); SFX.quest();
     this.checkQuests();
   }
@@ -1340,6 +1347,8 @@ export class Game {
   private talkNpc(n: Npc) {
     n.lookAt(this.player.pos); n.waving = true; setTimeout(() => (n.waving = false), 1500);
     this.stats.talked[n.id] = true;
+    // the first hello to each villager each day counts as spreading salam
+    const sd = (this.stats.salamDay ??= {}); if (sd[n.id] !== this.day) { sd[n.id] = this.day; this.amal('salam'); }
     const held = this.inv.held();
     const food = held && FOOD.has(held.id);
     const portrait = n.id === 'ustadz' ? 'img/ibrahim-face.webp' : '';
@@ -1411,7 +1420,7 @@ export class Game {
     const held = this.inv.held()!;
     const s = this.schedule, h = this.hour;
     this.inv.useHeld();
-    this.stats.ate++;
+    this.stats.ate++; this.amal('bismillah');
     SFX.pickup(); this.fx.hearts(this.player.pos.x, this.player.pos.y + 1.8, this.player.pos.z, 2);
     const isIftar = h >= s.maghrib && h < s.maghrib + 1.5;
     const isSahur = h >= s.fajr - 2 && h < s.fajr;
@@ -1464,6 +1473,7 @@ export class Game {
     const from = new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5);
     this.inv.add(rw.gift[0], rw.gift[1]); this.collectFx(rw.gift[0], rw.gift[1], from);
     this.ui.letterCard(i, true, rw);
+    this.amal('letter'); // after the letter card, so its hadith card comes next
     if (rw.treasure) {
       for (const [id, n] of rw.treasure.gifts) this.inv.add(id, n);
       this.kid.reward('letter', 3);
@@ -1477,6 +1487,15 @@ export class Game {
     this.save();
   }
 
+  /** a good deed for the Amal Book: a small sparkle, and the first time, what Rasulullah ﷺ said about it */
+  amal(id: string, n = 1) {
+    const log = (this.stats.amal ??= newAmalLog());
+    const first = recordAmal(log, id, new Date().toDateString(), n);
+    const d = amalDeed(id); if (!d) return;
+    this.ui.amalPop(d, first);
+    this.projects?.check();
+    this.saveSoon();
+  }
   /** today's three small goals: coins for each, and a bonus for all three */
   private dailyCheck(silent: boolean) {
     const d = this.stats.daily = dailyFor(this.stats.daily, this.stats, new Date().toDateString(), this.seed);
@@ -1581,6 +1600,13 @@ export class Game {
       this.scene.add(this.rowMark);
     }
     if (this.rowMark) { this.rowMark.visible = waiting; (this.rowMark.material as THREE.MeshBasicMaterial).opacity = 0.5 + Math.sin(t * 4) * 0.3; }
+    // steps to the masjid at prayer time, counted when you arrive
+    if (ev && !ev.prayed) {
+      const q = this.player.pos, d = q.distanceTo(MASJID_SPOT);
+      if (this.stepPrev && d < 70) { const moved = Math.hypot(q.x - this.stepPrev.x, q.z - this.stepPrev.z); if (moved < 3 && d < this.stepPrevD) this.stepAcc += moved; }
+      this.stepPrev = (this.stepPrev ?? new THREE.Vector3()).copy(q); this.stepPrevD = d;
+      if (this.stepAcc > 2 && inMasjidArea(q)) { const n = Math.max(1, Math.round(this.stepAcc / 0.7)); this.stepAcc = 0; this.amal('steps'); this.ui.toast(tr(`👣 ${n} langkah ke masjid — setiap langkah mengangkat derajat dan menghapus kesalahan`, `👣 ${n} steps to the masjid — each step raises you up and wipes away a mistake`), 4500); }
+    } else { this.stepAcc = 0; this.stepPrev = null; }
     if (waiting) {
       const p = this.player;
       const inPlace = Math.hypot(p.pos.x - ROW.player.x, p.pos.z - ROW.player.z) < 0.7 && Math.abs(p.pos.y - ROW.player.y) < 1 && p.speed < 0.3;
@@ -1615,7 +1641,7 @@ export class Game {
     const joined = j.joined, ev = this.gameEvent;
     this.jamaah = null;
     if (joined) {
-      this.stats.jamaah++; this.kid.reward('jamaah');
+      this.stats.jamaah++; this.kid.reward('jamaah'); this.amal('jamaah');
       this.addCoins(100, from => this.ui.coinPop(100, from));
       SFX.fanfare(); this.ui.confetti(40);
       this.ents.mo.celebrate = 2;
