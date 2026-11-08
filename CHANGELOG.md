@@ -5,6 +5,22 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Steadier smoke tests on slow CI machines
+
+- **The problem:** three publish runs failed on GitHub's slower runners.
+  None was a game bug; each was a smoke step that assumed the machine was
+  fast.
+  - **Selling a pearl** clicked the shop while a celebration pop-up was
+    still queued in front of it. The step now waits for the shop and
+    closes anything ahead of it.
+  - **The raft ride** checked after a fixed 1.5 s; at a few frames a second
+    the raft had only moved 0.39. The step now waits up to 20 s for it to
+    move, closing any pop-up that pauses the game.
+  - **The boat** step tried only one shore. It was already fixed in the
+    swimming change (several shores, and water found from a higher
+    bank).
+- **Tested:** the full smoke suite on four profiles.
+
 ### An iOS look for buttons, sheets and icons 📱
 
 Requested by a parent: icons and buttons like the latest iOS.

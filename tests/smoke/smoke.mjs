@@ -178,7 +178,8 @@ async function run(name) {
     await step('raft ride down the river', async () => {
       const r = await g(() => { const G = __game; G.ui.closeAllModals(); const l = G.gen.landmarks.find(l => l.id === 'river'); G.player.pos.set(l.at.dock[0] + 0.5, l.at.dock[1], l.at.dock[2] + 0.5); G.startRaft(); return { riding: G.fun.riding?.kind, mo: !!G.ents.mo.seat }; });
       if (r.riding !== 'raft' || !r.mo) throw new Error(JSON.stringify(r));
-      await p.waitForTimeout(1500);
+      // slow machines draw few frames a second: wait until it has floated a little (closing any pop-up that pauses the game)
+      await p.waitForFunction(() => (__game.fun.riding?.s ?? 0) > 0.5 || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 }).catch(() => {});
       const moved = await g(() => __game.fun.riding?.s ?? 0);
       if (!(moved > 0.5)) throw new Error('raft did not move: ' + moved);
       await g(() => { const R = __game.fun.riding; R.s = R.cum[R.cum.length - 1] - 1; });
@@ -297,7 +298,10 @@ async function run(name) {
       });
       if (r.goals.length !== 3 || r.done !== 3 || r.gained < 90) throw new Error(JSON.stringify(r));
       await p.waitForFunction(() => __game.stats.daily.bonus && (__game.ui.closeAllModals(), true), null, { timeout: 10000 });
-      const sold = await g(() => { const G = __game; G.player.pos.set(0.5, 47, 3.5); G.inv.add(252, 1); const c0 = G.stats.coins; G.ui.shop(); document.querySelector('.veil.on [data-mode="sell"]').click(); document.querySelector('.veil.on [data-sell="252"]').click(); const out = { gained: G.stats.coins - c0, pearls: G.inv.count(252) }; G.ui.closeAllModals(); return out; });
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.inv.add(252, 1); G.ui.shop(); });
+      // the shop waits in line behind any pop-up still queued: clear them until it shows
+      await p.waitForFunction(() => !!document.querySelector('.veil.on [data-mode="sell"]') || (__game.ui.modals.filter(m => !m.veil.querySelector('.shop')).forEach(m => m.close()), false), null, { timeout: 15000, polling: 200 });
+      const sold = await g(() => { const G = __game; const c0 = G.stats.coins; document.querySelector('.veil.on [data-mode="sell"]').click(); document.querySelector('.veil.on [data-sell="252"]').click(); const out = { gained: G.stats.coins - c0, pearls: G.inv.count(252) }; G.ui.closeAllModals(); return out; });
       if (sold.gained !== 40) throw new Error(JSON.stringify(sold));
       return { ...r, sold };
     });
