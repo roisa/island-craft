@@ -323,11 +323,17 @@ async function run(name) {
       return r;
     });
     await step('boat: the ⛵ button by the shore, a free boat, sailing with Baby Mo', async () => {
-      const spot = await g(() => { const G = __game; G.ui.closeAllModals(); for (let r = 20; r < 320; r += 3) for (let a = 0; a < 6.28; a += 0.1) { const x = Math.round(Math.cos(a) * r), z = Math.round(Math.sin(a) * r); const c = G.gen.column(x, z); if (c.h >= 40 && c.h <= 42) for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { if (G.gen.column(x + dx, z + dz).h < 39 && G.gen.column(x + 2 * dx, z + 2 * dz).h < 39) return [x, z, c.h]; } } return null; });
-      if (!spot) return { skipped: 'no shore' };
-      await g(s => { const G = __game; G.player.pos.set(s[0] + 0.5, s[2] + 1, s[1] + 0.5); G.player.vel.set(0, 0, 0); }, spot);
-      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
-      await p.waitForFunction(() => !document.querySelector('#bBoat').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      // shore spots from the generator; a landmark may have changed one, so try a few
+      const spots = await g(() => { const G = __game, out = []; G.ui.closeAllModals(); for (let r = 20; r < 400 && out.length < 6; r += 3) for (let a = 0; a < 6.28 && out.length < 6; a += 0.1) { const x = Math.round(Math.cos(a) * r), z = Math.round(Math.sin(a) * r); const c = G.gen.column(x, z); if (c.h >= 40 && c.h <= 42 && !G.gen.landmarks.some(l => Math.hypot(l.x - x, l.z - z) < 20) && !out.some(o => Math.hypot(o[0] - x, o[1] - z) < 25)) for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { if (G.gen.column(x + dx, z + dz).h < 39 && G.gen.column(x + 2 * dx, z + 2 * dz).h < 39) { out.push([x, z, c.h]); break; } } } return out; });
+      if (!spots.length) return { skipped: 'no shore' };
+      let shown = false;
+      for (const spot of spots) {
+        await g(s => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(s[0] + 0.5, s[2] + 1, s[1] + 0.5); G.player.vel.set(0, 0, 0); }, spot);
+        for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+        shown = await p.waitForFunction(() => !document.querySelector('#bBoat').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 6000, polling: 300 }).then(() => true, () => false);
+        if (shown) break;
+      }
+      if (!shown) throw new Error('the ⛵ button never showed at ' + spots.length + ' shores');
       await g(() => { const G = __game; G.inv.remove(220, G.inv.count(220)); document.querySelector('#bBoat').click(); });
       await p.waitForSelector('.veil.on #bgOk');
       await g(() => document.querySelector('.veil.on #bgOk').click());

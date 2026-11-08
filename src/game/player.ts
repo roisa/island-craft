@@ -21,6 +21,8 @@ export class Player {
   onGround = false; inWater = false; headInWater = false;
   /** wearing the diving mask: swim faster */
   diver = false;
+  /** how fast the chosen stroke is (freestyle is quickest) */
+  strokeSpeed = 1;
   flying = false;
   visY = 0;           // smoothed y for camera after step-ups
   speed = 0;
@@ -67,6 +69,12 @@ export class Player {
     for (const dy of [0.3, 1.2]) if (CLIMBABLE.has(this.world.get(Math.floor(ax), Math.floor(p.y + dy), Math.floor(az)))) return true;
     return false;
   }
+  /** the top of the water above the feet, or null */
+  private surfaceAt(x: number, y: number, z: number): number | null {
+    const fx = Math.floor(x), fz = Math.floor(z);
+    for (let yy = Math.floor(y); yy < Math.floor(y) + 8; yy++) if (!wet(this.world.get(fx, yy, fz))) return yy;
+    return null;
+  }
   step(dt: number, inp: MoveInput) {
     const w = this.world, p = this.pos, v = this.vel;
     const wasInWater = this.inWater;
@@ -75,7 +83,7 @@ export class Player {
     if (this.inWater && !wasInWater && v.y < -4) this.onSplash?.();
 
     let sp = this.flying ? (inp.sprint ? 11 : 7) : inp.sprint ? 6.2 : 4.4;
-    if (this.inWater && !this.flying) sp *= this.diver ? 1.05 : 0.6;
+    if (this.inWater && !this.flying) sp *= (this.diver ? 1.05 : 0.6) * this.strokeSpeed;
     let fx = inp.fx, fz = inp.fz;
     const len = Math.hypot(fx, fz); if (len > 1) { fx /= len; fz /= len; }
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
@@ -88,9 +96,13 @@ export class Player {
       const target = inp.jump ? 6 : inp.down ? -6 : 0;
       v.y += (target - v.y) * Math.min(1, dt * 8);
     } else if (this.inWater) {
-      v.y -= 9 * dt;
-      if (inp.jump) v.y = Math.min(v.y + 22 * dt, 3.2);
-      v.y = Math.max(v.y, -3.5);
+      // you float: up to the surface with your head just above the water; ⬇️ dives, jump climbs out
+      const surf = this.surfaceAt(p.x, p.y, p.z);
+      let want = 0;
+      if (inp.down) want = -2.6;
+      else if (inp.jump) want = 3.2;
+      else if (surf !== null) { const eyeOut = p.y + 1.15 - surf; want = Math.max(-1.5, Math.min(2.2, -eyeOut * 3)); }
+      v.y += (want - v.y) * Math.min(1, dt * (inp.jump ? 6 : 3));
       v.x *= 1 - Math.min(1, dt * 2); v.z *= 1 - Math.min(1, dt * 2);
     } else if ((this.climbing = this.canClimb(wx, wz, len)) || (this.wasClimbing && len > 0.3 && !inp.down && this.ledgeAhead(wx, wz))) {
       // walking into a tree trunk (or its leaves) climbs it; "down" climbs back down

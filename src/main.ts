@@ -23,7 +23,7 @@ import { Entities, Npc, Companion, Animal, ANIMAL_NAME } from './game/entities';
 import { Rig, applyPrayerPose, clearPose, poseAt } from './game/models';
 import { buildBlocky, ADAM_HERO, AISYAH, AYAH } from './game/blocky';
 import { FX } from './game/fx';
-import { Animator, applyPose, type AnimInput } from './game/animator';
+import { Animator, applyPose, type AnimInput, type Stroke, STROKES } from './game/animator';
 import { matOf } from './game/materials';
 import { Ambient } from './game/ambient';
 import { Decor, cleanDeco, faceToward } from './game/deco';
@@ -64,6 +64,8 @@ export interface Settings {
   beetles?: boolean;
   /** colours picked from a photo (the photo itself is never kept) */
   look?: { hair: number; skin: number; shirt: number; pants: number };
+  /** the swimming stroke you chose */
+  stroke?: Stroke;
   /** the Eid bazaar: by the calendar (auto), always open, or off */
   eid?: EidMode;
 }
@@ -689,7 +691,7 @@ export class Game {
     let nearWater = false;
     if (!p.inWater && !this.fun.riding && p.onGround) {
       const bx = Math.floor(p.pos.x), by = Math.floor(p.pos.y), bz = Math.floor(p.pos.z);
-      search: for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -2; dy <= 0; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER && this.world.get(bx + dx, by + dy + 1, bz + dz) === B.AIR) { nearWater = true; break search; }
+      search: for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -4; dy <= 0; dy++) if (this.world.get(bx + dx, by + dy, bz + dz) === B.WATER && this.world.get(bx + dx, by + dy + 1, bz + dz) === B.AIR) { nearWater = true; break search; }
     }
     this.ui.showFishHelp(rod || nearWater);
     this.ui.showBoat(nearWater && !this.fun.riding);
@@ -841,6 +843,8 @@ export class Game {
     this.attackCd -= dt;
     if (this.player && (this.player.onGround || this.player.climbing) && this.player.pos.y > 30) this.checkTreetop(); // every frame: kids keep walking and step off the top
     this.player.diver = this.sky.diver = this.hasHat('hat_diver');
+    this.player.strokeSpeed = ({ free: 1.12, breast: 0.95, dog: 0.8, back: 1.0 } as Record<Stroke, number>)[this.settings.stroke ?? 'free'];
+    this.ui.showStroke(this.player.inWater && !this.player.onGround && !this.fun?.riding);
     if (this.uniforms.uLamp) this.uniforms.uLamp.value += ((this.hasHat('hat_miner') ? 1 : 0) - this.uniforms.uLamp.value) * Math.min(1, dt * 4);
     if (this.bugs) {
       const q = this.player.pos, col = this.gen.column(Math.floor(q.x), Math.floor(q.z));
@@ -902,7 +906,7 @@ export class Game {
     const ax = inp.axis();
     if (this.fun.riding && (inp.takeUse() || inp.tapAt)) { inp.tapAt = null; this.fun.dismount(); }
     if (!this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
-    this.ui.setFlying(p.flying);
+    this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }
 
     // on a slow frame, load less world this frame so moving stays smooth
@@ -1681,6 +1685,14 @@ export class Game {
     if (ev) { ev.prayed = true; ev.until = (this.hour + 0.15) % 24; }
     rowPose.pose = 'qiyam'; rowPose.head = 0;
   }
+  /** the stroke button: try the next swimming style */
+  nextStroke() {
+    const cur = this.settings.stroke ?? 'free', next = STROKES[(STROKES.indexOf(cur) + 1) % STROKES.length];
+    this.settings.stroke = next; this.saveSoon();
+    const sw = (this.stats.strokes ??= []); if (!sw.includes(next)) sw.push(next);
+    SFX.splash(); this.ui.showStroke(true, true);
+    this.checkQuests();
+  }
   /** coins: big numbers to count, spent at the village shop */
   addCoins(n: number, pop?: (from: number) => void) {
     const before = this.stats.coins || 0;
@@ -1857,6 +1869,12 @@ export class Game {
     const inp = this.animIn;
     inp.speed = p.speed; inp.grounded = p.onGround; inp.vy = p.vel.y;
     inp.swimming = p.inWater && !p.onGround; inp.flying = p.flying; inp.riding = riding; inp.climbing = p.climbing;
+    inp.stroke = this.settings.stroke ?? 'free'; inp.underwater = p.headInWater && inp.swimming;
+    // splashes from the kicks and strokes at the surface
+    if (inp.swimming && !p.headInWater && p.speed > 1 && !this.settings.lowGfx && Math.random() < dt * 10) {
+      const back = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
+      this.fx.sparkle(p.pos.x + back.x * 0.6 + (Math.random() - 0.5) * 0.5, p.pos.y + 0.9, p.pos.z + back.z * 0.6 + (Math.random() - 0.5) * 0.5, 2, 0xe8f7ff, 1.1);
+    }
     const pose = this.anim.update(dt, t, inp);
     pose.headX += -p.pitch * 0.5;
     applyPose(a, pose);

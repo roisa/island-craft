@@ -190,3 +190,7 @@ body.desktop #waterBtns { bottom: calc(100px + var(--safe-b)); }
 @media (max-height: 520px) { #waterBtns { right: calc(196px + var(--safe-r)); bottom: calc(72px + var(--safe-b)); flex-direction: row; } .fgStep { padding: 5px 8px; margin: 4px 0; } .fgI { font-size: 22px; } }
 
 .fgGift { background: #fff4d6; border: 2px solid #F1C232; border-radius: 14px; padding: 8px 10px; margin: 6px 0; font-size: 14.5px; }
+#bStroke { position: absolute; left: 50%; bottom: calc(84px + var(--safe-b)); transform: translateX(-50%); z-index: 6; pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 8px 16px; min-height: 44px; border-radius: 22px; font-weight: 800; font-size: 15px; }
+#bStroke .si { font-size: 22px; }
+#bStroke.bump { animation: pk .45s ease-out; }
+@media (max-height: 520px) { #bStroke { bottom: calc(66px + var(--safe-b)); left: auto; right: calc(196px + var(--safe-r)); transform: none; } }

@@ -83,6 +83,7 @@ export class UI {
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
   <div id="waterBtns"><button class="pill hidden" id="bBoat" aria-label="Boat">⛵ <span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">🎣 <b>?</b></button></div>
+  <button class="pill hidden" id="bStroke" aria-label="Swimming stroke"><span class="si"></span><span class="sn"></span></button>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
   <div id="desktopHint"></div>
@@ -111,6 +112,7 @@ export class UI {
     $('#stars').onclick = () => this.openBook('quests');
     $('#coins').onclick = () => this.shop();
     $('#bFishHelp').onclick = () => this.fishGuide();
+    $('#bStroke').onclick = () => this.g.nextStroke();
     $('#bBoat').onclick = () => { if (this.g.inv.count(I.BOAT) > 0) this.g.fun.launchBoat(); else this.boatGuide(); };
     $('#bUndo').onclick = () => g.doUndo();
     $('#pbRot').onclick = () => g.fun.rotatePlan();
@@ -287,6 +289,18 @@ export class UI {
   // ---------- fishing, explained for a seven-year-old ----------
   /** the 🎣? button: shown by the water or while holding a rod */
   showFishHelp(on: boolean) { $('#bFishHelp').classList.toggle('hidden', !on || this.modals.length > 0); }
+  /** the swimming-style button, shown while swimming */
+  showStroke(on: boolean, changed = false) {
+    const b = $('#bStroke');
+    b.classList.toggle('hidden', !on || this.modals.length > 0);
+    if (!on) return;
+    const st = this.g.settings.stroke ?? 'free';
+    const names: Record<string, [string, string, string]> = { free: ['🏊', 'Gaya bebas', 'Freestyle'], breast: ['🐸', 'Gaya dada', 'Breaststroke'], dog: ['🐶', 'Gaya anjing', 'Doggy paddle'], back: ['🙃', 'Gaya punggung', 'Backstroke'] };
+    const [ic2, id, en] = names[st];
+    const txt = tr(id, en);
+    if (b.querySelector('.sn')!.textContent !== txt) { b.querySelector('.si')!.textContent = ic2; b.querySelector('.sn')!.textContent = txt; }
+    if (changed) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); this.toast(`${ic2} ${txt}!`, 1200); }
+  }
   /** the ⛵ button by the shore: sail if you have a boat, otherwise how to get one */
   showBoat(on: boolean) {
     const b = $('#bBoat'), has = this.g.inv.count(I.BOAT) > 0;

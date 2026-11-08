@@ -41,9 +41,9 @@ describe('locomotion states', () => {
     run(a, 0.3, { speed: 2, grounded: false, vy: 0, flying: true }); expect(a.loco).toBe('fly');
   });
   it('every state produces finite joint values', () => {
-    expect(LOCO_STATES.length).toBe(10);
+    expect(LOCO_STATES.length).toBe(11);
     const a = new Animator(1);
-    const inputs: AnimInput[] = [ground(0), ground(3), ground(7), { speed: 0, grounded: false, vy: 5 }, { speed: 0, grounded: false, vy: -9 }, { speed: 1, grounded: false, vy: 0, swimming: true }, { speed: 1, grounded: true, vy: 0, riding: true }, { speed: 1, grounded: false, vy: 0, flying: true }, { speed: 1, grounded: false, vy: 3, climbing: true }];
+    const inputs: AnimInput[] = [ground(0), ground(3), ground(7), { speed: 0, grounded: false, vy: 5 }, { speed: 0, grounded: false, vy: -9 }, { speed: 1, grounded: false, vy: 0, swimming: true }, { speed: 0, grounded: false, vy: 0, swimming: true }, { speed: 2, grounded: false, vy: 0, swimming: true, underwater: true }, { speed: 2, grounded: false, vy: 0, swimming: true, stroke: 'back' }, { speed: 1, grounded: true, vy: 0, riding: true }, { speed: 1, grounded: false, vy: 0, flying: true }, { speed: 1, grounded: false, vy: 3, climbing: true }];
     for (const inp of inputs) { run(a, 0.4, inp); for (const k of KEYS) expect(Number.isFinite(a.pose[k]), `${a.loco}.${k}`).toBe(true); }
   });
 });
@@ -55,6 +55,15 @@ describe('blending', () => {
     let t = 0, prev = { ...a.update(DT, t, ground()) }, worst = 0;
     for (const inp of seq) for (let i = 0; i < 40; i++) { t += DT; const p = a.update(DT, t, inp); worst = Math.max(worst, maxJump(prev, p)); prev = { ...p }; }
     expect(worst).toBeLessThan(0.45); // radians per 1/60 s frame
+  });
+  it('swimming: treading when still, each stroke and diving blend without snapping', () => {
+    const a = new Animator(1);
+    const sw = (speed: number, stroke?: 'free' | 'breast' | 'dog' | 'back', underwater = false): AnimInput => ({ speed, grounded: false, vy: 0, swimming: true, stroke, underwater });
+    run(a, 0.5, sw(0)); expect(a.loco).toBe('tread');
+    run(a, 0.5, sw(2.5)); expect(a.loco).toBe('swim');
+    let t = 10, prev = { ...a.update(DT, t, sw(2.5)) }, worst = 0;
+    for (const inp of [sw(2.5, 'free'), sw(2.5, 'breast'), sw(2.5, 'dog'), sw(2.5, 'back'), sw(2.5, 'free', true), sw(0), sw(2.5, 'free')]) for (let i = 0; i < 60; i++) { t += DT; const p = a.update(DT, t, inp); worst = Math.max(worst, maxJump(prev, p)); prev = { ...p }; }
+    expect(worst).toBeLessThan(0.45);
   });
   it('walk is phase-locked to distance: twice the speed, twice the cadence', () => {
     const crossings = (speed: number) => {

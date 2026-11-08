@@ -5,6 +5,45 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Swimming that looks and feels natural, with four strokes 🏊
+
+Requested for Ibra: a more natural swimming motion and more styles.
+
+- **You float now.** The main reason swimming looked odd: water had no
+  buoyancy, so you sank and walked along the bottom unless you held jump.
+  - Now you rise gently to the surface and stay there with your head just
+    above the water.
+  - **⬇️ dives** (the ⬇️ button now shows while swimming; C or Ctrl on a
+    keyboard). Jump still climbs out onto the shore.
+- **Treading water** when you stop: upright, hands sculling, legs
+  treading, a gentle bob.
+- **Four strokes**, chosen with a new stroke button that shows while
+  swimming. Each tap tries the next one:
+  - 🏊 **Freestyle** (front crawl), the fastest: arms reach, pull and swing
+    over one after the other, with a flutter kick. The body rolls and the
+    head turns to breathe.
+  - 🐸 **Breaststroke:** a wide pull and glide with a frog kick, the head
+    lifting to breathe.
+  - 🐶 **Doggy paddle**, the slowest and cosiest: quick little paws, head
+    well up.
+  - 🙃 **Backstroke:** on your back, face up, arms circling backwards.
+- **Underwater:** a streamlined dive with wide arm pulls and a dolphin
+  kick.
+- **Splashes** come off your kicks at the surface.
+- **Switching** between strokes, treading and diving cross-fades smoothly.
+- **New quest:** super swimmer (try all four strokes).
+- **The ⛵ and 🎣? buttons** now also find the water from a higher bank (up
+  to 4 blocks down).
+- **Tested:**
+  - Unit tests: treading when still, swimming when moving, and no joint
+    snapping across all strokes and diving. This test caught a bug where
+    changing speed made the arms flicker; stroke timing now builds up
+    smoothly.
+  - Screenshots of each stroke and treading water.
+  - The smoke suite on four profiles; its boat step now tries several
+    shores.
+  - QA on five profiles.
+
 ### A real boat for the sea, lakes and rivers ⛵
 
 Requested by Ibra: he was curious about a boat.

@@ -12,7 +12,10 @@
 // Walking is phase-locked to the distance travelled, so feet don't slide.
 // Pure maths on a flat pose record, unit tested in tests/unit/animator.test.ts.
 
-export type Loco = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land' | 'swim' | 'ride' | 'fly' | 'climb';
+export type Loco = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land' | 'swim' | 'tread' | 'ride' | 'fly' | 'climb';
+/** swimming strokes the player can choose */
+export type Stroke = 'free' | 'breast' | 'dog' | 'back';
+export const STROKES: Stroke[] = ['free', 'breast', 'dog', 'back'];
 export type Action = 'mine' | 'chop' | 'collect' | 'build' | 'wave' | 'celebrate' | 'drink' | 'read';
 
 /** Joint angles (radians) and the body's vertical offset (rig units). Negative x on arms/legs = forward. */
@@ -32,7 +35,7 @@ const smooth = (x: number) => { x = clamp01(x); return x * x * (3 - 2 * x); };
 /** 0 → 1 → 0 bump over u in [0,1], peaking at `at` */
 const bump = (u: number, at = 0.5) => (u < at ? smooth(u / at) : smooth((1 - u) / (1 - at)));
 
-interface Ctx { t: number; phase: number; u: number; speed: number; seed: number }
+interface Ctx { t: number; phase: number; u: number; speed: number; seed: number; stroke?: Stroke; under?: boolean; /** swimming time: runs faster the faster you swim, never jumps */ sw?: number }
 interface Clip { loop: boolean; dur: number; sample(c: Ctx, o: Pose): void }
 
 // ---------------------------------------------------------------- locomotion
@@ -70,11 +73,48 @@ const LOCO: Record<Loco, Clip> = {
     o.armLx = -0.4 * k; o.armRx = -0.4 * k; o.armLz = -0.3 * k; o.armRz = 0.3 * k; o.headX = 0.1 * k;
   } },
   swim: { loop: true, dur: 1, sample(c, o) {
-    // gentle breaststroke with flutter kicks, body leaning into the water
-    const s = sin(c.t * 4.2 + c.seed), f = sin(c.t * 11 + c.seed);
-    o.bodyX = 0.55; o.headX = -0.5;
-    o.armLx = -2.2 + s * 0.6; o.armRx = -2.2 + s * 0.6; o.armLz = -0.35 - s * 0.35; o.armRz = 0.35 + s * 0.35;
-    o.legLx = f * 0.35 + 0.5; o.legRx = -f * 0.35 + 0.5; // trailing behind
+    const st = c.under ? 'dive' : c.stroke ?? 'free', t = (c.sw ?? c.t) + c.seed, k = 1;
+    if (st === 'dive') {
+      // underwater: streamlined, arms pulling wide and back, a slow dolphin kick
+      const p = (t * 2.2) % 1, pull = p < 0.55 ? smooth(p / 0.55) : 1 - smooth((p - 0.55) / 0.45), w = sin(t * 5);
+      o.bodyX = 1.35 + w * 0.06; o.headX = -1.0;
+      o.armLx = -3.0 + pull * 2.3; o.armRx = -3.0 + pull * 2.3; o.armLz = -0.15 - pull * 0.9; o.armRz = 0.15 + pull * 0.9;
+      o.legLx = 1.35 + w * 0.3; o.legRx = 1.35 + w * 0.3; o.bodyY = -0.05;
+    } else if (st === 'free') {
+      // front crawl: arms windmill one after the other, a quick flutter kick, the body rolls and the head turns to breathe
+      const a = t * 4.6 * k, f = sin(t * 13 * k);
+      o.bodyX = 1.25; o.headX = -0.95; o.bodyZ = sin(a) * 0.22; o.headY = sin(a) > 0.75 ? 0.6 * (sin(a) - 0.75) * 4 : 0;
+      // each arm reaches forward, pulls down to the hip, then swings out over the water to reach again (no jumps in the angle)
+      const arm = (ph: number) => -Math.PI / 2 - (Math.PI / 2) * cos(ph), out = (ph: number) => (sin(ph) < 0 ? -sin(ph) * 0.7 : 0);
+      o.armLx = arm(a); o.armRx = arm(a + Math.PI); o.armLz = -0.15 - out(a); o.armRz = 0.15 + out(a + Math.PI);
+      o.legLx = 1.25 + f * 0.3; o.legRx = 1.25 - f * 0.3;
+    } else if (st === 'breast') {
+      // breaststroke: pull wide, glide; a frog kick; the head lifts to breathe on each pull
+      const p = (t * 1.4 * k) % 1, pull = p < 0.4 ? smooth(p / 0.4) : 1 - smooth((p - 0.4) / 0.6), kick = bump(p, 0.55);
+      o.bodyX = 1.05 - pull * 0.25; o.headX = -0.7 - pull * 0.35; o.bodyY = pull * 0.05;
+      o.armLx = -2.9 + pull * 1.4; o.armRx = -2.9 + pull * 1.4; o.armLz = -0.15 - pull * 1.0; o.armRz = 0.15 + pull * 1.0;
+      o.legLx = 1.05 - kick * 0.9; o.legRx = 1.05 - kick * 0.9; o.legLz = -kick * 0.45; o.legRz = kick * 0.45;
+    } else if (st === 'dog') {
+      // doggy paddle: upright-ish, little quick paws in front, head well above the water
+      const a = t * 9 * k;
+      o.bodyX = 0.55; o.headX = -0.45; o.bodyY = Math.abs(sin(a)) * 0.04;
+      o.armLx = -1.5 + sin(a) * 0.55; o.armRx = -1.5 - sin(a) * 0.55; o.armLz = -0.1; o.armRz = 0.1;
+      o.legLx = 0.55 + sin(a + 1) * 0.5; o.legRx = 0.55 - sin(a + 1) * 0.5;
+    } else {
+      // backstroke: lying on the back, face up, arms circling backwards, flutter kick
+      const a = t * 4 * k, f = sin(t * 12 * k);
+      o.bodyX = -1.2; o.headX = 0.55; o.bodyZ = sin(a) * 0.15;
+      const arm = (ph: number) => -Math.PI / 2 - (Math.PI / 2) * cos(ph), out = (ph: number) => (sin(ph) > 0 ? sin(ph) * 0.6 : 0);
+      o.armLx = arm(a); o.armRx = arm(a + Math.PI); o.armLz = -0.2 - out(a); o.armRz = 0.2 + out(a + Math.PI);
+      o.legLx = -1.2 + f * 0.3; o.legRx = -1.2 - f * 0.3;
+    }
+  } },
+  // still in the water: upright, hands sculling, legs treading slowly, bobbing
+  tread: { loop: true, dur: 1, sample(c, o) {
+    const t = c.t + c.seed, s = sin(t * 2.6), e = sin(t * 3.2);
+    o.bodyX = 0.12; o.bodyY = sin(t * 1.6) * 0.05; o.headX = -0.1 + sin(t * 0.8) * 0.06;
+    o.armLx = -0.55 + s * 0.12; o.armRx = -0.55 - s * 0.12; o.armLz = -0.85 + s * 0.35; o.armRz = 0.85 + s * 0.35;
+    o.legLx = 0.3 + e * 0.4; o.legRx = 0.3 - e * 0.4; o.legLz = -0.2; o.legRz = 0.2;
   } },
   ride: { loop: true, dur: 1, sample(c, o) {
     o.legLx = -1.3; o.legRx = -1.3; o.legLz = -0.35; o.legRz = 0.35;
@@ -154,6 +194,8 @@ export interface AnimInput {
   /** vertical velocity (blocks/s, + up) */
   vy: number;
   swimming?: boolean; riding?: boolean; flying?: boolean; climbing?: boolean;
+  /** the chosen swimming stroke, and whether the head is under water */
+  stroke?: Stroke; underwater?: boolean;
 }
 
 /** Thresholds shared with the tests. */
@@ -172,6 +214,8 @@ export class Animator {
   private actW = 0;          // current action weight (0..1)
   private actHold = false;   // looping actions run while held
   private seed: number;
+  private stroke = 'free';
+  private swimT = 0;
   readonly pose = zeroPose();
   private a = zeroPose(); private c = zeroPose(); private from = zeroPose(); private locoOut = zeroPose();
 
@@ -199,6 +243,11 @@ export class Animator {
     this.speed += (inp.speed - this.speed) * Math.min(1, dt * 10);
     this.airT = inp.grounded || inp.swimming ? 0 : this.airT + dt;
     const want = this.decide(inp);
+    // a new stroke cross-fades like a new state
+    const stroke = (inp.underwater ? 'dive' : inp.stroke) ?? 'free';
+    if (want === 'swim' && this.loco === 'swim' && stroke !== this.stroke) { copy(this.locoOut, this.from); this.fade = 0; this.fadeDur = 0.35; }
+    this.stroke = stroke;
+    this.swimT += dt * (0.45 + Math.min(1, this.speed / 2.6) * 0.55);
     if (want !== this.loco) {
       const toLand = want === 'land';
       this.setLoco(want, toLand ? 0.06 : this.loco === 'land' ? 0.18 : want === 'jump' ? 0.08 : 0.2);
@@ -210,7 +259,7 @@ export class Animator {
     this.phase = (this.phase + (this.speed * dt / stride) * Math.PI) % (TAU * 1000);
 
     // ---- locomotion layer with cross-fade
-    const ctx = (s: Loco, lt: number): Ctx => { const cl = LOCO[s]; return { t, phase: this.phase, u: cl.loop ? (lt / cl.dur) % 1 : clamp01(lt / cl.dur), speed: this.speed, seed: this.seed }; };
+    const ctx = (s: Loco, lt: number): Ctx => { const cl = LOCO[s]; return { t, phase: this.phase, u: cl.loop ? (lt / cl.dur) % 1 : clamp01(lt / cl.dur), speed: this.speed, seed: this.seed, stroke: inp.stroke, under: inp.underwater, sw: this.swimT }; };
     reset(this.a); LOCO[this.loco].sample(ctx(this.loco, this.locoT), this.a);
     if (this.fade < 1) mix(this.from, this.a, smooth(this.fade), this.pose);
     else copy(this.a, this.pose);
@@ -240,7 +289,7 @@ export class Animator {
     if (inp.riding) return 'ride';
     if (inp.flying) return 'fly';
     if (inp.climbing) return 'climb';
-    if (inp.swimming) return 'swim';
+    if (inp.swimming) return this.speed > 0.5 || inp.underwater ? 'swim' : 'tread';
     if (!inp.grounded) {
       if (inp.vy < FALL_VY || this.airT > FALL_AIR) return 'fall'; // a normal hop stays a jump
       if (inp.vy > 0.5 || this.loco === 'jump') return 'jump';
