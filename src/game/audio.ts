@@ -163,6 +163,9 @@ export const SFX = {
   splash() { if (on()) noise(0.25, 0.12, 1800); },
   /** the soft rush of a waterfall (v = how close, 0..1) */
   rush(v: number) { if (on() && v > 0.05) noise(1.6, 0.035 * v, 1300, 0, 'bandpass', 0.6); },
+  /** night sounds: a cricket's chirp, an owl's hoo-hoo */
+  cricket() { if (on()) for (let i = 0; i < 3; i++) tone(4200 + Math.random() * 300, 0.03, 'sine', 0.012, i * 0.07); },
+  owl() { if (on()) { tone(392, 0.28, 'sine', 0.035, 0); tone(330, 0.45, 'sine', 0.035, 0.38); } },
   twinkle() { if (on()) [1568, 2093, 2637].forEach((f, i) => tone(f, 0.18, 'sine', 0.05, i * 0.07)); },
   /** a firework: whoosh up, then a soft pop */
   boom() { if (on()) { noise(0.5, 0.04, 2400, 0, 'highpass'); noise(0.5, 0.11, 500, 0.45); tone(90, 0.3, 'sine', 0.08, 0.45); } },

@@ -200,3 +200,22 @@ describe('mangrove swamp', () => {
     expect(BLOCKS[B.MANGROVE_SEEDLING]!.aquatic).toBe(true);
   });
 });
+
+import { CS, H, idx, Biome as BI } from '../../src/world/gen';
+describe('night glow', () => {
+  it('forests have a few glowing mushrooms that give light, on spots that were empty', () => {
+    const g = new Generator(42);
+    let mush = 0, forestChunks = 0;
+    for (let cx = -12; cx <= 12 && forestChunks < 12; cx++) for (let cz = -12; cz <= 12 && forestChunks < 12; cz++) {
+      const d = new Uint8Array(CS * CS * H);
+      if (g.generate(cx, cz, d) !== BI.FOREST) continue;
+      forestChunks++;
+      for (let i = 0; i < d.length; i++) if (d[i] === B.GLOW_MUSHROOM) mush++;
+    }
+    expect(forestChunks).toBeGreaterThan(3);
+    expect(mush).toBeGreaterThan(forestChunks);   // a couple per forest chunk
+    expect(mush).toBeLessThan(forestChunks * 10); // not a carpet
+    expect(BLOCKS[B.GLOW_MUSHROOM]!.light).toBeGreaterThan(0.4);
+    void idx;
+  });
+});

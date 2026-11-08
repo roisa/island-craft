@@ -8,6 +8,8 @@ import type { Landmark, Spot } from '../world/landmarks';
 import { tr } from '../i18n';
 import { mat } from './models';
 import { SFX, haptic } from './audio';
+import { B } from '../world/blocks';
+import { Biome } from '../world/gen';
 
 const FISH_COLORS = [0xff9a3c, 0xffd23a, 0x4fc3f7, 0xff6f91, 0x7be08a, 0xffffff];
 
@@ -79,7 +81,7 @@ export class Places {
   private fall?: Landmark; private reef?: Landmark; private hill?: Landmark; private volcano?: Landmark; private swamp?: Landmark;
   private crabs: { g: THREE.Group; ph: number; seg: number }[] = [];
   private flies: THREE.Points | null = null; private flyPos = new Float32Array(30 * 3);
-  private puffs: Puffs; private smokeT = 0; private steamT = 0; private crownT = 0;
+  private puffs: Puffs; private smokeT = 0; private steamT = 0; private crownT = 0; private cricketT = 3; private owlT = 20; private glowT = 2; private glowSeen = false;
 
   constructor(private g: Game) {
     const ls = g.gen.landmarks;
@@ -234,6 +236,22 @@ export class Places {
         (this.flies.material as THREE.PointsMaterial).opacity = 0.6 + Math.sin(t * 3) * 0.3;
       }
     } else if (this.flies) this.flies.visible = false;
+    // ---- night sounds outside: crickets, and owls in the forest; and the first glowing mushroom
+    if (g.sky.night) {
+      const top = g.gen.column(Math.floor(p.x), Math.floor(p.z));
+      const outside = p.y > top.h - 3;
+      if (outside && (this.cricketT -= dt) <= 0) { this.cricketT = 1.5 + Math.random() * 3.5; SFX.cricket(); }
+      if (outside && top.biome === Biome.FOREST && (this.owlT -= dt) <= 0) { this.owlT = 25 + Math.random() * 25; SFX.owl(); }
+      if (!this.glowSeen && !g.stats.glowSeen && (this.glowT -= dt) <= 0) {
+        this.glowT = 2;
+        const bx = Math.floor(p.x), by = Math.floor(p.y), bz = Math.floor(p.z);
+        search: for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -2; dy <= 2; dy++) if (g.world.get(bx + dx, by + dy, bz + dz) === B.GLOW_MUSHROOM) {
+          this.glowSeen = true; g.stats.glowSeen = true;
+          g.ui.say(tr('Lihat, jamur bercahaya! Ada jamur sungguhan yang bisa bersinar dalam gelap, namanya bioluminesensi. Subhanallah! 🍄✨', 'Look, glowing mushrooms! Some real mushrooms really glow in the dark — it’s called bioluminescence. Subhanallah! 🍄✨'), 'alright', 7000);
+          break search;
+        }
+      }
+    }
     // ---- the treasure hunter's crown sparkles as you go
     if (g.hasHat('crown') && !lite && (this.crownT -= dt) <= 0) { this.crownT = 0.5; g.fx.sparkle(p.x + (Math.random() - 0.5) * 0.6, p.y + 2, p.z + (Math.random() - 0.5) * 0.6, 2, 0xffd874, 0.8); }
     // ---- stargazing hill: more shooting stars up there

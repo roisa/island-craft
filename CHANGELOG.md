@@ -5,6 +5,21 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Night glow 🍄
+
+- **Glowing mushrooms** grow in forests, a couple per forest chunk. They
+  give off light and stand out at night.
+  - They only take spots that were empty, so no tree or flower moves in
+    existing worlds.
+  - The first time you are near one at night, Baby Mo explains
+    bioluminescence.
+- **Night sounds outdoors:** soft cricket chirps, and an owl's hoo-hoo in
+  forests now and then. They stay quiet underground and follow the sound
+  setting.
+- **Tested:** a unit test that forest chunks get a few mushrooms (not a
+  carpet) and that they give light; a screenshot check; the smoke suite on
+  desktop and iPhone.
+
 ### Mangrove Swamp 🌿
 
 - **A new landmark** at the coast (or a lagoon where there is no beach):

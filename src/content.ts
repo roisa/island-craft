@@ -46,6 +46,8 @@ export interface Stats {
   mapPieces?: string[]; greatTreasure?: boolean;
   /** mangrove seedlings planted in shallow water */
   mangroves?: number;
+  /** saw a glowing mushroom at night */
+  glowSeen?: boolean;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

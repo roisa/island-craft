@@ -272,6 +272,8 @@ export class Generator {
         const flowery = c.biome === Biome.MEADOW || c.biome === Biome.VILLAGE ? 0.06 : 0.02;
         if (r < flowery) set(x, c.h + 1, z, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE][Math.floor(r / flowery * 4)]);
         else if (r < flowery + (c.biome === Biome.VILLAGE ? 0.04 : 0.16)) set(x, c.h + 1, z, B.TALL_GRASS);
+        // glowing mushrooms in forests (only on spots that were empty before, so nothing else moves)
+        else if (c.biome === Biome.FOREST && r > 0.986) set(x, c.h + 1, z, B.GLOW_MUSHROOM);
       } else if (g === B.SAND && c.biome === Biome.DESERT && r < 0.012) set(x, c.h + 1, z, B.DEAD_BUSH);
     }
   }

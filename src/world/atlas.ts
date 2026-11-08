@@ -179,6 +179,7 @@ const P: Record<string, Painter> = {
   mangrove_roots: g => { g.clear(); for (const [x0, dir] of [[2, 1], [13, -1], [5, 1], [10, -1]]) { let x = x0; for (let y = 0; y < 16; y++) { g.p(x, y, y % 3 ? '#7A4A32' : '#5E3A26'); if (y % 4 === 3) x += dir; x = Math.max(0, Math.min(15, x)); } } g.rect(4, 0, 8, 2, '#7A4A32'); },
   mangrove_seedling: g => { g.clear(); for (let y = 6; y < 16; y++) g.p(7, y, y < 10 ? '#6AA84F' : '#7A5A3A'); g.p(8, 7, '#6AA84F'); for (const [x, y] of [[5, 4], [6, 5], [9, 4], [8, 5], [7, 3], [6, 3], [8, 3]]) g.p(x, y, '#4F9E48'); },
   mud: g => { g.noise('#5A4636', ['#4E3C2E', '#66503E', '#4A382A'], 0.55); for (let i = 0; i < 6; i++) g.p(Math.floor(g.rnd() * 16), Math.floor(g.rnd() * 16), '#7A6450'); },
+  glow_mushroom: g => { g.clear(); g.rect(6, 8, 4, 8, '#E8F7F2'); g.rect(6, 8, 1, 8, '#C9EDE6'); for (let y = 1; y <= 8; y++) for (let x = 0; x < 16; x++) { if (((x - 7.5) / 7.5) ** 2 + ((y - 8) / 6.5) ** 2 < 1) g.p(x, y, y > 6 ? '#3FC9B8' : '#5FE3D0'); } for (const [x, y] of [[4, 4], [9, 3], [12, 6], [6, 6], [10, 6]]) { g.p(x, y, '#E8FFFB'); g.p(x + 1, y, '#BFF8EF'); } g.rect(12, 12, 2, 4, '#E8F7F2'); g.rect(11, 11, 4, 2, '#5FE3D0'); },
   i_stick: g => { g.clear(); for (let i = 0; i < 11; i++) g.p(3 + i, 13 - i, i % 2 ? '#7B5131' : '#96683F'); },
   i_pick_wood: g => tool(g, '#C49A62', '#8F6A3E', 'pick'),
   i_pick_stone: g => tool(g, '#9DA4AB', '#6E757C', 'pick'),
