@@ -357,7 +357,7 @@ export class UI {
     const g = this.g, hasRod = g.inv.count(I.FISHING_ROD) > 0;
     const step = (n: number, icon: string, text: string) => `<div class="fgStep"><span class="fgN">${n}</span><span class="fgI">${icon}</span><p>${text}</p></div>`;
     const { el, close } = this.modal(`<div class="fishGuide"><h2>🎣 ${tr('Cara memancing', 'How to fish')}</h2>
-      <div class="row fgBtns"><button class="btn gold" id="fgPractice">🧸 ${tr('Latihan bersama Baby Mo', 'Practise with Baby Mo')}</button><button class="btn ghost" id="fgOk">${tr('Ayo memancing! 🎣', 'Let’s go fishing! 🎣')}</button></div>
+      <div class="row fgBtns"><button class="btn gold" id="fgPractice">🧸 ${tr('Latihan bersama Baby Mo', 'Practise with Baby Mo')}</button>${g.fishers ? `<button class="btn" id="fgPond">🏞️ ${tr('Ke Kolam Pancing', 'To the Fishing Pond')}</button>` : ''}<button class="btn ghost" id="fgOk">${tr('Ayo memancing! 🎣', 'Let’s go fishing! 🎣')}</button></div>
       ${step(1, '🎣', hasRod ? tr('Kamu sudah punya <b>pancingan</b>! 👍', 'You have a <b>fishing rod</b>! 👍') : tr('Buat <b>pancingan</b> di meja kerja: <b>3 tongkat + 1 wol putih</b>. Atau beli di toko Bu Aminah.', 'Make a <b>fishing rod</b> at a workbench: <b>3 sticks + 1 white wool</b>. Or buy one at Bu Aminah’s shop.'))}
       ${step(2, '✋', tr('<b>Pegang</b> pancingannya: ketuk kotaknya di bawah layar.', '<b>Hold</b> the rod: tap its box at the bottom of the screen.'))}
       ${step(3, '🌊', tr('Berdiri di <b>pinggir air</b>, lihat ke air, lalu ketuk tombol <b>✋ Pakai</b>. Pelampung merah terbang ke air!', 'Stand at the <b>edge of the water</b>, look at the water, then tap <b>✋ Use</b>. The red float flies into the water!'))}
@@ -369,6 +369,7 @@ export class UI {
     // the first time, "Let's go fishing" starts the practice too
     $('#fgOk', el).onclick = () => { close(); if (!g.stats.fishPractice) setTimeout(() => g.fishCoach.start(), 300); };
     $('#fgPractice', el).onclick = () => { close(); setTimeout(() => g.fishCoach.start(), 300); };
+    el.querySelector<HTMLElement>('#fgPond')?.addEventListener('click', () => { close(); setTimeout(() => g.goToPond(), 200); });
     g.stats.fishGuide = true;
   }
 

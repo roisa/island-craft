@@ -366,6 +366,26 @@ async function run(name) {
       if (early !== 'cast' || !r.done || r.caught !== 1 || r.coachOn) throw new Error(JSON.stringify({ seen, early, r }));
       return { seen, early, ...r };
     });
+    await step('fishing pond: go there from the guide, villagers fishing, a quick bite and a catch', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'fish_pond'); return l && { x: l.x, z: l.z, spot: l.at.spot }; });
+      if (!L) throw new Error('no fishing pond in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.gameEvent = null; G.hour = G.schedule.dhuhr + 1; G.lastHour = G.hour; G.ui.fishGuide(); });
+      await p.waitForSelector('.veil.on #fgPond');
+      await g(() => document.querySelector('.veil.on #fgPond').click());
+      await p.waitForFunction(L => Math.hypot(__game.player.pos.x - L.spot[0], __game.player.pos.z - L.spot[2]) < 1, L, { timeout: 8000 });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => __game.fishers.count === 3 || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 300 });
+      const fish0 = await g(() => __game.stats.fish || 0);
+      await g(L => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(...L.spot); G.player.vel.set(0, 0, 0); G.player.yaw = 0; G.player.pitch = -0.4; G.inv.sel = G.inv.slots.findIndex(s => s && s.id === 244); G.fishAction(); }, L);
+      const cast = await g(() => __game.fishing.state);
+      // (the pond's bite comes after 1½–4 game seconds; slow software rendering stretches that)
+      await p.waitForFunction(() => __game.fishing.state === 'bite' || (__game.ui.closeAllModals(), false), null, { timeout: 45000, polling: 150 });
+      await g(() => __game.fishAction());
+      const r = await g(f => ({ caught: (__game.stats.fish || 0) - f, fishers: __game.fishers.count, near: __game.fishers.near(__game.player.pos) }), fish0);
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (cast === 'idle' || r.caught !== 1 || !r.near) throw new Error(JSON.stringify({ cast, ...r }));
+      return { cast, ...r };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');

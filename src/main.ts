@@ -53,6 +53,7 @@ import { Projects } from './game/projects';
 import { Deeds } from './game/deeds';
 import { Thirst, thirstSpeed } from './game/thirst';
 import { FishCoach } from './game/fishcoach';
+import { Fishers } from './game/fishers';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
 import { Jamaah, rowPose } from './game/jamaah';
@@ -175,6 +176,8 @@ export class Game {
   bugs!: BugSwarm;
   fishing!: Fishing;
   fishCoach!: FishCoach;
+  /** the villagers at the fishing pond (and where it is) */
+  fishers: Fishers | null = null;
   private attackCd = 0;
   /** extra quarter turns for the next furniture / turned block you place (the rotate button) */
   placeRot = 0;
@@ -363,6 +366,8 @@ export class Game {
     const gl = this.gen.landmarks.find(l => l.id === 'grand_masjid'), gs = gl ? grandSite(gl) : null;
     if (gl && gs) { this.sites.push(gs); this.congregation = new Congregation(this, gs, new THREE.Vector3(...gl.at!.imam)); }
     this.beacons = new Beacons(this.scene, this.sites);
+    const fp = this.gen.landmarks.find(l => l.id === 'fish_pond');
+    if (fp?.at?.spot) this.fishers = new Fishers(this, fp);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -618,6 +623,25 @@ export class Game {
         : tr(`Sampai di ${site.name[0]}! 🕌`, `Here at ${site.name[1]}! 🕌`), 'alright', 6000);
     }, 600);
   }
+  /** to the end of the pier at the fishing pond, looking out over the water, with Baby Mo */
+  goToPond(then?: () => void) {
+    const fp = this.fishers; if (!fp) return false;
+    if (this.fun.riding) this.fun.dismount();
+    this.ui.sleepFade(true);
+    setTimeout(() => {
+      const s = fp.spot, p = this.player;
+      p.pos.copy(s); p.vel.set(0, 0, 0); p.visY = s.y; p.flying = false; p.yaw = 0; p.pitch = -0.4; // north, over the water
+      this.ents.mo.pos.set(s.x + 1.2, s.y, s.z + 1.2);
+      this.ui.sleepFade(false);
+      // no rod yet? Pak Harun lends you one, for keeps
+      if (!this.inv.count(I.FISHING_ROD)) { this.inv.add(I.FISHING_ROD, 1); this.ui.pickup(I.FISHING_ROD, 1); }
+      const at = this.inv.slots.findIndex((x, i) => i < 9 && x?.id === I.FISHING_ROD);
+      if (at >= 0 && !this.fishCoach.active) { this.inv.sel = at; this.ui.refreshHotbar(); }
+      this.ui.say(tr('Sampai di Kolam Pancing! 🎣 Di sini ikannya cepat menggigit. Ketuk ✋ Pakai untuk melempar, lalu tunggu pelampungnya tenggelam.', 'Here at the Fishing Pond! 🎣 Fish bite quickly here. Tap ✋ Use to throw, then wait for the float to dip.'), 'alright', 7000);
+      then?.();
+    }, 600);
+    return true;
+  }
   /** "show me the way": the golden arrow points to the masjid and a trail of light leads there */
   guideTo(site: MasjidSite) {
     this.masjidGuide = site;
@@ -781,7 +805,7 @@ export class Game {
     }
     const w = this.waterAhead();
     if (!w) { this.ui.toast(tr('Arahkan pancingan ke air ya 🌊', 'Point the rod at some water 🌊')); return; }
-    f.cast(this.rodTip(), w, this.skillLv('fishing'), this.hasHat('hat_fisher'));
+    f.cast(this.rodTip(), w, this.skillLv('fishing'), this.hasHat('hat_fisher'), !!this.fishers?.near(this.player.pos));
     this.anim.play('build'); SFX.jump();
     this.fishCoach.on('cast');
   }
@@ -977,6 +1001,7 @@ export class Game {
     }
     if (this.fishing?.busy) this.fishTick(dt, t);
     this.fishCoach?.update(dt);
+    this.fishers?.update(dt, t);
     if (this.ambient) {
       this.ambient.enabled = !this.settings.lowGfx;
       const q = this.player.pos, top = this.world.chunkAt(q.x, q.z)?.hm?.[(((Math.floor(q.z) % 16) + 16) % 16) * 16 + (((Math.floor(q.x) % 16) + 16) % 16)] ?? 0;

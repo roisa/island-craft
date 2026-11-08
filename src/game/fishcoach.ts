@@ -148,7 +148,7 @@ export class FishCoach {
     const g = this.g;
     g.ui.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
-      text: tr('Airnya jauh dari sini. Mau aku antar ke pantai? 🏖️', 'The water is far from here. Shall I take you to the beach? 🏖️'),
+      text: g.fishers ? tr('Airnya jauh dari sini. Mau aku antar ke Kolam Pancing? Di sana ikannya cepat menggigit 🎣', 'The water is far from here. Shall I take you to the Fishing Pond? The fish bite quickly there 🎣') : tr('Airnya jauh dari sini. Mau aku antar ke pantai? 🏖️', 'The water is far from here. Shall I take you to the beach? 🏖️'),
       buttons: [{ label: '✨ ' + tr('Ya, antar aku', 'Yes, take me'), cls: 'gold', fn: () => this.toShore() }, { label: tr('Aku jalan sendiri', 'I’ll walk'), cls: 'ghost' }],
     });
   }
@@ -175,9 +175,10 @@ export class FishCoach {
     g.player.yaw = Math.atan2(-ex, -ez); g.player.pitch = -0.45;
     return true;
   }
-  /** the nearest beach next to the sea, from the world plan */
+  /** to the fishing pond (or, if this world has none, the nearest beach next to the sea) */
   toShore() {
     const g = this.g, p = g.player.pos;
+    if (g.goToPond()) return true;
     for (let r = 8; r <= 400; r += 4) for (let a = 0; a < Math.PI * 2; a += 4 / r) {
       const x = Math.round(p.x + Math.cos(a) * r), z = Math.round(p.z + Math.sin(a) * r), c = g.gen.column(x, z);
       if (c.h < SEA || c.h > SEA + 3) continue;

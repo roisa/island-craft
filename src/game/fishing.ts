@@ -4,6 +4,9 @@ import * as THREE from 'three';
 import { biteDelay, biteWindow } from './skills';
 import { PRACTICE } from './fishcoach';
 
+/** at the fishing pond: a bite after 1½–4 seconds, and a second and a bit longer to tap */
+export const POND = { wait: 1.5, spread: 2.5, extra: 1.2 };
+
 export type FishEvent = 'bite' | 'escaped' | null;
 
 export class Fishing {
@@ -27,12 +30,15 @@ export class Fishing {
   }
   get busy() { return this.state !== 'idle'; }
   /** throw the float from the rod tip to a point on the water surface */
-  cast(rodTip: THREE.Vector3, water: THREE.Vector3, level: number, hat: boolean) {
+  /** fishing at the fishing pond: bites come sooner and stay longer */
+  private easy = false;
+  cast(rodTip: THREE.Vector3, water: THREE.Vector3, level: number, hat: boolean, easy = false) {
+    this.easy = easy;
     this.from.copy(rodTip); this.to.copy(water);
     this.state = 'flying'; this.t = 0;
     this.bobber.position.copy(rodTip); // start at the rod, not at the world's origin
-    this.waitFor = this.practice ? PRACTICE.wait : biteDelay(level, hat, Math.random());
-    this.window = this.practice ? PRACTICE.window : biteWindow(level);
+    this.waitFor = this.practice ? PRACTICE.wait : easy ? POND.wait + Math.random() * POND.spread : biteDelay(level, hat, Math.random());
+    this.window = this.practice ? PRACTICE.window : biteWindow(level) + (easy ? POND.extra : 0);
     this.bobber.visible = true; this.line.visible = true;
   }
   /** pull the line back in (Use pressed); says what happened */
@@ -61,7 +67,7 @@ export class Fishing {
       if (this.t >= this.waitFor) { this.state = 'bite'; this.t = 0; ev = 'bite'; }
     } else if (this.state === 'bite') {
       b.copy(this.to); b.y -= 0.12 + Math.sin(t * 30) * 0.04; // pulled under
-      if (this.t > this.window) { this.state = 'waiting'; this.t = 0; this.waitFor = this.practice ? PRACTICE.again : 1.5 + Math.random() * 2.5; ev = 'escaped'; }
+      if (this.t > this.window) { this.state = 'waiting'; this.t = 0; this.waitFor = this.practice ? PRACTICE.again : this.easy ? POND.wait : 1.5 + Math.random() * 2.5; ev = 'escaped'; }
     }
     this.linePos.set([rodTip.x, rodTip.y, rodTip.z, b.x, b.y + 0.06, b.z]);
     (this.line.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;

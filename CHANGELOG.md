@@ -5,6 +5,56 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Fishing Pond, near the village 🎣🏞️
+
+Requested by a parent: a pond close to the masjid where villagers also
+fish, so fishing is easy for Ibra.
+
+- **The Fishing Pond (Kolam Pancing)** is a new place in every world,
+  just past the village’s edge, 42–72 blocks from the middle. The search
+  starts on the masjid’s side, north of the village, and only goes
+  round to another side if nothing fits there. It’s added last, so
+  existing worlds keep their other places and gain the pond.
+  - An oval pond two blocks deep, with a sandy rim and reeds and
+    flowers.
+  - A wooden pier out to the middle, with lanterns where it meets the
+    bank.
+  - A shady hut with a chest (a fishing rod and two fish), a bench, and
+    lantern posts all round for the evening.
+- **Villagers fishing** (new `src/game/fishers.ts`):
+  - Pak Harun and Raka sit on the pier and Bu Salma on the bank, each
+    with a bamboo rod, a line and a red float on the water.
+  - Every 9–21 seconds a float dips, someone lifts a fish with a splash
+    and says “🐟 Alhamdulillah!”.
+  - When you come by, one of them shares a tip, such as “Throw, wait,
+    then tap when the float dips”.
+  - They’re there in the daytime, and go to the masjid at prayer time
+    like everyone else.
+- **Easier fishing at the pond:**
+  - Fish bite after 1½–4 seconds (instead of the usual wait), and you
+    get 1.2 seconds more to tap.
+- **Getting there:**
+  - **🏞️ To the Fishing Pond** in the fishing guide (🎣❓) takes you
+    to the end of the pier, looking out over the water, with Baby Mo.
+    If you have no rod, Pak Harun lends you one for keeps, and it’s put
+    in your hand.
+  - The fishing practice with Baby Mo goes to the pond too, when the
+    water is far.
+  - The pond is in the discoveries journal, so the golden arrow can
+    lead there.
+- **Tested:**
+  - Unit tests:
+    - every world has the pond, 40–110 blocks out, on the masjid side
+      in most worlds;
+    - from the pier spot there’s water three blocks straight ahead.
+  - Smoke:
+    - from the guide to the pier;
+    - three villagers fishing;
+    - a cast, a bite, and a fish caught.
+  - Screenshots of the pier with the villagers, and the pond from
+    above.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### Wudu before praying, an adhan at prayer time, and a 2-hour play limit 💧🕌
 
 Requested by a parent: Ibra went straight into the prayer without wudu;

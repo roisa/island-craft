@@ -51,6 +51,8 @@ type Spec = Omit<Landmark, 'x' | 'y' | 'z'> & {
   loose?: boolean;
   /** biomes to try in a second search when the first finds nothing (only then: old worlds don't change) */
   relaxed?: Biome[];
+  /** the direction from the village to look first (radians; -π/2 is north, behind the masjid) */
+  angle?: number;
 };
 
 /** fill from the ground up to y (so buildings never float over a dip) */
@@ -717,6 +719,53 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    // a fishing pond close to the village and the masjid, where villagers sit fishing (see game/fishers.ts);
+    // fish here bite sooner and give you more time to tap
+    id: 'fish_pond', icon: '🎣', name: ['Kolam Pancing', 'The Fishing Pond'], biomes: [Biome.MEADOW, Biome.FOREST, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.BEACH, Biome.DESERT, Biome.SNOWY], dist: [42, 72], r: 10, loose: true, angle: -Math.PI / 2,
+    ok: c => c.h > SEA && c.h < SEA + 12,
+    hint: ['Dekat masjid ada kolam ikan dengan dermaga kayu. Warga sering memancing di sana — ikannya gampang menggigit!', 'Near the masjid there’s a fish pond with a wooden pier. Villagers often fish there — the fish bite easily!'],
+    fact: ['Di kolam ini ikan lebih cepat menggigit. Berdiri di ujung dermaga, lempar pelampung, tunggu sampai tenggelam, lalu ketuk! Ingat: ambil ikan secukupnya dan bersyukur, Alhamdulillah.', 'Fish bite sooner in this pond. Stand at the end of the pier, throw the float, wait until it dips, then tap! Remember: only take what you need, and say Alhamdulillah.'],
+    loot: [[I.FISHING_ROD, 1], [I.SMALL_FISH, 2], [B.LANTERN, 2]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      // level grass all around, and the open space above
+      foundation(b, x - 10, z - 9, x + 10, z + 10, y, B.DIRT);
+      b.box(x - 10, y, z - 9, x + 10, y, z + 10, B.GRASS);
+      b.box(x - 10, y + 1, z - 9, x + 10, y + 12, z + 10, B.AIR);
+      // the pond: an oval two blocks deep, sand at the bottom and a sandy rim
+      for (let dx = -7; dx <= 7; dx++) for (let dz = -6; dz <= 6; dz++) {
+        const r = Math.hypot(dx / 6.6, dz / 5.2);
+        if (r < 1) { b.stamp(x + dx, y - 2, z + dz, B.SAND); b.stamp(x + dx, y - 1, z + dz, B.WATER); b.stamp(x + dx, y, z + dz, B.WATER); }
+        else if (r < 1.18) b.stamp(x + dx, y, z + dz, B.SAND);
+      }
+      // a wooden pier from the south bank out into the middle, on posts
+      b.box(x - 1, y, z + 1, x + 1, y, z + 7, B.PLANKS);
+      for (const [px, pz] of [[x - 1, z + 1], [x + 1, z + 1], [x - 1, z + 4], [x + 1, z + 4]]) { b.stamp(px, y - 1, pz, B.OAK_LOG); b.stamp(px, y - 2, pz, B.OAK_LOG); }
+      // lanterns where the pier meets the bank (not at the end, where you look out over the water)
+      b.stamp(x - 2, y + 1, z + 7, B.OAK_LOG); b.stamp(x - 2, y + 2, z + 7, B.LANTERN);
+      b.stamp(x + 2, y + 1, z + 7, B.OAK_LOG); b.stamp(x + 2, y + 2, z + 7, B.LANTERN);
+      // a little shady hut on the bank with a rod chest, and benches
+      b.box(x + 5, y + 1, z + 7, x + 8, y + 3, z + 9, (X, Y, Z) => ((X === x + 5 || X === x + 8) && (Z === z + 7 || Z === z + 9) ? B.OAK_LOG : null));
+      b.box(x + 4, y + 4, z + 6, x + 9, y + 4, z + 10, B.PLANKS);
+      b.stamp(x + 7, y + 1, z + 9, B.CHEST);
+      b.box(x - 6, y + 1, z + 7, x - 3, y + 1, z + 7, B.PLANKS);
+      // lantern posts around the pond for the evening
+      for (const [lx, lz] of [[x - 9, z - 6], [x + 9, z - 6], [x - 9, z + 5], [x + 9, z + 3]]) { b.stamp(lx, y + 1, lz, B.OAK_LOG); b.stamp(lx, y + 2, lz, B.LANTERN); }
+      // reeds and flowers
+      for (const [fx, fz] of [[x - 8, z - 2], [x + 8, z - 1], [x - 5, z - 7], [x + 4, z - 7], [x - 8, z + 3]]) b.stamp(fx, y + 1, fz, [B.TALL_GRASS, B.FLOWER_YELLOW, B.FLOWER_BLUE][(fx + fz + 99) % 3]);
+      return {
+        y: y + 1,
+        at: {
+          pond: [x + 0.5, y, z + 0.5],
+          // where you stand to fish: the end of the pier, looking north over the water
+          spot: [x + 0.5, y + 1, z + 1.5],
+          // the villagers who fish here: two on the pier, one on the west bank
+          f1: [x - 0.5, y + 1, z + 2.5], f2: [x + 1.5, y + 1, z + 3.5], f3: [x - 7.5, y + 1, z + 0.5],
+        },
+      };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
@@ -779,9 +828,10 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
     let spot: { x: number; z: number; h: number } | null = null;
     let fallback: { x: number; z: number; h: number } | null = null;
     let plan: unknown = undefined;
-    const a0 = rnd() * Math.PI * 2;
+    const r0 = rnd(), a0 = s.angle ?? r0 * Math.PI * 2;
     for (let k = 0; k < 220 && !spot; k++) {
-      const a = a0 + k * 2.39996, d = s.dist[0] + (s.dist[1] - s.dist[0]) * ((k * 0.618 + rnd() * 0.3) % 1);
+      // (with a preferred direction: sweep gently around it before going further)
+      const a = s.angle !== undefined ? a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.13 : a0 + k * 2.39996, d = s.dist[0] + (s.dist[1] - s.dist[0]) * ((k * 0.618 + rnd() * 0.3) % 1);
       const x = Math.round(Math.cos(a) * d), z = Math.round(Math.sin(a) * d);
       if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18)) continue;
       const c = b.column(x, z);

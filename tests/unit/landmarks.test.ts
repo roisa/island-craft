@@ -17,7 +17,8 @@ describe('landmarks', () => {
     for (const seed of SEEDS) {
       const g = new Generator(seed);
       for (const l of g.landmarks) {
-        expect(Math.hypot(l.x, l.z), `${seed} ${l.id}`).toBeGreaterThan(55);
+        // (the fishing pond is meant to be close, just past the village’s edge behind the masjid)
+        expect(Math.hypot(l.x, l.z), `${seed} ${l.id}`).toBeGreaterThan(l.id === 'fish_pond' ? 40 : 55);
         for (const s of g.shrines) expect(Math.hypot(s.x - l.x, s.z - l.z), `${seed} ${l.id} vs letter ${s.letter}`).toBeGreaterThan(14);
         for (const o of g.landmarks) if (o !== l) expect(Math.hypot(o.x - l.x, o.z - l.z)).toBeGreaterThan(20);
         expect(l.y).toBeGreaterThan(1); expect(l.y).toBeLessThan(H);
@@ -45,5 +46,28 @@ describe('old worlds keep their places', () => {
         expect(l && [l.x + 0, l.y + 0, l.z + 0], `seed ${seed} ${id}`).toEqual([x, y, z]);
       }
     }
+  });
+});
+
+describe('the fishing pond', () => {
+  it('is close to the village, mostly on the masjid side, clear of the village’s buildings', () => {
+    let north = 0;
+    for (const seed of SEEDS) {
+      const l = new Generator(seed).landmarks.find(l => l.id === 'fish_pond')!;
+      expect(l, `seed ${seed}`).toBeTruthy();
+      const d = Math.hypot(l.x, l.z);
+      expect(d, `seed ${seed}`).toBeGreaterThan(40);
+      expect(d, `seed ${seed}`).toBeLessThan(110);
+      if (l.z < 0) north++;
+      for (const k of ['spot', 'f1', 'f2', 'f3', 'pond']) expect(l.at?.[k], k).toBeTruthy();
+    }
+    expect(north).toBeGreaterThanOrEqual(3);
+  });
+  it('you stand on the pier with water right in front of you', () => {
+    const g = new Generator(42), l = g.landmarks.find(l => l.id === 'fish_pond')!;
+    const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+    const [sx, sy, sz] = l.at!.spot.map(Math.floor);
+    expect(m.get(`${sx},${sy - 1},${sz}`)).toBe(B.PLANKS);
+    for (let k = 1; k <= 3; k++) expect(m.get(`${sx},${sy - 1},${sz - k}`), `water ${k} ahead`).toBe(B.WATER);
   });
 });
