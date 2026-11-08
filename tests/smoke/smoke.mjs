@@ -327,7 +327,7 @@ async function run(name) {
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');
-      const state = () => g(() => { const G = __game, ev = G.gameEvent, P = G.player.pos; return JSON.stringify({ ev: ev && { p: ev.p, prayed: ev.prayed }, btn: !document.querySelector('#bMasjid').classList.contains('hidden'), open: G.ui.isOpen(), book: document.querySelector('#vBook')?.classList.contains('on'), modals: G.ui.modals.length, site: G.siteAt(P)?.id, riding: !!G.fun.riding, jam: !!G.jamaah, pos: [P.x.toFixed(1), P.y.toFixed(1), P.z.toFixed(1)], paused: G.paused, locked: G.ui.locked, speed: G.player.speed }); });
+      const state = () => g(() => { const G = __game, ev = G.gameEvent, P = G.player.pos; return JSON.stringify({ ev: ev && { p: ev.p, prayed: ev.prayed }, btn: !document.querySelector('#bMasjid').classList.contains('hidden'), open: G.ui.isOpen(), book: document.querySelector('#vBook')?.classList.contains('on'), modals: G.ui.modals.length, site: G.siteAt(P)?.id, riding: !!G.fun.riding, jam: !!G.jamaah, pos: [P.x.toFixed(1), P.y.toFixed(1), P.z.toFixed(1)], row: G.sites.find(x => x.id === 'grand')?.row(false).player.toArray(), paused: G.paused, locked: G.ui.locked, speed: G.player.speed }); });
       const wait = (what, fn, arg, ms) => p.waitForFunction(fn, arg, { timeout: ms, polling: 200 }).catch(async e => { throw new Error(what + ': ' + (await state())); });
       // far from any masjid when Asr comes: the 🕌 button and the golden arrow point the way
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(30.5, 70, 30.5); G.player.vel.set(0, 0, 0); G.gameEvent = null; G.hour = G.schedule.asr - 0.002; G.lastHour = G.hour; });
@@ -342,7 +342,8 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       // into your place in the men's row: the prayer starts with a full masjid
       await g(L => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); }, L);
-      await wait('prayer start', () => !!__game.jamaah || (__game.ui.closeAllModals(), false), null, 15000);
+      // (a slow frame on a busy CI machine can drop you through the floor; step back into your place)
+      await wait('prayer start', L => { const G = __game, P = G.player.pos; if (G.jamaah) return true; G.ui.closeAllModals(); if (Math.hypot(P.x - L.men[0], P.z - L.men[2]) > 0.5 || Math.abs(P.y - L.men[1]) > 0.5) { P.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); } return false; }, L, 20000);
       const mid = await g(() => ({ site: __game.jamaahSite.id, people: __game.congregation.count, jamaah: __game.stats.jamaah }));
       await g(() => { const j = __game.jamaah; j.i = j.plan.length - 1; j.t = 0; });
       await p.waitForFunction(() => !__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
