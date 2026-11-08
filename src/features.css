@@ -287,3 +287,10 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 @keyframes rcPop { 0% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 @media (max-width: 520px) { #raceHud { font-size: 13px; } #raceCount { font-size: 80px; } }
 .funGo { justify-content: center; gap: 6px; flex-wrap: wrap; margin: 4px 0 10px; }
+
+/* tennis with Baby Mo */
+#bTennis { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 12px; min-height: 44px; border-radius: 22px; font-weight: 800; font-size: 15px; background: linear-gradient(180deg, #F3FBC8, #D9F23A); color: #2c3a00; }
+#bTennis .mi { font-size: 20px; }
+#tennisHud { position: fixed; left: 50%; top: calc(64px + var(--safe-t)); transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; font-size: 16px; font-weight: 700; white-space: nowrap; }
+#tennisHud .btn { margin: 0; }
+@media (max-width: 520px) { #tennisHud { font-size: 13px; } }

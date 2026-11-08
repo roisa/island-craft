@@ -5,6 +5,55 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Tennis Court: play tennis with Baby Mo 🎾
+
+Requested by a parent: a tennis court where Baby Mo plays tennis, and the
+player tries some tennis movements too.
+
+- **The Tennis Court (Lapangan Tenis)** is a new place 45–140 blocks from
+  the village.
+  - A short blue court (16 blocks, so Baby Mo and the ball are easy to
+    see from your end) with white lines, and a see-through net between
+    posts.
+  - Green surrounds, a bench, four lantern posts and a chest.
+  - It’s in the map’s fun places.
+- **Tennis** (new `src/game/tennis.ts`):
+  - Tap **🎾 Play tennis**. You stand at your baseline and Baby Mo at
+    his, each with a racket (yours red, his green).
+  - **Serve** with ✋ (or a tap on the screen). The ball flies over the
+    net, bounces once on Baby Mo’s side, and he swings and sends it
+    back.
+  - **Hit it back:** you glide sideways to the ball by yourself, so only
+    the timing matters. Tap as it reaches you. The window is kind: from
+    about half a second before until a moment after. The big TAP! cue
+    and the glowing ✋ show when.
+  - **Swings:** both you and Baby Mo swing your racket arms.
+  - **Rallies:** Baby Mo returns most balls but misses a few more in
+    long rallies. The balls get a little faster as a rally goes on.
+  - **Scoring:** first to 3 points. At the top: the score and the
+    current rally, with **Exit**. The end card shows who won, the
+    longest rally and coins (50 for a win, 20 for a good try), and
+    **Play again**.
+  - The discovery card reminds you that the strong believer is more
+    beloved to Allah (HR. Muslim 2664): sport keeps you healthy.
+- **Every world has its pond again:** the Fishing Pond was missing in
+  about 1 world in 70 (hilly ones, with nothing low enough near the
+  village). Places every world must have now try any free dry land a
+  little further out as a last resort. This only happens where the place
+  would otherwise be missing, so no place in a saved world moves.
+- **Tested:**
+  - Unit tests: the ball starts and ends at the rackets, bounces past
+    the net and clears it; the hit window; Baby Mo’s returns; first to
+    3.
+  - Smoke:
+    - from the map to the court;
+    - the 🎾 button;
+    - serve, then hitting Baby Mo’s return in the window, which starts
+      a rally;
+    - Exit puts the rackets away.
+  - Screenshots of a rally and a point.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
 ### The Waterfall Camp: tents and a campfire to grill on 🏕️🔥
 
 Requested by a parent: tents and a campfire to grill fish and meat, near a

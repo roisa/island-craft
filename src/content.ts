@@ -72,6 +72,8 @@ export interface Stats {
   hydr?: import('./game/thirst').Hydration;
   /** go-kart races started and won, and the best time (seconds) */
   races?: number; raceWins?: number; raceBest?: number;
+  /** tennis matches with Baby Mo: played, won, and the longest rally */
+  tennis?: number; tennisWins?: number; tennisRally?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

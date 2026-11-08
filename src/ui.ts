@@ -70,6 +70,7 @@ export class UI {
   <div id="jmHud" class="pill hidden"></div>
   <div id="raceHud" class="pill hidden"><span id="raceT"></span><button class="btn small ghost" id="raceX">${tr('Keluar', 'Exit')}</button></div>
   <div id="raceCount" class="hidden"></div>
+  <div id="tennisHud" class="pill hidden"><span id="tennisT"></span><button class="btn small ghost" id="tennisX">${tr('Keluar', 'Exit')}</button></div>
   <div id="bedHud" class="pill hidden"><span id="bedT"></span><button class="btn small gold" id="bedNow">😴 ${tr('Tidur sekarang', 'Sleep now')}</button></div>
   <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button><button class="skip" id="tutSkip">${tr('Lewati', 'Skip')} ›</button></div>
@@ -88,7 +89,7 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
-  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bRace" aria-label="${tr('Balapan', 'Race')}"><span class="mi">🏁</span><span>${tr('Balapan!', 'Race!')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
+  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bTennis" aria-label="${tr('Main tenis', 'Play tennis')}"><span class="mi">🎾</span><span>${tr('Main tenis', 'Play tennis')}</span></button><button class="pill hidden" id="bRace" aria-label="${tr('Balapan', 'Race')}"><span class="mi">🏁</span><span>${tr('Balapan!', 'Race!')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
   <button class="pill hidden" id="bStroke" aria-label="Swimming stroke">${ic('swim')}<span class="sn"></span><span class="si"></span></button>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
@@ -122,6 +123,8 @@ export class UI {
     $('#bMasjid').onclick = () => this.masjidPicker();
     $('#bRace').onclick = () => { SFX.click(); this.g.race?.start(); };
     $('#raceX').onclick = () => { SFX.click(); this.g.race?.quit(); };
+    $('#bTennis').onclick = () => { SFX.click(); this.g.tennis?.start(); };
+    $('#tennisX').onclick = () => { SFX.click(); this.g.tennis?.quit(); };
     $('#bedNow').onclick = () => this.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
       text: tr('Sudah siap tidur? Permainan hari ini selesai dan rumahmu tersimpan. Besok kita lanjutkan ya! 🌙', 'Ready for bed? Today’s game ends here and your house is saved. We’ll carry on tomorrow! 🌙'),
@@ -316,6 +319,17 @@ export class UI {
     const txt = tr(id, en);
     if (b.querySelector('.sn')!.textContent !== txt) { b.querySelector('.si')!.textContent = ic2; b.querySelector('.sn')!.textContent = txt; }
     if (changed) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); this.toast(`${ic2} ${txt}!`, 1200); }
+  }
+  /** the 🎾 button at the tennis court */
+  showTennis(on: boolean) { const b = $('#bTennis'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
+  private tennisShown = '';
+  /** the score while playing tennis; null hides it */
+  tennisHud(s: { me: number; mo: number; rally: number } | null) {
+    const el = $('#tennisHud');
+    if (!s) { el.classList.add('hidden'); this.tennisShown = ''; return; }
+    const txt = `🎾 ${tr('Kamu', 'You')} <b>${s.me}</b> – <b>${s.mo}</b> Baby Mo · ${tr('reli', 'rally')} ${s.rally}`;
+    if (txt !== this.tennisShown) { this.tennisShown = txt; $('#tennisT').innerHTML = txt; }
+    el.classList.remove('hidden');
   }
   /** the 🏁 button at the race track */
   showRace(on: boolean) { const b = $('#bRace'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }

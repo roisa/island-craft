@@ -427,6 +427,30 @@ async function run(name) {
       if (r.fire !== 74 || r.stream !== 11 || !r.grill || !craft) throw new Error(JSON.stringify({ ...r, craft }));
       return { ...r, craft };
     });
+    await step('tennis: go there from the map, serve, hit the ball back on time, Baby Mo plays, then leave', async () => {
+      const ok = await g(() => !!__game.gen.landmarks.find(l => l.id === 'tennis'));
+      if (!ok) throw new Error('no tennis court in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="tennis"]');
+      await g(() => document.querySelector('#vBook.on [data-go="tennis"]').click());
+      await p.waitForTimeout(900);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => !document.querySelector('#bTennis').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 300 });
+      await g(() => document.querySelector('#bTennis').click());
+      const started = await g(() => ({ active: __game.tennis.active, mo: !!__game.ents.mo.stand, state: __game.tennis.state }));
+      // serve with ✋ (here: the swing itself), then wait for Baby Mo's return and hit it in the window
+      await g(() => { __game.ui.closeAllModals(); __game.tennis.swing(); });
+      const served = await g(() => __game.tennis.state);
+      await p.waitForFunction(() => (__game.tennis.state === 'toMe' && (1 - __game.tennis.t / __game.tennis.T) * __game.tennis.T < 0.3) || __game.tennis.state === 'serve' || (__game.ui.closeAllModals(), false), null, { timeout: 45000, polling: 50 });
+      const r = await g(() => { const T = __game.tennis, s = T.state; if (s === 'toMe') T.swing(); return { was: s, now: T.state, rally: T.rally, cue: !document.querySelector('#fishCue').classList.contains('hidden') }; });
+      await g(() => document.querySelector('#tennisX').click());
+      const after = await g(() => ({ active: __game.tennis.active, mo: !!__game.ents.mo.stand, hud: document.querySelector('#tennisHud').classList.contains('hidden') }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      // (if Baby Mo happened to miss the serve it's your point and your serve again: that's fine too)
+      const hitBack = r.was === 'toMe' ? r.now === 'toMo' && r.rally === 1 : r.was === 'serve';
+      if (!started.active || !started.mo || started.state !== 'serve' || served !== 'toMo' || !hitBack || after.active || after.mo || !after.hud) throw new Error(JSON.stringify({ started, served, r, after }));
+      return { started, served, r, after };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');

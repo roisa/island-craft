@@ -855,6 +855,38 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    // a tennis court near the village, where Baby Mo plays with you (see game/tennis.ts)
+    id: 'tennis', icon: '🎾', name: ['Lapangan Tenis', 'The Tennis Court'], biomes: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST, Biome.SNOWY], dist: [45, 140], r: 12, loose: true, clear: 4,
+    ok: c => c.h > SEA && c.h < SEA + 14,
+    hint: ['Ada lapangan tenis biru dengan net putih. Baby Mo sudah siap dengan raketnya!', 'There’s a blue tennis court with a white net. Baby Mo is ready with his racket!'],
+    fact: ['Ketuk 🎾 Main tenis untuk bermain bersama Baby Mo. Pukul bolanya saat sampai di dekatmu! Olahraga membuat badan sehat dan kuat — Rasulullah ﷺ bersabda: mukmin yang kuat lebih dicintai Allah (HR. Muslim 2664).', 'Tap 🎾 Play tennis to play with Baby Mo. Hit the ball when it reaches you! Sport keeps your body healthy and strong — the Prophet ﷺ said: the strong believer is more beloved to Allah (Muslim 2664).'],
+    loot: [[I.APPLE, 3], [B.LANTERN, 2], [I.GOLD_INGOT, 1]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      // (a short court, so Baby Mo and the ball are easy to see from your end)
+      const HX = 5, HZ = 8;
+      foundation(b, x - 9, z - 12, x + 9, z + 12, y, B.DIRT);
+      b.box(x - 9, y, z - 12, x + 9, y, z + 12, B.WOOL_GREEN);
+      b.box(x - 9, y + 1, z - 12, x + 9, y + 10, z + 12, B.AIR);
+      // the blue court with white lines: baselines, sidelines, service lines and the centre line
+      b.box(x - HX, y, z - HZ, x + HX, y, z + HZ, (X, _Y, Z) => {
+        const line = Math.abs(X - x) === HX || Math.abs(Z - z) === HZ || (Math.abs(Z - z) === 4) || (X === x && Math.abs(Z - z) <= 4);
+        return line ? B.WOOL_WHITE : B.WOOL_BLUE;
+      });
+      // the net across the middle (see-through, so you can watch the ball), with white posts
+      b.box(x - HX - 1, y + 1, z, x + HX + 1, y + 1, z, (X) => (Math.abs(X - x) === HX + 1 ? B.OAK_LOG : B.GLASS));
+      b.stamp(x - HX - 1, y + 2, z, B.OAK_LOG); b.stamp(x + HX + 1, y + 2, z, B.OAK_LOG);
+      // benches, lights and a chest at the side
+      b.box(x + 7, y + 1, z - 3, x + 7, y + 1, z + 3, B.PLANKS);
+      b.stamp(x - 8, y + 1, z + 3, B.CHEST);
+      for (const [lx, lz] of [[x - 8, z - 11], [x + 8, z - 11], [x - 8, z + 11], [x + 8, z + 11]]) { b.box(lx, y + 1, lz, lx, y + 3, lz, B.OAK_LOG); b.stamp(lx, y + 4, lz, B.LANTERN); }
+      return {
+        y: y + 1,
+        at: { centre: [x + 0.5, y + 1, z + 0.5], me: [x + 0.5, y + 1, z + HZ - 0.5], mo: [x + 0.5, y + 1, z - HZ + 1.5], entry: [x + 7.5, y + 1, z + 6.5] },
+      };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);
@@ -954,6 +986,17 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
     }
     // no fitting biome nearby in this world: still build it on any dry spot so every world has all of them
     spot ??= fallback;
+    // still nothing (a hilly world): any free dry land a little further out (only for places every world must have;
+    // it runs only where the place would otherwise be missing, so no world's places move)
+    if (!spot && s.loose && !s.plan) {
+      outer: for (let d = s.dist[0]; d <= s.dist[1] * 2.5; d += 6) for (let k = 0; k < 24; k++) {
+        const a = a0 + k * (Math.PI / 12), x = Math.round(Math.cos(a) * d), z = Math.round(Math.sin(a) * d);
+        if (taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18 + (s.clear ?? 0))) continue;
+        const c = b.column(x, z);
+        if (c.biome === Biome.OCEAN || c.biome === Biome.VILLAGE || c.h <= SEA) continue;
+        spot = { x, z, h: c.h }; break outer;
+      }
+    }
     if (!spot) continue;
     if (s.plan && plan === undefined) continue; // a river with nowhere to flow is left out rather than squeezed in
     const built = s.build(b, spot.x, spot.h, spot.z, plan);

@@ -55,6 +55,7 @@ import { Thirst, thirstSpeed } from './game/thirst';
 import { FishCoach } from './game/fishcoach';
 import { Fishers } from './game/fishers';
 import { Race } from './game/race';
+import { Tennis } from './game/tennis';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
 import { Jamaah, rowPose } from './game/jamaah';
@@ -181,6 +182,8 @@ export class Game {
   fishers: Fishers | null = null;
   /** go-kart races at the race track */
   race: Race | null = null;
+  /** tennis with Baby Mo at the tennis court */
+  tennis: Tennis | null = null;
   private attackCd = 0;
   /** extra quarter turns for the next furniture / turned block you place (the rotate button) */
   placeRot = 0;
@@ -373,6 +376,8 @@ export class Game {
     if (fp?.at?.spot) this.fishers = new Fishers(this, fp);
     const rt = this.gen.landmarks.find(l => l.id === 'race_track');
     if (rt?.at?.centre) this.race = new Race(this, rt);
+    const tc = this.gen.landmarks.find(l => l.id === 'tennis');
+    if (tc?.at?.me) this.tennis = new Tennis(this, tc);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -845,7 +850,7 @@ export class Game {
   /** busy play (walking, digging, swimming) makes you thirsty faster */
   private thirstTick(dt: number) {
     const p = this.player, busy = p.speed > 1 || !!this.mining || p.inWater || this.mineAnim > 0;
-    this.thirst.update(dt, busy && !this.fun.riding && !this.race?.active);
+    this.thirst.update(dt, busy && !this.fun.riding && !this.race?.active && !this.tennis?.active);
     p.thirstMul = thirstSpeed(this.thirst.h.me);
     this.ui.thirstHud(this.thirst.h);
   }
@@ -876,6 +881,7 @@ export class Game {
     this.ui.showFishHelp(rod || nearWater);
     this.ui.showBoat(nearWater && !this.fun.riding);
     this.ui.showRace(!!this.race?.near(p.pos) && !this.race.active && !this.fun.riding);
+    this.ui.showTennis(!!this.tennis?.near(p.pos) && !this.tennis.active && !this.fun.riding && !this.race?.active);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
   }
   private fishTick(dt: number, t: number) {
@@ -1092,7 +1098,9 @@ export class Game {
     // while riding only the ✋ Use button gets you off; a tap on the world (looking around) doesn't
     if (this.fun.riding) { inp.tapAt = null; if (inp.takeUse()) this.fun.dismount(); }
     if (this.race?.active) { inp.tapAt = null; if (inp.takeUse()) this.race.quit(); }
-    if (!this.race?.step(dt) && !this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
+    // tennis: ✋ or a tap anywhere on the world swings the racket
+    if (this.tennis?.active) { const tap = !!inp.tapAt; inp.tapAt = null; if (inp.takeUse() || tap) this.tennis.swing(); }
+    if (!this.race?.step(dt) && !this.tennis?.step(dt) && !this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
     this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }
 
@@ -2094,6 +2102,9 @@ export class Game {
     if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, this.jamaah?.joined ? rowPose.pose : 'qiyam'); a.head.rotation.y = this.jamaah?.joined ? rowPose.head : 0; this.prayingPose = true; }
     else if (this.prayingPose) { clearPose(a); this.prayingPose = false; }
     this.updateHeld(t, sw);
+    // a tennis swing: the racket arm sweeps forward
+    const ts = this.tennis?.swinging ?? 0;
+    if (ts > 0 && a.armR) a.armR.rotation.x = -2.4 * Math.sin(ts / 0.35 * Math.PI);
   }
 
   /** item in hand: on the avatar's right hand, and in front of the camera in first person */
