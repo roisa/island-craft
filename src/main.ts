@@ -52,6 +52,7 @@ import { Weather } from './game/weather';
 import { Projects } from './game/projects';
 import { Deeds } from './game/deeds';
 import { Thirst, thirstSpeed } from './game/thirst';
+import { Bedtime } from './game/bedtime';
 import { Jamaah, rowPose } from './game/jamaah';
 import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './game/amal';
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
@@ -110,6 +111,7 @@ export class Game {
   projects!: Projects;
   deeds!: Deeds;
   thirst!: Thirst;
+  bedtime!: Bedtime;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -325,6 +327,7 @@ export class Game {
     this.projects.restore();
     this.deeds = new Deeds(this);
     this.thirst = new Thirst(this);
+    this.bedtime = new Bedtime(this);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -911,11 +914,11 @@ export class Game {
     const today = new Date().toDateString();
     const pl = this.stats.play && this.stats.play.day === today ? this.stats.play : (this.stats.play = { day: today, sec: 0 });
     pl.sec += dt; this.stats.playTotal = (this.stats.playTotal || 0) + dt;
-    if (!this.settings.playLimit) return;
+    if (!this.settings.playLimit) { this.bedtime.tick(null, dt); return; }
     const lim = this.settings.playLimit * 60 + (pl.extra || 0);
-    if (pl.sec > lim - 300 && pl.sec - dt <= lim - 300) this.ui.say(tr('5 menit lagi kita istirahat ya 😊', '5 more minutes, then we take a break 😊'), 'idea', 6000);
-    if (pl.sec > lim - 60 && pl.sec - dt <= lim - 60) this.ui.toast(tr('⏱️ 1 menit lagi waktunya istirahat', '⏱️ 1 minute until break time'), 4000);
-    if (pl.sec >= lim && !this.ui.locked) this.ui.lockScreen();
+    if (pl.sec > lim - 60 && pl.sec - dt <= lim - 60) this.ui.toast(tr('🌙 1 menit lagi waktunya tidur', '🌙 1 minute until bedtime'), 4000);
+    // evening, a sleepy Baby Mo, then bedtime (see game/bedtime.ts)
+    this.bedtime.tick(lim - pl.sec, dt);
   }
 
   private tick(dt: number, t: number) {
@@ -1270,7 +1273,7 @@ export class Game {
     const rot = (faceToward(x, z, this.player.pos.x, this.player.pos.z) + this.placeRot) % 4;
     this.deco.place(id, x, y, z, rot);
     this.inv.useHeld();
-    this.stats.placed++;
+    this.stats.placed++; this.bedtime.lastBuildAt = performance.now();
     this.stats.decorated = (this.stats.decorated || 0) + 1;
     SFX.placeMat('wood'); haptic(6);
     this.fx.puff(x + 0.5, y + 0.5, z + 0.5, B.PLANKS);
@@ -1345,7 +1348,7 @@ export class Game {
     if (this.turnable(held.id)) this.world.setFacing(x, y, z, (faceToward(x, z, this.player.pos.x, this.player.pos.z) + this.placeRot) % 4);
     this.setUndo([[x, y, z, held.id]], this.inv.creative ? [] : [[held.id, 1]]);
     this.inv.useHeld();
-    this.stats.placed++;
+    this.stats.placed++; this.bedtime.lastBuildAt = performance.now();
     if (this.stats.placed % 20 === 0) { this.kid.reward('quest', 0.2); }
     this.stats.placedIds[held.id] = (this.stats.placedIds[held.id] || 0) + 1;
     SFX.placeMat(matOf(held.id)); haptic(6);
@@ -1546,11 +1549,11 @@ export class Game {
   }
 
   /** a good deed for the Amal Book: a small sparkle, and the first time, what Rasulullah ﷺ said about it */
-  amal(id: string, n = 1) {
+  amal(id: string, n = 1, quiet = false) {
     const log = (this.stats.amal ??= newAmalLog());
     const first = recordAmal(log, id, new Date().toDateString(), n);
     const d = amalDeed(id); if (!d) return;
-    this.ui.amalPop(d, first);
+    if (!quiet) this.ui.amalPop(d, first);
     this.projects?.check();
     this.saveSoon();
   }

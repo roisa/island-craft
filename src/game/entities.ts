@@ -337,6 +337,13 @@ export class Companion extends Entity {
   update(dt: number, t: number) {
     const f = this.follow();
     if (this.seat) { this.pos.copy(this.seat.pos); this.yaw = this.seat.yaw; this.animIn.riding = true; this.swimming = false; this.sync(t, dt); return; }
+    // bedtime: sitting down, eyes closed, head nodding
+    if (this.sleeping) {
+      this.moving = false; this.swimming = false; this.sync(t, dt);
+      applyPrayerPose(this.rig, 'julus'); this.rig.blink?.(true); this.rig.head.rotation.x = 0.35 + Math.sin(t * 1.2) * 0.04;
+      this.asleepPose = true; return;
+    }
+    if (this.asleepPose) { clearPose(this.rig); this.rig.blink?.(false); this.asleepPose = false; }
     this.animIn.riding = false;
     if (this.prayAt) return this.prayUpdate(dt, t);
     if (this.praying) { clearPose(this.rig); this.praying = false; }
@@ -368,7 +375,19 @@ export class Companion extends Entity {
     if (this.celebrate > 0 && this.glassT <= 0) { this.celebrate -= dt; this.anim!.play('celebrate'); } else this.anim!.stop('celebrate');
     this.glassTick(dt);
     this.sync(t, dt);
+    // a big sleepy yawn: head back, eyes shut
+    if (this.yawnT > 0) {
+      this.yawnT -= dt;
+      const k = Math.sin(Math.min(1, 1 - this.yawnT / 1.8) * Math.PI);
+      this.rig.head.rotation.x = -0.45 * k; this.rig.blink?.(k > 0.3);
+      if (this.yawnT <= 0) this.rig.blink?.(false);
+    }
   }
+  /** asleep for the night (bedtime) */
+  sleeping = false;
+  private asleepPose = false;
+  private yawnT = 0;
+  yawn() { this.yawnT = 1.8; }
   private glass: THREE.Object3D | null = null;
   private glassT = 0;
   /** a glass of water in Baby Mo's hand for a few seconds (water break) */

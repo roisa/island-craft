@@ -68,6 +68,7 @@ export class UI {
     <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
   </div>
   <div id="jmHud" class="pill hidden"></div>
+  <div id="bedHud" class="pill hidden"><span id="bedT"></span><button class="btn small gold" id="bedNow">😴 ${tr('Tidur sekarang', 'Sleep now')}</button></div>
   <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button><button class="skip" id="tutSkip">${tr('Lewati', 'Skip')} ›</button></div>
   <button id="moHi" class="hidden" aria-label="Say hi">👋 <span>${tr('Hai!', 'Hi!')}</span></button>
@@ -100,6 +101,7 @@ export class UI {
 </div>
 <div id="underwater"></div>
 <div id="sleepFade"></div>
+<div id="dusk"></div>
 <div id="toast"></div>
 <div id="pickups"></div>
 <div id="starPops"></div>
@@ -115,6 +117,11 @@ export class UI {
     $('#stars').onclick = () => this.openBook('quests');
     $('#coins').onclick = () => this.shop();
     $('#thirst').onclick = () => this.waterCard();
+    $('#bedNow').onclick = () => this.dialog({
+      face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
+      text: tr('Sudah siap tidur? Permainan hari ini selesai dan rumahmu tersimpan. Besok kita lanjutkan ya! 🌙', 'Ready for bed? Today’s game ends here and your house is saved. We’ll carry on tomorrow! 🌙'),
+      buttons: [{ label: '😴 ' + tr('Ya, tidur', 'Yes, bedtime'), cls: 'gold', fn: () => g.bedtime.sleepNow() }, { label: tr('Sebentar lagi', 'In a little while'), cls: 'ghost' }],
+    });
     $('#bFishHelp').onclick = () => this.fishGuide();
     $('#bStroke').onclick = () => this.g.nextStroke();
     $('#bBoat').onclick = () => { if (this.g.inv.count(I.BOAT) > 0) this.g.fun.launchBoat(); else this.boatGuide(); };
@@ -509,6 +516,21 @@ export class UI {
     const c = $('#coins'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump');
   }
   /** the prayer together: which rakaat and which movement */
+  private duskShown = -1; private bedShown = '';
+  /** the evening light before bedtime (0 day … 1 night) */
+  dusk(k: number) {
+    const v = Math.round(k * 50) / 50;
+    if (v === this.duskShown) return;
+    this.duskShown = v; $('#dusk').style.opacity = String(v);
+  }
+  /** "🌙 Bedtime in 7 min" with a Sleep now button; null hides it */
+  bedHud(rem: number | null) {
+    const el = $('#bedHud');
+    if (rem === null || this.g.jamaah) { if (this.bedShown) { this.bedShown = ''; el.classList.add('hidden'); } return; }
+    const m = Math.max(1, Math.ceil(rem / 60)), txt = tr(`🌙 Tidur ${m} menit lagi`, `🌙 Bedtime in ${m} min`);
+    if (txt === this.bedShown) return;
+    this.bedShown = txt; $('#bedT').textContent = txt; el.classList.remove('hidden');
+  }
   private thirstShown = '';
   /** the two little water bars in the top bar: you and Baby Mo */
   thirstHud(h: { me: number; mo: number }) {
@@ -1325,23 +1347,27 @@ export class UI {
    * Play time is up for today: the game stops behind a full-screen card that
    * can't be closed. Only a grown-up (with the sum above) can add more time.
    */
-  lockScreen() {
+  lockScreen(night = true, early = false) {
     const g = this.g;
     if (document.querySelector('.lockScr')) return;
     this.closeAllModals(); this.closeBook();
     g.pause(true);
     const mins = Math.round((g.stats.play?.sec || 0) / 60);
     const lock = document.createElement('div');
-    lock.className = 'lockScr';
-    lock.innerHTML = `<div class="lockBox"><img src="img/baby-mo-pose-01.webp" alt="">
+    lock.className = 'lockScr' + (night ? ' night' : '');
+    lock.innerHTML = (night ? `<div class="lockBox"><div class="zzz" aria-hidden="true"><i>z</i><i>z</i><i>Z</i></div>
+      <h2>🌙 ${tr('Selamat tidur!', 'Goodnight!')}</h2>
+      <p>${early ? tr('Masya Allah, kamu tidur tepat waktu! ⭐ +20 koin.', 'Masha Allah, you went to bed on time! ⭐ +20 coins.') + '<br>' : ''}${tr(`Baby Mo sudah tidur nyenyak 😴 Kamu bermain <b>${mins} menit</b> hari ini. <b>Rumahmu dan semua bangunanmu sudah tersimpan</b> — besok kita lanjutkan membangun!`, `Baby Mo is fast asleep 😴 You played for <b>${mins} minutes</b> today. <b>Your house and everything you built is saved</b> — we’ll carry on building tomorrow!`)}</p>
+      <div class="nightDua"><div class="ar" lang="ar" dir="rtl">بِاسْمِكَ اللّٰهُمَّ أَمُوْتُ وَأَحْيَا</div><small>Bismika Allahumma amutu wa ahya — ${tr('doa sebelum tidur', 'the du’a before sleeping')}</small></div>
+      <p class="lockSaved">💾 ${tr('Permainanmu sudah tersimpan.', 'Your game is saved.')}</p>` : `<div class="lockBox"><img src="img/baby-mo-pose-01.webp" alt="">
       <h2>😴 ${tr('Waktunya istirahat!', 'Time for a break!')}</h2>
       <p>${tr(`Kamu sudah bermain <b>${mins} menit</b> hari ini. Baby Mo juga mau istirahat. Yuk minum air, gerakkan badan, atau bantu ayah & ibu. Sampai jumpa besok! 💚`, `You’ve played for <b>${mins} minutes</b> today. Baby Mo needs a rest too. Drink some water, stretch, or help mum and dad. See you tomorrow! 💚`)}</p>
-      <p class="lockSaved">💾 ${tr('Permainanmu sudah tersimpan.', 'Your game is saved.')}</p>
+      <p class="lockSaved">💾 ${tr('Permainanmu sudah tersimpan.', 'Your game is saved.')}</p>`) + `
       <button class="btn ghost small" id="lkParent">${ic('family')} ${tr('Untuk orang tua', 'For grown-ups')}</button>
       <div class="lockMore hidden" id="lkMore"><p>${tr('Tambah waktu bermain hari ini:', 'Add play time for today:')}</p>
         <div class="row"><button class="btn small" data-add="15">+15 ${tr('menit', 'min')}</button><button class="btn small" data-add="30">+30 ${tr('menit', 'min')}</button><button class="btn small" data-add="60">+60 ${tr('menit', 'min')}</button></div></div></div>`;
     document.body.appendChild(lock);
-    if (g.settings.moVoice) Speech.talk(tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang());
+    if (g.settings.moVoice) Speech.talk(night ? tr('Selamat tidur! Rumahmu sudah tersimpan. Sampai jumpa besok!', 'Goodnight! Your house is saved. See you tomorrow!') : tr('Waktunya istirahat! Sampai jumpa besok!', 'Time for a break! See you tomorrow!'), getLang());
     g.save();
     lock.querySelector<HTMLElement>('#lkParent')!.onclick = () => this.parentGate(() => {
       lock.querySelector('#lkMore')!.classList.remove('hidden');
@@ -1349,8 +1375,8 @@ export class UI {
     });
     lock.querySelectorAll<HTMLElement>('[data-add]').forEach(b => (b.onclick = () => {
       const add = +b.dataset.add! * 60, pl = g.stats.play;
-      if (pl) pl.extra = (pl.extra || 0) + add;
-      lock.remove(); g.pause(false); g.saveSoon();
+      if (pl) { pl.extra = (pl.extra || 0) + add; pl.slept = false; pl.sec = Math.min(pl.sec, g.settings.playLimit * 60 + pl.extra); }
+      lock.remove(); g.pause(false); g.bedtime.reset(); g.saveSoon();
       this.toast(tr(`⏱️ Tambah ${b.dataset.add} menit. Selamat bermain!`, `⏱️ ${b.dataset.add} more minutes. Have fun!`));
     }));
   }

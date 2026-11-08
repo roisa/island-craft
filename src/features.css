@@ -241,3 +241,26 @@ body.desktop #waterBtns { bottom: calc(100px + var(--safe-b)); }
 #thirst .tb i { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: #4FB3E8; border-radius: 4px; transition: height .6s ease; }
 #thirst .tb i.low { background: #F59E0B; }
 #thirst.low { animation: pk 1s ease-in-out infinite alternate; }
+
+/* bedtime: evening light, the bedtime pill, and the goodnight card */
+#dusk { position: fixed; inset: 0; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 2s ease; background: linear-gradient(180deg, rgba(40, 30, 120, .62) 0%, rgba(140, 60, 150, .38) 50%, rgba(255, 130, 60, .32) 100%); }
+#bedHud { position: fixed; left: 50%; top: calc(64px + var(--safe-t)); transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; font-size: 15px; font-weight: 700; white-space: nowrap; }
+#bedHud .btn { margin: 0; }
+.lockScr.night { background: linear-gradient(180deg, rgba(7, 18, 46, .28) 0%, rgba(7, 18, 46, .5) 45%, rgba(7, 18, 46, .9) 80%); backdrop-filter: none; -webkit-backdrop-filter: none; align-items: end; }
+.lockScr.night .lockBox { position: relative; }
+.lockScr.night .zzz { position: absolute; top: -8px; right: 22px; font-weight: 900; color: #9db8ff; }
+.lockScr.night .zzz i { display: inline-block; font-style: normal; opacity: 0; animation: zz 2.4s ease-in-out infinite; }
+.lockScr.night .zzz i:nth-child(1) { font-size: 16px; } .lockScr.night .zzz i:nth-child(2) { font-size: 22px; animation-delay: .6s; } .lockScr.night .zzz i:nth-child(3) { font-size: 30px; animation-delay: 1.2s; }
+@keyframes zz { 0% { opacity: 0; transform: translateY(8px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-18px); } }
+.nightDua { margin: 6px auto 8px; padding: 8px 12px; border-radius: 16px; background: rgba(157, 184, 255, .14); }
+.nightDua .ar { font-size: 22px; line-height: 1.6; }
+.nightDua small { display: block; font-size: 12px; opacity: .8; }
+@media (max-width: 520px) { #bedHud { font-size: 13px; } }
+/* keep the sleeping Baby Mo in view: the card goes to the side (landscape) or the top (portrait) */
+.lockScr.night { place-items: start center; padding-top: calc(70px + var(--safe-t, 0px)); background: linear-gradient(180deg, rgba(7, 18, 46, .85) 0%, rgba(7, 18, 46, .45) 45%, rgba(7, 18, 46, .2) 100%); }
+.lockScr.night .lockBox { max-width: 380px; }
+@media (min-aspect-ratio: 5/4) {
+  .lockScr.night { place-items: center end; padding: 16px max(16px, var(--safe-r, 0px)) 16px 16px; background: linear-gradient(90deg, rgba(7, 18, 46, .15) 0%, rgba(7, 18, 46, .35) 45%, rgba(7, 18, 46, .9) 100%); }
+  .lockScr.night .lockBox { width: min(380px, 46vw); max-height: calc(100vh - 32px); overflow: auto; }
+}
+@media (max-height: 520px) { .lockScr.night .lockBox p { font-size: 13px; margin: 4px 0; } .nightDua { margin: 4px auto; padding: 4px 8px; } .nightDua .ar { font-size: 18px; } }

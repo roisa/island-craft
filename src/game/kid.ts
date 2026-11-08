@@ -16,8 +16,8 @@ import { Animal } from './entities';
 import { TITLES, starsFor, levelOf, titleOf } from './levels';
 export { TITLES, starsFor, levelOf, titleOf };
 
-export type KidEvent = 'letter' | 'quest' | 'pet' | 'give' | 'plant' | 'jamaah' | 'iftar' | 'sahur' | 'craft' | 'place' | 'biome' | 'calendar' | 'quiz' | 'tutorial' | 'water';
-const STARS: Record<KidEvent, number> = { letter: 5, quest: 10, pet: 1, give: 3, plant: 2, jamaah: 5, iftar: 5, sahur: 3, craft: 1, place: 0, biome: 3, calendar: 3, quiz: 1, tutorial: 3, water: 3 };
+export type KidEvent = 'letter' | 'quest' | 'pet' | 'give' | 'plant' | 'jamaah' | 'iftar' | 'sahur' | 'craft' | 'place' | 'biome' | 'calendar' | 'quiz' | 'tutorial' | 'water' | 'sleep';
+const STARS: Record<KidEvent, number> = { letter: 5, quest: 10, pet: 1, give: 3, plant: 2, jamaah: 5, iftar: 5, sahur: 3, craft: 1, place: 0, biome: 3, calendar: 3, quiz: 1, tutorial: 3, water: 3, sleep: 3 };
 
 // ---------- tutorial ----------
 interface Step { icon: string; text: T2; hint?: string; done: (k: Kid) => boolean; target?: (k: Kid) => THREE.Vector3 | null }

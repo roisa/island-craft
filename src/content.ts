@@ -12,7 +12,7 @@ export interface Stats {
   maxY: number; minY: number; quiz: number; days: string[]; prayersSeen: number;
   stars: number; tut?: number;
   pet?: { kind: string; name: string }; chests?: number; built?: number; rides?: number;
-  words?: number; play?: { day: string; sec: number; extra?: number }; playTotal?: number;
+  words?: number; play?: { day: string; sec: number; extra?: number; slept?: boolean; grace?: boolean }; onTime?: number; playTotal?: number;
   bedug?: number; giftDay?: string; stories?: string[]; picnicDay?: number;
   /** glasses of water drunk at a water break */
   water?: number;

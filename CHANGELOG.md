@@ -5,6 +5,50 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Bedtime instead of a sudden stop 🌙😴
+
+Requested by a parent: Ibra was sad when time ran out in the middle of
+building his house. Now you and Baby Mo get sleepy and go to bed, so the
+end of play feels like a natural goodnight.
+
+- **New `src/game/bedtime.ts`.** This only happens when a daily play
+  limit is set.
+  - **10 minutes before the limit:**
+    - Evening light falls slowly over the island.
+    - Baby Mo yawns (head back, eyes shut) and says: “It’s getting late
+      and I’m sleepy. Let’s finish our building, it’s nearly bedtime!”
+    - A pill at the top counts down: **🌙 Bedtime in 7 min**, with a
+      **😴 Sleep now** button.
+  - **5 minutes before:** Mo reminds you that your house is always saved
+    and you’ll carry on tomorrow. Going to bed on time gets a reward. He
+    yawns more often.
+  - **Sleep now** (after a “Ready for bed?” check):
+    - +20 coins and 3 stars for going to bed on time.
+    - Today’s play ends there.
+  - **At bedtime:**
+    - Baby Mo sits down beside you, facing the camera, closes his eyes
+      and nods off with little Zzz sparkles.
+    - The goodnight card sits to the side (landscape) or at the top
+      (portrait), so you can watch him sleep.
+    - It says your house and everything you built is saved, and shows
+      the du’a before sleeping (Bismika Allahumma amutu wa ahya), which
+      counts in the Amal Book.
+  - **In the middle of building:** if you placed a block in the last 45
+    seconds, Baby Mo waits 2 more minutes so you can finish the last
+    part, once a day.
+  - **Grown-ups:** the card keeps the grown-up gate. Adding time wakes
+    Baby Mo and brings the daylight back.
+- **The older “Time for a break” card** is still there for other callers;
+  bedtime uses the new goodnight card.
+- **Tested:**
+  - Unit tests for the bedtime phases and the evening light.
+  - A smoke step: evening and countdown, Sleep now, the goodnight card
+    with Mo asleep and the game paused, then a grown-up adds time and Mo
+    wakes.
+  - Screenshots on desktop and an 844×390 phone.
+  - The QA play-time lock check, the smoke suite on four profiles, and
+    the QA suite.
+
 ### A water bottle: you and Baby Mo need to drink 💧
 
 Requested by a parent: a water bottle, and the player and Baby Mo need to

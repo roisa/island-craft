@@ -468,6 +468,28 @@ async function run(name) {
         return { bytes: text.length };
       });
     }
+    await step('bedtime: evening and a sleepy Mo, sleep now, goodnight card, a grown-up adds time and Mo wakes', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.playLimit = 60; G.stats.play = { day: new Date().toDateString(), sec: 60 * 60 - 400 }; });
+      await p.waitForFunction(() => __game.bedtime.phase === 1 && !document.querySelector('#bedHud').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 });
+      const coins = await g(() => __game.stats.coins || 0);
+      await g(() => { __game.ui.closeAllModals(); document.querySelector('#bedNow').click(); });
+      await p.waitForSelector('.veil.on #dbtns button.gold');
+      await g(() => document.querySelector('.veil.on #dbtns button.gold').click());
+      await p.waitForSelector('.lockScr.night', { timeout: 10000 });
+      const night = await g(c => ({ mo: __game.ents.mo.sleeping, slept: __game.stats.play.slept, paused: __game.paused, coins: (__game.stats.coins || 0) - c, dua: !!document.querySelector('.lockScr .nightDua') }), coins);
+      if (!night.mo || !night.slept || !night.paused || night.coins < 20 || !night.dua) throw new Error(JSON.stringify(night));
+      // a grown-up adds time: Mo wakes up and the day comes back
+      await g(() => document.querySelector('.lockScr #lkParent').click());
+      await p.waitForSelector('.gateScr #pgIn');
+      const ans = await g(() => { const t = document.querySelector('.gateScr .gateQ').innerText.match(/(\d+)\s*×\s*(\d+)/); return +t[1] * +t[2]; });
+      await p.fill('.gateScr #pgIn', String(ans)); await g(() => document.querySelector('.gateScr #pgOk').click());
+      await g(() => document.querySelector('.lockScr [data-add="15"]').click());
+      await p.waitForTimeout(600);
+      const woke = await g(() => ({ lock: !!document.querySelector('.lockScr'), mo: __game.ents.mo.sleeping, slept: __game.stats.play.slept, phase: __game.bedtime.phase, paused: __game.paused }));
+      if (woke.lock || woke.mo || woke.slept || woke.paused || woke.phase !== 0) throw new Error(JSON.stringify(woke));
+      await g(() => { __game.stats.play.sec = 0; __game.stats.play.extra = 0; });
+      return { night, woke };
+    });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
   } catch { failed++; }
