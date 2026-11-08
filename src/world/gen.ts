@@ -376,6 +376,8 @@ export class Generator {
     // two treasure chests to discover around the village edge
     this.stamp(-24, G + 1, -10, B.CHEST); this.stamp(24, G + 1, -2, B.CHEST);
     this.stamp(-3, G + 1, -3, B.FURNACE);
+    // the charity box by the masjid door
+    this.stamp(3, G + 1, -13, B.CHARITY_BOX);
     // the bedug drum by the masjid steps
     this.stamp(-4, G + 1, -12, B.OAK_LOG); this.stamp(-4, G + 2, -12, B.BEDUG);
 

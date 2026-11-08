@@ -277,7 +277,7 @@ async function run(name) {
       const after = await g(() => ({ coins: __game.stats.coins || 0, jamaah: __game.stats.jamaah, again: !!__game.jamaah }));
       if (after.jamaah !== before.jamaah + 1 || after.coins < before.coins + 100 || after.again) throw new Error(JSON.stringify({ before, after, hud }));
       // spend some at the village shop
-      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.ui.shop(); });
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.deeds.maybeExtraChange = () => {}; G.ui.shop(); }); // the random extra-change test has its own check
       await p.waitForSelector('.veil.on .shopRow');
       const dates = await g(() => __game.inv.count(214));
       await g(() => document.querySelector('.veil.on [data-buy="0"]').click());
@@ -300,6 +300,27 @@ async function run(name) {
       const sold = await g(() => { const G = __game; G.player.pos.set(0.5, 47, 3.5); G.inv.add(252, 1); const c0 = G.stats.coins; G.ui.shop(); document.querySelector('.veil.on [data-mode="sell"]').click(); document.querySelector('.veil.on [data-sell="252"]').click(); const out = { gained: G.stats.coins - c0, pearls: G.inv.count(252) }; G.ui.closeAllModals(); return out; });
       if (sold.gained !== 40) throw new Error(JSON.stringify(sold));
       return { ...r, sold };
+    });
+    await step('Amal Book: wudu, tasbih, charity box, and a village project gets built', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
+      await p.waitForSelector('.veil.on .wudu');
+      for (let k = 0; k < 9; k++) await g(k => document.querySelector(`.veil.on .ws[data-k="${k}"]`).click(), k);
+      await g(() => { __game.ui.closeAllModals(); __game.ui.tasbih(); });
+      await p.waitForSelector('.veil.on #tsTap');
+      for (let k = 0; k < 33; k++) await g(() => document.querySelector('.veil.on #tsTap').click());
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.stats.coins = (G.stats.coins || 0) + 50;
+        G.player.pos.set(3.5, 46, -10.5); G.deeds.charityBox(); document.querySelector('.veil.on #dbtns button.gold').click(); G.ui.closeAllModals();
+        for (let i = 0; i < 20; i++) G.amal('animal');
+        G.ui.closeAllModals();
+        const t = G.stats.amal.total; return { wudu: t.wudu, dhikr: t.dhikr, sadaqah: t.sadaqah, built: G.stats.projects };
+      });
+      if (r.wudu !== 1 || r.dhikr !== 1 || r.sadaqah !== 1 || !r.built?.includes('fountain')) throw new Error(JSON.stringify(r));
+      await g(() => { __game.player.pos.set(12.5, 46, -2.5); });
+      await p.waitForFunction(() => (__game.stats.projectsPlaced || []).includes('fountain') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      const block = await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); return G.world.get(16, 46, -3); });
+      if (block !== 11) throw new Error('fountain not built: ' + block);
+      return r;
     });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));

@@ -49,6 +49,7 @@ import { Treasure } from './game/treasure';
 import { mangroveTree } from './world/landmarks';
 import { Weather } from './game/weather';
 import { Projects } from './game/projects';
+import { Deeds } from './game/deeds';
 import { Jamaah, rowPose } from './game/jamaah';
 import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './game/amal';
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
@@ -73,6 +74,8 @@ const MASJID_SPOT = new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5);
 const ROW = { imam: new THREE.Vector3(0.5, VILLAGE_Y + 1, -20.5), player: new THREE.Vector3(0.5, VILLAGE_Y + 1, -18.5), mo: new THREE.Vector3(2.0, VILLAGE_Y + 1, -18.5),
   others: [new THREE.Vector3(-1.0, VILLAGE_Y + 1, -18.5), new THREE.Vector3(-2.5, VILLAGE_Y + 1, -18.5), new THREE.Vector3(3.5, VILLAGE_Y + 1, -18.5)] };
 const inMasjidArea = (p: THREE.Vector3) => p.x > -6 && p.x < 7 && p.z > -26 && p.z < -13 && Math.abs(p.y - (VILLAGE_Y + 1)) < 3;
+/** where you can make wudu: the village well and the fountain (once built) */
+const WUDU_SPOTS: [number, number][] = [[8.5, 8.5], [16.5, -2.5]];
 const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK, I.GRILLED_FISH, I.FRIED_EGG, I.STEAK, I.KETUPAT_OPOR, I.NASTAR]);
 
 const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LOG]: B.PINE_LEAVES, [B.PALM_LOG]: B.PALM_LEAVES };
@@ -101,6 +104,7 @@ export class Game {
   treasure!: Treasure;
   weather!: Weather;
   projects!: Projects;
+  deeds!: Deeds;
   eid!: Eid;
   private eidT = 0;
   onLevelUp: ((lv: number) => void) | null = null;
@@ -314,6 +318,7 @@ export class Game {
     this.weather = new Weather(this);
     this.projects = new Projects(this);
     this.projects.restore();
+    this.deeds = new Deeds(this);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -991,6 +996,7 @@ export class Game {
     this.kites.update(dt, t);
     this.weather.update(dt, t);
     this.projects.update();
+    this.deeds.update(dt);
     this.eid.update(dt, t);
     if ((this.eidT -= dt) <= 0) { this.eidT = 20; this.eid.refresh(); }
     this.picnicCheck();
@@ -1056,6 +1062,7 @@ export class Game {
 
   private breakBlock(x: number, y: number, z: number, id: number) {
     const def = BLOCKS[id]!;
+    if (id === B.PATH_ROCK) this.deeds.clearedPath(x, y, z);
     const w = this.world;
     // water flows into the hole if it touches water
     const nearWater = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]].some(([a, b, c]) => w.get(x + a, y + b, z + c) === B.WATER);
@@ -1246,6 +1253,9 @@ export class Game {
     if (hit) {
       // interactive blocks
       if (hit.id === B.BED) { this.sleep(); return; }
+      if (hit.id === B.CHARITY_BOX) { this.deeds.charityBox(); return; }
+      // the village well and the fountain: make wudu
+      if ((!held || !isBlockId(held.id)) && WUDU_SPOTS.some(([wx, wz]) => Math.hypot(hit.x + 0.5 - wx, hit.z + 0.5 - wz) < 2.2 && Math.abs(hit.y - VILLAGE_Y) < 4)) { this.ui.wudu(); return; }
       if (hit.id === B.CHEST) { this.fun.openChest(hit.x, hit.y, hit.z); return; }
       if (hit.id === B.BEDUG) { this.festive.bedug(); return; }
       if (hit.id === B.TELESCOPE) { this.ui.telescope(); return; }
@@ -1306,6 +1316,7 @@ export class Game {
       const now = performance.now();
       if (now - this.moTapAt < 900 && !(held && FOOD.has(held.id))) return; // one hello at a time
       this.moTapAt = now;
+      if (this.stats.smileDay !== this.day) { this.stats.smileDay = this.day; this.amal('smile'); }
       this.stats.talked.mo = true;
       e.celebrate = 1.2; SFX.pet();
       this.fx.hearts(e.pos.x, e.pos.y + 1.8, e.pos.z, 2);
@@ -1446,6 +1457,7 @@ export class Game {
   }
   private goToSleep() {
     const s = this.schedule;
+    this.amal('sleep');
     this.ui.duaCard(DUAS.sleep, tr('🌜 Doa sebelum tidur', '🌜 Du’a before sleeping'), () => {
       this.ui.sleepFade(true);
       setTimeout(() => {
@@ -1701,6 +1713,7 @@ export class Game {
   private slowChecks() {
     const p = this.player.pos;
     this.checkDiscoveries();
+    this.deeds?.jumuah(inMasjidArea(this.player.pos));
     const col = this.gen.column(Math.floor(p.x), Math.floor(p.z));
     const bn = Biome[col.biome];
     if (!this.stats.biomes.includes(bn)) {

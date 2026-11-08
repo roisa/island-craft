@@ -5,6 +5,44 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### New good deeds to do in the village 🤲
+
+All of these are recorded in the Amal Book and help the village projects.
+
+- **💧 Wudu** at the village well (or the fountain once it's built).
+  - Tap the steps in order: intention and bismillah, hands ×3, mouth ×3,
+    nose ×3, face ×3, arms to the elbows ×3, head, ears, feet to the
+    ankles ×3.
+  - The next step glows; tapping out of order shows a gentle hint.
+  - At the end, the shahada du'a and "now you're ready to pray".
+  - Also under "How to make wudu" in the Amal Book.
+- **📿 Tasbih:** tap 33 beads while saying "Subhanallahi wa bihamdihi",
+  with the hadith "light on the tongue, heavy on the scale".
+- **🪨 Clear the path:** now and then a stone falls on a village path (at
+  most two at a time). Clearing it is sadaqah (Bukhari 2989, Muslim
+  1009).
+- **💰 The masjid's charity box** (by the masjid door): give 10, 50 or 100
+  coins.
+  - With no coins: "a smile and helping others are charity too".
+  - It quotes "charity never makes your wealth less" (Muslim 2588).
+- **🤝 Honesty:** after buying, Bu Aminah sometimes gives 10 coins too much
+  change. Giving it back is an honesty deed. Keeping it just gets a gentle
+  word, never a punishment.
+- **😊 Smiling:** your first hello to Baby Mo each day.
+- **🌙 Du'a before sleeping** counts when you sleep in a bed.
+- **🕌 Jumu'ah:** on a real Friday, the first visit to the masjid has a
+  short talk for children (one of six lessons, rotating each week).
+- The Amal Book page lists where to find these.
+- **Tested:**
+  - Screenshots of wudu, the tasbih, a path stone, the charity box and the
+    honesty choice.
+  - A smoke step on four profiles: wudu, a full tasbih, a gift to the
+    charity box, and finishing the fountain project, which is then built
+    in the world.
+  - QA on five profiles.
+  - The prayer-and-shop smoke step now turns off the random extra-change
+    event, which has its own check.
+
 ### The Amal Book 📖 and village projects (sadaqah jariyah) 🏗️
 
 Requested by a parent: link the game to Islamic values. For example,

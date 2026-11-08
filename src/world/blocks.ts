@@ -20,7 +20,9 @@ export enum B {
   // the mangrove swamp
   MANGROVE_LOG = 66, MANGROVE_LEAVES = 67, MANGROVE_ROOTS = 68, MANGROVE_SEEDLING = 69, MUD = 70,
   // night glow
-  GLOW_MUSHROOM = 71, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  GLOW_MUSHROOM = 71,
+  // good deeds: a stone fallen on the path, the masjid's charity box
+  PATH_ROCK = 72, CHARITY_BOX = 73, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -157,6 +159,8 @@ blk(B.MANGROVE_ROOTS, ['Akar Bakau', 'Mangrove Roots'], 'mangrove_roots', { ...p
 blk(B.MANGROVE_SEEDLING, ['Bibit Bakau', 'Mangrove Seedling'], 'mangrove_seedling', { ...plant, color: 0x4f9e48, aquatic: true });
 blk(B.MUD, ['Lumpur', 'Mud'], 'mud', { color: 0x5a4636, hardness: 0.5, tool: 'shovel' });
 blk(B.GLOW_MUSHROOM, ['Jamur Bercahaya', 'Glowing Mushroom'], 'glow_mushroom', { ...plant, color: 0x7ef0e0, light: 0.6 });
+blk(B.PATH_ROCK, ['Batu di Jalan', 'Stone on the Path'], 'path_rock', { ...plant, color: 0x8d949b, hardness: 0.15, drops: () => [] });
+blk(B.CHARITY_BOX, ['Kotak Sedekah', 'Charity Box'], ['charity_top', 'charity_side', 'planks', 'charity_front'], { color: 0x3fa34d, hardness: Infinity });
 blk(B.MAP_SCROLL, ['Potongan Peta', 'Map Piece'], 'map_scroll', { ...plant, color: 0xe8d9a8, hardness: Infinity });
 blk(B.RAFT_DOCK, ['Rakit Sungai', 'River Raft'], ['raft_top', 'raft_side', 'raft_side'], { color: 0xb08a55, hardness: Infinity });
 const wool: [number, string, T2, number][] = [

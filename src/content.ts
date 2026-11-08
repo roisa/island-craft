@@ -58,6 +58,8 @@ export interface Stats {
   salamDay?: Record<string, number>;
   /** village projects finished, and the ones already placed in the world */
   projects?: string[]; projectsPlaced?: string[]; projectBase?: Record<string, number>;
+  /** coins given to the charity box; the days of a smile to Baby Mo, of the Friday talk, and wudu */
+  given?: number; smileDay?: number; jumuahDay?: string; wudu?: number;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

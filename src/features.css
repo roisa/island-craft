@@ -141,3 +141,22 @@
 .projRow .bar i { display: block; height: 100%; background: linear-gradient(90deg, #3fa34d, #f1c232); }
 /* eleven book tabs now wrap to a third row on wide screens: keep each one big enough to tap */
 .tab { min-height: 34px; }
+.amalBtns { justify-content: center; gap: 8px; margin: 4px 0 10px; }
+.amalBtns .btn { width: auto; margin: 0; }
+.amalList ~ .tip { font-size: 13px; margin-top: 10px; text-align: left; }
+.tasbih, .wudu { text-align: center; max-width: 380px; }
+.tasbih .ar { font-size: 26px; margin: 4px 0 0; }
+.tasbih .lat { font-style: italic; opacity: .8; }
+.tsb { width: 120px; height: 120px; border-radius: 50%; border: 6px solid #2f8a55; background: radial-gradient(circle at 35% 30%, #fff, #dff4e6); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; margin: 8px auto; touch-action: manipulation; }
+.tsb:active { transform: scale(.96); }
+.tsb b { font-size: 40px; color: #2f8a55; }
+.beads { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 300px; margin: 6px auto; }
+.beads i { width: 12px; height: 12px; border-radius: 50%; background: #d7e3da; }
+.beads i.on { background: #2f8a55; }
+.wsteps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+.ws { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 14px; background: #eef5fa; border: 2px solid transparent; min-height: 64px; }
+.ws span { font-size: 24px; }
+.ws small { font-size: 11.5px; line-height: 1.2; }
+.ws.next { border-color: #F1C232; background: #fff8dc; animation: pk 1s ease-in-out infinite alternate; }
+.ws.done { background: #d9f2e1; opacity: .75; }
+@media (max-height: 520px) { .tsb { width: 90px; height: 90px; } .ws { min-height: 52px; padding: 5px 3px; } .wsteps { grid-template-columns: repeat(5, 1fr); } }

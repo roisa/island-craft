@@ -9,11 +9,12 @@ import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from '.
 import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri } from './game/prayer';
-import { SFX, playLetter, Speech } from './game/audio';
+import { SFX, playLetter, Speech, haptic } from './game/audio';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
 import { DEEDS, type Deed } from './game/amal';
+import { WUDU } from './game/deeds';
 import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
 import { levelOf, starsFor } from './game/kid';
@@ -305,13 +306,59 @@ export class UI {
     document.body.appendChild(el); SFX.pop(6);
     setTimeout(() => { el.remove(); this.nextAmal(); }, 1900);
   }
+  /** a tasbih: tap 33 times */
+  tasbih() {
+    const g = this.g, N = 33;
+    let n = 0;
+    const { el, close } = this.modal(`<div class="tasbih"><h2>📿 ${tr('Tasbih', 'Tasbih')}</h2>
+      <p class="ar" lang="ar" dir="rtl">سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ</p><p class="lat">Subhanallahi wa bihamdihi</p>
+      <button class="tsb" id="tsTap"><b id="tsN">0</b><small>/ ${N}</small></button>
+      <div class="beads" id="tsBeads">${Array.from({ length: N }, () => '<i></i>').join('')}</div>
+      <p id="tsMsg">${tr('Ketuk butirnya sambil mengucap dzikir 🤍', 'Tap the bead as you say it 🤍')}</p>
+      <button class="btn ghost small" id="tsX">${tr('Tutup', 'Close')}</button></div>`);
+    const beads = el.querySelectorAll<HTMLElement>('#tsBeads i');
+    $('#tsTap', el).onclick = () => {
+      if (n >= N) return;
+      beads[n].classList.add('on'); n++;
+      $('#tsN', el).textContent = String(n); SFX.pop(n % 8); haptic(6);
+      if (n === N) { SFX.chime(); this.confetti(30); $('#tsMsg', el).innerHTML = tr('Masya Allah! “Dua kalimat ringan di lisan, berat di timbangan.” 🤍', 'Masha Allah! “Light on the tongue, heavy on the scale.” 🤍'); g.amal('dhikr'); g.checkQuests(); }
+    };
+    $('#tsX', el).onclick = () => close();
+  }
+  /** wudu, step by step: tap each step in order */
+  wudu() {
+    const g = this.g;
+    let i = 0;
+    const { el, close } = this.modal(`<div class="wudu"><h2>💧 ${tr('Berwudhu', 'Making wudu')}</h2>
+      <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}"><span>${w.icon}</span><small>${esc(t2(w.name))}${w.times > 1 ? ' ×' + w.times : ''}</small></button>`).join('')}</div>
+      <p id="wMsg">${tr('Ketuk langkahnya satu per satu, mulai dari yang bersinar ✨', 'Tap the steps one by one, starting with the glowing one ✨')}</p>
+      <button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div>`);
+    const btns = el.querySelectorAll<HTMLElement>('.ws');
+    const mark = () => btns.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('next', k === i); });
+    mark();
+    btns.forEach(b => (b.onclick = () => {
+      const k = +b.dataset.k!;
+      if (k !== i) { SFX.error(); $('#wMsg', el).textContent = tr('Urutannya dari yang bersinar ya ✨', 'Follow the order: the glowing one ✨'); return; }
+      i++; SFX.splash(); g.fx.sparkle(g.player.pos.x, g.player.pos.y + 1.2, g.player.pos.z, 4, 0x8fd3ec, 1); mark();
+      if (i === WUDU.length) {
+        g.stats.wudu = (g.stats.wudu || 0) + 1; SFX.chime(); this.confetti(30);
+        $('#wMsg', el).innerHTML = tr('Wudhu selesai! Doa: <b>Asyhadu an laa ilaaha illallah…</b> Sekarang kamu siap sholat 🤲', 'Wudu done! Say: <b>Ash-hadu an laa ilaaha illallah…</b> Now you’re ready to pray 🤲');
+        g.amal('wudu'); g.checkQuests();
+      }
+    }));
+    $('#wX', el).onclick = () => close();
+  }
   private amalTab(body: HTMLElement) {
     const g = this.g, log = g.stats.amal, total = (id: string) => log?.total[id] || 0, today = (id: string) => (log && log.day === new Date().toDateString() ? log.today[id] || 0 : 0);
     const all = DEEDS.reduce((a, d) => a + total(d.id), 0), allToday = DEEDS.reduce((a, d) => a + today(d.id), 0);
     body.innerHTML = `<div class="amalHead"><b>📖 ${tr('Buku Amal Kebaikan', 'My Good Deeds Book')}</b><small>${tr(`Hari ini <b>${allToday}</b> kebaikan · semuanya <b>${all}</b>`, `Today <b>${allToday}</b> good deeds · all together <b>${all}</b>`)}</small></div>
+      <div class="row amalBtns"><button class="btn small gold" id="amTasbih">📿 ${tr('Tasbih', 'Tasbih')}</button><button class="btn small ghost" id="amWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
       ${g.projects ? g.projects.html() : ''}
       <div class="amalList">${DEEDS.map(d => { const n = total(d.id); return `<div class="amalRow ${n ? '' : 'off'}"><div class="ic">${n ? d.icon : '❔'}</div><div class="tx"><b>${esc(t2(d.name))}${d.times ? ` <span class="amx">×${d.times}</span>` : ''} <span class="amn">${n ? `${today(d.id)} ${tr('hari ini', 'today')} · ${n}` : tr('belum', 'not yet')}</span></b><small>“${esc(t2(d.hadith))}” <i>${esc(d.src)}</i></small></div></div>`; }).join('')}</div>
+      <p class="tip">💡 ${tr('Kebaikan lain: wudhu di sumur desa, singkirkan batu di jalan, sedekah di kotak masjid, tersenyum pada Baby Mo, doa sebelum tidur, dan jujur saat berbelanja.', 'More good deeds: make wudu at the village well, clear stones from the path, give at the masjid’s charity box, smile at Baby Mo, say the du’a before sleeping, and be honest when shopping.')}</p>
       <p class="note">${tr('Pahala yang sebenarnya ada di sisi Allah. Buku ini membantu kita ingat betapa Allah menyukai kebaikan. Yang paling penting: niat karena Allah. 💛', 'The real reward is with Allah. This book helps us remember how much He loves good deeds. What matters most is doing them for Allah. 💛')}</p>`;
+    $('#amTasbih', body).onclick = () => this.tasbih();
+    $('#amWudu', body).onclick = () => this.wudu();
   }
 
   // ---------- coins & the village shop ----------
@@ -383,6 +430,7 @@ export class UI {
         g.inv.add(id, n); this.pickup(id, n); SFX.pickup();
         g.stats.bought = (g.stats.bought || 0) + 1;
         g.checkQuests(); render();
+        g.deeds.maybeExtraChange();
       }));
     };
     render();
