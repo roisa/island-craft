@@ -5,6 +5,26 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Hilltop Masjid 🕌
+
+- **A new landmark** on a high hill: a white marble masjid on a terrace.
+  - **Prayer hall:** green and red prayer rows, a mosaic mihrab, windows,
+    lanterns and a golden dome.
+  - **Courtyard:** a little wudu fountain and flowers.
+  - **Minaret:** a hollow tower with a staircase winding round a pillar,
+    one block per step, up to a balcony with a rail, lanterns and a golden
+    cap.
+- **Secret spot:** the top of the minaret, with a lesson on the adhan and
+  Bilal ibn Rabah, the first muadhin.
+- **The discovery card** gives the hadith about building a masjid for
+  Allah (Bukhari & Muslim).
+- **New quest:** up the minaret.
+- **Tested:**
+  - Unit tests on 4 seeds: the doorways, all 13 steps with headroom, and
+    the balcony.
+  - A smoke step reaches the top on all four profiles.
+  - The full QA suite passes.
+
 ### Weather of the day 🌤️
 
 - **Every game day has its own weather,** the same for the same world and

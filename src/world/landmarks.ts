@@ -571,6 +571,66 @@ const SPECS = (): Spec[] => specs ??= [
       return { y: SEA + 2, at: { centre: [x + 0.5, SEA + 1, z + 0.5], plant: [x + 4.5, SEA, z + 0.5] } };
     },
   },
+  {
+    id: 'hill_masjid', icon: '🕌', name: ['Masjid di Bukit', 'The Hilltop Masjid'], biomes: [Biome.MEADOW, Biome.FOREST, Biome.MOUNTAIN], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.SNOWY, Biome.DESERT, Biome.BEACH], dist: [70, 280], r: 12,
+    ok: c => c.h > SEA + 12 && c.h < SEA + 36,
+    hint: ['Di atas bukit tinggi ada masjid putih dengan kubah emas dan menara yang bisa dinaiki.', 'On a high hill stands a white masjid with a golden dome and a minaret you can climb.'],
+    fact: ['Masjid adalah rumah Allah, tempat kita sholat berjamaah. Rasulullah ﷺ bersabda: siapa yang membangun masjid karena Allah, Allah bangunkan untuknya rumah di surga (HR. Bukhari & Muslim). Naiki tangga di dalam menara!', 'A masjid is a house of Allah where we pray together. The Prophet ﷺ said: whoever builds a masjid for Allah, Allah builds a house for them in Paradise (Bukhari & Muslim). Climb the stairs inside the minaret!'],
+    loot: [[I.PRAYER_MAT, 2], [B.LANTERN, 3], [I.BOOK_STAND, 1]],
+    plan(_b, x, z, taken) { return taken.some(t => Math.hypot(t.x - x, t.z - z) < t.r + 18) ? null : true; },
+    build(b, x, y, z) {
+      foundation(b, x - 7, z - 8, x + 12, z + 8, y, B.STONE);
+      b.box(x - 7, y, z - 8, x + 12, y, z + 8, B.MARBLE);
+      b.box(x - 7, y + 1, z - 8, x + 12, y + 22, z + 8, B.AIR);
+      // the prayer hall
+      b.box(x - 4, y + 1, z - 6, x + 4, y + 5, z + 1, (X, Y, Z) => {
+        const wall = X === x - 4 || X === x + 4 || Z === z - 6 || Z === z + 1;
+        if (!wall) return B.AIR;
+        if (Z === z + 1 && Math.abs(X - x) <= 1 && Y <= y + 3) return B.AIR;                // door
+        if (Z === z - 6 && X === x && Y <= y + 3) return B.MOSAIC;                          // mihrab
+        if (Y === y + 3 && (X + Z) % 2 === 0 && !(Z === z - 6 && X === x)) return B.GLASS;   // windows
+        if (Y === y + 5) return B.MOSAIC;
+        return B.MARBLE;
+      });
+      b.box(x - 3, y, z - 5, x + 3, y, z, (_X, _Y, Z) => ((Z - z) % 2 === 0 ? B.WOOL_GREEN : B.WOOL_RED));
+      b.box(x - 4, y + 6, z - 6, x + 4, y + 6, z + 1, B.MARBLE);
+      // the dome
+      const dcx = x, dcz = z - 2.5, dcy = y + 6;
+      for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = 1; dy <= 4; dy++) {
+        const r = Math.hypot(dx, dz + 0.5, dy * 1.05);
+        if (r <= 3.8 && r > 2.8) b.stamp(dcx + dx, dcy + dy, Math.round(dcz + dz), (dx + dy + dz) % 4 === 0 ? B.MOSAIC : B.GOLD_TILE);
+      }
+      b.stamp(dcx, dcy + 5, Math.round(dcz), B.GOLD_TILE); b.stamp(dcx, dcy + 6, Math.round(dcz), B.LANTERN);
+      for (const [lx, lz] of [[x - 3, z - 5], [x + 3, z - 5], [x - 3, z], [x + 3, z]]) b.stamp(lx, y + 4, lz, B.LANTERN);
+      b.stamp(x + 3, y + 1, z - 5, B.CHEST); b.stamp(x - 3, y + 1, z - 5, B.BOOKSHELF);
+      // the courtyard with a little wudu fountain and flowers
+      b.box(x + 2, y, z + 3, x + 4, y, z + 5, (X, _Y, Z) => (X === x + 3 && Z === z + 4 ? B.WATER : B.MOSAIC));
+      for (const [fx, fz] of [[x - 5, z + 3], [x - 5, z + 6], [x - 3, z + 7], [x + 1, z + 7]]) b.stamp(fx, y + 1, fz, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE][(fx + fz + 40) % 4]);
+      for (const [lx, lz] of [[x - 6, z + 7], [x + 6, z + 7]]) { b.stamp(lx, y + 1, lz, B.OAK_LOG); b.stamp(lx, y + 2, lz, B.LANTERN); }
+      // the minaret: a hollow tower with a staircase winding round a pillar, and a balcony on top
+      const tx = x + 9, tz = z - 4, TOP = 13;
+      b.box(tx - 2, y + 1, tz - 2, tx + 2, y + TOP, tz + 2, (X, Y, Z) => {
+        const wall = Math.abs(X - tx) === 2 || Math.abs(Z - tz) === 2;
+        if (!wall) return X === tx && Z === tz ? B.MARBLE : B.AIR;
+        if (X === tx - 2 && Z === tz && Y <= y + 2) return B.AIR; // the door
+        if ((Y - y) % 4 === 0 && (X === tx || Z === tz)) return B.GLASS;
+        return (Y - y) % 5 === 0 ? B.MOSAIC : B.MARBLE;
+      });
+      const ring = [[-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0]];
+      for (let i = 1; i <= TOP; i++) { const [dx, dz] = ring[(i - 1) % 8]; b.stamp(tx + dx, y + i, tz + dz, B.PLANKS); }
+      // balcony: a floor round the top with an opening over the stairs, and a low rail
+      b.box(tx - 3, y + TOP + 1, tz - 3, tx + 3, y + TOP + 1, tz + 3, (X, _Y, Z) => (Math.abs(X - tx) <= 1 && Math.abs(Z - tz) <= 1 && !(X === tx && Z === tz) ? B.AIR : B.MARBLE));
+      b.box(tx - 3, y + TOP + 2, tz - 3, tx + 3, y + TOP + 2, tz + 3, (X, _Y, Z) => (Math.abs(X - tx) === 3 || Math.abs(Z - tz) === 3 ? B.MARBLE : null));
+      for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) { b.stamp(tx + dx, y + TOP + 3, tz + dz, B.MARBLE); b.stamp(tx + dx, y + TOP + 4, tz + dz, B.LANTERN); }
+      b.box(tx - 1, y + TOP + 5, tz - 1, tx + 1, y + TOP + 5, tz + 1, B.GOLD_TILE);
+      b.stamp(tx, y + TOP + 6, tz, B.GOLD_TILE); b.stamp(tx, y + TOP + 7, tz, B.LANTERN);
+      return {
+        y: y + 1,
+        spots: [{ id: 'minaret_top', icon: '📢', name: ['Puncak Menara', 'Top of the Minaret'], fact: ['Dari menara, muadzin mengumandangkan adzan lima kali sehari. Muadzin pertama adalah Bilal bin Rabah, yang dipilih Rasulullah ﷺ karena suaranya indah.', 'From the minaret, the muadhin calls the adhan five times a day. The first muadhin was Bilal ibn Rabah, chosen by the Prophet ﷺ for his beautiful voice.'], x: tx + 2.5, y: y + TOP + 2, z: tz + 0.5, r: 3 }],
+        at: { door: [x + 0.5, y + 1, z + 2.5], minaret: [tx + 0.5, y + 1, tz + 0.5] },
+      };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);

@@ -253,6 +253,14 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       return r;
     });
+    await step('climb the hilltop masjid minaret', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); const m = G.gen.landmarks.find(l => l.id === 'hill_masjid'); const s = m.spots[0]; G.player.pos.set(s.x, s.y, s.z); G.player.vel.set(0, 0, 0); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => (__game.stats.spots || []).includes('minaret_top') || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 });
+      const r = await g(() => { const G = __game; G.ui.closeAllModals(); const out = { spot: true, y: Math.round(G.player.pos.y) }; G.player.pos.set(0.5, 47, 3.5); return out; });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
         if (!a) return { skipped: true };

@@ -230,3 +230,21 @@ describe('weather of the day', () => {
     expect(sunny).toBeGreaterThan(100); expect(sunny).toBeLessThan(220); // sunny is the most common
   });
 });
+
+describe('hilltop masjid', () => {
+  for (const seed of [1, 42, 777, 99999]) it(`seed ${seed}: a hall with a mihrab, and a minaret you can climb one step at a time`, () => {
+    const g = new Generator(seed), at = stamped(g), l = g.landmarks.find(l => l.id === 'hill_masjid')!;
+    const [dx, dy, dz] = l.at!.door;
+    expect(at(dx, dy, dz - 1)).toBe(B.AIR); // the doorway
+    const [mx, my, mz] = l.at!.minaret, tx = Math.floor(mx), tz = Math.floor(mz), y = my - 1;
+    expect(at(tx - 2, y + 1, tz)).toBe(B.AIR); // the minaret door
+    const ring = [[-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0]];
+    for (let i = 1; i <= 13; i++) {
+      const [ax, az] = ring[(i - 1) % 8];
+      expect(at(tx + ax, y + i, tz + az), `step ${i}`).toBe(B.PLANKS);
+      expect(at(tx + ax, y + i + 1, tz + az), `headroom ${i}`).not.toBe(B.MARBLE);
+    }
+    const top = l.spots![0];
+    expect(at(top.x, top.y, top.z)).toBe(B.AIR); expect(at(top.x, top.y - 1, top.z)).toBe(B.MARBLE);
+  });
+});
