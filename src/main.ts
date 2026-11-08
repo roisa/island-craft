@@ -49,6 +49,7 @@ import { Treasure } from './game/treasure';
 import { mangroveTree } from './world/landmarks';
 import { Weather } from './game/weather';
 import { Jamaah, rowPose } from './game/jamaah';
+import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -1476,7 +1477,30 @@ export class Game {
     this.save();
   }
 
+  /** today's three small goals: coins for each, and a bonus for all three */
+  private dailyCheck(silent: boolean) {
+    const d = this.stats.daily = dailyFor(this.stats.daily, this.stats, new Date().toDateString(), this.seed);
+    for (const id of d.goals) {
+      if (d.done.includes(id) || progress(d, this.stats, id) < GOALS.find(g => g.id === id)!.need) continue;
+      d.done.push(id);
+      if (silent) continue;
+      const g = GOALS.find(g => g.id === id)!;
+      this.addCoins(GOAL_COINS, from => this.ui.coinPop(GOAL_COINS, from));
+      SFX.quest();
+      this.ui.toast(`${g.icon} ${tr('Target hari ini selesai', 'Today’s goal done')}: ${tr(g.name[0], g.name[1])}! (${d.done.length}/3)`, 3500);
+    }
+    if (d.done.length === d.goals.length && !d.bonus) {
+      d.bonus = true;
+      if (silent) return;
+      setTimeout(() => {
+        this.addCoins(ALL_BONUS, from => this.ui.coinPop(ALL_BONUS, from));
+        SFX.fanfare(); this.ui.confetti(80); this.ents.mo.celebrate = 3;
+        this.ui.say(tr('Masya Allah! Semua target hari ini selesai! Bonus 100 koin 🎉 Sampai jumpa besok untuk target baru!', 'Masha Allah! All of today’s goals are done! A 100-coin bonus 🎉 Come back tomorrow for new goals!'), 'alright', 7000);
+      }, 1800);
+    }
+  }
   checkQuests(silent = false) {
+    this.dailyCheck(silent);
     for (const q of QUESTS) {
       if (this.questsDone.has(q.id)) continue;
       const [a, b] = q.goal(this.stats);

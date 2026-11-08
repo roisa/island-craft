@@ -13,6 +13,7 @@ import { SFX, playLetter, Speech } from './game/audio';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
+import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
@@ -32,6 +33,12 @@ const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;
 const SHOP: [number, number, number][] = [
   [I.DATES, 5, 20], [I.MILK, 2, 30], [B.SAPLING, 2, 20], [B.WOOL_RED, 4, 30], [B.WOOL_BLUE, 4, 30], [B.WOOL_YELLOW, 4, 30],
   [B.LANTERN, 3, 50], [I.FISHING_ROD, 1, 80], [I.PRAYER_MAT, 1, 100], [B.MANGROVE_SEEDLING, 2, 40], [I.KITE_RED, 1, 120], [I.FIREWORK, 3, 60], [I.BOAT, 1, 150],
+];
+
+/** what Bu Aminah buys: [item, coins for one] — every find has a use */
+const SELL: [number, number][] = [
+  [I.GOLDEN_FISH, 100], [I.PEARL, 40], [I.GOLD_INGOT, 30], [I.CRYSTAL, 25], [I.BIG_FISH, 15], [I.SMALL_FISH, 6],
+  [I.IRON_INGOT, 10], [I.EGG, 4], [I.MILK, 5], [B.WOOL_WHITE, 3], [I.APPLE, 3], [I.DATES, 2], [B.OBSIDIAN, 12],
 ];
 
 export type Tab = 'bag' | 'craft' | 'build' | 'wardrobe' | 'map' | 'letters' | 'quests' | 'ramadhan' | 'prayer' | 'settings';
@@ -314,8 +321,23 @@ export class UI {
     const g = this.g;
     const near = Math.hypot(g.player.pos.x, g.player.pos.z) < 40;
     if (!near) { this.toast(tr('🛒 Toko ada di warung Bu Aminah di desa. Ketuk 🏠 untuk pulang!', '🛒 The shop is at Bu Aminah’s stall in the village. Tap 🏠 to go home!'), 4000); return; }
-    const { el, close } = this.modal(`<div class="shop"><h2>🛒 ${tr('Toko Desa', 'Village Shop')}</h2><p class="shopHave"></p><div class="shopList"></div><button class="btn ghost small" id="shX">${tr('Tutup', 'Close')}</button></div>`);
+    const { el, close } = this.modal(`<div class="shop"><h2>🛒 ${tr('Toko Desa', 'Village Shop')}</h2><div class="scTabs"><button class="btn small gold" data-mode="buy">🛍️ ${tr('Beli', 'Buy')}</button><button class="btn small ghost" data-mode="sell">💰 ${tr('Jual', 'Sell')}</button></div><p class="shopHave"></p><div class="shopList"></div><button class="btn ghost small" id="shX">${tr('Tutup', 'Close')}</button></div>`);
+    let mode: 'buy' | 'sell' = 'buy';
+    el.querySelectorAll<HTMLElement>('[data-mode]').forEach(b => (b.onclick = () => { mode = b.dataset.mode as 'buy' | 'sell'; el.querySelectorAll<HTMLElement>('[data-mode]').forEach(x => { x.classList.toggle('gold', x === b); x.classList.toggle('ghost', x !== b); }); SFX.click(); render(); }));
+    const renderSell = () => {
+      const have = g.stats.coins || 0, fmt = (n: number) => n.toLocaleString();
+      el.querySelector<HTMLElement>('.shopHave')!.innerHTML = `${tr('Koinmu', 'Your coins')}: <b>🪙 ${fmt(have)}</b> · ${tr('Bu Aminah membeli hasil kerjamu', 'Bu Aminah buys what you gather')}`;
+      const rows = SELL.filter(([id]) => g.inv.count(id) > 0);
+      el.querySelector<HTMLElement>('.shopList')!.innerHTML = rows.length ? rows.map(([id, price]) => `<div class="shopRow"><img src="${iconURL(id)}" alt=""><div><b>${esc(t2(nameOf(id)))} <small>×${g.inv.count(id)}</small></b><small>${fmt(have)} + ${price} = ${fmt(have + price)}</small></div><button class="btn small gold" data-sell="${id}">+🪙 ${price}</button></div>`).join('')
+        : `<p>${tr('Belum ada yang bisa dijual. Ikan, mutiara, kristal, telur, susu, wol dan emas bisa dijual di sini!', 'Nothing to sell yet. Fish, pearls, crystals, eggs, milk, wool and gold can be sold here!')}</p>`;
+      el.querySelectorAll<HTMLElement>('[data-sell]').forEach(b => (b.onclick = () => {
+        const id = +b.dataset.sell!, price = SELL.find(([i]) => i === id)![1];
+        if (!g.inv.remove(id, 1)) return;
+        g.addCoins(price, from => this.coinPop(price, from)); g.stats.sold = (g.stats.sold || 0) + 1; g.saveSoon(); render();
+      }));
+    };
     const render = () => {
+      if (mode === 'sell') return renderSell();
       const have = g.stats.coins || 0, fmt = (n: number) => n.toLocaleString();
       el.querySelector<HTMLElement>('.shopHave')!.innerHTML = `${tr('Koinmu', 'Your coins')}: <b>🪙 ${fmt(have)}</b>`;
       el.querySelector<HTMLElement>('.shopList')!.innerHTML = SHOP.map(([id, n, price], i) => `<div class="shopRow ${have >= price ? '' : 'poor'}"><img src="${iconURL(id)}" alt=""><div><b>${esc(t2(nameOf(id)))}${n > 1 ? ' ×' + n : ''}</b><small>${have >= price ? `${fmt(have)} − ${price} = ${fmt(have - price)}` : tr(`Kurang ${fmt(price - have)} koin`, `${fmt(price - have)} more coins needed`)}</small></div><button class="btn small ${have >= price ? 'gold' : 'ghost'}" data-buy="${i}">🪙 ${price}</button></div>`).join('');
@@ -502,7 +524,9 @@ export class UI {
     const qe = $('#quest');
     if (q) {
       const [a, b] = q.goal(g.stats);
-      const html = `<div class="qt">${q.icon} ${esc(t2(q.title))}</div><div class="qd">${esc(t2(q.desc))}</div><div class="bar"><i style="width:${Math.round(a / b * 100)}%"></i></div>`;
+      const d = g.stats.daily;
+      const today = d && d.goals.length ? `<div class="qday">${tr('Hari ini', 'Today')} ${d.goals.map(id => `<span class="${d.done.includes(id) ? 'ok' : ''}">${GOALS.find(x => x.id === id)!.icon}</span>`).join('')} <b>${d.done.length}/3</b></div>` : '';
+      const html = `${today}<div class="qt">${q.icon} ${esc(t2(q.title))}</div><div class="qd">${esc(t2(q.desc))}</div><div class="bar"><i style="width:${Math.round(a / b * 100)}%"></i></div>`;
       if (qe.dataset.h !== html) { qe.innerHTML = html; qe.dataset.h = html; }
       qe.classList.remove('hidden');
     } else qe.classList.add('hidden');
@@ -821,7 +845,12 @@ export class UI {
   private quests(body: HTMLElement) {
     const g = this.g;
     const active = g.activeQuests();
-    body.innerHTML = `<p>${tr('Misi itu santai — kerjakan kapan saja kamu mau 😊', 'Quests are relaxed — do them whenever you like 😊')}</p><h3>${tr('Sedang dikerjakan', 'In progress')}</h3>${active.map(q => {
+    const dl = g.stats.daily;
+    const todayHtml = dl ? `<h3>📅 ${tr('Target hari ini', 'Today’s goals')} <small>(${dl.done.length}/3 · ${tr(`🪙 ${GOAL_COINS} tiap target, bonus ${ALL_BONUS}`, `🪙 ${GOAL_COINS} each, ${ALL_BONUS} bonus for all`)})</small></h3>${dl.goals.map(id => {
+      const gl = GOALS.find(x => x.id === id)!, a = progress(dl, g.stats, id), done = dl.done.includes(id);
+      return `<div class="qcard ${done ? 'done' : ''}"><div class="ic">${gl.icon}</div><div class="tx"><b>${esc(t2(gl.name))} <span style="color:var(--green-d)">${done ? '✓' : a + '/' + gl.need}</span></b><div class="bar"><i style="width:${Math.round(a / gl.need * 100)}%"></i></div></div></div>`;
+    }).join('')}` : '';
+    body.innerHTML = `${todayHtml}<p>${tr('Misi itu santai — kerjakan kapan saja kamu mau 😊', 'Quests are relaxed — do them whenever you like 😊')}</p><h3>${tr('Sedang dikerjakan', 'In progress')}</h3>${active.map(q => {
       const [a, b] = q.goal(g.stats);
       return `<div class="qcard"><div class="ic">${q.icon}</div><div class="tx"><b>${esc(t2(q.title))} <span style="color:var(--green-d)">${a}/${b}</span></b><small>${esc(t2(q.desc))}</small></div></div>`;
     }).join('') || `<p>${tr('Semua misi selesai! Masya Allah!', 'All quests done! Masha Allah!')}</p>`}
@@ -985,7 +1014,7 @@ export class UI {
       <button class="btn ghost small hidden" id="pPrev">${ic('undo')} ${tr('Kembalikan dunia sebelumnya', 'Bring back the previous world')}</button>
       <input type="file" id="pFile" accept=".json,application/json" hidden>
       <button class="btn ghost small" id="pNew">${ic('globe')} ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
-      <button class="btn small" id="pOk">${tr('Selesai', 'Done')}</button>`);
+      <button class="btn small" id="pOk">${tr('Selesai', 'Done')}</button>`, undefined, { now: true }); // a grown-up just passed the check: show it now, ahead of any queued pop-up
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
     $('#pBug', el).onclick = e => { s.beetles = s.beetles === false; (e.currentTarget as HTMLElement).classList.toggle('on', s.beetles !== false); g.saveSoon(); };

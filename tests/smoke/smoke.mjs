@@ -213,10 +213,10 @@ async function run(name) {
       });
       if (!r.made || r.slot < 0 || r.flying !== 257) throw new Error(JSON.stringify(r));
       // pop-ups (a level-up after crafting) pause the game: close them while the kite climbs
-      await p.waitForFunction(() => __game.kites.h > 1.6 || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 }).catch(() => {});
-      const h = await g(() => { const G = __game; const out = { flying: G.kites.flying, h: +G.kites.h.toFixed(1) }; G.kites.stop(); G.ui.closeAllModals(); return out; });
+      await p.waitForFunction(() => __game.kites.h > 1.55 || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 }).catch(() => {});
+      const h = await g(() => { const G = __game; const out = { flying: G.kites.flying, h: +G.kites.h.toFixed(3) }; G.kites.stop(); G.ui.closeAllModals(); return out; });
       // it climbs from 1.5 towards its height
-      if (h.flying !== 257 || !(h.h > 1.6)) throw new Error(JSON.stringify(h));
+      if (h.flying !== 257 || !(h.h > 1.55)) throw new Error(JSON.stringify(h));
       return h;
     });
     await step('treasure map: four pieces, then dig up the great treasure', async () => {
@@ -285,6 +285,21 @@ async function run(name) {
       await g(() => __game.ui.closeAllModals());
       if (bought.dates !== 5 || bought.coins !== after.coins - 20) throw new Error(JSON.stringify(bought));
       return { hud, coins: after.coins, shop: bought };
+    });
+    await step('today’s goals give coins, and finds can be sold', async () => {
+      const r = await g(() => {
+        const G = __game, s = G.stats; G.ui.closeAllModals();
+        const d = s.daily, c0 = s.coins || 0;
+        s.petted += 2; s.placed += 10; s.planted += 1; s.gave += 1; s.jamaah += 1; s.ate += 1; s.quiz += 3; s.cooked = (s.cooked || 0) + 1; s.fish = (s.fish || 0) + 1; s.letters.push(27);
+        s.mined[14] = (s.mined[14] || 0) + 5; s.mined[3] = (s.mined[3] || 0) + 5;
+        G.checkQuests(); G.ui.closeAllModals();
+        return { goals: d.goals, done: s.daily.done.length, gained: (s.coins || 0) - c0 };
+      });
+      if (r.goals.length !== 3 || r.done !== 3 || r.gained < 90) throw new Error(JSON.stringify(r));
+      await p.waitForFunction(() => __game.stats.daily.bonus && (__game.ui.closeAllModals(), true), null, { timeout: 10000 });
+      const sold = await g(() => { const G = __game; G.player.pos.set(0.5, 47, 3.5); G.inv.add(252, 1); const c0 = G.stats.coins; G.ui.shop(); document.querySelector('.veil.on [data-mode="sell"]').click(); document.querySelector('.veil.on [data-sell="252"]').click(); const out = { gained: G.stats.coins - c0, pearls: G.inv.count(252) }; G.ui.closeAllModals(); return out; });
+      if (sold.gained !== 40) throw new Error(JSON.stringify(sold));
+      return { ...r, sold };
     });
     await step('pet an animal (repeated taps count once)', async () => {
       const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));

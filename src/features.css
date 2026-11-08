@@ -104,3 +104,11 @@
 .shopRow.poor { opacity: .7; }
 .shopRow .btn { width: auto; margin: 0; white-space: nowrap; }
 @media (max-width: 520px) { #jmHud { font-size: 13px; padding: 6px 10px; max-width: calc(100vw - 24px); white-space: normal; text-align: center; } }
+#quest .qday { font-size: 12px; display: flex; align-items: center; gap: 3px; margin-bottom: 3px; opacity: .9; }
+#quest .qday span { filter: grayscale(1); opacity: .5; }
+#quest .qday span.ok { filter: none; opacity: 1; }
+.qcard.done { opacity: .7; }
+.qcard .tx .bar { height: 6px; border-radius: 3px; background: rgba(0,0,0,.1); margin-top: 4px; overflow: hidden; }
+.qcard .tx .bar i { display: block; height: 100%; background: var(--green, #3fa34d); }
+.shop .scTabs { display: flex; gap: 8px; justify-content: center; margin: 4px 0 6px; }
+.shop .scTabs .btn { width: auto; margin: 0; }

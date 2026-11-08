@@ -275,3 +275,24 @@ describe('praying together', () => {
     expect(sawSujud).toBe(true); expect(done).toBe(true); expect(rowPose.pose).toBe('qiyam');
   });
 });
+
+import { goalsFor, dailyFor, progress } from '../../src/game/daily';
+import { newStats } from '../../src/content';
+describe('today’s three goals', () => {
+  it('are three different goals, stable for a day, and count only what is done today', () => {
+    const a = goalsFor('Sun Nov 08 2026', 42, true);
+    expect(a.length).toBe(3); expect(new Set(a).size).toBe(3);
+    expect(goalsFor('Sun Nov 08 2026', 42, true)).toEqual(a);
+    const days = new Set(Array.from({ length: 10 }, (_, i) => goalsFor('day ' + i, 42, true).join()));
+    expect(days.size).toBeGreaterThan(5);
+    expect(goalsFor('x', 1, false)).not.toContain('letter'); // no letter goal once all 28 are found
+    const s = newStats(); s.petted = 7; s.placed = 40;
+    const d = dailyFor(undefined, s, 'day A', 1);
+    for (const id of d.goals) expect(progress(d, s, id)).toBe(0); // yesterday's work doesn't count
+    s.petted += 2; s.placed += 10; s.planted += 1; s.gave += 1; s.jamaah += 1; s.ate += 1; s.quiz += 3; s.cooked = 1; s.fish = 1; s.letters.push(1);
+    s.mined = { [B.OAK_LOG]: 5, [B.STONE]: 5 };
+    for (const id of d.goals) expect(progress(d, s, id), id).toBeGreaterThan(0);
+    expect(dailyFor(d, s, 'day A', 1)).toBe(d);
+    expect(dailyFor(d, s, 'day B', 1)).not.toBe(d);
+  });
+});

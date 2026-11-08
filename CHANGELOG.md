@@ -5,6 +5,43 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A reason for everything, and a rewarding 5–10 minutes 📅
+
+- **Audit: every item now has a use.**
+  - A check of every item against recipes, food, tools, decorations and
+    "Use" actions found two things you could collect but not use:
+    - golden fish had no use at all;
+    - pearls only mattered while the Eid bazaar was open.
+  - The village shop now has a **Sell** tab. Bu Aminah buys what you
+    gather: golden fish 100, pearl 40, gold 30, crystal 25, big fish 15,
+    obsidian 12, iron 10, small fish 6, and milk, eggs, wool, apples and
+    dates.
+  - Each row shows the sum, such as "590 + 100 = 690".
+- **Today's three goals:** three small goals each real day, each doable in
+  a few minutes.
+  - The pool: pet 2 animals, collect 5 logs, dig 5 stones, place 10
+    blocks, plant a sapling, give food, pray together, catch a fish, cook,
+    find a letter, eat, or answer 3 letter-quiz questions.
+  - Only what is done today counts.
+  - **+30 coins** for each goal and a **+100 bonus** for all three, with a
+    celebration and "come back tomorrow".
+  - The corner tracker shows "Today 💕🌱✨ 1/3"; the quests tab lists the
+    goals with progress bars.
+  - The letter goal is left out once all 28 letters are found.
+- **Fixed:**
+  - The parents panel now opens at once after the grown-ups check, even
+    when another pop-up is waiting.
+  - The kite smoke step was too strict: CI failed on Android while the
+    kite was just starting to climb. It now checks that the kite rose
+    above where it started.
+- **Tested:**
+  - A unit test for the goals: three different ones, stable per day,
+    today's progress only.
+  - A smoke step on four profiles: all three goals, coins and bonus,
+    selling a pearl.
+  - Screenshots of the goals, the tracker and the Sell tab.
+  - The QA suite on five profiles.
+
 ### Animals look right again 🐪🐄🐑🐐🐔🐱
 
 Reported by a parent: "the camel looks weird".
