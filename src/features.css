@@ -160,3 +160,10 @@
 .ws.next { border-color: #F1C232; background: #fff8dc; animation: pk 1s ease-in-out infinite alternate; }
 .ws.done { background: #d9f2e1; opacity: .75; }
 @media (max-height: 520px) { .tsb { width: 90px; height: 90px; } .ws { min-height: 52px; padding: 5px 3px; } .wsteps { grid-template-columns: repeat(5, 1fr); } }
+
+/* pop-up content with a max width sits in the middle of its panel */
+.scope, .shop, .amalCard, .tasbih, .wudu { margin-left: auto; margin-right: auto; }
+/* the book's tabs sit in the middle, with the same room on both sides (the ✕ is on the right) */
+#book .tabs { margin-left: 46px !important; margin-right: 46px !important; justify-content: center; }
+@media (max-width: 520px), (max-height: 520px) { #book .tabs { justify-content: flex-start; } }
+.shop h2, .shop .shopHave { text-align: center; }

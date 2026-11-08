@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Pop-ups centred
+
+Reported by a parent: pop-up content sat a little to the left.
+
+- **The cause:** the shop, telescope, tasbih, wudu and hadith cards have a
+  maximum width, but nothing centred them inside their panel. Their
+  content sat 18 px from the left edge and 102 px from the right.
+  - They are now centred, and so are the shop's title and coin line.
+- **The book's tab bar** kept room for the ✕ only on its right, so the
+  tabs looked shifted left. It now has the same space on both sides and
+  centres its tabs. Narrow phones still scroll the tabs from the left.
+- **A new QA check** measures every pop-up and fails if its content is
+  more than 12 px off-centre. It runs on all five profiles and passes.
+
 ### New good deeds to do in the village 🤲
 
 All of these are recorded in the Amal Book and help the village projects.

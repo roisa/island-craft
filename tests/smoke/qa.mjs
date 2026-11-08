@@ -56,6 +56,13 @@ for (const name of profiles) {
           if (Math.min(r.width, r.height) < 30) issues.push(`small button "${(btn.innerText || btn.getAttribute('aria-label') || '').trim().slice(0, 20)}" ${Math.round(r.width)}×${Math.round(r.height)}`);
         }
         for (const img of panel.querySelectorAll('img')) if (img.complete && img.naturalWidth === 0) issues.push('an image failed to draw');
+        // the content of a pop-up sits in the middle, not stuck to the left
+        const cs = getComputedStyle(panel), padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
+        for (const c of panel.children) {
+          const r = c.getBoundingClientRect(); if (!r.width || getComputedStyle(c).position === 'absolute') continue;
+          const l = r.left - b.left - padL, rr = b.right - r.right - padR;
+          if (Math.abs(l - rr) > 12 && r.width < b.width - padL - padR - 4) issues.push(`pop-up content off-centre (${Math.round(l)}px left, ${Math.round(rr)}px right) in .${c.className || c.tagName}`);
+        }
       }
       return issues;
     });
