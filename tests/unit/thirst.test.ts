@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { drain, sip, thirstSpeed, newHydration, SIPS, LOW, RATE } from '../../src/game/thirst';
+import { drain, sip, thirstSpeed, newHydration, SIPS, LOW, RATE, MO_ASK_EVERY } from '../../src/game/thirst';
 import { DEEDS } from '../../src/game/amal';
 import { I, ITEMS } from '../../src/world/blocks';
 
@@ -9,8 +9,11 @@ describe('thirst', () => {
   });
   it('drains faster while busy, never below zero', () => {
     expect(drain(100, 60, true)).toBeLessThan(drain(100, 60, false));
-    expect(drain(100, 600, true)).toBeCloseTo(0, 5);           // about 10 minutes of work
-    expect(drain(100, 600, false)).toBeGreaterThan(60);        // resting is much slower
+    // thirsty after about 20 real minutes of busy play, not before
+    expect(drain(100, 19 * 60, true)).toBeGreaterThan(LOW);
+    expect(drain(100, 20 * 60, true)).toBeCloseTo(LOW, 5);
+    expect(drain(100, 45 * 60, false)).toBeGreaterThan(LOW);   // resting is much slower
+    expect(MO_ASK_EVERY).toBeGreaterThanOrEqual(600);          // Baby Mo doesn't keep asking
     expect(drain(5, 999, true)).toBe(0);
     expect(RATE.busy).toBeGreaterThan(RATE.rest);
   });

@@ -5,6 +5,26 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Thirst comes much less often 💧
+
+Requested by a parent: the thirsty reminder came too often; about every
+20 real minutes is enough.
+
+- **You and Baby Mo get thirsty after about 20 real minutes of busy
+  play** (walking, digging, building, swimming), and after about an hour
+  of quiet play. Before, it was about 7½ minutes.
+- **Baby Mo asks for a drink once** when he gets thirsty, then at most
+  every 10 minutes if he’s still thirsty. Before, he asked every 90
+  seconds.
+- A drink still works the same (a sip brings back 40%), and the gentle
+  slow-down only starts when you’re actually thirsty.
+- The separate real-life water break (a parent setting, every 20
+  minutes by default) is unchanged.
+- **Tested:**
+  - Unit tests: not thirsty at 19 minutes, thirsty at 20; resting is
+    slower; Mo waits at least 10 minutes between asks.
+  - The smoke suite on four profiles, and the QA suite.
+
 ### The Fishing Pond, near the village 🎣🏞️
 
 Requested by a parent: a pond close to the masjid where villagers also

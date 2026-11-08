@@ -13,8 +13,11 @@ export const SIPS = 4;
 export const SIP = 40;
 /** below this you (or Mo) feel thirsty */
 export const LOW = 25;
-/** points lost per second: about 10 minutes of busy work, or 30 of resting, from full to empty */
-export const RATE = { busy: 100 / 600, rest: 100 / 1800 };
+/** points lost per second: thirsty (below LOW) after about 20 real minutes of busy play, 60 of resting */
+export const THIRSTY_AFTER = { busy: 20 * 60, rest: 60 * 60 };
+export const RATE = { busy: (100 - LOW) / THIRSTY_AFTER.busy, rest: (100 - LOW) / THIRSTY_AFTER.rest };
+/** once thirsty, Baby Mo asks again at most this often (seconds) */
+export const MO_ASK_EVERY = 10 * 60;
 
 export interface Hydration { me: number; mo: number; sips: number; got?: boolean }
 export const newHydration = (): Hydration => ({ me: 100, mo: 100, sips: SIPS });
@@ -29,7 +32,7 @@ export const sip = (level: number) => Math.min(100, level + SIP);
 export const thirstSpeed = (level: number) => (level < LOW ? 0.8 + 0.2 * (level / LOW) : 1);
 
 export class Thirst {
-  private moSaidT = 30;
+  private moSaidT = 0;
   private meSaid = false;
   private dropT = 0;
   constructor(private g: Game) { }
@@ -54,7 +57,7 @@ export class Thirst {
     // a thirsty Baby Mo has little water drops over his head now and then
     if (h.mo < LOW && (this.dropT -= dt) <= 0) { this.dropT = 4; const mo = g.ents.mo; g.fx.sparkle(mo.pos.x, mo.pos.y + 2.1, mo.pos.z, 4, 0x8fd3ec, 0.6); }
     if (h.mo < LOW && (this.moSaidT -= dt) <= 0) {
-      this.moSaidT = 90;
+      this.moSaidT = MO_ASK_EVERY;
       g.ui.say(tr('Aku haus… 🥺 Boleh minta minum? Pegang botol air lalu ketuk aku ya.', 'I’m thirsty… 🥺 Can I have a drink? Hold the water bottle and tap me.'), 'pose-05', 6000);
     }
   }

@@ -326,7 +326,7 @@ async function run(name) {
         const bars = document.querySelector('#twMe').style.height;
         return { drained, after, refilled: h.sips, bars };
       });
-      if (!(r.drained > 5) || r.after.me !== 50 || r.after.mo !== 50 || r.after.sips !== 2 || r.after.gave < 1 || r.refilled !== 4) throw new Error(JSON.stringify(r));
+      if (!(r.drained > 2) || r.after.me !== 50 || r.after.mo !== 50 || r.after.sips !== 2 || r.after.gave < 1 || r.refilled !== 4) throw new Error(JSON.stringify(r));
       return r;
     });
     await step('fishing practice: Baby Mo coaches each step until the first catch', async () => {
