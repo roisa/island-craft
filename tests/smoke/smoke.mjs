@@ -479,6 +479,31 @@ async function run(name) {
       if (!r.f || r.got < 1 || !r.gone || r.word !== 'Orange' || !r.back || !r.mango || !r.orange || !/Orange/.test(book)) throw new Error(JSON.stringify({ r, book }));
       return { ...r, book: book.length };
     });
+    await step('English: colours, counting, wudu words, the sentence of the day, saying hello to a villager in English', async () => {
+      const card = () => document.querySelector('#wordCard .we')?.textContent;
+      const r = await g(() => {
+        const G = __game, E = G.english; G.ui.closeAllModals();
+        E.shownAt = -1e9; E.seenAt.clear(); E.placed(48); const colour = document.querySelector('#wordCard .we').textContent;
+        ((G.stats.vocab ??= {}).Egg ??= { cat: 'thing', n: 1, item: 216 }); E.shownAt = -1e9; E.seenAt.clear(); G.inv.add(216, 4 - G.inv.count(216)); G.collectFx(216, 1); const count = document.querySelector('#wordCard .we').textContent;
+        return { colour, count };
+      });
+      // wudu: each step says its body part
+      await g(() => { __game.ui.closeAllModals(); __game.ui.wudu(); });
+      await p.waitForSelector('.veil.on .ws');
+      const wudu = await g(() => { const b = document.querySelectorAll('.veil.on .ws'); b[0].click(); b[1].click(); return { tag: b[4].querySelector('.wen')?.textContent, hands: __game.stats.vocab.Hands?.n }; });
+      // the sentence of the day: Baby Mo teaches it, "I said it!" gives coins
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.phraseDay = ''; G.english.bornAt = -1e9; G.english.scanT = 0; G.english.update(0.1); });
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .phrase'), null, { timeout: 10000 });
+      const said = await g(() => { const G = __game, c0 = G.stats.coins, btn = [...document.querySelectorAll('.veil.on #dbtns button')].pop(); btn.click(); return { coins: G.stats.coins - c0, day: G.stats.phraseDay === new Date().toDateString() }; });
+      // hello in English from Grandpa's dialog
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.english.chat('Grandpa', '👴', false); });
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .phrase'), null, { timeout: 10000 });
+      await g(() => document.querySelector('.veil.on #dbtns button').click());
+      await p.waitForFunction(() => /Have a nice day/.test(document.querySelector('.veil.on .dialog')?.textContent || ''), null, { timeout: 10000 });
+      const chat = await g(() => { const v = __game.stats.vocab; __game.ui.closeAllModals(); return { fine: !!v['I’m fine, thank you!'], back: !!v['Great! Have a nice day!'] }; });
+      if (r.colour !== 'Blue' || r.count !== 'Four eggs!' || wudu.tag !== 'Face' || !wudu.hands || said.coins < 10 || !said.day || !chat.fine || !chat.back) throw new Error(JSON.stringify({ r, wudu, said, chat }));
+      return { ...r, wudu, said, chat };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');

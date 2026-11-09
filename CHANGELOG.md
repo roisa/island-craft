@@ -5,6 +5,44 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### More English while playing: colours, numbers, wudu, weather, actions, things, Baby Mo’s sentence, greetings 🇬🇧
+
+Requested by a parent (suggestions 1–7 and 9 from the last batch).
+
+- **Colours**: placing coloured wool or a flower shows its colour (“Blue!
+  Biru”), at most every 4 minutes per colour.
+- **Numbers**: counting things as they come into your bag, from 2 to 10
+  (“Three apples!”, “Four eggs!”, “Five logs!”): fruit, dates, eggs,
+  fish, logs, stones and pearls. Picking fruit counts it too.
+- **Wudu body parts**: each wudu step shows its English word (Hands,
+  Mouth, Nose, Face, Arms, Head, Ears, Feet), and Baby Mo says it when
+  you tap the step (“Hands! Wash your hands.”).
+- **Weather and time of day**: the weather of the day (“It’s sunny!”,
+  “It’s windy!”…), “It’s raining!” or “It’s snowing!”, and Good morning
+  / afternoon / evening / night as the day goes by.
+- **Action words**: Jump!, Swim!, Climb!, Ride!, Dig! when you do them
+  (the first five times each, a few minutes apart).
+- **English names of things**: the first time something new comes into
+  your bag, a card shows its picture with its English and Indonesian
+  name.
+- **Baby Mo’s sentence of the day**: once a day Baby Mo teaches a short
+  sentence (“I am happy.”, “Thank you!”, “Let’s go!”… 20 in all).
+  🔊 Listen again; ⭐ I said it! gives 10 coins.
+- **Saying hello in English**: Dad, Bu Aminah and Grandpa have a
+  🇬🇧 Say hello in English button. They greet you for the time of day
+  (“Good morning! How are you?”) and you pick an answer (“I’m fine,
+  thank you!”, “I’m happy!”, “I’m hungry!”); they answer back.
+  5 coins the first time each day with each of them.
+- **My English Words** now has sections for all of these, including
+  things with their pictures.
+- Tested:
+  - Unit tests: counting words, a body word for every wudu step, the
+    colour of wool and flowers, the time-of-day greetings, the sentence
+    of the day (the same all day, changes each day).
+  - Smoke test on all four devices: a colour card, “Four eggs!”, the
+    wudu words, the sentence of the day with its coins, and a hello in
+    English with Grandpa.
+
 ### English words while playing, and the Fruit Orchard 🍎📘
 
 Requested by a parent: more praise words so Ibra learns English while

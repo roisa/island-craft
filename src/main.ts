@@ -166,7 +166,7 @@ export class Game {
   private heldId = -1; private heldTP: THREE.Object3D | null = null; private heldFP: THREE.Object3D | null = null;
   private viewModel = new THREE.Group();
   private crackTex: THREE.CanvasTexture[] = [];
-  private mining: { key: string; t: number; need: number } | null = null;
+  mining: { key: string; t: number; need: number } | null = null;
   private mineAnim = 0;
   /** the player's avatar animator (third person) */
   readonly anim = new Animator(1.7);
@@ -1463,6 +1463,7 @@ export class Game {
   private flyBurstAt = 0;
   /** show an item arriving: flies from `from` to the player when given, else just the bag notice */
   collectFx(id: number, n: number, from?: THREE.Vector3) {
+    this.english?.gained(id);
     if (!from || this.settings.lowGfx) { this.ui.pickup(id, n); this.ui.bumpSlot(id); return; }
     const now = performance.now();
     if (now - this.flyBurstAt > 600) this.flyBurst = 0;
@@ -1523,6 +1524,7 @@ export class Game {
       }
     }
     this.world.set(x, y, z, held.id);
+    this.english?.placed(held.id);
     if (this.turnable(held.id)) this.world.setFacing(x, y, z, (faceToward(x, z, this.player.pos.x, this.player.pos.z) + this.placeRot) % 4);
     this.setUndo([[x, y, z, held.id]], this.inv.creative ? [] : [[held.id, 1]]);
     this.inv.useHeld();
@@ -1622,6 +1624,7 @@ export class Game {
           ...(k >= 3 ? [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
           { label: ic('book') + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
           { label: ic('blueprint') + tr('Lihat rancangan', 'See blueprints'), cls: 'ghost', fn: () => this.ui.openBook('build') },
+          { label: '🇬🇧 ' + tr('Sapa dalam Bahasa Inggris', 'Say hello in English'), cls: 'ghost', fn: () => this.english.chat(n.name, face, !!portrait) },
           { label: tr('Terima kasih, Ayah', 'Thank you, Dad') },
         ],
       });
@@ -1633,6 +1636,7 @@ export class Game {
         buttons: [
           ...(this.inv.count(I.DATES) >= 3 ? [{ label: tr('🥩 Tukar 3 kurma dengan daging halal', '🥩 Trade 3 dates for halal meat'), cls: 'gold', fn: () => { this.inv.remove(I.DATES, 3); this.inv.add(I.MEAT, 1); this.collectFx(I.MEAT, 1, n.pos.clone().setY(n.pos.y + 1.2)); SFX.pickup(); this.ui.toast(tr('🥩 Daging halal untukmu. Masak di tungku ya!', '🥩 Halal meat for you. Cook it at a furnace!')); } }] : []),
           { label: '🛒 ' + tr('Toko desa', 'Village shop'), cls: 'ghost', fn: () => this.ui.shop() },
+          { label: '🇬🇧 ' + tr('Sapa dalam Bahasa Inggris', 'Say hello in English'), cls: 'ghost', fn: () => this.english.chat(n.name, face, !!portrait) },
           { label: tr('Terima kasih, Bu', 'Thank you') },
         ],
       });
@@ -1642,7 +1646,7 @@ export class Game {
         face, img: !!portrait, who: n.name,
         text: tr(`Lihat matahari, Nak. <b>Subuh</b> saat fajar, <b>Dzuhur</b> saat matahari tinggi, <b>Ashar</b> sore hari, <b>Maghrib</b> saat matahari terbenam, dan <b>Isya</b> saat malam. Sekarang pukul ${this.fmtGame(this.hour)}, sholat berikutnya <b>${prayerName(np.p)}</b> pukul ${this.fmtGame(np.h)}.<br>Kakek juga suka menanam pohon — bibit yang kamu tanam akan tumbuh besar! 🌱`,
           `Look at the sun, child. <b>Fajr</b> is at dawn, <b>Dhuhr</b> when the sun is high, <b>Asr</b> in the afternoon, <b>Maghrib</b> at sunset and <b>Isha</b> at night. It’s ${this.fmtGame(this.hour)} now; next is <b>${prayerName(np.p)}</b> at ${this.fmtGame(np.h)}.<br>I love planting trees too — saplings you plant will grow tall! 🌱`),
-        buttons: [{ label: ic('mosque') + tr('Jadwal sholat asli', 'Real prayer times'), cls: 'ghost', fn: () => this.ui.openBook('prayer') }, { label: tr('Terima kasih, Kek', 'Thank you, Grandpa') }],
+        buttons: [{ label: '🇬🇧 ' + tr('Sapa dalam Bahasa Inggris', 'Say hello in English'), cls: 'ghost', fn: () => this.english.chat(n.name, face, !!portrait) }, { label: ic('mosque') + tr('Jadwal sholat asli', 'Real prayer times'), cls: 'ghost', fn: () => this.ui.openBook('prayer') }, { label: tr('Terima kasih, Kek', 'Thank you, Grandpa') }],
       });
     }
     this.checkQuests();

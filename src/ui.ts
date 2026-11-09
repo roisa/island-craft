@@ -16,8 +16,8 @@ import { adultSum } from './game/gate';
 import { DEEDS, type Deed } from './game/amal';
 import { WUDU } from './game/deeds';
 import { LOW, SIPS } from './game/thirst';
-import { PRAISE, ANIMAL_WORDS, FRUIT_WORDS } from './game/english';
-const PRAISE_LIST = () => PRAISE, ANIMAL_LIST = () => ANIMAL_WORDS, FRUIT_LIST = () => FRUIT_WORDS;
+import { PRAISE, ANIMAL_WORDS, FRUIT_WORDS, COLOR_WORDS, NUMBER_WORDS, BODY_WORDS, WEATHER_WORDS, ACTION_WORDS, PHRASES, GREETS, REPLIES, type Word as EWord } from './game/english';
+const ALL_WORDS = () => [...PRAISE, ...Object.values(ANIMAL_WORDS), ...Object.values(FRUIT_WORDS), ...Object.values(COLOR_WORDS), ...NUMBER_WORDS, ...BODY_WORDS.filter((w): w is EWord => !!w), ...Object.values(WEATHER_WORDS), ...Object.values(ACTION_WORDS), ...PHRASES, ...Object.values(GREETS), ...REPLIES.flatMap(r => [r.me, r.back])];
 import { WUDU_GUIDE, SHOLAT_GUIDE, poseFrames, type GuideStep } from './game/tutorials';
 import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
@@ -329,7 +329,8 @@ export class UI {
   wordCard(w: import('./game/english').Word) {
     const el = $('#wordCard');
     this.wordNow = w;
-    el.querySelector('.wi')!.textContent = w.icon;
+    const wi = el.querySelector('.wi')!;
+    if (w.item !== undefined) wi.innerHTML = `<img src="${iconURL(w.item)}" alt="">`; else wi.textContent = w.icon;
     el.querySelector('.we')!.textContent = w.en;
     el.querySelector('.wid')!.textContent = w.id;
     el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
@@ -476,7 +477,7 @@ export class UI {
     let i = 0;
     const { el, close } = this.modal(`<div class="wudu"><h2>💧 ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
       <div class="wBody"><div class="wPic"><div class="pgFrames" id="wPic"></div><p id="wSay"></p></div>
-      <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}"><span>${w.icon}</span><small>${esc(t2(w.name))}${w.times > 1 ? ' ×' + w.times : ''}</small></button>`).join('')}</div></div>
+      <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}"><span>${w.icon}</span><small>${esc(t2(w.name))}${w.times > 1 ? ' ×' + w.times : ''}</small>${g.settings.english !== false && BODY_WORDS[k] ? `<em class="wen">${BODY_WORDS[k]!.en}</em>` : ''}</button>`).join('')}</div></div>
       <p id="wMsg">${tr('Ketuk langkahnya satu per satu, mulai dari yang bersinar ✨', 'Tap the steps one by one, starting with the glowing one ✨')}</p>
       <div class="row"><button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
     const btns = el.querySelectorAll<HTMLElement>('.ws');
@@ -490,6 +491,7 @@ export class UI {
     btns.forEach(b => (b.onclick = () => {
       const k = +b.dataset.k!;
       if (k !== i) { SFX.error(); $('#wMsg', el).textContent = tr('Urutannya dari yang bersinar ya ✨', 'Follow the order: the glowing one ✨'); return; }
+      g.english?.wuduStep(k);
       i++; SFX.splash(); g.fx.sparkle(g.player.pos.x, g.player.pos.y + 1.2, g.player.pos.z, 4, 0x8fd3ec, 1); mark();
       if (i === WUDU.length) {
         g.stats.wudu = (g.stats.wudu || 0) + 1; SFX.chime(); this.confetti(30);
@@ -1174,12 +1176,15 @@ export class UI {
     $('#bWords', body).onclick = () => this.wordGame();
     // the English words met while playing, to hear again
     const v = g.stats.vocab || {};
-    const all = [...Object.values(PRAISE_LIST()), ...Object.values(ANIMAL_LIST()), ...Object.values(FRUIT_LIST())];
-    const met = all.filter(w => v[w.en]);
-    const box = h(`<div class="vocab"><h3>📘 ${tr('Kata Bahasa Inggrisku', 'My English Words')} <small>(${met.length}/${all.length})</small></h3>
-      ${met.length ? (['animal', 'fruit', 'praise'] as const).map(cat => { const ws = met.filter(w => w.cat === cat); return ws.length ? `<p class="vcat">${cat === 'animal' ? tr('🐾 Hewan', '🐾 Animals') : cat === 'fruit' ? tr('🍎 Buah', '🍎 Fruits') : tr('🌟 Kata pujian', '🌟 Praise words')}</p><div class="vwords">${ws.map(w => `<button class="vw" data-w="${esc(w.en)}"><span>${w.icon}</span><b>${esc(w.en)}</b><small>${esc(w.id)}</small></button>`).join('')}</div>` : ''; }).join('') : `<p>${tr('Jalan-jalan ke dekat hewan atau pohon buah, dan lakukan hal-hal hebat — kata-kata Bahasa Inggris akan muncul di sini! 🔊', 'Walk near animals and fruit trees, and do great things — English words will appear here! 🔊')}</p>`}</div>`);
+    const all = ALL_WORDS();
+    const things: EWord[] = Object.entries(v).filter(([, e]) => e.cat === 'thing' && e.item !== undefined).map(([en, e]) => ({ en, id: e.id ?? '', icon: '', cat: 'thing', item: e.item }));
+    const met = [...all.filter(w => v[w.en]), ...things];
+    const CATS: [EWord['cat'], string][] = [['animal', tr('🐾 Hewan', '🐾 Animals')], ['fruit', tr('🍎 Buah', '🍎 Fruits')], ['color', tr('🎨 Warna', '🎨 Colours')], ['number', tr('🔢 Angka', '🔢 Numbers')], ['body', tr('💧 Anggota wudhu', '💧 Body (wudu)')], ['weather', tr('🌤️ Cuaca & waktu', '🌤️ Weather & time')], ['action', tr('🏃 Gerakan', '🏃 Actions')], ['thing', tr('🎒 Benda', '🎒 Things')], ['phrase', tr('💬 Kalimat Baby Mo', '💬 Baby Mo’s sentences')], ['greet', tr('👋 Menyapa', '👋 Greetings')], ['praise', tr('🌟 Kata pujian', '🌟 Praise words')]];
+    const chip = (w: EWord) => `<button class="vw" data-w="${esc(w.en)}"><span>${w.item !== undefined ? `<img src="${iconURL(w.item)}" alt="">` : w.icon}</span><b>${esc(w.en)}</b><small>${esc(w.id)}</small></button>`;
+    const box = h(`<div class="vocab"><h3>📘 ${tr('Kata Bahasa Inggrisku', 'My English Words')} <small>(${met.length})</small></h3>
+      ${met.length ? CATS.map(([cat, label]) => { const ws = met.filter(w => w.cat === cat); return ws.length ? `<p class="vcat">${label}</p><div class="vwords">${ws.map(chip).join('')}</div>` : ''; }).join('') : `<p>${tr('Jalan-jalan ke dekat hewan atau pohon buah, dan lakukan hal-hal hebat — kata-kata Bahasa Inggris akan muncul di sini! 🔊', 'Walk near animals and fruit trees, and do great things — English words will appear here! 🔊')}</p>`}</div>`);
     body.appendChild(box);
-    box.querySelectorAll<HTMLElement>('[data-w]').forEach(b => (b.onclick = () => { const w = all.find(x => x.en === b.dataset.w); if (w) Speech.talk(w.say ?? w.en, 'en', true, 0); SFX.click(); }));
+    box.querySelectorAll<HTMLElement>('[data-w]').forEach(b => (b.onclick = () => { const w = [...all, ...things].find(x => x.en === b.dataset.w); if (w) Speech.talk(w.say ?? w.en, 'en', true, 0); SFX.click(); }));
   }
 
   private quests(body: HTMLElement) {

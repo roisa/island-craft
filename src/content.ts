@@ -77,7 +77,9 @@ export interface Stats {
   /** fruit picked in the orchard, growing back: [x, y, z, block, when] */
   fruitPicked?: [number, number, number, number, number][];
   /** the English words you've met (word → its kind and how often) */
-  vocab?: Record<string, { cat: string; n: number }>;
+  vocab?: Record<string, { cat: string; n: number; item?: number; id?: string }>;
+  /** the day Baby Mo last taught the sentence of the day, and the days you greeted each villager in English */
+  phraseDay?: string; chatDay?: Record<string, string>;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,
