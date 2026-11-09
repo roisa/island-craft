@@ -5,6 +5,18 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The adhan: “Allāhu Akbar” four times 🕌
+
+Requested by a parent: the adhan sound should be only “Allāhu Akbar”, four times.
+
+- The adhan at prayer time (and the 🔊 try button in the grown-ups’ settings)
+  now sings the opening of the adhan only: **Allāhu Akbar ×4**, in two
+  pairs with a breath between them, the last one held a little longer
+  (about 17 seconds; it was two before).
+- The voice is softer and warmer (the buzzy top is filtered off).
+- Tested: unit tests; in the game at Asr time the adhan plays with its
+  toast and no errors.
+
 ### More English while playing: colours, numbers, wudu, weather, actions, things, Baby Mo’s sentence, greetings 🇬🇧
 
 Requested by a parent (suggestions 1–7 and 9 from the last batch).

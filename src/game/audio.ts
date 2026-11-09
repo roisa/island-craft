@@ -239,7 +239,8 @@ export const Music = (() => {
 })();
 
 // ---- the call to prayer ----------------------------------------------------------
-// A short, gentle "Allāhu Akbar, Allāhu Akbar" in the style of the adhan, sung by a
+// Just the opening of the adhan: "Allāhu Akbar" four times (two pairs, with a breath
+// between them), sung gently by a
 // synthesized voice (a buzzing tone shaped by vowel formants, with vibrato and a
 // little melisma), in a hall-like echo. Made in code: no recording is used.
 const VOWEL: Record<'a' | 'u' | 'o', [number, number]> = { a: [760, 1180], u: [330, 760], o: [480, 860] };
@@ -269,19 +270,25 @@ export function adhan(): number {
   const dl = c.createDelay(1); dl.delayTime.value = 0.21;
   const fb = c.createGain(); fb.gain.value = 0.32;
   const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
-  out.connect(c.destination); out.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(c.destination);
+  // a warmer, softer voice: take the edge off the buzz
+  const warm = c.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 2400; warm.Q.value = 0.5;
+  out.connect(warm); warm.connect(c.destination); warm.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(c.destination);
   const D = 293.66, E = 329.63, F = 349.23, G = 392, A = 440;
   let t = c.currentTime + 0.15;
-  // two phrases: "Al-lāāā-hu Ak-baaar", the second a little higher, ending back home
-  const phrase = (lift: number) => {
+  // "Al-lāāā-hu Ak-baaar": four times, in two pairs. In each pair the first rests at home
+  // and the second rises a little and comes back down; a breath between the pairs.
+  const phrase = (lift: number, last: boolean) => {
     const k = Math.pow(2, lift / 12);
-    sing(c, out, t, 0.32, [[0, D * k], [1, D * k]], 'a'); t += 0.3;
-    sing(c, out, t, 1.5, [[0, E * k], [0.25, F * k], [0.45, G * k], [0.62, F * k], [0.8, E * k], [1, E * k]], 'a'); t += 1.45;
-    sing(c, out, t, 0.36, [[0, E * k], [1, D * k]], 'u'); t += 0.38;
-    sing(c, out, t, 0.32, [[0, D * k], [1, E * k]], 'a'); t += 0.3;
-    sing(c, out, t, 1.6, [[0, F * k], [0.3, G * k], [0.5, (lift ? A : F) * k], [0.75, E * k], [1, D * k]], 'a'); t += 1.75;
+    sing(c, out, t, 0.3, [[0, D * k], [1, D * k]], 'a'); t += 0.28;                                                        // Al-
+    sing(c, out, t, 1.4, [[0, E * k], [0.25, F * k], [0.45, G * k], [0.62, F * k], [0.8, E * k], [1, E * k]], 'a'); t += 1.36; // -lāāā-
+    sing(c, out, t, 0.34, [[0, E * k], [1, D * k]], 'u'); t += 0.36;                                                        // -hu
+    sing(c, out, t, 0.3, [[0, D * k], [1, E * k]], 'a'); t += 0.28;                                                         // Ak-
+    const end = last ? 2.1 : 1.5;                                                                                            // -baaar
+    sing(c, out, t, end, [[0, F * k], [0.3, G * k], [0.5, (lift ? A : F) * k], [0.75, E * k], [1, D * k]], 'a'); t += end + 0.2;
   };
-  phrase(0); phrase(2);
+  phrase(0, false); phrase(2, false);
+  t += 0.7; // a breath
+  phrase(0, false); phrase(2, true);
   const secs = t - c.currentTime;
   Music.duck(secs + 1);
   return secs;
