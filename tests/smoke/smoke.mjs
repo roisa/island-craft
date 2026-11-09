@@ -41,6 +41,8 @@ async function run(name) {
     catch (e) { steps.push({ label, ok: false, ms: Date.now() - t, info: String(e.message || e).split('\n')[0] }); console.log(`[${name}] ✗ ${label}: ${String(e.message || e).split('\n')[0]}`); throw e; }
   };
   const g = (fn, arg) => p.evaluate(fn, arg);
+  /** wait for the pop-up holding `sel`; any other pop-up queued in front of it (a place just discovered…) is closed */
+  const popup = (sel, timeout = 30000) => p.waitForFunction(sel => !!document.querySelector('.veil.on ' + sel) || (__game.ui.modals.filter(m => !m.veil.querySelector(sel)).forEach(m => m.close()), false), sel, { timeout, polling: 200 });
   const touch = !!PROFILES[name].hasTouch;
   try {
     await step('boot', async () => { await p.goto(url + '?lang=id'); await p.waitForSelector('#sPlay', { timeout: 30000 }); });
@@ -512,7 +514,7 @@ async function run(name) {
       });
       // wudu: each step says its body part
       await g(() => { __game.ui.closeAllModals(); __game.ui.wudu(); });
-      await p.waitForSelector('.veil.on .ws');
+      await popup('.ws');
       const wudu = await g(() => { const b = document.querySelectorAll('.veil.on .ws'); b[0].click(); b[1].click(); return { tag: b[4].querySelector('.wen')?.textContent, hands: __game.stats.vocab.Hands?.n }; });
       // the sentence of the day: Baby Mo teaches it, "I said it!" gives coins
       await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.phraseDay = ''; G.english.bornAt = -1e9; G.english.scanT = 0; G.english.update(0.1); });
@@ -586,8 +588,9 @@ async function run(name) {
       await goTo('ice_rink');
       await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.coins = Math.max(G.stats.coins || 0, 100); G.stats.skates = undefined; });
       await p.waitForFunction(() => !document.querySelector('#bPlay').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
-      await g(() => document.querySelector('#bPlay').click());
-      await p.waitForSelector('.veil.on #dbtns button');
+      await g(() => { __game.ui.closeAllModals(); document.querySelector('#bPlay').click(); });
+      // the booth waits in line behind any pop-up still queued (a place just discovered…): clear them until it shows
+      await p.waitForFunction(() => /Loket|Booth/.test(document.querySelector('.veil.on .dialog')?.textContent || '') || (__game.ui.modals.filter(m => !/Loket|Booth/.test(m.veil.textContent || '')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 });
       const sum = await g(() => document.querySelector('.veil.on .dialog').textContent.match(/\d+ − 10 = \d+/)?.[0]);
       // (read the coins right around the tap, so a reward arriving meanwhile doesn't count)
       const paid = await g(() => { const c0 = __game.stats.coins; document.querySelector('.veil.on #dbtns button').click(); return c0 - __game.stats.coins; });
@@ -615,11 +618,11 @@ async function run(name) {
       await g(() => document.querySelector('.veil.on #iqGo').click());
       // answer the three questions (try each choice until the right one)
       for (let q = 0; q < 3; q++) {
-        await p.waitForSelector('.veil.on .iqO');
+        await popup('.iqO');
         await g(() => new Promise(done => { const tryNext = i => { const b = document.querySelectorAll('.veil.on .iqO')[i]; if (!b) return done(0); b.click(); setTimeout(() => (document.querySelector('.veil.on .iqO.ok') ? done(1) : tryNext(i + 1)), 80); }; tryNext(0); }));
         await p.waitForTimeout(900);
       }
-      await p.waitForSelector('.veil.on #iqDone');
+      await popup('#iqDone');
       const c0 = await g(() => __game.stats.coins);
       await g(() => document.querySelector('.veil.on #iqDone').click());
       const r = await g(c0 => ({ step: __game.iqro.step, gained: __game.stats.coins - c0, stone: __game.stats.iqro.stone }), c0);
@@ -687,7 +690,7 @@ async function run(name) {
     await step('Amal Book: wudu, tasbih, charity box, and a village project gets built', async () => {
       const wudu0 = await g(() => __game.stats.amal?.total.wudu || 0); // (the prayer step already made wudu once)
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
-      await p.waitForSelector('.veil.on .wudu');
+      await popup('.wudu');
       for (let k = 0; k < 9; k++) await g(k => document.querySelector(`.veil.on .ws[data-k="${k}"]`).click(), k);
       if (!(await g(() => document.querySelector('.veil.on #wPic img.on')?.src || '')).includes('w10')) throw new Error('no du’a picture after wudu');
       // the picture guide for sholat: ten steps, each with a picture
