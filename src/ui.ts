@@ -72,6 +72,8 @@ export class UI {
   <div id="jmHud" class="pill hidden"></div>
   <div id="raceHud" class="pill hidden"><span id="raceT"></span><button class="btn small ghost" id="raceX">${tr('Keluar', 'Exit')}</button></div>
   <div id="raceCount" class="hidden"></div>
+  <div id="raceMath" class="hidden"></div>
+  <div id="phraseCard" class="pill hidden"><img src="img/baby-mo-idea.webp" alt=""><div><small class="pt"></small><b class="pe"></b><small class="pid"></small></div><button class="say" id="phSay" aria-label="Listen">${ic('speaker')}</button><button class="btn small gold" id="phSaid">⭐ <span></span></button><button class="phx" id="phX" aria-label="Close">✕</button></div>
   <div id="wordCard" class="pill hidden"><span class="wi"></span><div><b class="we"></b><small class="wid"></small></div><button class="say" id="wordSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="tennisHud" class="pill hidden"><span id="tennisT"></span><button class="btn small ghost" id="tennisX">${tr('Keluar', 'Exit')}</button></div>
   <div id="bedHud" class="pill hidden"><span id="bedT"></span><button class="btn small gold" id="bedNow">😴 ${tr('Tidur sekarang', 'Sleep now')}</button></div>
@@ -326,6 +328,25 @@ export class UI {
   }
   private wordNow: import('./game/english').Word | null = null; private wordT = 0;
   /** a little English word card: the word, big, its Indonesian meaning, and 🔊 to hear it again */
+  /** Baby Mo's sentence of the day: a small card that doesn't stop the game; null hides it */
+  phraseCard(w: import('./game/english').Word | null, said?: () => void) {
+    const el = $('#phraseCard');
+    clearTimeout(this.phraseT);
+    if (!w) { el.classList.add('hidden'); return; }
+    el.querySelector('.pt')!.textContent = tr('Kalimat Bahasa Inggris hari ini', 'Today’s English sentence');
+    el.querySelector('.pe')!.textContent = `${w.icon} ${w.en}`;
+    el.querySelector('.pid')!.textContent = w.id;
+    el.querySelector('#phSaid span')!.textContent = tr('Aku sudah bilang!', 'I said it!');
+    const talk = () => Speech.talk(w.en, 'en', true, 1);
+    $('#phSay').onclick = talk;
+    $('#phSaid').onclick = () => { SFX.click(); el.classList.add('hidden'); said?.(); };
+    $('#phX').onclick = () => { SFX.click(); el.classList.add('hidden'); };
+    el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
+    this.phraseT = window.setTimeout(() => el.classList.add('hidden'), 25000);
+  }
+  private phraseT = 0;
+  /** the sentence card is showing (word cards wait) */
+  phraseShown() { return !$('#phraseCard').classList.contains('hidden'); }
   wordCard(w: import('./game/english').Word) {
     const el = $('#wordCard');
     this.wordNow = w;
@@ -351,11 +372,18 @@ export class UI {
   showRace(on: boolean) { const b = $('#bRace'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
   private raceShown = '';
   /** lap, place and time while racing; null hides it */
-  raceHud(r: { lap: number; laps: number; place: number; of: number; time: number } | null) {
+  /** the sum for the coins you just picked up in a race, big in the middle for a moment */
+  raceMath(text: string) {
+    const el = $('#raceMath');
+    el.textContent = text; el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
+    clearTimeout(this.mathT); this.mathT = window.setTimeout(() => el.classList.add('hidden'), 2600);
+  }
+  private mathT = 0;
+  raceHud(r: { lap: number; laps: number; place: number; of: number; time: number; coins?: number } | null) {
     const el = $('#raceHud');
-    if (!r) { el.classList.add('hidden'); this.raceShown = ''; return; }
+    if (!r) { el.classList.add('hidden'); $('#raceMath').classList.add('hidden'); this.raceShown = ''; return; }
     const nth = getLang() === 'id' ? `ke-${r.place}` : ['1st', '2nd', '3rd', '4th'][r.place - 1];
-    const txt = `🏁 ${tr('Putaran', 'Lap')} ${r.lap}/${r.laps} · <b>${nth}</b> / ${r.of} · ⏱️ ${r.time.toFixed(1)}`;
+    const txt = `🏁 ${tr('Putaran', 'Lap')} ${r.lap}/${r.laps} · <b>${nth}</b> / ${r.of} · 🪙 ${r.coins ?? 0} · ⏱️ ${r.time.toFixed(1)}`;
     if (txt !== this.raceShown) { this.raceShown = txt; $('#raceT').innerHTML = txt; }
     el.classList.remove('hidden');
   }

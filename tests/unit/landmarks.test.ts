@@ -114,3 +114,19 @@ describe('the fruit orchard', () => {
     expect(treeWord('apple').id).toBe('Apel');
   });
 });
+
+import { TRACK, pointAt, BOOSTS } from '../../src/game/track';
+describe('the big race circuit', () => {
+  it('is in every world, with the track, a boost pad and room around it', () => {
+    for (const seed of SEEDS) {
+      const g = new Generator(seed), r = g.landmarks.find(l => l.id === 'race_track')!;
+      expect(r, `seed ${seed}`).toBeTruthy();
+      const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+      const y = r.at!.centre[1] - 1;
+      for (const s of [5, 40, 90, 140]) { const p = pointAt(s); expect(m.get(`${Math.floor(r.x + p.x)},${y},${Math.floor(r.z + p.z)}`), `seed ${seed} s ${s}`).toBe(B.BASALT); }
+      const b = pointAt(BOOSTS[0].s + 2); expect(m.get(`${Math.floor(r.x + b.x)},${y},${Math.floor(r.z + b.z)}`)).toBe(B.GOLD_TILE);
+      // no other place inside the circuit
+      for (const o of g.landmarks) if (o !== r) expect(Math.abs(o.x - r.x) < TRACK.half + TRACK.R + 8 && Math.abs(o.z - r.z) < TRACK.R + 8, `${o.id} inside the circuit, seed ${seed}`).toBe(false);
+    }
+  });
+});

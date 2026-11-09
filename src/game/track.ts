@@ -4,10 +4,41 @@
 // south). The start line is the middle of the south straight; karts drive
 // west from it, round the west bend, east along the north straight, and
 // back round the east bend.
-export const TRACK = { half: 18, R: 11, W: 7 };
+/** half the straight's length, the bends' radius and the track's width (the big circuit) */
+export const TRACK = { half: 26, R: 14, W: 9 };
 const { half: HALF, R } = TRACK;
 const ARC = Math.PI * R;
 export const LAP = 4 * HALF + 2 * ARC;
+
+/** how far a point is from the centre line, sideways (+ towards the outside) */
+export function laneOf(dx: number, dz: number): number {
+  const cx = Math.max(-HALF, Math.min(HALF, dx));
+  return Math.hypot(dx - cx, dz) - R;
+}
+
+/** the boost pads: where they start along the lap (s), and how long they are */
+export const BOOSTS: { s: number; len: number }[] = [
+  { s: 2 * HALF + ARC - 3, len: 5 },             // the middle of the north straight
+  { s: 4 * HALF + 2 * ARC - HALF / 2 - 2, len: 5 }, // the run back to the line on the south straight
+];
+/** is this spot on a boost pad? (pads cover the middle of the track) */
+export function onBoost(s: number, lane: number) {
+  if (Math.abs(lane) > 2.2) return false;
+  return BOOSTS.some(b => s >= b.s && s <= b.s + b.len);
+}
+
+/** the coins on the track for a lap: little groups to count and add up */
+export interface Coin { s: number; lane: number; group: number }
+export function coinPlan(lap: number): Coin[] {
+  const sizes = lap % 2 ? [1, 2, 1, 3, 2, 2] : [2, 1, 3, 1, 2, 3];
+  const lanes = lap % 2 ? [0, -2.4, 2.4, 0, 2.4, -2.4] : [2.4, 0, -2.4, 2.4, 0, -2.4];
+  const out: Coin[] = [];
+  sizes.forEach((n, gi) => {
+    const s0 = LAP * (0.1 + gi * 0.15);
+    for (let i = 0; i < n; i++) out.push({ s: s0 + i * 2.6, lane: lanes[gi], group: gi });
+  });
+  return out;
+}
 
 /** what a cell is, by its distance from the centre line: the track, the kerb, the tyre wall, or neither */
 export function cellKind(dx: number, dz: number): 'track' | 'kerb' | 'wall' | 'in' | 'out' {

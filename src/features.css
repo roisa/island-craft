@@ -312,3 +312,19 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 .vw span img { width: 22px; height: 22px; }
 .ws .wen { font-style: normal; font-size: 11px; font-weight: 800; color: #1c5f91; background: #e3f1fb; border-radius: 8px; padding: 0 6px; }
 .dialog .phrase { display: inline-block; margin: 6px 0 2px; font-size: 1.35em; color: #1c5f91; }
+/* the coin sums in a race: big, gold, in the middle */
+#raceMath { position: fixed; left: 50%; top: calc(118px + var(--safe-t)); transform: translateX(-50%); z-index: 8; font-size: 46px; font-weight: 900; color: #ffd23f; text-shadow: 0 4px 0 #8a5a00, 0 0 18px rgba(0, 0, 0, .35); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+#raceMath.pop { animation: rmPop .45s ease-out; }
+@keyframes rmPop { 0% { transform: translateX(-50%) scale(1.6); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+@media (max-width: 520px), (max-height: 520px) { #raceMath { font-size: 32px; top: calc(100px + var(--safe-t)); } }
+/* Baby Mo's English sentence of the day: a small card, the game keeps going */
+#phraseCard { position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translateX(-50%); z-index: 8; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 3px solid #f2b134; pointer-events: auto; max-width: calc(100vw - 24px); }
+#phraseCard.pop { animation: tutpop .4s ease-out; }
+#phraseCard img { width: 40px; height: 40px; object-fit: contain; }
+#phraseCard .pt { display: block; font-size: 11px; opacity: .75; font-weight: 700; }
+#phraseCard .pe { display: block; font-size: 21px; color: #1c5f91; white-space: nowrap; }
+#phraseCard .pid { display: block; font-size: 12.5px; opacity: .75; font-weight: 700; }
+#phraseCard .btn { margin: 0; white-space: nowrap; }
+#phraseCard .phx { background: none; border: 0; font-size: 16px; opacity: .55; padding: 4px; cursor: pointer; }
+@media (max-width: 560px), (max-height: 520px) { #phraseCard img { display: none; } #phraseCard .pe { font-size: 17px; } #phraseCard .btn span { display: none; } }
+@media (max-height: 520px) { #phraseCard { bottom: calc(62px + var(--safe-b)); } }

@@ -46,8 +46,10 @@ export class Generator {
     this.buildVillage();
     this.placeShrines();
     const builder = { column: (x: number, z: number) => this.column(x, z), stamp: (x: number, y: number, z: number, id: number) => this.stamp(x, y, z, id), box: (a: number, b: number, c: number, d: number, e: number, f: number, id: number | ((x: number, y: number, z: number) => number | null)) => this.box(a, b, c, d, e, f, id) };
-    this.landmarks = placeLandmarks(builder, this.seed, this.shrines);
-    this.treasure = placeTreasure(builder, this.seed, [...this.shrines.map(s => ({ x: s.x, z: s.z, r: 6 })), ...this.landmarks.map(l => ({ x: l.x, z: l.z, r: 18 }))], this.landmarks.filter(l => l.path).map(l => l.path!));
+    const ghosts: { x: number; z: number }[] = [];
+    this.landmarks = placeLandmarks(builder, this.seed, this.shrines, ghosts);
+    // (old spots of places that moved still count, so the treasure stays where it was; the big race circuit needs more room)
+    this.treasure = placeTreasure(builder, this.seed, [...this.shrines.map(s => ({ x: s.x, z: s.z, r: 6 })), ...this.landmarks.map(l => ({ x: l.x, z: l.z, r: l.id === 'race_track' ? 50 : 18 })), ...ghosts.map(g => ({ ...g, r: 18 }))], this.landmarks.filter(l => l.path).map(l => l.path!));
   }
 
   column(x: number, z: number): Column {

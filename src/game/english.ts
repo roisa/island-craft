@@ -196,7 +196,7 @@ export class English {
   /** show the word card and say it in English; it goes into "My English Words" */
   show(w: Word, force = false) {
     const g = this.g, now = performance.now();
-    if (!this.on || (!force && (this.busy() || now - this.shownAt < 6000))) return false;
+    if (!this.on || (!force && (this.busy() || g.ui.phraseShown() || now - this.shownAt < 6000))) return false;
     this.shownAt = now;
     g.ui.wordCard(w);
     Speech.talk(w.say ?? w.en, 'en', false, 0);
@@ -243,16 +243,9 @@ export class English {
     if (g.stats.phraseDay === today || this.busy() || performance.now() - this.bornAt < 45000) return;
     g.stats.phraseDay = today;
     const w = phraseFor(new Date());
-    const talk = () => Speech.talk(w.en, 'en', true, 0);
-    g.ui.dialog({
-      face: 'img/baby-mo-idea.webp', img: true, who: 'Baby Mo', speak: false,
-      text: `${tr('Kalimat Bahasa Inggris hari ini:', 'Today’s English sentence:')}<br><span class="phrase">${w.icon} <b>${w.en}</b></span><br><small>${w.id}</small><br>${tr('Ayo ucapkan bersama Baby Mo!', 'Say it with Baby Mo!')}`,
-      buttons: [
-        { label: '🔊 ' + tr('Dengar lagi', 'Listen again'), cls: 'ghost', keep: true, fn: talk },
-        { label: '⭐ ' + tr('Aku sudah bilang!', 'I said it!'), cls: 'gold', fn: () => { this.learn(w); g.addCoins(10, from => g.ui.coinPop(10, from)); Speech.talk('Well done!', 'en', true, 0); } },
-      ],
-    });
-    setTimeout(talk, 400);
+    // a small card at the top: it never stops the game or hides other pop-ups
+    g.ui.phraseCard(w, () => { this.learn(w); g.addCoins(10, from => g.ui.coinPop(10, from)); Speech.talk('Well done!', 'en', true, 0); });
+    setTimeout(() => Speech.talk(w.en, 'en', true, 0), 400);
   }
 
   /** saying hello to a villager in English: they greet you, you pick an answer */

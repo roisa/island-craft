@@ -5,6 +5,41 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The big race circuit, with coins to add up 🏎️➕
+
+Requested by a parent: a wider, longer and more interesting circuit, with
+simple maths: pick up one coin and another, and hear “now you have two”.
+
+- **A bigger circuit** (`TRACK` is now 52 m straights, 14 m bends and
+  9 m wide; a lap is about 190 m, was 141 m). It needed more room, so it
+  moved to a new, roomy spot (still in the map’s fun places; every world
+  has one). The old spot stays reserved, so **no other place moves** in
+  existing worlds and the treasure stays where it was.
+- **More interesting**: five **rainbow arches** over the back straight,
+  a row of **lantern posts** round the east bend, **yellow boost pads**
+  on both straights (drive over them to zoom: 1.5× speed for a moment),
+  palm trees and flowers in the infield, a longer grandstand, and the
+  start gantry with its lights.
+- **Coins to add up**: little groups of 1–3 gold coins sit on the track
+  in different lanes, so you steer to catch them (a new set each lap,
+  about 11 a lap). After each group the sum shows big in gold and is
+  said out loud: “🪙 3 + 2 = 5 — 3 plus 2 makes 5. Now you have 5 coins!”
+  (in Indonesian: “3 tambah 2 sama dengan 5. Sekarang koinmu 5!”). The
+  very first one says “One coin!”. The race bar shows 🪙 too, and the
+  coins you collect are added to your prize at the finish.
+- **Baby Mo’s sentence of the day** is now a small card above the hotbar
+  (🔊, ⭐ I said it!, ✕) instead of a pop-up, so it never stops the game
+  or hides other pop-ups (it could block a prayer gathering or the water
+  break). Word cards wait while it’s showing; it goes away by itself.
+- Tested:
+  - Unit tests: the circuit is bigger, coin groups (1–3 coins, always on
+    the track, away from the start line), the sums (“3 + 2 = 5” and the
+    sentences in both languages), the boost pads; in every test world the
+    circuit is built (track and boost pad) with no other place inside it.
+  - In the game: the circuit, the coins, picking up 1 and then 2 coins
+    shows and says “1 + 2 = 3”.
+  - Smoke test on all four devices; layout checks.
+
 ### The go-karts wait on the start line 🏎️
 
 Ibra found the race track but not the cars: the karts only appeared after

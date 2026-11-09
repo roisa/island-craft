@@ -28,3 +28,38 @@ describe('race track', () => {
     expect(ranking([10, 150, 80, 151])).toEqual([3, 1, 2, 0]);
   });
 });
+
+import { coinPlan, onBoost, BOOSTS, laneOf } from '../../src/game/track';
+import { addLine } from '../../src/game/race';
+describe('the big circuit: coins to add up and boost pads', () => {
+  it('is wider and longer than the first track', () => {
+    expect(TRACK.W).toBeGreaterThanOrEqual(9);
+    expect(LAP).toBeGreaterThan(180);
+  });
+  it('lays small groups of coins on the track, away from the start line', () => {
+    for (const lap of [1, 2]) {
+      const c = coinPlan(lap);
+      const groups = new Set(c.map(x => x.group));
+      expect(groups.size).toBe(6);
+      for (const g of groups) { const n = c.filter(x => x.group === g).length; expect(n).toBeGreaterThanOrEqual(1); expect(n).toBeLessThanOrEqual(3); }
+      for (const x of c) { const p = pointAt(x.s, x.lane); expect(cellKind(p.x, p.z)).toBe('track'); expect(x.s).toBeGreaterThan(10); expect(x.s).toBeLessThan(LAP - 10); }
+      expect(c.length).toBeLessThanOrEqual(12);
+    }
+  });
+  it('the coins are added up out loud: “3 plus 2 makes 5”', () => {
+    expect(addLine(0, 1).show).toBe('🪙 1');
+    expect(addLine(0, 1).say[1]).toBe('One coin!');
+    expect(addLine(3, 2).show).toBe('🪙 3 + 2 = 5');
+    expect(addLine(3, 2).say[1]).toBe('3 plus 2 makes 5. Now you have 5 coins!');
+    expect(addLine(1, 1).say[0]).toBe('1 tambah 1 sama dengan 2. Sekarang koinmu 2!');
+  });
+  it('has boost pads in the middle of the straights', () => {
+    for (const b of BOOSTS) {
+      const p = pointAt(b.s + b.len / 2);
+      expect(onBoost(b.s + b.len / 2, laneOf(p.x, p.z))).toBe(true);
+      expect(onBoost(b.s + b.len / 2, 4)).toBe(false);
+      expect(cellKind(p.x, p.z)).toBe('track');
+    }
+    expect(onBoost(LAP * 0.25, 0)).toBe(false);
+  });
+});

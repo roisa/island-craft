@@ -9,8 +9,9 @@ import { tr } from '../i18n';
 import type { Landmark } from '../world/landmarks';
 import { buildBlocky, type BlockyOpts } from './blocky';
 import { applyPrayerPose, type Rig } from './models';
-import { SFX } from './audio';
-import { LAP, cellKind, pointAt, progressOf, ranking } from './track';
+import { SFX, Speech } from './audio';
+import { getLang } from '../i18n';
+import { LAP, TRACK, cellKind, coinPlan, laneOf, onBoost, pointAt, progressOf, ranking } from './track';
 
 export const LAPS = 2;
 export const PRIZE = [100, 60, 40, 30];
@@ -28,6 +29,18 @@ const DRIVERS: { name: string; color: number; look?: BlockyOpts }[] = [
   { name: 'Kak Dina', color: 0x2f6fde, look: { skin: '#E8B48A', shirt: 0x2f6fde, pants: 0x2a3550, hijab: 0x1f2a44, tunic: true, adult: true, lashes: true, backpack: null, emblem: null, hair: 0x2b2018, shoes: 0xf4f4f4 } },
   { name: 'Bang Rizal', color: 0xf2b134, look: { skin: '#D9A27A', shirt: 0xf2b134, pants: 0x3b3a3d, peci: 0xe4423a, adult: true, backpack: null, emblem: null, hair: 0x1f1a1a, shoes: 0x3b3a3d } },
 ];
+
+/** the sum for the coins you just picked up: what to show and what to say */
+export function addLine(before: number, add: number): { show: string; say: [string, string] } {
+  const after = before + add;
+  if (before === 0) return { show: `🪙 ${after}`, say: [`${after} koin!`, after === 1 ? 'One coin!' : `${after} coins!`] };
+  return {
+    show: `🪙 ${before} + ${add} = ${after}`,
+    say: [`${before} tambah ${add} sama dengan ${after}. Sekarang koinmu ${after}!`, `${before} plus ${add} makes ${after}. Now you have ${after} coins!`],
+  };
+}
+
+interface TrackCoin { s: number; lane: number; group: number; mesh: THREE.Object3D; taken: boolean }
 
 export class Race {
   active = false;
@@ -51,7 +64,7 @@ export class Race {
    * tells you where they are the first time, and walking up to your red kart starts a race.
    */
   idle(p: THREE.Vector3) {
-    const g = this.g, close = !this.active && Math.abs(p.x - this.cx) < 60 && Math.abs(p.z - this.cz) < 45 && Math.abs(p.y - this.y) < 20;
+    const g = this.g, close = !this.active && Math.abs(p.x - this.cx) < TRACK.half + TRACK.R + 30 && Math.abs(p.z - this.cz) < TRACK.R + 30 && Math.abs(p.y - this.y) < 20;
     if (close && !this.parked.length) {
       this.parked = Race.GRID.map(([s, lane], i) => {
         const obj = kartModel([0xe4423a, 0x8dc63f, DRIVERS[0].color, DRIVERS[1].color][i]);
@@ -71,7 +84,33 @@ export class Race {
   private clearParked() { for (const o of this.parked) this.g.scene.remove(o); this.parked = []; }
 
   /** close enough to the track to start a race */
-  near(p: THREE.Vector3) { return Math.abs(p.x - this.cx) < 40 && Math.abs(p.z - this.cz) < 26 && Math.abs(p.y - this.y) < 6; }
+  near(p: THREE.Vector3) { return Math.abs(p.x - this.cx) < TRACK.half + TRACK.R + 12 && Math.abs(p.z - this.cz) < TRACK.R + 14 && Math.abs(p.y - this.y) < 6; }
+  // the coins on the track, and adding them up
+  private coins: TrackCoin[] = []; private coinLap = 0;
+  /** coins picked up this race */
+  got = 0;
+  private sum: { group: number; before: number; add: number; at: number } | null = null;
+  private boostT = 0;
+  private coinMat = new THREE.MeshLambertMaterial({ color: 0xffc83d, emissive: 0x8a5a00, emissiveIntensity: 0.45 });
+  private coinGeo = new THREE.CylinderGeometry(0.62, 0.62, 0.14, 20);
+  private layCoins(lap: number) {
+    this.clearCoins(); this.coinLap = lap;
+    for (const c of coinPlan(lap)) {
+      // a gold disc standing up, spinning round so you see its face
+      const p = pointAt(c.s, c.lane), mesh = new THREE.Group(), disc = new THREE.Mesh(this.coinGeo, this.coinMat);
+      disc.rotation.x = Math.PI / 2; mesh.add(disc); mesh.rotation.y = c.s;
+      mesh.position.set(this.cx + p.x, this.y + 1.0, this.cz + p.z);
+      this.g.scene.add(mesh); this.coins.push({ ...c, mesh, taken: false });
+    }
+  }
+  private clearCoins() { for (const c of this.coins) this.g.scene.remove(c.mesh); this.coins = []; }
+  /** say the sum for the coins just picked up */
+  private flushSum() {
+    const s = this.sum; if (!s) return; this.sum = null;
+    const line = addLine(s.before, s.add);
+    this.g.ui.raceMath(line.show);
+    Speech.talk(getLang() === 'en' ? line.say[1] : line.say[0], getLang(), true, 1);
+  }
   /** where you are on the track: laps done and metres into this one */
   get lap() { return Math.min(LAPS, Math.floor(Math.max(0, this.total) / LAP) + 1); }
 
@@ -83,6 +122,7 @@ export class Race {
     this.clearParked();
     // the grid, just behind the start line: you and Baby Mo in front, the racers behind
     const grid = Race.GRID;
+    this.got = 0; this.sum = null; this.boostT = 0; this.layCoins(1);
     const colors = [0xe4423a, 0x8dc63f];
     this.karts = grid.map(([s, lane], i) => {
       const d = i >= 2 ? DRIVERS[i - 2] : null;
@@ -122,7 +162,10 @@ export class Race {
     const me = this.karts[0], ax = g.input.axis();
     const local = (x: number, z: number) => [x - this.cx, z - this.cz] as const;
     const [lx, lz] = local(me.x, me.z), kind = cellKind(lx, lz);
-    const top = kind === 'track' || kind === 'kerb' ? MAX : OFF;
+    // the yellow arrows: a burst of speed
+    if (onBoost(progressOf(lx, lz), laneOf(lx, lz)) && this.boostT < 0.9) { if (this.boostT <= 0) { SFX.pop(6); g.fx.sparkle(me.x, this.y + 0.6, me.z, 8, 0xffd84a, 1.5); } this.boostT = 1.3; }
+    this.boostT = Math.max(0, this.boostT - dt);
+    const top = (kind === 'track' || kind === 'kerb' ? MAX : OFF) * (this.boostT > 0 ? 1.5 : 1);
     const want = ax.fz > 0.4 ? 0 : top;
     me.v += (want - me.v) * Math.min(1, dt * (want < me.v ? 3 : 1.4));
     me.yaw -= ax.fx * 2.3 * dt * Math.min(1, me.v / 5 + 0.3);
@@ -139,6 +182,20 @@ export class Race {
     const s = progressOf(me.x - this.cx, me.z - this.cz);
     let d = s - this.prevS; if (d < -LAP / 2) d += LAP; if (d > LAP / 2) d -= LAP;
     this.total += d; this.prevS = s;
+    // the coins: pick them up, and add them up group by group
+    if (this.lap !== this.coinLap && this.total >= 0) { this.flushSum(); this.layCoins(this.lap); }
+    for (const c of this.coins) {
+      if (c.taken) continue;
+      c.mesh.rotation.y += dt * 3;
+      if (Math.hypot(c.mesh.position.x - me.x, c.mesh.position.z - me.z) < 1.6) {
+        c.taken = true; c.mesh.visible = false; this.got++;
+        SFX.pop(Math.min(8, this.got % 9)); g.fx.sparkle(c.mesh.position.x, c.mesh.position.y, c.mesh.position.z, 6, 0xffc83d, 1.2);
+        if (this.sum && this.sum.group !== c.group) this.flushSum();
+        if (this.sum) this.sum.add++; else this.sum = { group: c.group, before: this.got - 1, add: 1, at: 0 };
+        this.sum.at = this.t;
+      }
+    }
+    if (this.sum && this.t - this.sum.at > 0.9) this.flushSum();
     // the others: along the racing line, keeping it close
     for (const k of this.karts.slice(1)) {
       if (k.done !== undefined) { k.s += 4 * dt; continue; }
@@ -151,7 +208,7 @@ export class Race {
     for (const k of this.karts.slice(1)) { const p = pointAt(k.s, k.lane); k.x = this.cx + p.x; k.z = this.cz + p.z; k.yaw = p.yaw; }
     this.place();
     const order = this.order();
-    g.ui.raceHud({ lap: this.lap, laps: LAPS, place: order.indexOf(0) + 1, of: this.karts.length, time: this.t });
+    g.ui.raceHud({ lap: this.lap, laps: LAPS, place: order.indexOf(0) + 1, of: this.karts.length, time: this.t, coins: this.got });
     if (this.total >= LAPS * LAP) this.finish(false);
     return true;
   }
@@ -175,7 +232,9 @@ export class Race {
     const g = this.g, order = this.order(), place = order.indexOf(0) + 1, time = this.t;
     this.phase = 'done';
     g.ui.raceHud(null); g.ui.raceCount(null);
+    this.flushSum();
     const end = () => {
+      this.clearCoins();
       for (const k of this.karts) g.scene.remove(k.obj);
       this.karts = []; this.active = false;
       g.ents.mo.seat = null;
@@ -184,7 +243,7 @@ export class Race {
       g.ents.mo.pos.set(this.cx + 3, this.y, this.cz + 4);
     };
     if (quit) { end(); g.ui.toast(tr('🏁 Keluar dari balapan', '🏁 Left the race'), 2500); return; }
-    const coins = PRIZE[place - 1] ?? 20;
+    const got = this.got, coins = (PRIZE[place - 1] ?? 20) + got;
     const st = g.stats; st.raceBest = Math.min(st.raceBest ?? Infinity, time); if (place === 1) st.raceWins = (st.raceWins || 0) + 1;
     g.addCoins(coins, from => g.ui.coinPop(coins, from));
     SFX.fanfare(); g.ui.confetti(place === 1 ? 80 : 40); g.ents.mo.celebrate = 2.5;
@@ -193,6 +252,7 @@ export class Race {
     g.ui.dialog({
       face: place === 1 ? '🏆' : '🏁', who: tr('Garis finis!', 'Finish line!'),
       text: (place === 1 ? tr(`<b>Kamu ${nth}!</b> Alhamdulillah! 🎉`, `<b>You came ${nth}!</b> Alhamdulillah! 🎉`) : tr(`<b>Kamu ${nth}!</b> Hebat, tetap semangat! Ayo beri selamat ke pemenangnya 🤝`, `<b>You came ${nth}!</b> Well driven! Let’s congratulate the winner 🤝`))
+        + `<br>🪙 ${tr(`Kamu mengumpulkan <b>${got}</b> koin di lintasan!`, `You collected <b>${got}</b> coins on the track!`)}`
         + `<br>⏱️ ${secs} ${tr('detik', 'seconds')} · ${tr('rekor', 'best')} ${st.raceBest!.toFixed(1)} · 🪙 +${coins}`,
       buttons: [{ label: '🏁 ' + tr('Balapan lagi', 'Race again'), cls: 'gold', fn: () => { end(); setTimeout(() => this.start(), 300); } }, { label: tr('Selesai', 'Done'), fn: end }],
     });

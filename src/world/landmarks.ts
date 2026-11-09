@@ -3,7 +3,7 @@
 // away from the village and the letter shrines. Each one has a treasure chest
 // and a "discovery" with a short fun fact when you first get close.
 import { B, I } from './blocks';
-import { cellKind, TRACK } from '../game/track';
+import { cellKind, laneOf, onBoost, progressOf, TRACK } from '../game/track';
 import { Biome, H, SEA, type Column } from './gen';
 import { mulberry32, hash3 } from './noise';
 import type { T2 } from '../i18n';
@@ -38,6 +38,8 @@ export interface Builder {
 }
 
 type Spec = Omit<Landmark, 'x' | 'y' | 'z'> & {
+  /** an old spot kept reserved for a place that moved: placed (so nothing else moves) but not built */
+  ghost?: boolean;
   biomes: Biome[];
   /** extra check on a candidate column */
   ok?: (c: Column) => boolean;
@@ -772,45 +774,12 @@ const SPECS = (): Spec[] => specs ??= [
     },
   },
   {
-    // a kart track: an oval with kerbs, a tyre wall, a start gantry and a grandstand (see game/race.ts)
-    id: 'race_track', icon: '🏎️', name: ['Sirkuit Balap', 'The Race Track'], biomes: [Biome.MEADOW, Biome.DESERT, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.DESERT, Biome.BEACH, Biome.FOREST, Biome.SNOWY], dist: [80, 260], r: 24, loose: true, clear: 22,
+    // where the first, smaller race track was. It moved to a bigger spot (see 'race_track' at the end);
+    // this keeps its old spot reserved, so no other place moves in worlds that already exist.
+    id: 'race_track_v1', ghost: true, icon: '🏎️', name: ['Sirkuit Balap', 'The Race Track'], biomes: [Biome.MEADOW, Biome.DESERT, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.DESERT, Biome.BEACH, Biome.FOREST, Biome.SNOWY], dist: [80, 260], r: 24, loose: true, clear: 22,
     ok: c => c.h > SEA + 1 && c.h < SEA + 16,
-    hint: ['Ada lintasan balap oval dengan tribun penonton. Ayo balapan gokart bersama Baby Mo!', 'There’s an oval race track with a grandstand. Let’s race go-karts with Baby Mo!'],
-    fact: ['Di sirkuit ini kamu bisa balapan gokart bersama Baby Mo dan dua pembalap. Ketuk 🏁 Balapan! Pembalap yang baik selalu sportif: menang bersyukur, kalah tetap tersenyum dan memberi selamat.', 'Here you can race go-karts with Baby Mo and two racers. Tap 🏁 Race! A good racer is a good sport: say Alhamdulillah when you win, and smile and congratulate the others when you don’t.'],
-    loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 2], [I.APPLE, 3]],
-    build(b, x, y, z) {
-      y = Math.max(y, SEA + 1);
-      const X0 = x - 37, X1 = x + 37, Z0 = z - 24, Z1 = z + 20;
-      foundation(b, X0, Z0, X1, Z1, y, B.DIRT);
-      b.box(X0, y, Z0, X1, y, Z1, B.GRASS);
-      b.box(X0, y + 1, Z0, X1, y + 14, Z1, B.AIR);
-      // the track, its red and white kerbs, and a chequered start line across the south straight
-      b.box(X0, y, Z0, X1, y, Z1, (X, _Y, Z) => {
-        const k = cellKind(X - x, Z - z);
-        if (k === 'track') return (X === x || X === x + 1) && Z > z ? ((X + Z) % 2 === 0 ? B.WOOL_WHITE : B.BASALT) : B.BASALT;
-        if (k === 'kerb') return Math.floor((X + Z) / 2) % 2 === 0 ? B.WOOL_RED : B.WOOL_WHITE;
-        return null;
-      });
-      // the tyre wall round the outside, with a gap by the grandstand to walk in
-      b.box(X0, y + 1, Z0, X1, y + 1, Z1, (X, _Y, Z) => (cellKind(X - x, Z - z) === 'wall' && !(Z < z && Math.abs(X - x) <= 2) ? ((X + Z) % 2 === 0 ? B.WOOL_RED : B.WOOL_WHITE) : null));
-      // the start gantry: two posts and a beam with the start lights
-      const zi = z + TRACK.R - TRACK.W / 2 - 1.5, zo = z + TRACK.R + TRACK.W / 2 + 1.5;
-      for (const pz of [Math.floor(zi), Math.ceil(zo)]) b.box(x, y + 1, pz, x, y + 5, pz, B.OAK_LOG);
-      b.box(x, y + 6, Math.floor(zi), x, y + 6, Math.ceil(zo), (_X, _Y, Z) => ((Z % 2) === 0 ? B.WOOL_WHITE : B.BASALT));
-      for (let pz = Math.floor(zi) + 2; pz <= Math.ceil(zo) - 2; pz += 2) b.stamp(x, y + 5, pz, B.LANTERN);
-      // a grandstand along the north straight, four steps of blue seats
-      for (let k = 0; k < 4; k++) b.box(x - 14, y + 1, z - 19 - k, x + 14, y + 1 + k, z - 19 - k, (X, Y) => (Y === y + 1 + k ? B.WOOL_BLUE : B.PLANKS));
-      b.box(x - 14, y + 1, z - 23, x + 14, y + 6, z - 23, B.PLANKS);
-      for (const lx of [x - 15, x + 15]) { b.stamp(lx, y + 1, z - 19, B.OAK_LOG); b.stamp(lx, y + 2, z - 19, B.LANTERN); }
-      // the pit box in the infield, with a chest
-      b.box(x - 6, y, z - 2, x + 6, y, z + 2, B.COBBLE);
-      b.stamp(x + 6, y + 1, z + 2, B.CHEST);
-      for (const fx of [x - 6, x - 2, x + 2]) { b.stamp(fx, y + 1, z - 2, B.OAK_LOG); b.stamp(fx, y + 2, z - 2, B.WOOL_RED); }
-      return {
-        y: y + 1,
-        at: { centre: [x + 0.5, y + 1, z + 0.5], start: [x + 0.5, y + 1, z + TRACK.R + 0.5], stand: [x + 0.5, y + 1, z - 17.5], entry: [x + 2.5, y + 1, z + 4.5] },
-      };
-    },
+    hint: ['', ''], fact: ['', ''],
+    build: (_b, _x, y) => y,
   },
   {
     // a camp in front of the waterfall, by a little stream: tents to sleep in and a campfire to grill fish and meat on
@@ -946,9 +915,73 @@ const SPECS = (): Spec[] => specs ??= [
       return { y: y + 1, at };
     },
   },
+  {
+    // the big race circuit: a long, wide oval with rainbow arches, boost pads and a grandstand
+    id: 'race_track', icon: '🏎️', name: ['Sirkuit Balap', 'The Race Track'], biomes: [Biome.MEADOW, Biome.DESERT, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.DESERT, Biome.BEACH, Biome.FOREST, Biome.SNOWY], dist: [90, 300], r: 30, loose: true, clear: 40,
+    ok: c => c.h > SEA + 1 && c.h < SEA + 16,
+    hint: ['Ada sirkuit balap besar dengan gapura pelangi dan tribun penonton. Ayo balapan gokart bersama Baby Mo!', 'There’s a big race circuit with rainbow arches and a grandstand. Let’s race go-karts with Baby Mo!'],
+    fact: ['Di sirkuit ini kamu bisa balapan gokart bersama Baby Mo dan dua pembalap. Ambil koin di lintasan dan berhitung: 2 tambah 1 sama dengan 3! Lewati panah kuning untuk melesat. Pembalap yang baik selalu sportif: menang bersyukur, kalah tetap tersenyum.', 'Here you can race go-karts with Baby Mo and two racers. Collect the coins on the track and add them up: 2 plus 1 makes 3! Drive over the yellow arrows to zoom. A good racer is a good sport: say Alhamdulillah when you win, and smile when you don’t.'],
+    loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 2], [I.APPLE, 3]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      const { half: HALF, R, W } = TRACK, OUT = Math.ceil(R + W / 2 + 2);
+      const X0 = x - HALF - OUT - 3, X1 = x + HALF + OUT + 3, Z0 = z - OUT - 8, Z1 = z + OUT + 3;
+      foundation(b, X0, Z0, X1, Z1, y, B.DIRT);
+      b.box(X0, y, Z0, X1, y, Z1, B.GRASS);
+      b.box(X0, y + 1, Z0, X1, y + 14, Z1, B.AIR);
+      // the track, its red and white kerbs, a chequered start line across the south straight, and the yellow boost pads
+      b.box(X0, y, Z0, X1, y, Z1, (X, _Y, Z) => {
+        const dx = X + 0.5 - x, dz = Z + 0.5 - z, k = cellKind(dx, dz);
+        if (k === 'track') {
+          if ((X === x || X === x + 1) && Z > z) return (X + Z) % 2 === 0 ? B.WOOL_WHITE : B.BASALT;
+          const lane = laneOf(dx, dz), s = progressOf(dx, dz);
+          if (onBoost(s, lane)) return B.GOLD_TILE;
+          return B.BASALT;
+        }
+        if (k === 'kerb') return Math.floor((X + Z) / 2) % 2 === 0 ? B.WOOL_RED : B.WOOL_WHITE;
+        return null;
+      });
+      // the tyre wall round the outside, with a gap by the grandstand to walk in
+      b.box(X0, y + 1, Z0, X1, y + 1, Z1, (X, _Y, Z) => (cellKind(X + 0.5 - x, Z + 0.5 - z) === 'wall' && !(Z < z && Math.abs(X - x) <= 2) ? ((X + Z) % 2 === 0 ? B.WOOL_RED : B.WOOL_WHITE) : null));
+      // the start gantry: two posts and a beam with the start lights
+      const zi = z + R - W / 2 - 1.5, zo = z + R + W / 2 + 1.5;
+      for (const pz of [Math.floor(zi), Math.ceil(zo)]) b.box(x, y + 1, pz, x, y + 6, pz, B.OAK_LOG);
+      b.box(x, y + 7, Math.floor(zi), x, y + 7, Math.ceil(zo), (_X, _Y, Z) => ((Z % 2) === 0 ? B.WOOL_WHITE : B.BASALT));
+      for (let pz = Math.floor(zi) + 2; pz <= Math.ceil(zo) - 2; pz += 2) b.stamp(x, y + 6, pz, B.LANTERN);
+      // rainbow arches over the north straight: drive through them!
+      const RAINBOW = [B.WOOL_RED, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLUE, B.WOOL_PURPLE];
+      const ni = z - R + W / 2 + 1, no = z - R - W / 2 - 1;
+      RAINBOW.forEach((c, i) => {
+        const ax = x - HALF + 8 + i * Math.floor((2 * HALF - 16) / (RAINBOW.length - 1));
+        for (const pz of [Math.ceil(ni), Math.floor(no)]) b.box(ax, y + 1, pz, ax, y + 5, pz, c);
+        b.box(ax, y + 6, Math.floor(no), ax, y + 6, Math.ceil(ni), c);
+      });
+      // a tunnel of lanterns round the east bend: posts on the inside with lanterns
+      for (let k = 0; k <= 6; k++) {
+        const t = (k / 6) * Math.PI, rIn = R - W / 2 - 1.5;
+        const px = Math.round(x + HALF + rIn * Math.sin(t)), pz = Math.round(z - rIn * Math.cos(t));
+        b.box(px, y + 1, pz, px, y + 2, pz, B.OAK_LOG); b.stamp(px, y + 3, pz, B.LANTERN);
+      }
+      // a grandstand along the north straight, four steps of blue seats
+      const gz = z - OUT - 2;
+      for (let k = 0; k < 4; k++) b.box(x - 20, y + 1, gz - k, x + 20, y + 1 + k, gz - k, (_X, Y) => (Y === y + 1 + k ? B.WOOL_BLUE : B.PLANKS));
+      b.box(x - 20, y + 1, gz - 4, x + 20, y + 6, gz - 4, B.PLANKS);
+      for (const lx of [x - 21, x + 21]) { b.stamp(lx, y + 1, gz, B.OAK_LOG); b.stamp(lx, y + 2, gz, B.LANTERN); }
+      // the infield: a pit box with a chest, flags, palm trees and flowers
+      b.box(x - 7, y, z - 2, x + 7, y, z + 2, B.COBBLE);
+      b.stamp(x + 7, y + 1, z + 2, B.CHEST);
+      for (const fx of [x - 7, x - 3, x + 1]) { b.stamp(fx, y + 1, z - 2, B.OAK_LOG); b.stamp(fx, y + 2, z - 2, B.WOOL_RED); }
+      for (const px of [x - HALF + 4, x + HALF - 4]) palm(b, px, y, z, 4);
+      for (let fx = x - HALF + 8; fx <= x + HALF - 8; fx += 3) for (const fz of [z - 5, z + 5]) b.stamp(fx, y + 1, fz, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE][((fx - x) / 3 + (fz > z ? 1 : 0)) & 3]);
+      return {
+        y: y + 1,
+        at: { centre: [x + 0.5, y + 1, z + 0.5], start: [x + 0.5, y + 1, z + R + 0.5], stand: [x + 0.5, y + 1, gz + 0.5], entry: [x + 2.5, y + 1, z + 5.5] },
+      };
+    },
+  },
 ];
 
-export const landmarkIds = () => SPECS().map(s => s.id);
+export const landmarkIds = () => SPECS().filter(s => !s.ghost).map(s => s.id);
 
 /**
  * A mangrove tree standing in shallow water at (x, y, z): arching roots at
@@ -1000,7 +1033,7 @@ export function placeTreasure(b: Builder, seed: number, avoid: { x: number; z: n
  * Find a fitting spot for every landmark and stamp it. Uses its own random
  * stream, so the letter shrines and the rest of the world don't move.
  */
-export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: number }[]): Landmark[] {
+export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: number }[], ghosts?: { x: number; z: number }[]): Landmark[] {
   const rnd = mulberry32(seed ^ 0x1a2d3c);
   const out: Landmark[] = [];
   const taken = avoid.map(a => ({ ...a, r: 14 }));
@@ -1058,6 +1091,8 @@ export function placeLandmarks(b: Builder, seed: number, avoid: { x: number; z: 
     }
     if (!spot) continue;
     if (s.plan && plan === undefined) continue; // a river with nowhere to flow is left out rather than squeezed in
+    // a place that moved away: its old spot stays reserved (nothing is built), so the others don't move
+    if (s.ghost) { taken.push({ x: spot.x, z: spot.z, r: 12 + (s.clear ?? 0) }); ghosts?.push({ x: spot.x, z: spot.z }); continue; }
     const built = s.build(b, spot.x, spot.h, spot.z, plan);
     const y = typeof built === 'number' ? built : built.y;
     const l: Landmark = { id: s.id, icon: s.icon, name: s.name, hint: s.hint, fact: s.fact, x: spot.x, y, z: spot.z, r: s.r };
