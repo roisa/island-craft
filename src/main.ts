@@ -60,6 +60,7 @@ import { Archery } from './game/archery';
 import { Basketball, Soccer } from './game/sports';
 import { HorseFarm } from './game/horses';
 import { IceRink } from './game/skating';
+import { IqroQuest } from './game/iqroquest';
 import { applyStroke } from './game/tennispose';
 import type { Activity } from './game/activity';
 import { DZIKIR, MOMENTS, canSay } from './game/phrases';
@@ -194,6 +195,8 @@ export class Game {
   tennis: Tennis | null = null;
   /** places to play at: archery, basketball & football, the horse course, the ice rink */
   activities: Activity[] = [];
+  /** after the 28 letters: the Iqro journey (syllables, words, surahs) */
+  iqro!: IqroQuest;
   /** the activity going on now, if any */
   get playing() { return this.activities.find(a => a.active) ?? null; }
   private dzAt = -1e9; private dzLast: Record<string, number> = {};
@@ -342,6 +345,7 @@ export class Game {
     this.fishing = new Fishing(this.scene);
     this.fishCoach = new FishCoach(this);
     this.english = new English(this);
+    this.iqro = new IqroQuest(this);
     this.blockGhost = this.makeBlockGhost();
     if (meta) {
       this.deco.load(cleanDeco(meta.deco));
@@ -565,6 +569,12 @@ export class Game {
         const la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
         best = { rot: -(ta - la), dist: d };
       }
+    }
+    // all the letters found: the compass points to the next Iqro book
+    const bk = this.iqro?.stone;
+    if (!best && bk) {
+      const ta = Math.atan2(bk[0] - p.x, bk[2] - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
+      return { rot: -(ta - la), dist: Math.hypot(bk[0] - p.x, bk[2] - p.z), landmark: '📖' };
     }
     return best;
   }
@@ -1090,6 +1100,7 @@ export class Game {
     this.english?.update(dt);
     this.race?.tick(dt, this.hour);
     for (const a of this.activities) a.idle?.(dt, t);
+    this.iqro?.update(dt);
     this.campfireTick(dt);
     if (this.ambient) {
       this.ambient.enabled = !this.settings.lowGfx;
@@ -1770,7 +1781,7 @@ export class Game {
     }
     if (this.stats.letters.length === 28) {
       SFX.fanfare(); this.fx.fireworks(this.player.pos.x, this.player.pos.y + 3, this.player.pos.z);
-      setTimeout(() => this.ui.say(tr('Subhanallah! Kamu menemukan SEMUA 28 huruf hijaiyah! 🏆', 'Subhanallah! You found ALL 28 hijaiyah letters! 🏆'), 'alright', 7000), 800);
+      setTimeout(() => this.ui.say(tr('Subhanallah! Kamu menemukan SEMUA 28 huruf hijaiyah! 🏆 Sekarang perjalanan Iqro dimulai: ikuti kompas emas ke buku pelajaran pertama 📖', 'Subhanallah! You found ALL 28 hijaiyah letters! 🏆 Now the Iqro journey begins: follow the golden compass to the first lesson book 📖'), 'alright', 9000), 800);
     }
     this.checkQuests();
     this.save();

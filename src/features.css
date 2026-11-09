@@ -345,3 +345,32 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 #dzikir .dsay { display: block; font-size: 18px; color: #1b6e66; }
 #dzikir small { display: block; font-size: 12px; opacity: .75; font-weight: 700; }
 @media (max-height: 520px) { #dzikir { top: calc(100px + var(--safe-t)); } #dzikir .dar { font-size: 20px; } #dzikir .dsay { font-size: 15px; } }
+/* the Iqro lessons */
+.iqro h2 { margin-bottom: 4px; }
+.iqro .iqHow { margin: 4px 0; } .iqro .iqTip, .iqro .iqQ { margin: 6px 0; font-weight: 700; opacity: .8; }
+.iqGrid, .iqParts, .iqOpts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0 12px; }
+.iqS, .iqO { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 16px; border: 3px solid #e3ecf4; background: #fff; cursor: pointer; transition: transform .1s; }
+.iqS small { font-weight: 800; color: #1c5f91; font-size: 14px; }
+.iqS.heard { border-color: #9fd9b0; background: #f1fbf4; }
+.iqS.next { border-color: #ffc83d; box-shadow: 0 0 0 4px rgba(255, 200, 61, .35); animation: iqPulse 1s infinite alternate; }
+@keyframes iqPulse { to { transform: scale(1.06); } }
+.iqO.ok { border-color: #3fbf62; background: #e9f9ee; }
+.iqO.no { border-color: #e4423a; animation: shake .4s; }
+.iqHear { margin: 4px auto 8px; display: block; font-size: 18px; }
+.iqWord { text-align: center; } .iqWord .wIcon { font-size: 40px; } .iqWhole { border: 0; background: #fff8e1; border-radius: 16px; padding: 4px 10px; cursor: pointer; }
+.iqEnd { text-align: center; } .iqEnd .stars { font-size: 44px; letter-spacing: 6px; }
+.ayat { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; max-height: 52vh; overflow-y: auto; }
+.ayah { display: grid; grid-template-columns: 30px 1fr; gap: 2px 8px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 14px; border: 3px solid #e3ecf4; background: #fff; cursor: pointer; }
+.ayah .an { grid-row: span 3; width: 28px; height: 28px; border-radius: 50%; background: #1f7a4d; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 14px; }
+.ayah .ar { font-family: var(--ar); font-size: 26px; line-height: 1.9; text-align: right; color: #12261F; }
+.ayah .lat { font-style: italic; color: #1c5f91; } .ayah .mean { opacity: .75; }
+.ayah.on { border-color: #ffc83d; background: #fffbea; }
+.ayah.ok { border-color: #3fbf62; background: #eefaf2; } .ayah.no { border-color: #e4423a; animation: shake .4s; }
+.iqPath { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.iqStage { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 14px; background: #f4f8fb; }
+.iqStage .si { font-size: 24px; } .iqStage.done { background: #eefaf2; } .iqStage.now { background: #fffbea; box-shadow: 0 0 0 3px #ffc83d inset; }
+.iqStage .bar { height: 8px; border-radius: 4px; background: #e3ecf4; overflow: hidden; margin-top: 3px; } .iqStage .bar i { display: block; height: 100%; background: #3fbf62; }
+.iqRe { display: flex; flex-wrap: wrap; gap: 4px; }
+.iqRe button { border: 0; border-radius: 10px; background: #fff; padding: 3px 7px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
+.ayah.solo { grid-template-columns: 1fr; }
+.ayah.ok .an { grid-row: auto; }

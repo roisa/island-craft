@@ -379,3 +379,16 @@ export function playLetter(i: number, ar: string, latin: string, variant = '') {
   a.onerror = () => { recorded.set(file, false); Speech.say(ar, latin); };
   a.play().then(() => recorded.set(file, true)).catch(() => { recorded.set(file, false); Speech.say(ar, latin); });
 }
+
+/**
+ * An ayah of a surah. If a recitation is added at public/audio/surah/<id>-<n>.mp3
+ * (n from 1) it is played; otherwise the device reads it (Arabic voice if there is one).
+ */
+export function playAyah(id: string, n: number, ar: string, latin: string) {
+  const file = `audio/surah/${id}-${n}.mp3`;
+  if (recorded.get(file) === false) { Speech.say(ar, latin); return; }
+  Speech.stop(); Speech.mark(2, latin);
+  const a = new Audio(file);
+  a.onerror = () => { recorded.set(file, false); Speech.say(ar, latin); };
+  a.play().then(() => recorded.set(file, true)).catch(() => { recorded.set(file, false); Speech.say(ar, latin); });
+}

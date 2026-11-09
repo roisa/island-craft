@@ -9,7 +9,8 @@ import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from '.
 import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri } from './game/prayer';
-import { SFX, playLetter, Speech, haptic, adhan } from './game/audio';
+import { SFX, playLetter, Speech, haptic, adhan, playAyah } from './game/audio';
+import { MARK_INFO, choices, lessons, STAGES, type Lesson, type Syll } from './game/iqro';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
@@ -1250,6 +1251,19 @@ export class UI {
     }));
     const q = $('#bQuiz', body); if (have.size >= 3) q.onclick = () => this.quiz();
     $('#bWords', body).onclick = () => this.wordGame();
+    // the Iqro journey: where you are, and lessons you've done to practise again
+    {
+      const all = lessons(), iq = g.stats.iqro, n = iq?.n ?? 0, stars = iq?.stars ?? {}, open = g.stats.letters.length >= 28;
+      const rowsH = [{ n: 1, icon: STAGES[0].icon, name: STAGES[0].name, from: -1, len: 0 }, ...STAGES.slice(1).map(st => ({ ...st, from: all.findIndex(l => l.stage === st.n), len: all.filter(l => l.stage === st.n).length }))].map(st => {
+        const doneN = st.n === 1 ? g.stats.letters.length : Math.max(0, Math.min(st.len, n - st.from));
+        const of = st.n === 1 ? 28 : st.len, cls = doneN >= of ? 'done' : (st.n === 1 || (open && n >= st.from)) ? 'now' : '';
+        const re = st.n > 1 ? Array.from({ length: doneN }, (_, k) => `<button data-l="${st.from + k}">${k + 1}${stars[st.from + k] ? '⭐'.repeat(stars[st.from + k]) : ''}</button>`).join('') : '';
+        return `<div class="iqStage ${cls}"><span class="si">${st.icon}</span><div><b>Iqro ${st.n} · ${esc(t2(st.name))}</b> <small>${doneN}/${of}</small><div class="bar"><i style="width:${Math.round((doneN / of) * 100)}%"></i></div>${re ? `<div class="iqRe">${re}</div>` : ''}</div><span>${doneN >= of ? '✅' : cls === 'now' ? '📍' : '🔒'}</span></div>`;
+      }).join('');
+      const box = h(`<div class="iqroPath"><h3>📖 ${tr('Perjalanan Iqro', 'The Iqro journey')}</h3><p>${open ? (n < all.length ? tr('Ikuti kompas emas ke buku pelajaran berikutnya 📖. Ketuk nomor pelajaran untuk berlatih lagi.', 'Follow the golden compass to the next lesson book 📖. Tap a lesson number to practise it again.') : tr('Kamu sudah tamat! Buku ulangan terus muncul — teruslah berlatih.', 'You finished! Review books keep appearing — keep practising.')) : tr('Temukan semua 28 huruf dulu, lalu perjalanan Iqro dimulai: harakat, tanwin, membaca kata, sampai surat pendek!', 'Find all 28 letters first, then the Iqro journey begins: vowel marks, tanwin, reading words, all the way to short surahs!')}</p><div class="iqPath">${rowsH}</div></div>`);
+      body.appendChild(box);
+      box.querySelectorAll<HTMLElement>('[data-l]').forEach(b => (b.onclick = () => { SFX.click(); g.iqro.open(true, +b.dataset.l!); }));
+    }
     // the English words met while playing, to hear again
     const v = g.stats.vocab || {};
     const all = ALL_WORDS();
@@ -1611,6 +1625,108 @@ export class UI {
       const e = h(`<button class="btn ${b.cls ?? ''}">${b.label}</button>`);
       e.onclick = () => { SFX.click(); if (!b.keep) close(); b.fn?.(); };
       wrap.appendChild(e);
+    }
+  }
+
+  /**
+   * An Iqro lesson. Syllables: listen to each, then 3 listening questions. Words: read each syllable
+   * in turn (right to left), hear the whole word and its meaning, then 3 questions. Surahs: read and
+   * hear each ayah, recite them all with Baby Mo, then put the ayat in order. `done` gets 1–3 stars.
+   */
+  iqroLesson(L: Lesson, title: string, done: (stars: number) => void, closed: () => void) {
+    let finished = false;
+    const { el, close } = this.modal(`<div class="iqro"><h2>${title}</h2><div id="iqBody"></div><div class="row"><button class="btn ghost small" id="iqX">${tr('Tutup', 'Close')}</button></div></div>`, () => { Speech.stop(2); if (!finished) closed(); });
+    const body = $('#iqBody', el);
+    $('#iqX', el).onclick = () => close();
+    const say = (x: Syll | { ar: string; lat: string }) => Speech.say(x.ar, x.lat.replace(/-/g, ''));
+    const big = (ar: string, size = 46, w = 84, hgt = 76) => arImg(ar, { size, w, h: hgt });
+    const finish = (stars: number) => {
+      finished = true; SFX.fanfare(); this.confetti(30 + stars * 10);
+      body.innerHTML = `<div class="iqEnd"><div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div><p>${stars === 3 ? tr('Sempurna! Masya Allah!', 'Perfect! Masha Allah!') : stars === 2 ? tr('Bagus sekali! Alhamdulillah', 'Very good! Alhamdulillah') : tr('Terus berlatih ya, Insya Allah makin lancar!', 'Keep practising, Insha Allah it gets easier!')}</p><button class="btn gold" id="iqDone">${tr('Selesai', 'Done')} ✓</button></div>`;
+      $('#iqDone', el).onclick = () => { close(); done(stars); };
+    };
+    /** three listening questions: hear it, pick it */
+    const quiz = <T,>(pool: T[], ar: (x: T) => string, play: (x: T) => void, show: (x: T) => string) => {
+      let q = 0, right = 0, miss = false;
+      const order = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
+      const ask = () => {
+        if (q >= order.length) { finish(Math.max(1, right)); return; }
+        const want = order[q], opts = choices(pool, want, Math.random); miss = false;
+        body.innerHTML = `<p class="iqQ">${tr('Dengarkan, lalu pilih yang benar', 'Listen, then pick the right one')} (${q + 1}/${order.length})</p>
+          <button class="btn gold iqHear" id="iqHear">🔊 ${tr('Dengar', 'Listen')}</button>
+          <div class="iqOpts">${opts.map((o, k) => `<button class="iqO" data-k="${k}">${show(o)}</button>`).join('')}</div>`;
+        $('#iqHear', el).onclick = () => play(want);
+        setTimeout(() => play(want), 350);
+        el.querySelectorAll<HTMLElement>('.iqO').forEach(b => (b.onclick = () => {
+          const o = opts[+b.dataset.k!];
+          if (ar(o) === ar(want)) { b.classList.add('ok'); SFX.chime(); if (!miss) right++; q++; setTimeout(ask, 750); }
+          else { b.classList.add('no'); SFX.error(); miss = true; setTimeout(() => b.classList.remove('no'), 500); play(want); }
+        }));
+      };
+      ask();
+    };
+    if (L.kind === 'syll') {
+      const info = MARK_INFO[L.mark];
+      const heard = new Set<number>();
+      body.innerHTML = `<p class="iqHow"><b>${info.name}</b> — ${t2(info.how)}</p><p class="iqTip">${tr('Ketuk setiap huruf untuk mendengar bacaannya:', 'Tap each one to hear how it’s read:')}</p>
+        <div class="iqGrid" dir="rtl">${L.items.map((x, k) => `<button class="iqS" data-k="${k}">${big(x.ar)}<small>${x.lat}</small></button>`).join('')}</div>
+        <button class="btn gold" id="iqGo">${tr('Lanjut ke kuis', 'On to the quiz')} ▶</button>`;
+      el.querySelectorAll<HTMLElement>('.iqS').forEach(b => (b.onclick = () => { const x = L.items[+b.dataset.k!]; heard.add(+b.dataset.k!); b.classList.add('heard'); say(x); }));
+      $('#iqGo', el).onclick = () => quiz(L.items, x => x.ar, say, x => big(x.ar, 40, 76, 68));
+    } else if (L.kind === 'word') {
+      let w = 0;
+      const showWord = () => {
+        if (w >= L.words.length) { quiz(L.words, x => x.ar, x => say({ ar: x.ar, lat: x.lat }), x => big(x.ar, 38, 120, 66)); return; }
+        const word = L.words[w]; let next = 0;
+        body.innerHTML = `<p class="iqTip">${tr('Baca satu per satu dari kanan: ketuk yang bersinar', 'Read one at a time from the right: tap the glowing one')} (${w + 1}/${L.words.length})</p>
+          <div class="iqParts" dir="rtl">${word.parts.map((x, k) => `<button class="iqS${k === 0 ? ' next' : ''}" data-k="${k}">${big(x.ar, 40, 70, 66)}<small>${x.lat}</small></button>`).join('')}</div>
+          <div class="iqWord hidden" id="iqWord"><div class="wIcon">${word.icon}</div><button class="iqWhole" id="iqWhole">${big(word.ar, 52, 190, 84)}</button><p><b>${word.lat.replace(/-/g, '')}</b> = ${t2(word.mean)}</p><button class="btn gold" id="iqNext">${tr('Kata berikutnya', 'Next word')} ▶</button></div>`;
+        const parts = el.querySelectorAll<HTMLElement>('.iqParts .iqS');
+        parts.forEach(b => (b.onclick = () => {
+          const k = +b.dataset.k!;
+          say(word.parts[k]);
+          if (k !== next) return;
+          b.classList.remove('next'); b.classList.add('heard'); next++;
+          if (next < parts.length) parts[next].classList.add('next');
+          else setTimeout(() => { $('#iqWord', el).classList.remove('hidden'); say({ ar: word.ar, lat: word.lat }); }, 700);
+        }));
+        $('#iqWhole', el).onclick = () => say({ ar: word.ar, lat: word.lat });
+        $('#iqNext', el).onclick = () => { w++; showWord(); };
+      };
+      showWord();
+    } else {
+      const S = L.surah;
+      let timer = 0;
+      const rows = () => el.querySelectorAll<HTMLElement>('.ayah');
+      body.innerHTML = `<p class="iqHow"><b>${tr('Surat', 'Surah')} ${S.name}</b> — ${t2(S.mean)}</p>
+        <div class="ayat">${S.ayat.map((a, k) => `<button class="ayah" data-k="${k}"><span class="an">${k + 1}</span><span class="ar" lang="ar" dir="rtl">${a.ar}</span><small class="lat">${a.lat}</small><small class="mean">${t2(a.mean)}</small></button>`).join('')}</div>
+        <div class="row"><button class="btn" id="iqAll">🎙️ ${tr('Baca bersama Baby Mo', 'Recite with Baby Mo')}</button><button class="btn gold" id="iqGo">${tr('Susun ayatnya', 'Put the ayat in order')} ▶</button></div>`;
+      rows().forEach(r => (r.onclick = () => { const k = +r.dataset.k!; playAyah(S.id, k + 1, S.ayat[k].ar, S.ayat[k].lat); }));
+      $('#iqAll', el).onclick = () => {
+        clearTimeout(timer);
+        const go = (k: number) => {
+          rows().forEach((r, j) => r.classList.toggle('on', j === k));
+          if (k >= S.ayat.length || !el.isConnected) return;
+          playAyah(S.id, k + 1, S.ayat[k].ar, S.ayat[k].lat);
+          timer = window.setTimeout(() => go(k + 1), 1400 + S.ayat[k].lat.length * 85);
+        };
+        go(0);
+      };
+      $('#iqGo', el).onclick = () => {
+        clearTimeout(timer); Speech.stop(2);
+        // the order game: tap the ayat from the first to the last
+        let next = 0, miss = 0;
+        const order = S.ayat.map((_, k) => k).sort(() => Math.random() - 0.5);
+        body.innerHTML = `<p class="iqQ">${tr('Ketuk ayatnya dari yang pertama sampai terakhir', 'Tap the ayat from the first to the last')}</p><div class="ayat">${order.map(k => `<button class="ayah solo" data-k="${k}"><span class="ar" lang="ar" dir="rtl">${S.ayat[k].ar}</span></button>`).join('')}</div>`;
+        rows().forEach(r => (r.onclick = () => {
+          const k = +r.dataset.k!;
+          if (r.classList.contains('ok')) return;
+          if (k === next) {
+            r.classList.add('ok'); r.classList.remove('solo'); r.insertAdjacentHTML('afterbegin', `<span class="an">${k + 1}</span>`); playAyah(S.id, k + 1, S.ayat[k].ar, S.ayat[k].lat); next++;
+            if (next === S.ayat.length) setTimeout(() => finish(miss === 0 ? 3 : miss <= 2 ? 2 : 1), 900);
+          } else { miss++; r.classList.add('no'); SFX.error(); setTimeout(() => r.classList.remove('no'), 500); }
+        }));
+      };
     }
   }
 

@@ -5,6 +5,52 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### After the 28 letters: the Iqro journey 📖
+
+Asked by a parent: what comes after all the letters are found? Rather than
+hunting the same letters again, the game now follows the path children take
+in TPA (Iqro / Qaida), from letters to reading the Qur’an:
+
+- **Iqro 1 · the 28 letters** (the shrines, as before) ✓
+- **Iqro 2 · vowel marks** (12 lessons): every letter with fathah, kasrah
+  and dhammah — ba, bi, bu — seven letters a lesson.
+- **Iqro 3 · tanwin and long vowels** (12 lessons): ban, bin, bun and baa,
+  bii, buu.
+- **Iqro 4 · reading words** (4 lessons, 12 words): read each syllable from
+  the right (the next one glows), then hear the whole word with its meaning
+  and a picture: أَكَلَ a-ka-la = ate, كَتَبَ, جَلَسَ, ذَهَبَ, فَتَحَ, خَلَقَ,
+  شَرِبَ, سَمِعَ, عَمِلَ, رَجَعَ, حَسُنَ, كَرُمَ.
+- **Iqro 5 · short surahs** (6 lessons): Al-Kautsar, Al-Ikhlas, Al-‘Asr,
+  Al-Falaq, An-Nas, and Al-Fatihah. Each ayah in Arabic with
+  transliteration and meaning (Indonesian and English); tap one to hear it,
+  🎙️ recite them all with Baby Mo (each ayah lights up in turn), then put
+  the ayat in order.
+- **Then round and round**: review lessons keep coming, so it never just
+  stops.
+- **In the world**: each lesson waits as a glowing open book with a beam of
+  light, 18–35 blocks away; the golden compass points to it (📖). Walk into
+  it to open the lesson (close it, step away and back to open it again).
+- **Each lesson**: listen to each sound, then 3 listening questions (hear
+  it, pick it); 1–3 stars, 10 + 5 coins a star. Finishing a stage: 50 coins,
+  fireworks, and what’s next.
+- **Letters tab → 📖 The Iqro journey**: the five stages with progress
+  bars and stars; tap any lesson you’ve done to practise it again.
+- Recitations: if recordings are added at `public/audio/surah/<id>-<n>.mp3`
+  (for example `ikhlas-1.mp3`) they are played; otherwise the device reads
+  the ayah (with an Arabic voice when it has one).
+- Tested:
+  - Unit tests: the stages in order; every letter with each of fathah,
+    kasrah and dhammah; the syllables written and read right; each word
+    made of its syllables; every surah with its number of ayat, each ayah
+    with Arabic, reading and meaning; the review loop; stage ends and coins;
+    the listening choices.
+  - Looked at in the game: the book, a syllable lesson and its quiz, the
+    stars, a word, a surah, the ayat order game, and the journey in the
+    Letters tab.
+  - Smoke test on all four devices: with all 28 letters a book appears, the
+    compass points to it, a lesson and its quiz give coins and move on, the
+    next book appears, and the journey shows in the Letters tab.
+
 ### Archery, the big race, basketball & penalties, a horse farm, an ice rink, and good words 🏹🏁🏀⚽🐴⛸️🤲
 
 Requested by a parent: an archery range with levels and rewards and easy

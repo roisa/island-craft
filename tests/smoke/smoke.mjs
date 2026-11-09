@@ -589,17 +589,46 @@ async function run(name) {
       await g(() => document.querySelector('#bPlay').click());
       await p.waitForSelector('.veil.on #dbtns button');
       const sum = await g(() => document.querySelector('.veil.on .dialog').textContent.match(/\d+ − 10 = \d+/)?.[0]);
-      const c0 = await g(() => __game.stats.coins);
-      await g(() => document.querySelector('.veil.on #dbtns button').click());
+      // (read the coins right around the tap, so a reward arriving meanwhile doesn't count)
+      const paid = await g(() => { const c0 = __game.stats.coins; document.querySelector('.veil.on #dbtns button').click(); return c0 - __game.stats.coins; });
       await p.waitForFunction(() => __game.activities.find(a => a.id === 'skating').active || (__game.ui.closeAllModals(), false), null, { timeout: 5000 });
       // push forward (as if holding W / the joystick up) until you're gliding
       await p.waitForFunction(() => { __game.ui.closeAllModals(); __game.input.keys.add('KeyW'); const A = __game.activities.find(a => a.id === 'skating'); return Math.hypot(A.v.x, A.v.z) > 1.5; }, null, { timeout: 20000 }).catch(async () => { throw new Error('no glide: ' + await g(() => { const A = __game.activities.find(a => a.id === 'skating'); return JSON.stringify({ v: A.v, active: A.active, ax: __game.input.axis(), paused: __game.paused, open: __game.ui.isOpen() }); })); });
       await g(() => { __game.input.keys.delete('KeyW'); });
       await g(() => { const A = __game.activities.find(a => a.id === 'skating'), f = A.flakes.find(f => f.visible).position; A.pos.set(f.x, A.pos.y, f.z); A.v.x = 0; A.v.z = 0; });
       await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'skating').got >= 1), null, { timeout: 10000 });
-      const r = await g(c0 => { const A = __game.activities.find(a => a.id === 'skating'); const o = { paid: c0 - __game.stats.coins, got: A.got, rented: __game.stats.skates === __game.day }; A.quit(); __game.ui.closeAllModals(); __game.player.pos.set(0.5, 47, 3.5); return o; }, c0);
+      const r = await g(paid => { const A = __game.activities.find(a => a.id === 'skating'); const o = { paid, got: A.got, rented: __game.stats.skates === __game.day }; A.quit(); __game.ui.closeAllModals(); __game.player.pos.set(0.5, 47, 3.5); return o; }, paid);
       if (!sum || r.paid !== 10 || r.got < 1 || !r.rented) throw new Error(JSON.stringify({ sum, ...r }));
       return { sum, ...r };
+    });
+    await step('Iqro journey: after all 28 letters a lesson book appears, the compass points to it, a lesson and its quiz, then the next book', async () => {
+      const keep = await g(() => __game.stats.letters.slice());
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.letters = Array.from({ length: 28 }, (_, i) => i); G.stats.iqro = undefined; });
+      await p.waitForFunction(() => !!__game.iqro.stone || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 200 });
+      // (outside prayer time, when the compass points to the masjid first)
+      const compass = await g(() => { const G = __game; G.gameEvent = null; G.exploreTarget = null; G.hour = 9; G.lastHour = 9; return G.compass()?.landmark; });
+      await g(() => { const G = __game, s = G.iqro.stone; G.player.pos.set(s[0] + 3, s[1], s[2]); });
+      await p.waitForTimeout(400);
+      await g(() => { const G = __game, s = G.iqro.stone; G.ui.closeAllModals(); G.player.pos.set(s[0], s[1], s[2]); });
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .iqro') || (__game.ui.modals.filter(m => !m.veil.querySelector('.iqro')).forEach(m => m.close()), false), null, { timeout: 20000, polling: 200 });
+      const sylls = await g(() => document.querySelectorAll('.veil.on .iqGrid .iqS').length);
+      await g(() => document.querySelector('.veil.on #iqGo').click());
+      // answer the three questions (try each choice until the right one)
+      for (let q = 0; q < 3; q++) {
+        await p.waitForSelector('.veil.on .iqO');
+        await g(() => new Promise(done => { const tryNext = i => { const b = document.querySelectorAll('.veil.on .iqO')[i]; if (!b) return done(0); b.click(); setTimeout(() => (document.querySelector('.veil.on .iqO.ok') ? done(1) : tryNext(i + 1)), 80); }; tryNext(0); }));
+        await p.waitForTimeout(900);
+      }
+      await p.waitForSelector('.veil.on #iqDone');
+      const c0 = await g(() => __game.stats.coins);
+      await g(() => document.querySelector('.veil.on #iqDone').click());
+      const r = await g(c0 => ({ step: __game.iqro.step, gained: __game.stats.coins - c0, stone: __game.stats.iqro.stone }), c0);
+      await p.waitForFunction(() => !!__game.iqro.stone, null, { timeout: 20000 });
+      await g(() => { __game.ui.closeAllModals(); __game.ui.openBook('letters'); });
+      const path = await g(() => document.querySelectorAll('#vBook .iqStage').length);
+      await g(keep => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.stats.letters = keep; G.player.pos.set(0.5, 47, 3.5); }, keep);
+      if (compass !== '📖' || sylls !== 7 || r.step !== 1 || r.gained < 15 || path !== 5) throw new Error(JSON.stringify({ compass, sylls, ...r, path }));
+      return { compass, sylls, ...r, path };
     });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
