@@ -637,18 +637,23 @@ async function run(name) {
       const all = await g(() => ({ keep: __game.stats.letters.slice(), iq: __game.stats.iqro }));
       await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.letters = Array.from({ length: 28 }, (_, i) => i); G.stats.iqro = { n: 12, stars: { 29: 3, 31: 2, 32: 3 } }; const e = G.inv.slots.findIndex(s => !s); if (e >= 0) G.inv.sel = e; });
       const dad = await g(() => { const G = __game, n = G.ents.npcs.find(n => n.id === 'ustadz'); G.talkNpc(n); return [...document.querySelectorAll('.veil.on #dbtns button')].map(b => b.textContent).join(' | '); });
-      // Dad's exam button is there; take the exam
-      await g(() => { __game.ui.closeAllModals(); __game.iqroExam(2); });
-      for (let q = 0; q < 5; q++) {
-        await p.waitForFunction(() => !!document.querySelector('.veil.on .iqO') || (__game.ui.modals.filter(m => !m.veil.querySelector('.iqro')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 })
-          .catch(async () => { throw new Error('no exam question ' + q + ': ' + JSON.stringify({ dad, modals: await g(() => __game.ui.modals.map(m => m.veil.textContent.slice(0, 80))) })); });
-        // (pick the one that was just read out, first time)
-        await p.waitForFunction(() => !!window.__said && [...document.querySelectorAll('.veil.on .iqO')].some(b => b.dataset.ar === window.__said), null, { timeout: 10000, polling: 100 });
-        await g(() => { [...document.querySelectorAll('.veil.on .iqO')].find(b => b.dataset.ar === window.__said).click(); window.__said = ''; });
-        await p.waitForTimeout(900);
+      const log = [];
+      // Dad's exam button is there; take the exam (once more if a question went wrong, as a child could)
+      for (let attempt = 0; attempt < 2 && !(await g(() => __game.stats.iqro?.exams?.includes(2))); attempt++) {
+        await g(() => { __game.ui.closeAllModals(); window.__said = ''; __game.iqroExam(2); });
+        for (let q = 0; q < 5; q++) {
+          await p.waitForFunction(() => !!document.querySelector('.veil.on .iqO') || (__game.ui.modals.filter(m => !m.veil.querySelector('.iqro')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 })
+            .catch(async () => { throw new Error('no exam question ' + q + ': ' + JSON.stringify({ dad, log, modals: await g(() => __game.ui.modals.map(m => m.veil.textContent.slice(0, 80))) })); });
+          // (pick the one that was just read out, first time)
+          await p.waitForFunction(() => !!window.__said && [...document.querySelectorAll('.veil.on .iqO')].some(b => b.dataset.ar === window.__said), null, { timeout: 10000, polling: 100 });
+          log.push(await g(() => { const bs = [...document.querySelectorAll('.veil.on .iqO')], said = window.__said; bs.find(b => b.dataset.ar === said).click(); window.__said = ''; return said + ':' + bs.map(b => b.dataset.ar).join(',') + ':' + !!document.querySelector('.veil.on .iqO.ok'); }));
+          await p.waitForTimeout(900);
+        }
+        await p.waitForFunction(() => !document.querySelector('.veil.on .iqO'), null, { timeout: 10000 }).catch(() => {});
+        log.push('exams:' + JSON.stringify(await g(() => __game.stats.iqro?.exams)));
       }
       await p.waitForFunction(() => !!document.querySelector('.veil.on .cert') || (__game.ui.modals.filter(m => !m.veil.querySelector('.cert')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 })
-        .catch(async () => { throw new Error('no certificate: ' + await g(() => JSON.stringify({ exams: __game.stats.iqro?.exams, modals: __game.ui.modals.map(m => m.veil.textContent.slice(0, 80)) }))); });
+        .catch(async () => { throw new Error('no certificate: ' + JSON.stringify(log) + await g(() => JSON.stringify({ exams: __game.stats.iqro?.exams, modals: __game.ui.modals.map(m => m.veil.textContent.slice(0, 80)) }))); });
       const exam = await g(() => ({ exams: __game.stats.iqro.exams, cert: !!document.querySelector('.veil.on .cert') }));
       await g(() => document.querySelector('.veil.on #cOk').click());
       const imam = await g(() => { const G = __game; G.ui.closeAllModals(); G.jamaah = { step: { pose: 'qiyam', name: ['Berdiri', 'Standing'], rakaat: 1 }, total: 4 }; const r = G.imamReads(); G.jamaah = null; return r; });
