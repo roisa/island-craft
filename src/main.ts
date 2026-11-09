@@ -885,6 +885,7 @@ export class Game {
     this.ui.showFishHelp(rod || nearWater);
     this.ui.showBoat(nearWater && !this.fun.riding);
     this.ui.showRace(!!this.race?.near(p.pos) && !this.race.active && !this.fun.riding);
+    this.race?.idle(p.pos);
     this.ui.showTennis(!!this.tennis?.near(p.pos) && !this.tennis.active && !this.fun.riding && !this.race?.active);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
   }

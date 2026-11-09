@@ -75,6 +75,8 @@ export interface Stats {
   /** tennis matches with Baby Mo: played, won, and the longest rally */
   tennis?: number; tennisWins?: number; tennisRally?: number;
   /** fruit picked in the orchard, growing back: [x, y, z, block, when] */
+  /** Baby Mo showed where the go-karts wait */
+  raceHint?: number;
   fruitPicked?: [number, number, number, number, number][];
   /** the English words you've met (word → its kind and how often) */
   vocab?: Record<string, { cat: string; n: number; item?: number; id?: string }>;

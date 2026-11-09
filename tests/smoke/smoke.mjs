@@ -427,6 +427,19 @@ async function run(name) {
       if (r.fire !== 74 || r.stream !== 11 || !r.grill || !craft) throw new Error(JSON.stringify({ ...r, craft }));
       return { ...r, craft };
     });
+    await step('race track: the go-karts wait on the start line, and walking to the red kart starts a race', async () => {
+      const ok = await g(() => !!__game.race);
+      if (!ok) throw new Error('no race track in this world');
+      await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x, k.y + 0.5, k.z - 8); G.player.vel.set(0, 0, 0); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => __game.race.parked.length === 4, null, { timeout: 10000, polling: 200 });
+      await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x + 0.3, k.y + 0.3, k.z); G.player.vel.set(0, 0, 0); });
+      await p.waitForFunction(() => __game.race.active || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 });
+      const r = await g(() => ({ active: __game.race.active, parked: __game.race.parked.length, karts: __game.race.karts.length }));
+      await g(() => { const G = __game; G.race.quit(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (!r.active || r.parked !== 0 || r.karts !== 4) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('tennis: go there from the map, serve, hit the ball back on time, Baby Mo plays, then leave', async () => {
       const ok = await g(() => !!__game.gen.landmarks.find(l => l.id === 'tennis'));
       if (!ok) throw new Error('no tennis court in this world');

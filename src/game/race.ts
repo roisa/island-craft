@@ -40,6 +40,36 @@ export class Race {
   constructor(private g: Game, l: Landmark) {
     const c = l.at!.centre; this.cx = c[0]; this.cz = c[2]; this.y = c[1];
   }
+  /** the karts waiting on the grid when nobody is racing, so you can find them */
+  private parked: THREE.Group[] = []; private armed = true;
+  /** the grid spots: you and Baby Mo in front, the racers behind */
+  static readonly GRID: [number, number][] = [[-2.5, 1.8], [-2.5, -1.8], [-7, 1.8], [-7, -1.8]];
+  /** your kart's place on the grid */
+  myKart() { const p = pointAt(Race.GRID[0][0], Race.GRID[0][1]); return new THREE.Vector3(this.cx + p.x, this.y, this.cz + p.z); }
+  /**
+   * Every half second when not racing: the karts wait on the grid while you're near, Baby Mo
+   * tells you where they are the first time, and walking up to your red kart starts a race.
+   */
+  idle(p: THREE.Vector3) {
+    const g = this.g, close = !this.active && Math.abs(p.x - this.cx) < 60 && Math.abs(p.z - this.cz) < 45 && Math.abs(p.y - this.y) < 20;
+    if (close && !this.parked.length) {
+      this.parked = Race.GRID.map(([s, lane], i) => {
+        const obj = kartModel([0xe4423a, 0x8dc63f, DRIVERS[0].color, DRIVERS[1].color][i]);
+        const q = pointAt(s, lane); obj.position.set(this.cx + q.x, this.y, this.cz + q.z); obj.rotation.y = q.yaw;
+        g.scene.add(obj); return obj;
+      });
+    } else if (!close && this.parked.length) this.clearParked();
+    if (!close) return;
+    const k = this.myKart(), d = Math.hypot(p.x - k.x, p.z - k.z);
+    if (!g.stats.raceHint && this.near(p) && !g.ui.isOpen()) {
+      g.stats.raceHint = 1;
+      g.ui.say(tr('Gokartnya ada di garis start, di bawah lampu start! Naik ke gokart merah, atau ketuk 🏁 Balapan! 🏎️', 'The go-karts are on the start line, under the start lights! Walk to the red kart, or tap 🏁 Race! 🏎️'), 'idea', 7000);
+    }
+    if (d > 4) this.armed = true;
+    else if (d < 1.4 && this.armed && !g.fun.riding && !g.ui.isOpen() && !g.tennis?.active) { this.armed = false; this.start(); }
+  }
+  private clearParked() { for (const o of this.parked) this.g.scene.remove(o); this.parked = []; }
+
   /** close enough to the track to start a race */
   near(p: THREE.Vector3) { return Math.abs(p.x - this.cx) < 40 && Math.abs(p.z - this.cz) < 26 && Math.abs(p.y - this.y) < 6; }
   /** where you are on the track: laps done and metres into this one */
@@ -49,9 +79,10 @@ export class Race {
     const g = this.g;
     if (this.active) return;
     if (g.fun.riding) g.fun.dismount();
-    this.active = true; this.phase = 'count'; this.t = 0; this.count = 3;
+    this.active = true; this.phase = 'count'; this.t = 0; this.count = 3; this.armed = false;
+    this.clearParked();
     // the grid, just behind the start line: you and Baby Mo in front, the racers behind
-    const grid: [number, number][] = [[-2.5, 1.8], [-2.5, -1.8], [-7, 1.8], [-7, -1.8]];
+    const grid = Race.GRID;
     const colors = [0xe4423a, 0x8dc63f];
     this.karts = grid.map(([s, lane], i) => {
       const d = i >= 2 ? DRIVERS[i - 2] : null;

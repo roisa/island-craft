@@ -5,6 +5,21 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The go-karts wait on the start line 🏎️
+
+Ibra found the race track but not the cars: the karts only appeared after
+tapping 🏁 Race!.
+
+- Now the four go-karts (your red one, Baby Mo’s green one, and the two
+  racers’ blue and yellow ones) wait on the start line under the start
+  lights whenever you’re at the track.
+- Walk up to the red kart to get in and start a race (or tap 🏁 Race!
+  as before).
+- The first time you come to the track, Baby Mo says where the karts are.
+- Tested: smoke test on all four devices (the karts are there, walking
+  to the red kart starts the race and the parked karts make way for the
+  racing ones); unit tests.
+
 ### The bedug at prayer time 🥁
 
 Requested by a parent: the sung adhan still sounded odd, so prayer time is
