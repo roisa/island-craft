@@ -74,6 +74,10 @@ export interface Stats {
   races?: number; raceWins?: number; raceBest?: number;
   /** tennis matches with Baby Mo: played, won, and the longest rally */
   tennis?: number; tennisWins?: number; tennisRally?: number;
+  /** fruit picked in the orchard, growing back: [x, y, z, block, when] */
+  fruitPicked?: [number, number, number, number, number][];
+  /** the English words you've met (word → its kind and how often) */
+  vocab?: Record<string, { cat: string; n: number }>;
 }
 export const newStats = (): Stats => ({
   mined: {}, crafted: {}, placed: 0, placedIds: {}, letters: [], petted: 0, milk: 0, eggs: 0, wool: 0, gave: 0, planted: 0,

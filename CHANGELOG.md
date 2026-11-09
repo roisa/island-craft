@@ -5,6 +5,48 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### English words while playing, and the Fruit Orchard 🍎📘
+
+Requested by a parent: more praise words so Ibra learns English while
+playing, the names of animals as you pass them, and more kinds of fruit
+trees that tell you their names.
+
+- **English word cards** (new `src/game/english.ts`): a small card shows
+  the English word in big letters with its Indonesian meaning, and Baby
+  Mo says it in English (tap 🔊 to hear it again).
+  - **Praise words** (15: Awesome!, Great job!, Well done!, Fantastic!,
+    Brilliant!, Amazing!, Excellent!, Super!, Wonderful!, You did it!,
+    Keep it up!, Nice work!, Perfect!, Way to go!, Good thinking!) come
+    with your stars now and then (at most one every 25 seconds, never the
+    same twice in a row).
+  - **Animals**: walk close to a chicken, sheep, cow, camel, goat or cat
+    and hear its name with a little sentence (“Cow! The cow says moo.”),
+    at most every 2 minutes per animal.
+  - Cards wait while a menu, a race, tennis, a prayer or the tutorial is
+    on, and come at most every 6 seconds.
+  - **📘 My English Words** in the Letters tab lists every word you met,
+    by animals, fruits and praise; tap one to hear it.
+  - Settings: **English word cards** on/off.
+- **The Fruit Orchard (Kebun Buah)**, a new place 60–150 blocks from the
+  village, in the map’s fun places. Eight named trees along gravel paths
+  inside a low hedge: **apple, mango, orange, rambutan** (leafy trees),
+  **banana, coconut** (palms), **papaya** (a thin trunk with a small
+  crown) and a **watermelon** patch on the ground.
+  - Stand by a tree and Baby Mo says “This is a mango tree. Mango!”.
+  - Tap a fruit to pick it: you get it, its word card comes up, and it
+    grows back after 3 minutes (watermelons give 3 slices).
+  - New blocks and food items: mango, banana, orange, coconut, papaya,
+    rambutan, watermelon slice, with their own pictures.
+- Tested:
+  - Unit tests: the word lists; the orchard is in every world (60/60
+    seeds checked) with all eight trees carrying their fruit; the tree
+    sentences.
+  - Smoke test on all four devices: go to the orchard from the map, the
+    mango card comes up by the mango tree, pick an orange (you get it,
+    the Orange card shows, it grows back), and both words are in My
+    English Words.
+  - Old worlds keep all their places (the orchard is added last).
+
 ### The Tennis Court: play tennis with Baby Mo 🎾
 
 Requested by a parent: a tennis court where Baby Mo plays tennis, and the

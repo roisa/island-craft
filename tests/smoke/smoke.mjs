@@ -451,6 +451,34 @@ async function run(name) {
       if (!started.active || !started.mo || started.state !== 'serve' || served !== 'toMo' || !hitBack || after.active || after.mo || !after.hud) throw new Error(JSON.stringify({ started, served, r, after }));
       return { started, served, r, after };
     });
+    await step('fruit orchard & English words: go there from the map, a tree says its name, pick a fruit, it is in My English Words and grows back', async () => {
+      const ok = await g(() => !!__game.gen.landmarks.find(l => l.id === 'orchard'));
+      if (!ok) throw new Error('no orchard in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="orchard"]');
+      await g(() => document.querySelector('#vBook.on [data-go="orchard"]').click());
+      await p.waitForTimeout(900);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      // stand by the mango tree: its word card comes up
+      await g(() => { const G = __game, t = G.gen.landmarks.find(l => l.id === 'orchard').at.tree_mango; G.ui.closeAllModals(); G.player.pos.set(t[0] + 0.3, t[1], t[2] + 3.2); G.player.vel.set(0, 0, 0); G.english.shownAt = -1e9; });
+      await p.waitForFunction(() => document.querySelector('#wordCard .we')?.textContent === 'Mango' && !document.querySelector('#wordCard').classList.contains('hidden') || (__game.ui.closeAllModals(), __game.english.shownAt = -1e9, false), null, { timeout: 20000, polling: 300 });
+      // pick an orange: you get one, its word is said, and it grows back later
+      const r = await g(() => {
+        const G = __game, [tx, ty, tz] = G.gen.landmarks.find(l => l.id === 'orchard').at.tree_orange.map(Math.floor);
+        let f = null; for (let dx = -2; dx <= 2 && !f; dx++) for (let dz = -2; dz <= 2 && !f; dz++) for (let dy = 0; dy <= 4; dy++) if (G.world.get(tx + dx, ty + dy, tz + dz) === 77) { f = [tx + dx, ty + dy, tz + dz]; break; }
+        if (!f) return { f };
+        const had = G.inv.count(264); G.breakBlock(f[0], f[1], f[2], 77);
+        const gone = G.world.get(...f) === 0, word = document.querySelector('#wordCard .we')?.textContent;
+        G.stats.fruitPicked[G.stats.fruitPicked.length - 1][4] -= 4 * 60000; G.english.scanT = 0; G.english.update(0.1);
+        return { f, got: G.inv.count(264) - had, gone, word, back: G.world.get(...f) === 77, mango: G.stats.vocab?.Mango?.n, orange: G.stats.vocab?.Orange?.n };
+      });
+      await p.waitForTimeout(300);
+      await g(() => { __game.ui.closeAllModals(); __game.ui.openBook('letters'); });
+      const book = await g(() => [...document.querySelectorAll('#vBook.on .vocab .vw')].filter(e => !e.classList.contains('off')).map(e => e.textContent).join('|'));
+      await g(() => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (!r.f || r.got < 1 || !r.gone || r.word !== 'Orange' || !r.back || !r.mango || !r.orange || !/Orange/.test(book)) throw new Error(JSON.stringify({ r, book }));
+      return { ...r, book: book.length };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');

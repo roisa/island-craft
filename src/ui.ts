@@ -16,6 +16,8 @@ import { adultSum } from './game/gate';
 import { DEEDS, type Deed } from './game/amal';
 import { WUDU } from './game/deeds';
 import { LOW, SIPS } from './game/thirst';
+import { PRAISE, ANIMAL_WORDS, FRUIT_WORDS } from './game/english';
+const PRAISE_LIST = () => PRAISE, ANIMAL_LIST = () => ANIMAL_WORDS, FRUIT_LIST = () => FRUIT_WORDS;
 import { WUDU_GUIDE, SHOLAT_GUIDE, poseFrames, type GuideStep } from './game/tutorials';
 import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
@@ -70,6 +72,7 @@ export class UI {
   <div id="jmHud" class="pill hidden"></div>
   <div id="raceHud" class="pill hidden"><span id="raceT"></span><button class="btn small ghost" id="raceX">${tr('Keluar', 'Exit')}</button></div>
   <div id="raceCount" class="hidden"></div>
+  <div id="wordCard" class="pill hidden"><span class="wi"></span><div><b class="we"></b><small class="wid"></small></div><button class="say" id="wordSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="tennisHud" class="pill hidden"><span id="tennisT"></span><button class="btn small ghost" id="tennisX">${tr('Keluar', 'Exit')}</button></div>
   <div id="bedHud" class="pill hidden"><span id="bedT"></span><button class="btn small gold" id="bedNow">😴 ${tr('Tidur sekarang', 'Sleep now')}</button></div>
   <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
@@ -123,6 +126,7 @@ export class UI {
     $('#bMasjid').onclick = () => this.masjidPicker();
     $('#bRace').onclick = () => { SFX.click(); this.g.race?.start(); };
     $('#raceX').onclick = () => { SFX.click(); this.g.race?.quit(); };
+    $('#wordSay').onclick = () => { const w = this.wordNow; if (w) Speech.talk(w.say ?? w.en, 'en', true, 0); };
     $('#bTennis').onclick = () => { SFX.click(); this.g.tennis?.start(); };
     $('#tennisX').onclick = () => { SFX.click(); this.g.tennis?.quit(); };
     $('#bedNow').onclick = () => this.dialog({
@@ -319,6 +323,17 @@ export class UI {
     const txt = tr(id, en);
     if (b.querySelector('.sn')!.textContent !== txt) { b.querySelector('.si')!.textContent = ic2; b.querySelector('.sn')!.textContent = txt; }
     if (changed) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); this.toast(`${ic2} ${txt}!`, 1200); }
+  }
+  private wordNow: import('./game/english').Word | null = null; private wordT = 0;
+  /** a little English word card: the word, big, its Indonesian meaning, and 🔊 to hear it again */
+  wordCard(w: import('./game/english').Word) {
+    const el = $('#wordCard');
+    this.wordNow = w;
+    el.querySelector('.wi')!.textContent = w.icon;
+    el.querySelector('.we')!.textContent = w.en;
+    el.querySelector('.wid')!.textContent = w.id;
+    el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
+    clearTimeout(this.wordT); this.wordT = window.setTimeout(() => el.classList.add('hidden'), 4200);
   }
   /** the 🎾 button at the tennis court */
   showTennis(on: boolean) { const b = $('#bTennis'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
@@ -1157,6 +1172,14 @@ export class UI {
     }));
     const q = $('#bQuiz', body); if (have.size >= 3) q.onclick = () => this.quiz();
     $('#bWords', body).onclick = () => this.wordGame();
+    // the English words met while playing, to hear again
+    const v = g.stats.vocab || {};
+    const all = [...Object.values(PRAISE_LIST()), ...Object.values(ANIMAL_LIST()), ...Object.values(FRUIT_LIST())];
+    const met = all.filter(w => v[w.en]);
+    const box = h(`<div class="vocab"><h3>📘 ${tr('Kata Bahasa Inggrisku', 'My English Words')} <small>(${met.length}/${all.length})</small></h3>
+      ${met.length ? (['animal', 'fruit', 'praise'] as const).map(cat => { const ws = met.filter(w => w.cat === cat); return ws.length ? `<p class="vcat">${cat === 'animal' ? tr('🐾 Hewan', '🐾 Animals') : cat === 'fruit' ? tr('🍎 Buah', '🍎 Fruits') : tr('🌟 Kata pujian', '🌟 Praise words')}</p><div class="vwords">${ws.map(w => `<button class="vw" data-w="${esc(w.en)}"><span>${w.icon}</span><b>${esc(w.en)}</b><small>${esc(w.id)}</small></button>`).join('')}</div>` : ''; }).join('') : `<p>${tr('Jalan-jalan ke dekat hewan atau pohon buah, dan lakukan hal-hal hebat — kata-kata Bahasa Inggris akan muncul di sini! 🔊', 'Walk near animals and fruit trees, and do great things — English words will appear here! 🔊')}</p>`}</div>`);
+    body.appendChild(box);
+    box.querySelectorAll<HTMLElement>('[data-w]').forEach(b => (b.onclick = () => { const w = all.find(x => x.en === b.dataset.w); if (w) Speech.talk(w.say ?? w.en, 'en', true, 0); SFX.click(); }));
   }
 
   private quests(body: HTMLElement) {
@@ -1246,6 +1269,7 @@ export class UI {
       ${tog('tSfx', s.sfx, tile('speaker', C.pink) + tr('Efek suara', 'Sound effects'))}
       ${tog('tMusic', s.music, tile('music', C.red) + tr('Musik', 'Music'))}
       ${tog('tVoice', s.moVoice, tile('bubble', C.green) + tr('Baby Mo membacakan teks', 'Baby Mo reads text aloud'))}
+      ${tog('tEnglish', s.english !== false, tile('globe', C.teal) + tr('Kartu kata Bahasa Inggris', 'English word cards'))}
       <div class="set"><span>${tile('globe', C.blue)}${tr('Bahasa', 'Language')}</span>${this.langSeg()}</div>
       <div class="set"><span>${tile('camera', C.gray)}${tr('Kamera', 'Camera')}</span><select id="sCam"><option value="third" ${s.cam === 'third' ? 'selected' : ''}>${tr('Orang ketiga', 'Third person')}</option><option value="first" ${s.cam === 'first' ? 'selected' : ''}>${tr('Orang pertama', 'First person')}</option></select></div>
       <div class="set"><span>${tile('eye', C.teal)}${tr('Jarak pandang', 'View distance')}</span><select id="sDist">${[3, 4, 5, 6, 8].map(n => `<option value="${n}" ${s.dist === n ? 'selected' : ''}>${n * 16} m</option>`).join('')}</select></div>
@@ -1258,6 +1282,7 @@ export class UI {
       <button class="btn ghost small" id="bParents">${ic('family')} ${tr('Untuk orang tua', 'For parents')} ${ic('lock')}</button>`;
     const flip = (id: string, k: 'sfx' | 'music' | 'moVoice') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
     flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice');
+    $('#tEnglish', body).onclick = () => { s.english = s.english === false; SFX.click(); g.saveSoon(); this.renderBook(); };
     $('#bParents', body).onclick = () => this.parentGate(() => this.parentsPanel());
     this.bindLangSeg(body, () => { this.refreshHotbar(); this.updateHud(); this.renderBook(); g.saveSoon(); });
     $<HTMLSelectElement>('#sCam', body).onchange = e => { s.cam = (e.target as HTMLSelectElement).value as 'first' | 'third'; g.applySettings(); };

@@ -887,6 +887,65 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    id: 'orchard', icon: '🍎', name: ['Kebun Buah', 'The Fruit Orchard'], biomes: [Biome.MEADOW, Biome.FOREST, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.BEACH, Biome.DESERT, Biome.SNOWY], dist: [60, 150], r: 14, loose: true, clear: 4,
+    ok: c => c.h > SEA && c.h < SEA + 14,
+    hint: ['Ada kebun penuh pohon buah: apel, mangga, pisang, kelapa… dan semangka di tanah!', 'There’s a garden full of fruit trees: apples, mangoes, bananas, coconuts… and watermelons on the ground!'],
+    fact: ['Datangi tiap pohon untuk belajar nama buahnya dalam bahasa Inggris, lalu petik buahnya — buahnya tumbuh lagi! Allah menumbuhkan bermacam-macam buah dengan warna dan rasa yang berbeda (QS. Fathir 35:27).', 'Walk up to each tree to learn the name of its fruit in English, then pick the fruit — it grows back! Allah brings out fruits of many colours and tastes (Quran 35:27).'],
+    loot: [[I.MANGO, 3], [I.BANANA, 3], [B.SAPLING, 2]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      foundation(b, x - 13, z - 9, x + 13, z + 9, y, B.DIRT);
+      b.box(x - 13, y, z - 9, x + 13, y, z + 9, B.GRASS);
+      b.box(x - 13, y + 1, z - 9, x + 13, y + 10, z + 9, B.AIR);
+      // a gravel path down the middle and a low hedge round the edge, with a gap to walk in
+      b.box(x - 13, y, z, x + 13, y, z, B.GRAVEL);
+      b.box(x, y, z - 9, x, y, z + 9, B.GRAVEL);
+      for (let X = x - 13; X <= x + 13; X++) for (const Z of [z - 9, z + 9]) if (Math.abs(X - x) > 1) b.stamp(X, y + 1, Z, B.OAK_LEAVES);
+      for (let Z = z - 9; Z <= z + 9; Z++) for (const X of [x - 13, x + 13]) if (Math.abs(Z - z) > 1) b.stamp(X, y + 1, Z, B.OAK_LEAVES);
+      b.stamp(x + 2, y + 1, z + 2, B.CHEST);
+      const at: Record<string, [number, number, number]> = { entry: [x + 0.5, y + 1, z + 7.5] };
+      // a leafy tree with fruit hanging under its leaves (apple, mango, orange, rambutan)
+      const leafy = (tx: number, tz: number, f: number) => {
+        for (let i = 1; i <= 3; i++) b.stamp(tx, y + i, tz, B.OAK_LOG);
+        for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+          if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+          b.stamp(tx + dx, y + 4, tz + dz, B.OAK_LEAVES); b.stamp(tx + dx, y + 5, tz + dz, B.OAK_LEAVES);
+          if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) b.stamp(tx + dx, y + 6, tz + dz, B.OAK_LEAVES);
+        }
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 1], [-2, -1], [1, 2], [-1, -2]]) b.stamp(tx + dx, y + 3, tz + dz, f);
+      };
+      // a palm (banana, coconut) with its fruit just under the leaves
+      const palmy = (tx: number, tz: number, th: number, f: number) => {
+        palm(b, tx, y, tz, th);
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) b.stamp(tx + dx, y + th, tz + dz, f);
+      };
+      const rows: [string, number, number][] = [['apple', -9, -5], ['mango', -3, -5], ['orange', 3, -5], ['rambutan', 9, -5], ['banana', -9, 5], ['coconut', -3, 5], ['papaya', 3, 5], ['watermelon', 9, 5]];
+      for (const [k, dx, dz] of rows) {
+        const tx = x + dx, tz = z + dz;
+        at['tree_' + k] = [tx + 0.5, y + 1, tz + 0.5];
+        if (k === 'apple') leafy(tx, tz, B.FRUIT_APPLE);
+        else if (k === 'mango') leafy(tx, tz, B.FRUIT_MANGO);
+        else if (k === 'orange') leafy(tx, tz, B.FRUIT_ORANGE);
+        else if (k === 'rambutan') leafy(tx, tz, B.FRUIT_RAMBUTAN);
+        else if (k === 'banana') palmy(tx, tz, 3, B.FRUIT_BANANA);
+        else if (k === 'coconut') palmy(tx, tz, 4, B.FRUIT_COCONUT);
+        else if (k === 'papaya') {
+          // a thin trunk, a small umbrella of leaves, and the papayas hanging round the top of the trunk
+          for (let i = 1; i <= 3; i++) b.stamp(tx, y + i, tz, B.PALM_LOG);
+          b.stamp(tx, y + 4, tz, B.OAK_LEAVES);
+          for (const [ex, ez] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) b.stamp(tx + ex, y + 4, tz + ez, B.OAK_LEAVES);
+          for (const [ex, ez] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) b.stamp(tx + ex, y + 3, tz + ez, B.FRUIT_PAPAYA);
+        } else {
+          // watermelons grow on the ground, on a patch of dark soil among their leaves
+          for (let ex = -2; ex <= 2; ex++) for (let ez = -2; ez <= 2; ez++) b.stamp(tx + ex, y, tz + ez, B.DIRT);
+          for (const [ex, ez] of [[-1, -1], [1, -1], [0, 1], [-2, 1], [2, 1], [1, 2]]) b.stamp(tx + ex, y + 1, tz + ez, B.WATERMELON);
+          for (const [ex, ez] of [[0, -1], [-1, 0], [1, 0], [0, 2]]) b.stamp(tx + ex, y + 1, tz + ez, B.TALL_GRASS);
+        }
+      }
+      return { y: y + 1, at };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().map(s => s.id);

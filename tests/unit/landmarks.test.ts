@@ -90,3 +90,27 @@ describe('the waterfall camp', () => {
     expect(nearFall).toBeGreaterThanOrEqual(3);
   });
 });
+
+import { FRUIT_WORDS, FRUIT_BLOCK, treeWord } from '../../src/game/english';
+describe('the fruit orchard', () => {
+  it('has eight named trees, each with its own fruit to pick, and a word for each', () => {
+    for (const seed of SEEDS) {
+      const g = new Generator(seed), o = g.landmarks.find(l => l.id === 'orchard')!;
+      expect(o, `seed ${seed}`).toBeTruthy();
+      expect(Math.hypot(o.x, o.z)).toBeLessThan(160);
+      const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+      for (const key of Object.keys(FRUIT_WORDS)) {
+        const t = o.at!['tree_' + key]; expect(t, key).toBeTruthy();
+        const [tx, ty, tz] = t.map(Math.floor);
+        let fruit = 0;
+        for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = 0; dy <= 5; dy++) if (FRUIT_BLOCK[m.get(`${tx + dx},${ty + dy},${tz + dz}`) ?? -1] === key) fruit++;
+        expect(fruit, `seed ${seed} ${key}`).toBeGreaterThanOrEqual(4);
+      }
+    }
+  });
+  it('says the tree’s name in a little English sentence', () => {
+    expect(treeWord('mango').say).toBe('This is a mango tree. Mango!');
+    expect(treeWord('apple').say).toBe('This is an apple tree. Apple!');
+    expect(treeWord('apple').id).toBe('Apel');
+  });
+});

@@ -97,6 +97,7 @@ export class Kid {
     const before = levelOf(s.stars);
     s.stars += n;
     this.g.ui.starPop(n);
+    this.g.english?.praise();
     const after = levelOf(s.stars);
     if (after > before) setTimeout(() => this.levelUp(after), 900);
   }

@@ -24,7 +24,10 @@ export enum B {
   // good deeds: a stone fallen on the path, the masjid's charity box
   PATH_ROCK = 72, CHARITY_BOX = 73,
   // the camp by the waterfall: a campfire to grill fish and meat on
-  CAMPFIRE = 74, LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
+  CAMPFIRE = 74,
+  // the Fruit Orchard: fruit hanging on its trees, and watermelons on the ground
+  FRUIT_MANGO = 75, FRUIT_BANANA = 76, FRUIT_ORANGE = 77, FRUIT_COCONUT = 78, FRUIT_PAPAYA = 79, FRUIT_RAMBUTAN = 80, FRUIT_APPLE = 81, WATERMELON = 82,
+  LETTER_0 = 100, // 100..127 = the 28 hijaiyah letters
 }
 
 /** Non-block items share the same id space (200+). */
@@ -43,6 +46,7 @@ export enum I {
   PEARL = 252, KETUPAT_OPOR = 253, NASTAR = 254, ANGPAO = 255, FIREWORK = 256,
   KITE_RED = 257, KITE_BLUE = 258, KITE_YELLOW = 259, MAP_PIECE = 260,
   BOTTLE = 261,
+  MANGO = 262, BANANA = 263, ORANGE = 264, COCONUT = 265, PAPAYA = 266, RAMBUTAN = 267, WATERMELON_SLICE = 268,
 }
 
 export type ToolKind = 'pick' | 'axe' | 'shovel' | 'sword';
@@ -161,6 +165,16 @@ blk(B.MANGROVE_LEAVES, ['Daun Bakau', 'Mangrove Leaves'], 'mangrove_leaves', { c
 blk(B.MANGROVE_ROOTS, ['Akar Bakau', 'Mangrove Roots'], 'mangrove_roots', { ...plant, color: 0x7a4a32, hardness: 0.6, tool: 'axe', aquatic: true, drops: () => [[I.STICK, 2]] });
 blk(B.MANGROVE_SEEDLING, ['Bibit Bakau', 'Mangrove Seedling'], 'mangrove_seedling', { ...plant, color: 0x4f9e48, aquatic: true });
 blk(B.MUD, ['Lumpur', 'Mud'], 'mud', { color: 0x5a4636, hardness: 0.5, tool: 'shovel' });
+// fruit hanging on the orchard's trees: tap to pick it (it grows back)
+const fruit = (id: number, name: [string, string], tile: string, color: number, item: number) => blk(id, name, tile, { ...plant, color, drops: () => [[item, 1]] });
+fruit(B.FRUIT_MANGO, ['Buah Mangga', 'Mango (on the tree)'], 'fruit_mango', 0xf2b134, I.MANGO);
+fruit(B.FRUIT_BANANA, ['Tandan Pisang', 'Bananas (on the tree)'], 'fruit_banana', 0xf7d84a, I.BANANA);
+fruit(B.FRUIT_ORANGE, ['Buah Jeruk', 'Orange (on the tree)'], 'fruit_orange', 0xf28f1a, I.ORANGE);
+fruit(B.FRUIT_COCONUT, ['Buah Kelapa', 'Coconut (on the tree)'], 'fruit_coconut', 0x7b5131, I.COCONUT);
+fruit(B.FRUIT_PAPAYA, ['Buah Pepaya', 'Papaya (on the tree)'], 'fruit_papaya', 0x9bc34a, I.PAPAYA);
+fruit(B.FRUIT_RAMBUTAN, ['Buah Rambutan', 'Rambutan (on the tree)'], 'fruit_rambutan', 0xd8323a, I.RAMBUTAN);
+fruit(B.FRUIT_APPLE, ['Buah Apel', 'Apple (on the tree)'], 'fruit_apple', 0xe4423a, I.APPLE);
+blk(B.WATERMELON, ['Semangka', 'Watermelon'], ['watermelon_top', 'watermelon_side', 'watermelon_top'], { color: 0x3f8f3a, hardness: 0.5, drops: () => [[I.WATERMELON_SLICE, 3]] });
 blk(B.CAMPFIRE, ['Api Unggun', 'Campfire'], 'campfire', { color: 0xff8a2b, hardness: Infinity, light: 1, render: 'cross', solid: false, opaque: false });
 blk(B.GLOW_MUSHROOM, ['Jamur Bercahaya', 'Glowing Mushroom'], 'glow_mushroom', { ...plant, color: 0x7ef0e0, light: 0.6 });
 blk(B.PATH_ROCK, ['Batu di Jalan', 'Stone on the Path'], 'path_rock', { ...plant, color: 0x8d949b, hardness: 0.15, drops: () => [] });
@@ -234,6 +248,13 @@ item(I.KITE_RED, ['Layang-layang Merah', 'Red Kite'], 'i_kite_red', { stack: 1 }
 item(I.KITE_BLUE, ['Layang-layang Biru', 'Blue Kite'], 'i_kite_blue', { stack: 1 });
 item(I.KITE_YELLOW, ['Layang-layang Kuning', 'Yellow Kite'], 'i_kite_yellow', { stack: 1 });
 item(I.BOTTLE, ['Botol Air', 'Water Bottle'], 'i_bottle', { stack: 1 });
+item(I.MANGO, ['Mangga', 'Mango'], 'i_mango', { food: true });
+item(I.BANANA, ['Pisang', 'Banana'], 'i_banana', { food: true });
+item(I.ORANGE, ['Jeruk', 'Orange'], 'i_orange', { food: true });
+item(I.COCONUT, ['Kelapa', 'Coconut'], 'i_coconut', { food: true });
+item(I.PAPAYA, ['Pepaya', 'Papaya'], 'i_papaya', { food: true });
+item(I.RAMBUTAN, ['Rambutan', 'Rambutan'], 'i_rambutan', { food: true });
+item(I.WATERMELON_SLICE, ['Potongan Semangka', 'Watermelon Slice'], 'i_watermelon', { food: true });
 
 // ---- hijaiyah letters ---------------------------------------------------
 export interface Letter { g: string; ar: string; name: string; lat: string; }

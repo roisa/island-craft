@@ -56,6 +56,7 @@ import { FishCoach } from './game/fishcoach';
 import { Fishers } from './game/fishers';
 import { Race } from './game/race';
 import { Tennis } from './game/tennis';
+import { English } from './game/english';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
 import { Jamaah, rowPose } from './game/jamaah';
@@ -63,7 +64,7 @@ import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
 
 export interface Settings {
-  sfx: boolean; music: boolean; moVoice: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
+  sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
   protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; adhan?: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean;
   /** minutes of play between water breaks (0 = off) */
@@ -84,7 +85,7 @@ const ROW = { imam: new THREE.Vector3(0.5, VILLAGE_Y + 1, -20.5), player: new TH
   others: [new THREE.Vector3(-1.0, VILLAGE_Y + 1, -18.5), new THREE.Vector3(-2.5, VILLAGE_Y + 1, -18.5), new THREE.Vector3(3.5, VILLAGE_Y + 1, -18.5)] };
 /** where you can make wudu: the village well and the fountain (once built) */
 const WUDU_SPOTS: [number, number][] = [[8.5, 8.5], [16.5, -2.5]];
-const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK, I.GRILLED_FISH, I.FRIED_EGG, I.STEAK, I.KETUPAT_OPOR, I.NASTAR]);
+const FOOD = new Set<number>([I.DATES, I.MILK, I.APPLE, I.TAKJIL, I.KOLAK, I.GRILLED_FISH, I.FRIED_EGG, I.STEAK, I.KETUPAT_OPOR, I.NASTAR, I.MANGO, I.BANANA, I.ORANGE, I.COCONUT, I.PAPAYA, I.RAMBUTAN, I.WATERMELON_SLICE]);
 
 const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LOG]: B.PINE_LEAVES, [B.PALM_LOG]: B.PALM_LEAVES };
 
@@ -184,6 +185,8 @@ export class Game {
   race: Race | null = null;
   /** tennis with Baby Mo at the tennis court */
   tennis: Tennis | null = null;
+  /** English word cards: praise, animals, fruits */
+  english!: English;
   private attackCd = 0;
   /** extra quarter turns for the next furniture / turned block you place (the rotate button) */
   placeRot = 0;
@@ -311,6 +314,7 @@ export class Game {
     this.bugs.onBump = b => this.bugBump(b);
     this.fishing = new Fishing(this.scene);
     this.fishCoach = new FishCoach(this);
+    this.english = new English(this);
     this.blockGhost = this.makeBlockGhost();
     if (meta) {
       this.deco.load(cleanDeco(meta.deco));
@@ -644,7 +648,7 @@ export class Game {
     if (Math.random() < 0.15) this.fx.sparkle(f.x, f.y + 1.2, f.z, 1, 0x9a9a9a, 0.5);
   }
   /** the fun places you can go to straight away from the map (the ones that exist in this world) */
-  funPlaces() { return ['fish_pond', 'race_track', 'camp', 'tennis'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
+  funPlaces() { return ['fish_pond', 'race_track', 'camp', 'tennis', 'orchard'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
   /** quick travel to a place's entry point, with Baby Mo */
   goPlace(id: string) {
     if (id === 'fish_pond') return this.goToPond();
@@ -1042,6 +1046,7 @@ export class Game {
     if (this.fishing?.busy) this.fishTick(dt, t);
     this.fishCoach?.update(dt);
     this.fishers?.update(dt, t);
+    this.english?.update(dt);
     this.campfireTick(dt);
     if (this.ambient) {
       this.ambient.enabled = !this.settings.lowGfx;
@@ -1299,6 +1304,7 @@ export class Game {
     this.dirtySave = true;
     this.saplings = this.saplings.filter(s => !(s.x === x && s.y === y && s.z === z));
     if (LOG_LEAF[id]) this.fellTree(x, y, z, id);
+    this.english?.picked(x, y, z, id);
   }
 
   /** Chopping the trunk of a real tree brings the logs above down too, then its leaves drift away. */
