@@ -4,6 +4,7 @@
 // and a "discovery" with a short fun fact when you first get close.
 import { B, I } from './blocks';
 import { cellKind, laneOf, onBoost, progressOf, TRACK } from '../game/track';
+import { COURT, courtCell } from '../game/court';
 import { Biome, H, SEA, type Column } from './gen';
 import { mulberry32, hash3 } from './noise';
 import type { T2 } from '../i18n';
@@ -825,36 +826,12 @@ const SPECS = (): Spec[] => specs ??= [
     },
   },
   {
-    // a tennis court near the village, where Baby Mo plays with you (see game/tennis.ts)
-    id: 'tennis', icon: '🎾', name: ['Lapangan Tenis', 'The Tennis Court'], biomes: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST, Biome.SNOWY], dist: [45, 140], r: 12, loose: true, clear: 4,
+    // where the first, shorter tennis court was; the real-size court is at the end. This keeps its old
+    // spot reserved so the places after it don't move in worlds that already exist.
+    id: 'tennis_v1', ghost: true, icon: '🎾', name: ['Lapangan Tenis', 'The Tennis Court'], biomes: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST, Biome.SNOWY], dist: [45, 140], r: 12, loose: true, clear: 4,
     ok: c => c.h > SEA && c.h < SEA + 14,
-    hint: ['Ada lapangan tenis biru dengan net putih. Baby Mo sudah siap dengan raketnya!', 'There’s a blue tennis court with a white net. Baby Mo is ready with his racket!'],
-    fact: ['Ketuk 🎾 Main tenis untuk bermain bersama Baby Mo. Pukul bolanya saat sampai di dekatmu! Olahraga membuat badan sehat dan kuat — Rasulullah ﷺ bersabda: mukmin yang kuat lebih dicintai Allah (HR. Muslim 2664).', 'Tap 🎾 Play tennis to play with Baby Mo. Hit the ball when it reaches you! Sport keeps your body healthy and strong — the Prophet ﷺ said: the strong believer is more beloved to Allah (Muslim 2664).'],
-    loot: [[I.APPLE, 3], [B.LANTERN, 2], [I.GOLD_INGOT, 1]],
-    build(b, x, y, z) {
-      y = Math.max(y, SEA + 1);
-      // (a short court, so Baby Mo and the ball are easy to see from your end)
-      const HX = 5, HZ = 8;
-      foundation(b, x - 9, z - 12, x + 9, z + 12, y, B.DIRT);
-      b.box(x - 9, y, z - 12, x + 9, y, z + 12, B.WOOL_GREEN);
-      b.box(x - 9, y + 1, z - 12, x + 9, y + 10, z + 12, B.AIR);
-      // the blue court with white lines: baselines, sidelines, service lines and the centre line
-      b.box(x - HX, y, z - HZ, x + HX, y, z + HZ, (X, _Y, Z) => {
-        const line = Math.abs(X - x) === HX || Math.abs(Z - z) === HZ || (Math.abs(Z - z) === 4) || (X === x && Math.abs(Z - z) <= 4);
-        return line ? B.WOOL_WHITE : B.WOOL_BLUE;
-      });
-      // the net across the middle (see-through, so you can watch the ball), with white posts
-      b.box(x - HX - 1, y + 1, z, x + HX + 1, y + 1, z, (X) => (Math.abs(X - x) === HX + 1 ? B.OAK_LOG : B.GLASS));
-      b.stamp(x - HX - 1, y + 2, z, B.OAK_LOG); b.stamp(x + HX + 1, y + 2, z, B.OAK_LOG);
-      // benches, lights and a chest at the side
-      b.box(x + 7, y + 1, z - 3, x + 7, y + 1, z + 3, B.PLANKS);
-      b.stamp(x - 8, y + 1, z + 3, B.CHEST);
-      for (const [lx, lz] of [[x - 8, z - 11], [x + 8, z - 11], [x - 8, z + 11], [x + 8, z + 11]]) { b.box(lx, y + 1, lz, lx, y + 3, lz, B.OAK_LOG); b.stamp(lx, y + 4, lz, B.LANTERN); }
-      return {
-        y: y + 1,
-        at: { centre: [x + 0.5, y + 1, z + 0.5], me: [x + 0.5, y + 1, z + HZ - 0.5], mo: [x + 0.5, y + 1, z - HZ + 1.5], entry: [x + 7.5, y + 1, z + 6.5] },
-      };
-    },
+    hint: ['', ''], fact: ['', ''],
+    build: (_b, _x, y) => y,
   },
   {
     id: 'orchard', icon: '🍎', name: ['Kebun Buah', 'The Fruit Orchard'], biomes: [Biome.MEADOW, Biome.FOREST, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.BEACH, Biome.DESERT, Biome.SNOWY], dist: [60, 150], r: 14, loose: true, clear: 4,
@@ -977,6 +954,34 @@ const SPECS = (): Spec[] => specs ??= [
         y: y + 1,
         at: { centre: [x + 0.5, y + 1, z + 0.5], start: [x + 0.5, y + 1, z + R + 0.5], stand: [x + 0.5, y + 1, gz + 0.5], entry: [x + 2.5, y + 1, z + 5.5] },
       };
+    },
+  },
+  {
+    // a real-size tennis court with all its lines, a net, an umpire's chair and benches
+    id: 'tennis', icon: '🎾', name: ['Lapangan Tenis', 'The Tennis Court'], biomes: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.BEACH, Biome.DESERT, Biome.FOREST, Biome.SNOWY], dist: [50, 170], r: 16, loose: true, clear: 14,
+    ok: c => c.h > SEA && c.h < SEA + 14,
+    hint: ['Ada lapangan tenis sungguhan dengan garis putih, net dan kursi wasit. Baby Mo sudah siap dengan raketnya!', 'There’s a real tennis court with white lines, a net and an umpire’s chair. Baby Mo is ready with his racket!'],
+    fact: ['Ketuk 🎾 Main tenis: latihan forehand dan backhand, latihan servis, atau main satu game melawan Baby Mo. Skor tenis: love (0), 15, 30, 40, lalu game! Olahraga membuat badan sehat dan kuat — Rasulullah ﷺ bersabda: mukmin yang kuat lebih dicintai Allah (HR. Muslim 2664).', 'Tap 🎾 Play tennis: practise forehands and backhands, practise your serve, or play a game against Baby Mo. Tennis scores go love (0), 15, 30, 40, then game! Sport keeps your body healthy and strong — the Prophet ﷺ said: the strong believer is more beloved to Allah (Muslim 2664).'],
+    loot: [[I.APPLE, 3], [B.LANTERN, 2], [I.GOLD_INGOT, 1]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      const { half, doubles } = COURT, X = doubles + 5, Z = half + 7;
+      foundation(b, x - X, z - Z, x + X, z + Z, y, B.DIRT);
+      b.box(x - X, y, z - Z, x + X, y, z + Z, B.WOOL_GREEN);
+      b.box(x - X, y + 1, z - Z, x + X, y + 10, z + Z, B.AIR);
+      // the court: blue inside, white lines (baselines, singles and doubles sidelines, service lines, centre line and marks)
+      b.box(x - doubles, y, z - half, x + doubles, y, z + half, (BX, _Y, BZ) => (courtCell(BX - x, BZ - z) === 'line' ? B.WOOL_WHITE : B.WOOL_BLUE));
+      // the net (see-through, so you can watch the ball) between two posts just outside the doubles lines
+      const P = doubles + 1;
+      b.box(x - P, y + 1, z, x + P, y + 1, z, (BX) => (Math.abs(BX - x) === P ? B.OAK_LOG : B.GLASS));
+      b.stamp(x - P, y + 2, z, B.WOOL_WHITE); b.stamp(x + P, y + 2, z, B.WOOL_WHITE);
+      // the umpire's tall chair at the side of the net, and benches for the players
+      b.box(x - P - 2, y + 1, z, x - P - 2, y + 2, z, B.OAK_LOG); b.stamp(x - P - 2, y + 3, z, B.PLANKS); b.stamp(x - P - 2, y + 4, z, B.WOOL_WHITE);
+      b.box(x + P + 2, y + 1, z - 3, x + P + 2, y + 1, z - 1, B.PLANKS); b.box(x + P + 2, y + 1, z + 1, x + P + 2, y + 1, z + 3, B.PLANKS);
+      b.stamp(x - P - 2, y + 1, z + 4, B.CHEST);
+      // lights at the four corners
+      for (const [lx, lz] of [[x - X + 1, z - Z + 1], [x + X - 1, z - Z + 1], [x - X + 1, z + Z - 1], [x + X - 1, z + Z - 1]]) { b.box(lx, y + 1, lz, lx, y + 4, lz, B.OAK_LOG); b.stamp(lx, y + 5, lz, B.LANTERN); }
+      return { y: y + 1, at: { centre: [x + 0.5, y + 1, z + 0.5], entry: [x + P + 3.5, y + 1, z + 5.5] } };
     },
   },
 ];

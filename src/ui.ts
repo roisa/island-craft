@@ -129,7 +129,7 @@ export class UI {
     $('#bRace').onclick = () => { SFX.click(); this.g.race?.start(); };
     $('#raceX').onclick = () => { SFX.click(); this.g.race?.quit(); };
     $('#wordSay').onclick = () => { const w = this.wordNow; if (w) Speech.talk(w.say ?? w.en, 'en', true, 0); };
-    $('#bTennis').onclick = () => { SFX.click(); this.g.tennis?.start(); };
+    $('#bTennis').onclick = () => { SFX.click(); this.g.tennis?.menu(); };
     $('#tennisX').onclick = () => { SFX.click(); this.g.tennis?.quit(); };
     $('#bedNow').onclick = () => this.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
@@ -361,10 +361,9 @@ export class UI {
   showTennis(on: boolean) { const b = $('#bTennis'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
   private tennisShown = '';
   /** the score while playing tennis; null hides it */
-  tennisHud(s: { me: number; mo: number; rally: number } | null) {
+  tennisHud(txt: string | null) {
     const el = $('#tennisHud');
-    if (!s) { el.classList.add('hidden'); this.tennisShown = ''; return; }
-    const txt = `🎾 ${tr('Kamu', 'You')} <b>${s.me}</b> – <b>${s.mo}</b> Baby Mo · ${tr('reli', 'rally')} ${s.rally}`;
+    if (!txt) { el.classList.add('hidden'); $('#raceMath').classList.add('hidden'); this.tennisShown = ''; return; }
     if (txt !== this.tennisShown) { this.tennisShown = txt; $('#tennisT').innerHTML = txt; }
     el.classList.remove('hidden');
   }

@@ -56,6 +56,7 @@ import { FishCoach } from './game/fishcoach';
 import { Fishers } from './game/fishers';
 import { Race } from './game/race';
 import { Tennis } from './game/tennis';
+import { applyStroke } from './game/tennispose';
 import { English } from './game/english';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
@@ -381,7 +382,7 @@ export class Game {
     const rt = this.gen.landmarks.find(l => l.id === 'race_track');
     if (rt?.at?.centre) this.race = new Race(this, rt);
     const tc = this.gen.landmarks.find(l => l.id === 'tennis');
-    if (tc?.at?.me) this.tennis = new Tennis(this, tc);
+    if (tc?.at?.centre) this.tennis = new Tennis(this, tc);
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -2113,9 +2114,9 @@ export class Game {
     if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, this.jamaah?.joined ? rowPose.pose : 'qiyam'); a.head.rotation.y = this.jamaah?.joined ? rowPose.head : 0; this.prayingPose = true; }
     else if (this.prayingPose) { clearPose(a); this.prayingPose = false; }
     this.updateHeld(t, sw);
-    // a tennis swing: the racket arm sweeps forward
-    const ts = this.tennis?.swinging ?? 0;
-    if (ts > 0 && a.armR) a.armR.rotation.x = -2.4 * Math.sin(ts / 0.35 * Math.PI);
+    // tennis: forehand, backhand, serve (and the ready stance between shots), for you and Baby Mo
+    const tp = this.tennis?.pose; if (tp) applyStroke(a, tp.kind, tp.u);
+    const mp = this.tennis?.moPose; if (mp) applyStroke(this.ents.mo.rig, mp.kind, mp.u);
   }
 
   /** item in hand: on the avatar's right hand, and in front of the camera in first person */

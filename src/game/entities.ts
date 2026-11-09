@@ -356,8 +356,6 @@ export class Companion extends Entity {
   seat: { pos: THREE.Vector3; yaw: number } | null = null;
   /** standing in a set place (his end of the tennis court), swinging a racket now and then */
   stand: { pos: THREE.Vector3; yaw: number } | null = null;
-  private swingT = 0;
-  swing() { this.swingT = 0.4; }
   update(dt: number, t: number) {
     const f = this.follow();
     if (this.seat) { this.pos.copy(this.seat.pos); this.yaw = this.seat.yaw; this.animIn.riding = true; this.swimming = false; this.sync(t, dt); return; }
@@ -371,7 +369,6 @@ export class Companion extends Entity {
     this.animIn.riding = false;
     if (this.stand) {
       this.pos.copy(this.stand.pos); this.yaw = this.stand.yaw; this.moving = false; this.swimming = false; this.sync(t, dt);
-      if (this.swingT > 0 && this.rig.armR) { this.swingT -= dt; this.rig.armR.rotation.x = -2.4 * Math.sin(Math.max(0, this.swingT) / 0.4 * Math.PI); }
       return;
     }
     if (this.prayAt) return this.prayUpdate(dt, t);

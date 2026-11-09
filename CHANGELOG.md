@@ -5,6 +5,53 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A real tennis court: drill, serve practice and a game 🎾
+
+Requested by a parent: a tennis court like a real one with the correct
+lines, where the player can drill, serve and play a simple game, with
+natural forehand and backhand motions.
+
+- **A real-size court** (`src/game/court.ts`): 24 × 13 blocks, close to a
+  real court (23.8 × 11 m). All the lines: baselines, singles and doubles
+  sidelines (with the tramlines between), service lines, the centre
+  service line and the centre marks. A see-through net between two posts,
+  an umpire’s tall chair, benches, lights at the corners and a chest. It
+  needed more room, so it moved to a new spot (in the map’s fun places);
+  the old spot stays reserved, so no other place moves.
+- **Tap 🎾 and choose**:
+  - **Forehand & backhand drill**: Baby Mo sends 10 balls, forehand and
+    backhand in turn. Tap ✋ as the ball reaches you; each good shot shows
+    and says “Forehand!” or “Backhand!”.
+  - **Serve practice**: 6 serves, from the right (deuce) and left (ad)
+    side in turn. Tap to toss the ball, tap again at the top to hit it into
+    the service box across the net (it glows yellow, with a bobbing arrow).
+    Too early hits the net, too late goes long.
+  - **Play a game**: you serve one game with real tennis scoring: love,
+    15, 30, 40, deuce, advantage, game (the umpire calls it in English).
+    Two tries at each serve (fault, second serve, double fault), then rally.
+  - Coins for each, and Again / Something else / Done at the end.
+- **Natural strokes** (`src/game/tennispose.ts`) for you and Baby Mo, both
+  right-handed: the **forehand** turns the shoulders, takes the racket
+  back and swings low to high across the front to finish over the other
+  shoulder; the **two-handed backhand** turns the other way and swings
+  across to finish high; the **serve** lifts the ball with the other hand
+  while the racket goes up behind the head, then hits high and comes down
+  across the body; between shots a ready stance. You slide to the ball so
+  it comes to your forehand or backhand side.
+- The ball is a little bigger and has a shadow, so you can judge where it is.
+- Tested:
+  - Unit tests: the court lines (each kind in the right place, sizes close
+    to a real court), a serve aimed at a spot bounces there, serve timing
+    (in, net, long), the scoring (15–0, 30–40, deuce, advantage, game), and
+    the shape of each stroke (forehand and backhand swing opposite ways,
+    two hands on the backhand, the serve goes up and over).
+  - Looked at in the game: the court, the yellow target, Baby Mo’s
+    forehand, backhand and serve from the front and the side, and yours
+    from behind.
+  - Smoke test on all four devices: the menu; a drill ball hit back on
+    time (with a forehand or backhand); a serve tossed and hit at the top
+    goes in; a game starts at 0–0 and can be left.
+
 ### The big race circuit, with coins to add up 🏎️➕
 
 Requested by a parent: a wider, longer and more interesting circuit, with
