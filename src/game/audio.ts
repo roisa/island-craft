@@ -184,14 +184,7 @@ export const SFX = {
   drum(times = 1) {
     if (!on()) return;
     const c = actx(); if (!c) return;
-    for (let i = 0; i < times; i++) {
-      const t0 = c.currentTime + i * 0.42;
-      const o = c.createOscillator(), g = c.createGain();
-      o.type = 'sine'; o.frequency.setValueAtTime(120, t0); o.frequency.exponentialRampToValueAtTime(52, t0 + 0.35);
-      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.7);
-      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + 0.75);
-      noise(0.08, 0.12, 300, i * 0.42);
-    }
+    for (let i = 0; i < times; i++) bedugStrike(c, c.currentTime + 0.02 + i * 0.55, i === times - 1 ? 1 : 0.85);
   },
   fanfare() { if (on()) { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, i * 0.14)); } },
 };
@@ -238,58 +231,89 @@ export const Music = (() => {
   };
 })();
 
-// ---- the call to prayer ----------------------------------------------------------
-// Just the opening of the adhan: "Allāhu Akbar" four times (two pairs, with a breath
-// between them), sung gently by a
-// synthesized voice (a buzzing tone shaped by vowel formants, with vibrato and a
-// little melisma), in a hall-like echo. Made in code: no recording is used.
-const VOWEL: Record<'a' | 'u' | 'o', [number, number]> = { a: [760, 1180], u: [330, 760], o: [480, 860] };
-function sing(c: AudioContext, out: AudioNode, t0: number, dur: number, path: [number, number][], vowel: 'a' | 'u' | 'o', peak = 0.22) {
-  const o = c.createOscillator(); o.type = 'sawtooth';
-  o.frequency.setValueAtTime(path[0][1], t0);
-  for (const [k, f] of path.slice(1)) o.frequency.linearRampToValueAtTime(f, t0 + k * dur);
-  // vibrato, growing as the note is held
-  const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 5.4;
-  lg.gain.setValueAtTime(0, t0); lg.gain.linearRampToValueAtTime(path[0][1] * 0.012, t0 + Math.min(0.6, dur));
-  lfo.connect(lg); lg.connect(o.frequency);
-  const env = c.createGain();
-  env.gain.setValueAtTime(0, t0); env.gain.linearRampToValueAtTime(peak, t0 + 0.07);
-  env.gain.setValueAtTime(peak, t0 + dur - 0.12); env.gain.linearRampToValueAtTime(0, t0 + dur);
-  for (const [fq, q, g] of [[VOWEL[vowel][0], 7, 1], [VOWEL[vowel][1], 9, 0.55], [2600, 5, 0.12]] as [number, number, number][]) {
-    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = fq; bp.Q.value = q;
-    const gg = c.createGain(); gg.gain.value = g;
-    o.connect(bp); bp.connect(gg); gg.connect(env);
-  }
-  env.connect(out);
-  o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+// ---- the bedug at prayer time ---------------------------------------------------
+// Instead of a sung adhan: the bedug, the big drum of Indonesian masjids, beaten in
+// the traditional "tabuh bedug" before the call to prayer. A few slow, heavy beats,
+// a roll that speeds up, then strong beats to finish. Each strike is made in code
+// like a real bedug: a deep buffalo-hide membrane (a booming low note that drops
+// in pitch, with the overtones of a round drum head), the slap of the wooden
+// stick, the hollow wooden shell, and the echo of the masjid's veranda.
+let hall: { c: AudioContext; inp: GainNode } | null = null;
+/** the masjid echo, built once */
+function bedugHall(c: AudioContext): AudioNode {
+  if (hall?.c === c) return hall.inp;
+  const inp = c.createGain(), dry = c.createGain(), wet = c.createGain(), conv = c.createConvolver(), lp = c.createBiquadFilter();
+  // a 2.2 s reverb tail from fading noise
+  const len = Math.floor(c.sampleRate * 2.2), ir = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  conv.buffer = ir; lp.type = 'lowpass'; lp.frequency.value = 1400;
+  dry.gain.value = 0.72; wet.gain.value = 0.28;
+  // a soft saturation adds the harmonics that let the low boom be heard on a phone's small speaker
+  const sat = c.createWaveShaper(), curve = new Float32Array(1024);
+  for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(x * 2.6) / Math.tanh(2.6); }
+  sat.curve = curve;
+  inp.connect(sat); sat.connect(dry); dry.connect(c.destination);
+  sat.connect(conv); conv.connect(lp); lp.connect(wet); wet.connect(c.destination);
+  hall = { c, inp };
+  return inp;
 }
+let noiseBuf: AudioBuffer | null = null;
+function noiseOf(c: AudioContext) {
+  if (noiseBuf && noiseBuf.sampleRate === c.sampleRate) return noiseBuf;
+  const n = Math.floor(c.sampleRate * 0.5); noiseBuf = c.createBuffer(1, n, c.sampleRate);
+  const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  return noiseBuf;
+}
+/** one strike of the bedug at time t0, strength 0…1 */
+export function bedugStrike(c: AudioContext, t0: number, v = 1) {
+  const out = bedugHall(c);
+  const f = 58 + (Math.random() - 0.5) * 3;   // the big drum's low note
+  // the membrane: a fundamental that thumps in high and settles, plus the round head's overtones (1, 1.59, 2.14, 2.65, 3.16)
+  for (const [ratio, gain, decay] of [[1, 0.5, 1.7], [1.59, 0.42, 0.85], [2.14, 0.3, 0.5], [2.65, 0.2, 0.32], [3.16, 0.12, 0.22]] as [number, number, number][]) {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f * ratio * 1.55, t0);
+    o.frequency.exponentialRampToValueAtTime(f * ratio, t0 + 0.06);
+    o.frequency.exponentialRampToValueAtTime(f * ratio * 0.94, t0 + decay);
+    const pk = gain * v;
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(pk, t0 + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay * (0.75 + v * 0.35));
+    o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + decay * 1.2 + 0.05);
+  }
+  // the slap of the wooden stick on the hide
+  const slap = c.createBufferSource(); slap.buffer = noiseOf(c);
+  const sl = c.createBiquadFilter(); sl.type = 'lowpass'; sl.frequency.value = 1500 + v * 700;
+  const sg = c.createGain(); sg.gain.setValueAtTime(0.42 * v, t0); sg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05);
+  slap.connect(sl); sl.connect(sg); sg.connect(out); slap.start(t0, Math.random() * 0.3); slap.stop(t0 + 0.07);
+  // the hollow wooden shell ringing
+  const shell = c.createBufferSource(); shell.buffer = noiseOf(c);
+  for (const [fq, q, gn, dc] of [[150, 5, 1.3, 0.4], [310, 6, 0.55, 0.18]] as [number, number, number, number][]) {
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = fq; bp.Q.value = q;
+    const hg = c.createGain(); hg.gain.setValueAtTime(gn * v, t0); hg.gain.exponentialRampToValueAtTime(0.0001, t0 + dc);
+    shell.connect(bp); bp.connect(hg); hg.connect(out);
+  }
+  shell.start(t0, Math.random() * 0.1); shell.stop(t0 + 0.45);
+}
+/** the beat times of the tabuh bedug (seconds) with their strength */
+export function bedugPattern(): [number, number][] {
+  const out: [number, number][] = [];
+  let t = 0;
+  // three slow, heavy beats
+  for (let i = 0; i < 3; i++) { out.push([t, 1]); t += 1.15; }
+  // a roll that speeds up: from 0.7 s apart down to 0.13 s, getting softer
+  let gap = 0.7;
+  for (let i = 0; i < 22; i++) { out.push([t, Math.max(0.55, 0.95 - i * 0.018)]); t += gap; gap = Math.max(0.13, gap * 0.86); }
+  t += 0.55;
+  // and strong beats to finish: dug… dug… dug
+  for (let i = 0; i < 3; i++) { out.push([t, 1]); t += i < 2 ? 0.8 : 0; }
+  return out;
+}
+/** the bedug at prayer time; returns how long it lasts (0 if sound is off) */
 export function adhan(): number {
   const c = actx(); if (!c || !audioState.sfx) return 0;
-  const out = c.createGain(); out.gain.value = 0.9;
-  // a soft hall: a filtered echo
-  const dl = c.createDelay(1); dl.delayTime.value = 0.21;
-  const fb = c.createGain(); fb.gain.value = 0.32;
-  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
-  // a warmer, softer voice: take the edge off the buzz
-  const warm = c.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 2400; warm.Q.value = 0.5;
-  out.connect(warm); warm.connect(c.destination); warm.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(c.destination);
-  const D = 293.66, E = 329.63, F = 349.23, G = 392, A = 440;
-  let t = c.currentTime + 0.15;
-  // "Al-lāāā-hu Ak-baaar": four times, in two pairs. In each pair the first rests at home
-  // and the second rises a little and comes back down; a breath between the pairs.
-  const phrase = (lift: number, last: boolean) => {
-    const k = Math.pow(2, lift / 12);
-    sing(c, out, t, 0.3, [[0, D * k], [1, D * k]], 'a'); t += 0.28;                                                        // Al-
-    sing(c, out, t, 1.4, [[0, E * k], [0.25, F * k], [0.45, G * k], [0.62, F * k], [0.8, E * k], [1, E * k]], 'a'); t += 1.36; // -lāāā-
-    sing(c, out, t, 0.34, [[0, E * k], [1, D * k]], 'u'); t += 0.36;                                                        // -hu
-    sing(c, out, t, 0.3, [[0, D * k], [1, E * k]], 'a'); t += 0.28;                                                         // Ak-
-    const end = last ? 2.1 : 1.5;                                                                                            // -baaar
-    sing(c, out, t, end, [[0, F * k], [0.3, G * k], [0.5, (lift ? A : F) * k], [0.75, E * k], [1, D * k]], 'a'); t += end + 0.2;
-  };
-  phrase(0, false); phrase(2, false);
-  t += 0.7; // a breath
-  phrase(0, false); phrase(2, true);
-  const secs = t - c.currentTime;
+  const t0 = c.currentTime + 0.12, beats = bedugPattern();
+  for (const [t, v] of beats) bedugStrike(c, t0 + t, v);
+  const secs = beats[beats.length - 1][0] + 2.2;
   Music.duck(secs + 1);
   return secs;
 }

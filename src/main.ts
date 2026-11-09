@@ -1794,8 +1794,8 @@ export class Game {
         const next = PRAYERS.map(q => s[q]).filter(h => h > s[p]).sort((a, b) => a - b)[0] ?? s.fajr + 24;
         this.gameEvent = { p, until: Math.min(s[p] + 3, next - 0.15) % 24, attended: false };
         this.stats.prayersSeen++;
-        // the call to prayer (a short adhan), or the drum if a parent turned it off
-        if (this.settings.adhan !== false && adhan() > 0) this.ui.toast(tr(`🕌 Allāhu Akbar… Waktunya sholat ${prayerName(p)}!`, `🕌 Allāhu Akbar… It’s time for ${prayerName(p)}!`), 6000);
+        // the bedug calls to prayer (a soft chime if a parent turned it off)
+        if (this.settings.adhan !== false && adhan() > 0) this.ui.toast(tr(`🥁 Dug… dug… dug! Waktunya sholat ${prayerName(p)}!`, `🥁 Dum… dum… dum! It’s time for ${prayerName(p)}!`), 6000);
         else { SFX.drum(3); setTimeout(() => SFX.chime(), 1400); }
         if (p === 'maghrib') {
           // iftar first: everyone sits down together on the plaza, then goes to pray

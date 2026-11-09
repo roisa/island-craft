@@ -5,6 +5,28 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The bedug at prayer time 🥁
+
+Requested by a parent: the sung adhan still sounded odd, so prayer time is
+now announced with the bedug, like the big drum at Indonesian masjids.
+
+- At prayer time (and with the 🔊 try button in the grown-ups’ settings,
+  now called **Bedug drum at prayer time**), the bedug is beaten in the
+  traditional *tabuh bedug* way: three slow, heavy beats, a roll that
+  speeds up, then three strong beats to finish (about 14 seconds). The
+  toast says “🥁 Dum… dum… dum! It’s time for Asr!”.
+- Each beat is made like a real bedug: a deep buffalo-hide boom that
+  drops in pitch, with the overtones of a round drum head, the slap of
+  the stick, the hollow wooden shell, and the echo of the masjid’s
+  veranda. Its knock comes through on phone and tablet speakers too.
+- The village bedug you can tap uses the same sound.
+- The sung adhan is gone. The on/off setting is the same one, so a
+  parent who turned it off keeps it off.
+- Tested: a unit test for the beat pattern (slow, faster, strong end);
+  the sound rendered to a file and checked (no clipping, the boom near
+  59 Hz with its knock above it); in the game at Asr the bedug plays
+  with its toast and no errors.
+
 ### The adhan: “Allāhu Akbar” four times 🕌
 
 Requested by a parent: the adhan sound should be only “Allāhu Akbar”, four times.
