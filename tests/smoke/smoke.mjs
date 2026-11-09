@@ -630,6 +630,32 @@ async function run(name) {
       if (compass !== '📖' || sylls !== 7 || r.step !== 1 || r.gained < 15 || path !== 5) throw new Error(JSON.stringify({ compass, sylls, ...r, path }));
       return { compass, sylls, ...r, path };
     });
+    await step('Iqro in the game: Dad’s exam and certificate, the imam reads a surah you learned, the three Quls at bedtime', async () => {
+      const all = await g(() => ({ keep: __game.stats.letters.slice(), iq: __game.stats.iqro }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.letters = Array.from({ length: 28 }, (_, i) => i); G.stats.iqro = { n: 12, stars: { 29: 3, 31: 2, 32: 3 } }; const e = G.inv.slots.findIndex(s => !s); if (e >= 0) G.inv.sel = e; });
+      const dad = await g(() => { const G = __game, n = G.ents.npcs.find(n => n.id === 'ustadz'); G.talkNpc(n); return [...document.querySelectorAll('.veil.on #dbtns button')].map(b => b.textContent).join(' | '); });
+      // Dad's exam button is there; take the exam
+      await g(() => { __game.ui.closeAllModals(); __game.iqroExam(2); });
+      for (let q = 0; q < 5; q++) {
+        await p.waitForFunction(() => !!document.querySelector('.veil.on .iqO') || (__game.ui.modals.filter(m => !m.veil.querySelector('.iqro')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 })
+          .catch(async () => { throw new Error('no exam question ' + q + ': ' + JSON.stringify({ dad, modals: await g(() => __game.ui.modals.map(m => m.veil.textContent.slice(0, 80))) })); });
+        // (pick the one that was just read out, first time)
+        await p.waitForFunction(() => !!window.__said && [...document.querySelectorAll('.veil.on .iqO')].some(b => b.dataset.ar === window.__said), null, { timeout: 10000, polling: 100 });
+        await g(() => { [...document.querySelectorAll('.veil.on .iqO')].find(b => b.dataset.ar === window.__said).click(); window.__said = ''; });
+        await p.waitForTimeout(900);
+      }
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .cert') || (__game.ui.modals.filter(m => !m.veil.querySelector('.cert')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 })
+        .catch(async () => { throw new Error('no certificate: ' + await g(() => JSON.stringify({ exams: __game.stats.iqro?.exams, modals: __game.ui.modals.map(m => m.veil.textContent.slice(0, 80)) }))); });
+      const exam = await g(() => ({ exams: __game.stats.iqro.exams, cert: !!document.querySelector('.veil.on .cert') }));
+      await g(() => document.querySelector('.veil.on #cOk').click());
+      const imam = await g(() => { const G = __game; G.ui.closeAllModals(); G.jamaah = { step: { pose: 'qiyam', name: ['Berdiri', 'Standing'], rakaat: 1 }, total: 4 }; const r = G.imamReads(); G.jamaah = null; return r; });
+      const bed = await g(() => { const G = __game; G.ui.closeAllModals(); G.hour = G.schedule.isha + 0.5; G.sleep(); return document.querySelector('.veil.on #dbtns button')?.textContent; });
+      await g(() => document.querySelector('.veil.on #dbtns button').click());
+      const quls = await g(() => document.querySelectorAll('.veil.on .ayah').length);
+      await g(a => { const G = __game; G.ui.closeAllModals(); G.hour = 9; G.lastHour = 9; G.stats.letters = a.keep; G.stats.iqro = a.iq; }, all);
+      if (!/Iqro/.test(dad) || !exam.cert || !exam.exams?.includes(2) || !/Al-Fatihah \+ /.test(imam || '') || !/Qul|surah|surat/i.test(bed || '') || quls !== 15) throw new Error(JSON.stringify({ dad, exam, imam, bed, quls }));
+      return { dad, exam, imam, bed, quls };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');

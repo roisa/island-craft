@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { Game } from '../main';
 import { tr, t2 } from '../i18n';
 import { B } from '../world/blocks';
-import { lessonAt, lessons, STAGES } from './iqro';
+import { lessonAt, lessons, STAGES, SURAHS, WORDS, type Surah } from './iqro';
 import { SFX } from './audio';
 
 export const UNLOCK = 28;
@@ -17,6 +17,25 @@ export function stageEnds(n: number) {
   const all = lessons();
   return n < all.length && (n === all.length - 1 || all[n + 1].stage !== all[n].stage);
 }
+
+/** the surahs you have finished a lesson of (best stars above 0), in the order of the journey */
+export function learnedSurahs(stars: Record<number, number> | undefined): Surah[] {
+  const all = lessons();
+  return all.flatMap((l, i) => (l.kind === 'surah' && (stars?.[i] ?? 0) > 0 ? [l.surah] : []));
+}
+/** the stages (2–5) whose lessons are all done */
+export function stagesDone(n: number): number[] {
+  const all = lessons();
+  return [2, 3, 4, 5].filter(st => { const last = all.map(l => l.stage).lastIndexOf(st as 2 | 3 | 4 | 5); return last >= 0 && n > last; });
+}
+/** the questions of Dad's exam for a stage: what you hear and the choices (Arabic) */
+export function examPool(stage: number): { ar: string; lat: string }[] {
+  const all = lessons();
+  if (stage === 4) return WORDS.map(w => ({ ar: w.ar, lat: w.lat.replace(/-/g, '') }));
+  if (stage === 5) return SURAHS.flatMap(s => s.ayat.slice(0, 2).map(a => ({ ar: a.ar, lat: a.lat })));
+  return all.flatMap(l => (l.kind === 'syll' && l.stage === stage ? l.items.map(x => ({ ar: x.ar, lat: x.lat })) : []));
+}
+export const EXAM_QS = 5, EXAM_PASS = 4;
 
 function bookMesh() {
   const g = new THREE.Group();

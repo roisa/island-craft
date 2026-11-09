@@ -5,6 +5,38 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Iqro journey in the rest of the game 🎓🕌🌙
+
+The second batch: what you learn on the Iqro journey now shows up in the
+rest of the game.
+
+- **Dad’s exam and certificate**: when every lesson of a stage is done,
+  Dad (Ayah Ibrahim) offers 📝 Iqro exam N: five listening questions from
+  the whole stage (syllables, words, or ayat). Four right first time
+  passes: 100 coins and a **Syahadah (certificate)** with your name (tap
+  it to write your name; it’s remembered) and “Barakallahu fik”. Not yet?
+  Dad says to practise in the letter book and try again.
+- **The imam reads what you learned**: in the first two rakaat of praying
+  together, after Al-Fatihah the imam reads a surah you have learned on the
+  journey; the prayer bar shows it (“Al-Fatihah + Al-Ikhlas”) and a note
+  says to recite quietly along.
+- **The three Quls at bedtime**: the Prophet ﷺ recited Al-Ikhlas,
+  Al-Falaq and An-Nas before sleeping. Once you have learned them, Baby
+  Mo’s bedtime question offers “Recite the 3 Quls first”: read them
+  together (🎙️ all of them with Baby Mo, each ayah lighting up), then
+  sleep.
+- **Parent report**: Iqro lessons done (and the certificates), and the
+  short surahs learned.
+- Tested:
+  - Unit tests: which surahs you’ve learned, when a stage is done (so the
+    exam opens), and that each exam has enough questions and a fair pass
+    mark.
+  - Looked at in the game: Dad’s exam button, a question, the
+    certificate, the bedtime question and the three Quls.
+  - Smoke test on all four devices: the exam button, passing the exam and
+    the certificate, the imam reading a learned surah, and the three Quls
+    at bedtime. (The test hears which sound was played and picks it.)
+
 ### After the 28 letters: the Iqro journey 📖
 
 Asked by a parent: what comes after all the letters are found? Rather than

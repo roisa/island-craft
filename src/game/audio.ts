@@ -339,6 +339,7 @@ export const Speech = {
   stop(level = 9) { if (this.prio > level && performance.now() < this.until) return; this.seq++; this.prio = -1; try { speechSynthesis.cancel(); } catch { /* ignore */ } },
   /** Speak Arabic text if an Arabic voice exists, otherwise the Latin reading. */
   say(ar: string, latin: string) {
+    (window as unknown as { __said?: string }).__said = ar; // (what was last read out: the automatic tests listen too)
     if (!('speechSynthesis' in window)) return;
     this.stop();
     this.mark(2, latin);

@@ -60,7 +60,7 @@ import { Archery } from './game/archery';
 import { Basketball, Soccer } from './game/sports';
 import { HorseFarm } from './game/horses';
 import { IceRink } from './game/skating';
-import { IqroQuest } from './game/iqroquest';
+import { IqroQuest, learnedSurahs, stagesDone, examPool, EXAM_PASS } from './game/iqroquest';
 import { applyStroke } from './game/tennispose';
 import type { Activity } from './game/activity';
 import { DZIKIR, MOMENTS, canSay } from './game/phrases';
@@ -1681,6 +1681,7 @@ export class Game {
           { label: ic('book') + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
           { label: ic('blueprint') + tr('Lihat rancangan', 'See blueprints'), cls: 'ghost', fn: () => this.ui.openBook('build') },
           { label: '🇬🇧 ' + tr('Sapa dalam Bahasa Inggris', 'Say hello in English'), cls: 'ghost', fn: () => this.english.chat(n.name, face, !!portrait) },
+          ...stagesDone(this.stats.iqro?.n ?? 0).filter(st => !(this.stats.iqro?.exams ?? []).includes(st)).slice(0, 1).map(st => ({ label: `📝 ${tr('Ujian Iqro', 'Iqro exam')} ${st}`, cls: 'gold', fn: () => this.iqroExam(st) })),
           { label: tr('Terima kasih, Ayah', 'Thank you, Dad') },
         ],
       });
@@ -1738,9 +1739,13 @@ export class Game {
     const s = this.schedule, h = this.hour;
     const night = h >= s.isha - 0.5 || h < s.fajr - 0.5;
     if (!night) { this.ui.toast(tr('🛏️ Kasur dipakai saat malam (setelah Isya)', '🛏️ Beds are for night time (after Isha)')); return; }
+    // the Prophet ﷺ recited Al-Ikhlas, Al-Falaq and An-Nas before sleeping: the ones you have learned
+    const quls = learnedSurahs(this.stats.iqro?.stars).filter(x => ['ikhlas', 'falaq', 'nas'].includes(x.id));
     this.ui.dialog({
-      face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo', text: tr('Mau dengar cerita dulu sebelum tidur? 📚', 'Shall I tell you a story before bed? 📚'),
-      buttons: [{ label: ic('book') + tr('Ya, cerita!', 'Yes, a story!'), cls: 'gold', fn: () => this.festive.story(() => this.goToSleep()) }, { label: tr('Langsung tidur 😴', 'Just sleep 😴'), fn: () => this.goToSleep() }],
+      face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo', text: quls.length ? tr('Sebelum tidur, Rasulullah ﷺ membaca Al-Ikhlas, Al-Falaq dan An-Nas. Mau baca bersama? Atau dengar cerita? 📚', 'Before sleeping, the Prophet ﷺ recited Al-Ikhlas, Al-Falaq and An-Nas. Shall we recite them together? Or hear a story? 📚') : tr('Mau dengar cerita dulu sebelum tidur? 📚', 'Shall I tell you a story before bed? 📚'),
+      buttons: [
+        ...(quls.length ? [{ label: '📖 ' + tr(`Baca ${quls.length === 3 ? '3 Qul' : 'surat'} dulu`, `Recite ${quls.length === 3 ? 'the 3 Quls' : 'surahs'} first`), cls: 'gold', fn: () => this.ui.reciteSurahs(quls, tr('🌙 Sebelum tidur', '🌙 Before sleeping'), () => this.goToSleep()) }] : []),
+        { label: ic('book') + tr('Ya, cerita!', 'Yes, a story!'), cls: quls.length ? '' : 'gold', fn: () => this.festive.story(() => this.goToSleep()) }, { label: tr('Langsung tidur 😴', 'Just sleep 😴'), fn: () => this.goToSleep() }],
     });
   }
   private goToSleep() {
@@ -1787,6 +1792,34 @@ export class Game {
     this.save();
   }
 
+  /**
+   * In the first two rakaat, after Al-Fatihah the imam reads a short surah: one you have learned on the
+   * Iqro journey (the first time each prayer, a note says so, so you can recite quietly along).
+   */
+  private readNote: unknown = null;
+  private imamReads(): string | null {
+    const j = this.jamaah; if (!j) return null;
+    const st = j.step;
+    if (st.pose !== 'qiyam' || st.name[1] !== 'Standing' || st.rakaat > 2) return null;
+    const learned = learnedSurahs(this.stats.iqro?.stars).filter(s => s.id !== 'fatihah');
+    if (!learned.length) return 'Al-Fatihah';
+    const s = learned[(st.rakaat - 1 + this.day) % learned.length];
+    if (this.readNote !== j) { this.readNote = j; this.ui.toast(tr(`📖 Imam membaca Al-Fatihah dan ${s.name} — surat yang sudah kamu pelajari! Ikuti dalam hati ya 🤲`, `📖 The imam reads Al-Fatihah and ${s.name} — a surah you learned! Recite along quietly 🤲`), 5000); }
+    return `Al-Fatihah + ${s.name}`;
+  }
+  /** Dad's Iqro exams: for each finished stage not passed yet, an exam and a certificate */
+  iqroExam(stage: number) {
+    this.ui.iqroExam(stage, examPool(stage), right => {
+      if (right < 0) return;
+      if (right >= EXAM_PASS) {
+        const ex = ((this.stats.iqro ??= { n: 0 }).exams ??= []); if (!ex.includes(stage)) ex.push(stage);
+        this.addCoins(100, from => this.ui.coinPop(100, from));
+        this.goodWord('big_win', true); this.kid.reward('quest');
+        this.ui.iqroCertificate(stage, this.stats.kidName || tr('Sahabat Baby Mo', 'Baby Mo’s friend'), n => { this.stats.kidName = n; this.saveSoon(); });
+      } else this.ui.dialog({ face: 'img/ibrahim-face.webp', img: true, who: tr('Ayah Ibrahim', 'Dad'), text: tr(`<b>${right} dari 5</b> benar. Hampir! Latih lagi pelajarannya di buku huruf, lalu coba ujian lagi ya. Insya Allah bisa! 💪`, `<b>${right} of 5</b> right. Nearly! Practise the lessons again in the letter book, then try the exam again. Insha Allah you can! 💪`) });
+      this.saveSoon();
+    });
+  }
   /** a good deed for the Amal Book: a small sparkle, and the first time, what Rasulullah ﷺ said about it */
   amal(id: string, n = 1, quiet = false) {
     const log = (this.stats.amal ??= newAmalLog());
@@ -1921,7 +1954,7 @@ export class Game {
       else if (this.rowStill > 0.6) { this.jamaahSite = site; this.startJamaah(); }
     }
     if (this.jamaah) this.jamaahTick(dt);
-    this.ui.jamaahHud(this.jamaah);
+    this.ui.jamaahHud(this.jamaah, this.imamReads());
     // the Grand Masjid fills up at prayer time while you're nearby
     const gs = this.sites.find(s => s.id === 'grand'), pp = this.player.pos;
     if (this.congregation && gs) this.congregation.update(!!ev && Math.hypot(pp.x - gs.spot.x, pp.z - gs.spot.z) < 80, !!this.jamaah && this.jamaahSite === gs, !!ev?.prayed);

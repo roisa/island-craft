@@ -11,6 +11,7 @@ import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, let
 import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri } from './game/prayer';
 import { SFX, playLetter, Speech, haptic, adhan, playAyah } from './game/audio';
 import { MARK_INFO, choices, lessons, STAGES, type Lesson, type Syll } from './game/iqro';
+import { learnedSurahs } from './game/iqroquest';
 import { BIOME_INFO } from './world/gen';
 import type { Landmark, Spot } from './world/landmarks';
 import { adultSum } from './game/gate';
@@ -715,12 +716,12 @@ export class UI {
     });
   }
   private jmPic: ReturnType<UI['frames']> | null = null; private jmTxt = '';
-  jamaahHud(j: { step: { name: T2; rakaat: number; pose: import('./game/models').PrayerPose; head?: number }; total: number; joined: boolean } | null) {
+  jamaahHud(j: { step: { name: T2; rakaat: number; pose: import('./game/models').PrayerPose; head?: number }; total: number; joined: boolean } | null, reads?: string | null) {
     const el = $('#jmHud');
     if (!j) { if (!el.classList.contains('hidden')) { el.classList.add('hidden'); this.jmPic?.stop(); this.jmPic = null; el.innerHTML = ''; this.jmTxt = ''; } return; }
     if (!this.jmPic) { el.innerHTML = '<div class="pgFrames jm"></div><span class="jmT"></span>'; this.jmPic = this.frames($('.pgFrames', el), 700); }
     this.jmPic.set(poseFrames(j.step.pose, j.step.name.join(' '), j.step.head ?? 0));
-    const txt = `🤲 ${tr('Rakaat', 'Rakaat')} ${j.step.rakaat}/${j.total} · <b>${esc(t2(j.step.name))}</b>${j.joined ? '' : ' · ' + tr('kamu keluar barisan', 'you left the row')}`;
+    const txt = `🤲 ${tr('Rakaat', 'Rakaat')} ${j.step.rakaat}/${j.total} · <b>${esc(t2(j.step.name))}</b>${reads ? ` · 📖 ${esc(reads)}` : ''}${j.joined ? '' : ' · ' + tr('kamu keluar barisan', 'you left the row')}`;
     if (this.jmTxt !== txt) { this.jmTxt = txt; $('.jmT', el).innerHTML = txt; }
     el.classList.remove('hidden');
   }
@@ -1438,6 +1439,8 @@ export class UI {
         <div><b>Lv ${lv}</b><small>⭐ ${st.stars || 0}</small></div>
         <div><b>${g.questsDone.size}</b><small>${tr('misi selesai', 'quests done')}</small></div>
         <div><b>💧 ${st.water || 0}</b><small>${tr('gelas air saat istirahat minum', 'glasses of water at water breaks')}</small></div>
+        <div><b>📖 ${Math.min(st.iqro?.n ?? 0, lessons().length)}/${lessons().length}</b><small>${tr('pelajaran Iqro', 'Iqro lessons')}${st.iqro?.exams?.length ? ` · 🎓 ${st.iqro.exams.map(e => 'Iqro ' + e).join(', ')}` : ''}</small></div>
+        <div><b>${learnedSurahs(st.iqro?.stars).length}/6</b><small>${tr('surat pendek', 'short surahs')}${learnedSurahs(st.iqro?.stars).length ? ': ' + learnedSurahs(st.iqro?.stars).map(x => x.name).join(', ') : ''}</small></div>
       </div>
       ${learned ? `<p style="margin-top:6px">${tr('Huruf yang sudah dikenal', 'Letters met so far')}: <span class="arrow-row">${st.letters.slice().sort((a, b) => a - b).map(i => arImg(LETTERS[i].g, { size: 24, w: 30, h: 34 })).join('')}</span></p>` : ''}
       <h3>${ic('gear')} ${tr('Pengaturan', 'Settings')}</h3>
@@ -1654,7 +1657,7 @@ export class UI {
         const want = order[q], opts = choices(pool, want, Math.random); miss = false;
         body.innerHTML = `<p class="iqQ">${tr('Dengarkan, lalu pilih yang benar', 'Listen, then pick the right one')} (${q + 1}/${order.length})</p>
           <button class="btn gold iqHear" id="iqHear">🔊 ${tr('Dengar', 'Listen')}</button>
-          <div class="iqOpts">${opts.map((o, k) => `<button class="iqO" data-k="${k}">${show(o)}</button>`).join('')}</div>`;
+          <div class="iqOpts">${opts.map((o, k) => `<button class="iqO" data-k="${k}" data-ar="${esc(ar(o))}">${show(o)}</button>`).join('')}</div>`;
         $('#iqHear', el).onclick = () => play(want);
         setTimeout(() => play(want), 350);
         el.querySelectorAll<HTMLElement>('.iqO').forEach(b => (b.onclick = () => {
@@ -1728,6 +1731,60 @@ export class UI {
         }));
       };
     }
+  }
+
+  /** Dad's Iqro exam for a stage: 5 listening questions; `done` gets how many were right first time */
+  iqroExam(stage: number, pool: { ar: string; lat: string }[], done: (right: number) => void) {
+    let q = 0, right = 0, miss = false, finished = false;
+    const order = [...pool].sort(() => Math.random() - 0.5).slice(0, 5);
+    const wide = stage >= 4;
+    const { el, close } = this.modal(`<div class="iqro"><h2>📝 ${tr('Ujian Iqro', 'Iqro exam')} ${stage}</h2><p class="iqHow">${tr('Ayah menguji bacaanmu. Dengarkan, lalu pilih yang benar. Benar 4 dari 5 untuk lulus!', 'Dad tests your reading. Listen, then pick the right one. Get 4 of 5 right to pass!')}</p><div id="iqBody"></div><div class="row"><button class="btn ghost small" id="iqX">${tr('Nanti saja', 'Later')}</button></div></div>`, () => { Speech.stop(2); if (!finished) done(-1); });
+    const body = $('#iqBody', el);
+    $('#iqX', el).onclick = () => close();
+    const show = (x: { ar: string }) => wide ? `<span class="ar exa" lang="ar" dir="rtl">${x.ar}</span>` : arImg(x.ar, { size: 40, w: 76, h: 68 });
+    const ask = () => {
+      if (q >= order.length) { finished = true; close(); done(right); return; }
+      const want = order[q], opts = choices(pool, want, Math.random); miss = false;
+      body.innerHTML = `<p class="iqQ">${tr('Soal', 'Question')} ${q + 1}/${order.length}</p><button class="btn gold iqHear" id="iqHear">🔊 ${tr('Dengar', 'Listen')}</button>
+        <div class="iqOpts${wide ? ' col' : ''}">${opts.map((o, k) => `<button class="iqO" data-k="${k}" data-ar="${esc(o.ar)}">${show(o)}</button>`).join('')}</div>`;
+      const play = () => Speech.say(want.ar, want.lat);
+      $('#iqHear', el).onclick = play; setTimeout(play, 350);
+      el.querySelectorAll<HTMLElement>('.iqO').forEach(b => (b.onclick = () => {
+        const o = opts[+b.dataset.k!];
+        if (o.ar === want.ar) { b.classList.add('ok'); SFX.chime(); if (!miss) right++; q++; setTimeout(ask, 700); }
+        else { b.classList.add('no'); SFX.error(); miss = true; setTimeout(() => b.classList.remove('no'), 500); play(); }
+      }));
+    };
+    ask();
+  }
+  /** the certificate for passing a stage of the Iqro journey */
+  iqroCertificate(stage: number, name: string, rename?: (n: string) => void) {
+    SFX.fanfare(); this.confetti(90);
+    this.modal(`<div class="cert"><div class="cTop">🎓</div><h2>${tr('Syahadah', 'Certificate')}</h2><p>${tr('Diberikan kepada', 'Awarded to')}</p><div class="cName" id="cName" contenteditable="true" spellcheck="false">${esc(name)}</div><small>${tr('(ketuk untuk menulis namamu)', '(tap to write your name)')}</small>
+      <p>${tr(`telah lulus <b>Iqro ${stage}</b> dalam perjalanan Iqro Baby Mo.`, `for passing <b>Iqro ${stage}</b> on Baby Mo’s Iqro journey.`)}</p>
+      <p class="ar" lang="ar" dir="rtl">بَارَكَ اللّٰهُ فِيكَ</p><small>Barakallahu fik — ${tr('semoga Allah memberkahimu', 'may Allah bless you')}</small>
+      <div class="cSign">Ayah Ibrahim ✍️</div><button class="btn gold" id="cOk">${tr('Alhamdulillah', 'Alhamdulillah')} 🤲</button></div>`).el.querySelector<HTMLElement>('#cOk')!.onclick = () => { const n = (document.querySelector('#cName')?.textContent || '').trim().slice(0, 24); if (n) rename?.(n); this.closeAllModals(); };
+  }
+  /** recite surahs you have learned (at bedtime: the three Quls), ayah by ayah with Baby Mo */
+  reciteSurahs(list: import('./game/iqro').Surah[], title: string, then?: () => void) {
+    let timer = 0;
+    const { el, close } = this.modal(`<div class="iqro"><h2>${title}</h2><div class="ayat">${list.map(S => `<p class="sname">${tr('Surat', 'Surah')} ${S.name}</p>${S.ayat.map((a, k) => `<button class="ayah" data-s="${S.id}" data-k="${k}"><span class="an">${k + 1}</span><span class="ar" lang="ar" dir="rtl">${a.ar}</span><small class="lat">${a.lat}</small><small class="mean">${t2(a.mean)}</small></button>`).join('')}`).join('')}</div>
+      <div class="row"><button class="btn" id="rcAll">🎙️ ${tr('Baca semua bersama Baby Mo', 'Recite them all with Baby Mo')}</button><button class="btn gold" id="rcOk">${tr('Selesai', 'Done')} ✓</button></div></div>`, () => { clearTimeout(timer); Speech.stop(2); then?.(); });
+    const rows = [...el.querySelectorAll<HTMLElement>('.ayah')];
+    const of = (r: HTMLElement) => { const S = list.find(x => x.id === r.dataset.s)!, k = +r.dataset.k!; return { S, k, a: S.ayat[k] }; };
+    rows.forEach(r => (r.onclick = () => { const { S, k, a } = of(r); playAyah(S.id, k + 1, a.ar, a.lat); }));
+    $('#rcAll', el).onclick = () => {
+      clearTimeout(timer);
+      const go = (i: number) => {
+        rows.forEach((r, j) => r.classList.toggle('on', j === i));
+        if (i >= rows.length || !el.isConnected) return;
+        const { S, k, a } = of(rows[i]); rows[i].scrollIntoView({ block: 'nearest' });
+        playAyah(S.id, k + 1, a.ar, a.lat);
+        timer = window.setTimeout(() => go(i + 1), 1400 + a.lat.length * 85);
+      };
+      go(0);
+    };
+    $('#rcOk', el).onclick = () => close();
   }
 
   duaCard(d: Dua, title: string, then?: () => void) {

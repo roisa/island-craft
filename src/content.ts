@@ -75,8 +75,10 @@ export interface Stats {
   /** tennis matches with Baby Mo: played, won, and the longest rally */
   tennis?: number; tennisWins?: number; tennisRally?: number;
   /** fruit picked in the orchard, growing back: [x, y, z, block, when] */
+  /** the child's name, for the certificates */
+  kidName?: string;
   /** the Iqro journey after the 28 letters: the step you're on, where its book is, the best stars of each lesson, review books done */
-  iqro?: { n: number; stone?: [number, number, number]; stars?: Record<number, number>; reviews?: number };
+  iqro?: { n: number; stone?: [number, number, number]; stars?: Record<number, number>; reviews?: number; exams?: number[] };
   /** archery: the highest level open (1–6, 6 = all passed) and the best score of each; rounds played; the champion's trophy */
   archery?: { lv: number; best: number[] }; archeryRounds?: number; archeryChampion?: boolean;
   /** ice skates: your own ('own') or rented for this game day (the day number); days skated; snowflake sets collected */

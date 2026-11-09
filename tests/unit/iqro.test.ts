@@ -59,3 +59,22 @@ describe('the Iqro journey', () => {
     expect(c).toHaveLength(3); expect(c).toContain(LETTERS[5]); expect(new Set(c).size).toBe(3);
   });
 });
+
+import { learnedSurahs, stagesDone, examPool, EXAM_PASS, EXAM_QS } from '../../src/game/iqroquest';
+describe('the Iqro journey in the rest of the game', () => {
+  it('knows which surahs you have learned (a lesson with stars), in order', () => {
+    const all = lessons(), at = (id: string) => all.findIndex(l => l.kind === 'surah' && l.surah.id === id);
+    expect(learnedSurahs(undefined)).toEqual([]);
+    expect(learnedSurahs({ [at('nas')]: 2, [at('ikhlas')]: 3 }).map(s => s.id)).toEqual(['ikhlas', 'nas']);
+  });
+  it('a stage is done once all its lessons are, then Dad’s exam can be taken', () => {
+    const all = lessons(), end2 = all.map(l => l.stage).lastIndexOf(2);
+    expect(stagesDone(end2)).toEqual([]);
+    expect(stagesDone(end2 + 1)).toEqual([2]);
+    expect(stagesDone(all.length)).toEqual([2, 3, 4, 5]);
+  });
+  it('each exam has enough to ask, and passing needs most of them right', () => {
+    for (const st of [2, 3, 4, 5]) expect(examPool(st).length, `stage ${st}`).toBeGreaterThanOrEqual(EXAM_QS);
+    expect(EXAM_PASS).toBeGreaterThan(EXAM_QS / 2); expect(EXAM_PASS).toBeLessThanOrEqual(EXAM_QS);
+  });
+});
