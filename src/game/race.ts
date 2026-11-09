@@ -14,7 +14,16 @@ import { getLang } from '../i18n';
 import { LAP, TRACK, cellKind, coinPlan, laneOf, onBoost, pointAt, progressOf, ranking } from './track';
 
 export const LAPS = 2;
-export const PRIZE = [100, 60, 40, 30];
+export const PRIZE = [100, 60, 40, 30, 25, 20];
+/** the big races of the day, by the game clock: a notice comes a little before, and villagers come to watch */
+export const RACE_TIMES = [10, 16];
+/** is it time to tell you about the big race? (the hour just went past a quarter of an hour before one) */
+export function raceSoon(before: number, now: number): number | null {
+  for (const h of RACE_TIMES) { const at = h - 0.25; if (before < at && now >= at) return h; }
+  return null;
+}
+/** are the villagers at the grandstand? (from half an hour before a big race until an hour and a half after) */
+export const crowdTime = (hour: number) => RACE_TIMES.some(h => hour >= h - 0.5 && hour < h + 1.5);
 const MAX = 13.5, OFF = 6;
 
 interface Kart {
@@ -28,6 +37,19 @@ interface Kart {
 const DRIVERS: { name: string; color: number; look?: BlockyOpts }[] = [
   { name: 'Kak Dina', color: 0x2f6fde, look: { skin: '#E8B48A', shirt: 0x2f6fde, pants: 0x2a3550, hijab: 0x1f2a44, tunic: true, adult: true, lashes: true, backpack: null, emblem: null, hair: 0x2b2018, shoes: 0xf4f4f4 } },
   { name: 'Bang Rizal', color: 0xf2b134, look: { skin: '#D9A27A', shirt: 0xf2b134, pants: 0x3b3a3d, peci: 0xe4423a, adult: true, backpack: null, emblem: null, hair: 0x1f1a1a, shoes: 0x3b3a3d } },
+  { name: 'Pak Budi', color: 0x9b59b6, look: { skin: '#C98E66', shirt: 0x9b59b6, pants: 0x2a3550, peci: 0x1f1f1f, adult: true, backpack: null, emblem: null, hair: 0x1f1a1a, shoes: 0x3b3a3d } },
+  { name: 'Kak Sari', color: 0x1abc9c, look: { skin: '#F1C7A3', shirt: 0x1abc9c, pants: 0x3b3a3d, hijab: 0xf2a7c3, tunic: true, adult: true, lashes: true, backpack: null, emblem: null, hair: 0x2b2018, shoes: 0xf4f4f4 } },
+];
+const KART_COLORS = [0xe4423a, 0x8dc63f, ...DRIVERS.map(d => d.color)];
+/** the people watching from the grandstand */
+const CROWD: BlockyOpts[] = [
+  { skin: '#E8B48A', shirt: 0xe4423a, pants: 0x2a3550, peci: 0x1f1f1f, adult: true, backpack: null, emblem: null, hair: 0x1f1a1a },
+  { skin: '#D9A27A', shirt: 0x2e78d6, pants: 0x3b3a3d, hijab: 0xf2b134, tunic: true, adult: true, backpack: null, emblem: null, hair: 0x2b2018 },
+  { skin: '#F1C7A3', shirt: 0x8dc63f, pants: 0x2a3550, backpack: null, emblem: null, hair: 0x3b2a1a },
+  { skin: '#C98E66', shirt: 0xf2a7c3, pants: 0x3b3a3d, hijab: 0x9b59b6, tunic: true, adult: true, backpack: null, emblem: null, hair: 0x1f1a1a },
+  { skin: '#E8B48A', shirt: 0xf2b134, pants: 0x3b3a3d, backpack: null, emblem: null, hair: 0x1f1a1a },
+  { skin: '#D9A27A', shirt: 0xffffff, pants: 0x2a3550, peci: 0xe4423a, adult: true, backpack: null, emblem: null, hair: 0x1f1a1a },
+  { skin: '#F1C7A3', shirt: 0x1abc9c, pants: 0x3b3a3d, hijab: 0xffffff, tunic: true, backpack: null, emblem: null, hair: 0x2b2018 },
 ];
 
 /** the sum for the coins you just picked up: what to show and what to say */
@@ -52,11 +74,16 @@ export class Race {
   readonly cx: number; readonly cz: number; readonly y: number;
   constructor(private g: Game, l: Landmark) {
     const c = l.at!.centre; this.cx = c[0]; this.cz = c[2]; this.y = c[1];
+    this.stand = l.at!.stand ?? null;
   }
   /** the karts waiting on the grid when nobody is racing, so you can find them */
   private parked: THREE.Group[] = []; private armed = true;
   /** the grid spots: you and Baby Mo in front, the racers behind */
-  static readonly GRID: [number, number][] = [[-2.5, 1.8], [-2.5, -1.8], [-7, 1.8], [-7, -1.8]];
+  static readonly GRID: [number, number][] = [[-2.5, 1.8], [-2.5, -1.8], [-7, 2.6], [-7, -1.0], [-11.5, 1.0], [-11.5, -2.6]];
+  /** a big race (at a set time, with the villagers watching): double prizes */
+  grand = false;
+  private crowd: { rig: ReturnType<typeof buildBlocky>; ph: number }[] = []; private stand: [number, number, number] | null = null;
+  private lastHour = -1;
   /** your kart's place on the grid */
   myKart() { const p = pointAt(Race.GRID[0][0], Race.GRID[0][1]); return new THREE.Vector3(this.cx + p.x, this.y, this.cz + p.z); }
   /**
@@ -67,7 +94,7 @@ export class Race {
     const g = this.g, close = !this.active && Math.abs(p.x - this.cx) < TRACK.half + TRACK.R + 30 && Math.abs(p.z - this.cz) < TRACK.R + 30 && Math.abs(p.y - this.y) < 20;
     if (close && !this.parked.length) {
       this.parked = Race.GRID.map(([s, lane], i) => {
-        const obj = kartModel([0xe4423a, 0x8dc63f, DRIVERS[0].color, DRIVERS[1].color][i]);
+        const obj = kartModel(KART_COLORS[i]);
         const q = pointAt(s, lane); obj.position.set(this.cx + q.x, this.y, this.cz + q.z); obj.rotation.y = q.yaw;
         g.scene.add(obj); return obj;
       });
@@ -82,6 +109,60 @@ export class Race {
     else if (d < 1.4 && this.armed && !g.fun.riding && !g.ui.isOpen() && !g.tennis?.active) { this.armed = false; this.start(); }
   }
   private clearParked() { for (const o of this.parked) this.g.scene.remove(o); this.parked = []; }
+
+  /**
+   * Every frame: the notice before a big race, and the villagers on the grandstand
+   * (there from a little before until a while after, cheering while you race).
+   */
+  tick(dt: number, hour: number) {
+    const g = this.g;
+    if (this.lastHour >= 0) {
+      const h = raceSoon(this.lastHour, hour);
+      if (h !== null) this.notice(h);
+    }
+    this.lastHour = hour;
+    // the 🏁 button goes once the race has started or the time has passed
+    if (this.soonUntil > 0 && (hour > this.soonUntil || hour < this.soonUntil - 2 || this.active)) { this.soonUntil = -1; g.ui.raceSoon(null); }
+    const want = crowdTime(hour) || (this.active && this.grand);
+    if (want && !this.crowd.length && this.stand) this.seatCrowd();
+    else if (!want && this.crowd.length) this.clearCrowd();
+    if (this.crowd.length) {
+      const t = performance.now() / 1000, cheer = this.active && this.phase !== 'count';
+      for (const c of this.crowd) {
+        const r = c.rig, w = Math.sin(t * (cheer ? 7 : 2) + c.ph);
+        r.armL?.rotation.set(cheer ? -2.7 + w * 0.35 : -0.2 + w * 0.1, 0, 0);
+        r.armR?.rotation.set(cheer ? -2.7 - w * 0.35 : -0.2 - w * 0.1, 0, 0);
+        r.root.position.y = (r.root.userData.y as number) + (cheer ? Math.max(0, w) * 0.12 : 0);
+      }
+    }
+    void dt;
+  }
+  /** “the big race starts soon”: Baby Mo says so and a 🏁 button lets you go and join (nothing stops the game) */
+  private soonUntil = -1;
+  private notice(h: number) {
+    const g = this.g, at = `${String(h).padStart(2, '0')}:00`;
+    if (this.active) return;
+    SFX.quest();
+    g.ui.say(tr(`Balapan besar jam ${at}! Ada 6 pembalap dan warga desa datang menonton. Hadiahnya dua kali lipat. Ketuk 🏁 untuk ikut!`, `The big race is at ${at}! Six racers, and the villagers are coming to watch. Double prizes. Tap 🏁 to join!`), 'idea', 8000);
+    g.ui.raceSoon(tr(`Balapan ${at} — ikut!`, `Race at ${at} — join!`), () => { if (g.goPlace('race_track')) setTimeout(() => { if (!this.active) this.start(true); }, 1500); });
+    this.soonUntil = h + 0.75;
+  }
+  private seatCrowd() {
+    const g = this.g, [sx, sy, sz] = this.stand!;
+    let n = 0;
+    for (let k = 0; k < 4; k++) for (let i = -4; i <= 4; i++) {
+      if ((i + k) % 2 !== 0 && n > 6) continue;
+      const rig = buildBlocky(CROWD[n % CROWD.length]);
+      // sitting on the step: each row a block higher and further back
+      rig.root.position.set(sx + i * 4 + (k % 2) * 2, sy + 1 + k, sz - k);
+      rig.root.userData.y = rig.root.position.y;
+      g.scene.add(rig.root); this.crowd.push({ rig, ph: Math.random() * 6 });
+      if (++n >= 16) return;
+    }
+  }
+  private clearCrowd() { for (const c of this.crowd) this.g.scene.remove(c.rig.root); this.crowd = []; }
+  /** how many villagers are watching */
+  get watching() { return this.crowd.length; }
 
   /** close enough to the track to start a race */
   near(p: THREE.Vector3) { return Math.abs(p.x - this.cx) < TRACK.half + TRACK.R + 12 && Math.abs(p.z - this.cz) < TRACK.R + 14 && Math.abs(p.y - this.y) < 6; }
@@ -114,22 +195,22 @@ export class Race {
   /** where you are on the track: laps done and metres into this one */
   get lap() { return Math.min(LAPS, Math.floor(Math.max(0, this.total) / LAP) + 1); }
 
-  start() {
+  start(grand = false) {
     const g = this.g;
     if (this.active) return;
+    this.grand = grand || crowdTime(g.hour);
     if (g.fun.riding) g.fun.dismount();
     this.active = true; this.phase = 'count'; this.t = 0; this.count = 3; this.armed = false;
     this.clearParked();
     // the grid, just behind the start line: you and Baby Mo in front, the racers behind
     const grid = Race.GRID;
     this.got = 0; this.sum = null; this.boostT = 0; this.layCoins(1);
-    const colors = [0xe4423a, 0x8dc63f];
     this.karts = grid.map(([s, lane], i) => {
       const d = i >= 2 ? DRIVERS[i - 2] : null;
-      const color = d ? d.color : colors[i];
+      const color = KART_COLORS[i];
       const obj = kartModel(color);
       g.scene.add(obj);
-      const k: Kart = { obj, name: d?.name ?? (i === 0 ? tr('Kamu', 'You') : 'Baby Mo'), color, s, lane, top: i === 1 ? 13.1 : i === 2 ? 13.6 : 13.0, x: 0, z: 0, yaw: 0, v: 0 };
+      const k: Kart = { obj, name: d?.name ?? (i === 0 ? tr('Kamu', 'You') : 'Baby Mo'), color, s, lane, top: [13.0, 13.1, 13.6, 13.0, 13.3, 12.8][i] ?? 13, x: 0, z: 0, yaw: 0, v: 0 };
       if (d?.look) { k.rig = buildBlocky(d.look); obj.add(k.rig.root); k.rig.root.position.set(0, 0.05, -0.1); applyPrayerPose(k.rig, 'julus'); }
       const p = pointAt(s, lane); k.x = this.cx + p.x; k.z = this.cz + p.z; k.yaw = p.yaw;
       return k;
@@ -138,7 +219,8 @@ export class Race {
     g.ents.mo.seat = { pos: new THREE.Vector3(), yaw: 0 };
     this.place();
     SFX.click();
-    g.ui.say(tr('Siap? Setelah GO, gokartmu jalan sendiri — kamu tinggal belok dengan joystick. Tarik ke bawah untuk mengerem. Bismillah!', 'Ready? After GO your kart drives by itself — you just steer with the joystick. Pull back to brake. Bismillah!'), 'idea', 6000);
+    g.ui.say(this.grand ? tr('Balapan besar! Warga desa menonton dari tribun. Setelah GO, gokartmu jalan sendiri — kamu tinggal belok. Hadiahnya dua kali lipat! Bismillah!', 'The big race! The villagers are watching from the grandstand. After GO your kart drives by itself — you just steer. Double prizes! Bismillah!')
+      : tr('Siap? Setelah GO, gokartmu jalan sendiri — kamu tinggal belok dengan joystick. Tarik ke bawah untuk mengerem. Bismillah!', 'Ready? After GO your kart drives by itself — you just steer with the joystick. Pull back to brake. Bismillah!'), 'idea', 6000);
     g.stats.races = (g.stats.races || 0) + 1;
   }
 
@@ -152,7 +234,7 @@ export class Race {
     this.t += dt;
     if (this.phase === 'count') {
       const c = 3 - Math.floor(this.t);
-      if (c !== this.count) { this.count = c; if (c > 0) SFX.pop(2); else { SFX.chime(); this.phase = 'go'; this.t = 0; } }
+      if (c !== this.count) { this.count = c; if (c > 0) SFX.pop(2); else { SFX.chime(); this.phase = 'go'; this.t = 0; g.goodWord('start', true); } }
       g.ui.raceCount(c > 0 ? String(c) : 'GO!');
       this.place(); return true;
     }
@@ -176,7 +258,7 @@ export class Race {
     me.yaw += dy * Math.min(1, dt * (Math.abs(ax.fx) > 0.2 ? 0.6 : 2.2));
     const nx = me.x + Math.sin(me.yaw) * me.v * dt, nz = me.z + Math.cos(me.yaw) * me.v * dt;
     const nk = cellKind(nx - this.cx, nz - this.cz);
-    if (nk === 'wall' || g.world.solidAt(Math.floor(nx), Math.floor(this.y + 0.2), Math.floor(nz))) { me.v *= -0.25; SFX.pop(1); }
+    if (nk === 'wall' || g.world.solidAt(Math.floor(nx), Math.floor(this.y + 0.2), Math.floor(nz))) { if (me.v > 6) g.goodWord('bumped'); me.v *= -0.25; SFX.pop(1); }
     else { me.x = nx; me.z = nz; }
     // laps: follow your progress round the line
     const s = progressOf(me.x - this.cx, me.z - this.cz);
@@ -229,7 +311,7 @@ export class Race {
   }
 
   private finish(quit: boolean) {
-    const g = this.g, order = this.order(), place = order.indexOf(0) + 1, time = this.t;
+    const g = this.g, order = this.order(), place = order.indexOf(0) + 1, time = this.t, st0 = g.stats;
     this.phase = 'done';
     g.ui.raceHud(null); g.ui.raceCount(null);
     this.flushSum();
@@ -243,11 +325,13 @@ export class Race {
       g.ents.mo.pos.set(this.cx + 3, this.y, this.cz + 4);
     };
     if (quit) { end(); g.ui.toast(tr('🏁 Keluar dari balapan', '🏁 Left the race'), 2500); return; }
-    const got = this.got, coins = (PRIZE[place - 1] ?? 20) + got;
+    const got = this.got, coins = (PRIZE[place - 1] ?? 20) * (this.grand ? 2 : 1) + got;
+    if (this.grand) st0.grandRaces = (st0.grandRaces || 0) + 1;
     const st = g.stats; st.raceBest = Math.min(st.raceBest ?? Infinity, time); if (place === 1) st.raceWins = (st.raceWins || 0) + 1;
     g.addCoins(coins, from => g.ui.coinPop(coins, from));
     SFX.fanfare(); g.ui.confetti(place === 1 ? 80 : 40); g.ents.mo.celebrate = 2.5;
-    const nth = [tr('juara 1', '1st'), tr('juara 2', '2nd'), tr('juara 3', '3rd'), tr('ke-4', '4th')][place - 1];
+    g.goodWord(place === 1 ? 'won' : 'other_won', true);
+    const nth = [tr('juara 1', '1st'), tr('juara 2', '2nd'), tr('juara 3', '3rd'), tr('ke-4', '4th'), tr('ke-5', '5th'), tr('ke-6', '6th')][place - 1];
     const secs = time.toFixed(1);
     g.ui.dialog({
       face: place === 1 ? '🏆' : '🏁', who: tr('Garis finis!', 'Finish line!'),

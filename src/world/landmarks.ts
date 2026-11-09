@@ -984,6 +984,146 @@ const SPECS = (): Spec[] => specs ??= [
       return { y: y + 1, at: { centre: [x + 0.5, y + 1, z + 0.5], entry: [x + P + 3.5, y + 1, z + 5.5] } };
     },
   },
+  {
+    // an archery range: a shooting line, a long grass lane between fences, distance flags and a backstop
+    id: 'archery', icon: '🏹', name: ['Lapangan Panahan', 'The Archery Range'], biomes: [Biome.MEADOW, Biome.FOREST, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.BEACH, Biome.DESERT, Biome.SNOWY], dist: [50, 200], r: 14, loose: true, clear: 12,
+    ok: c => c.h > SEA && c.h < SEA + 14,
+    hint: ['Ada lapangan panahan dengan sasaran berwarna-warni. Bisakah kamu mengenai tengahnya?', 'There’s an archery range with colourful targets. Can you hit the middle?'],
+    fact: ['Ketuk 🏹 Memanah. Kuning 100, merah 50, biru 20, hitam/putih 10 — jumlahkan poinmu! Lulus tiap level untuk panah baru. Memanah adalah olahraga yang dianjurkan Rasulullah ﷺ.', 'Tap 🏹 Archery. Yellow 100, red 50, blue 20, black/white 10 — add up your points! Pass each level for a new arrow. Archery is a sport the Prophet ﷺ encouraged.'],
+    loot: [[I.GOLD_INGOT, 1], [I.APPLE, 3], [B.LANTERN, 2]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      foundation(b, x - 8, z - 19, x + 8, z + 17, y, B.DIRT);
+      b.box(x - 8, y, z - 19, x + 8, y, z + 17, B.GRASS);
+      b.box(x - 8, y + 1, z - 19, x + 8, y + 9, z + 17, B.AIR);
+      // the shooting platform and the white line
+      b.box(x - 4, y, z + 12, x + 4, y, z + 16, B.GRAVEL);
+      b.box(x - 4, y, z + 12, x + 4, y, z + 12, B.WOOL_WHITE);
+      // fences down both sides, with lanterns
+      for (let Z = z - 17; Z <= z + 11; Z++) for (const X of [x - 6, x + 6]) { b.stamp(X, y + 1, Z, (Z - z) % 4 === 0 ? B.OAK_LOG : B.PLANKS); if ((Z - z) % 8 === 0) b.stamp(X, y + 2, Z, B.LANTERN); }
+      // coloured flags at the distances of the five levels
+      const COL = [B.WOOL_WHITE, B.WOOL_GREEN, B.WOOL_BLUE, B.WOOL_PURPLE, B.WOOL_RED];
+      [8, 12, 16, 20, 26].forEach((d, i) => { const Z = Math.round(z + 12.5 - d); for (const X of [x - 5, x + 5]) { b.box(X, y + 1, Z, X, y + 2, Z, B.OAK_LOG); b.stamp(X, y + 3, Z, COL[i]); } });
+      // a backstop of straw-coloured blocks behind the targets
+      b.box(x - 5, y + 1, z - 18, x + 5, y + 4, z - 18, B.SANDSTONE);
+      b.stamp(x + 7, y + 1, z + 10, B.CHEST);
+      return { y: y + 1, at: { line: [x + 0.5, y + 1, z + 12.5], shoot: [x + 0.5, y + 1, z + 13.6], entry: [x + 4.5, y + 1, z + 15.5] } };
+    },
+  },
+  {
+    // a sports park: a basketball court (wooden floor, painted key, a hoop on a glass backboard) and a
+    // mini football pitch with a goal
+    id: 'sports', icon: '🏀', name: ['Taman Olahraga', 'The Sports Park'], biomes: [Biome.MEADOW, Biome.BEACH, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.BEACH, Biome.FOREST, Biome.DESERT, Biome.SNOWY], dist: [50, 200], r: 16, loose: true, clear: 14,
+    ok: c => c.h > SEA && c.h < SEA + 14,
+    hint: ['Ada lapangan basket dan lapangan sepak bola mini. Bisakah kamu memasukkan bola?', 'There’s a basketball court and a mini football pitch. Can you score?'],
+    fact: ['Ketuk 🏀 Main basket: ketuk ✋ saat penanda ada di hijau untuk menembak. Ketuk ⚽ Adu penalti: tendang saat bidikanmu di tempat yang tidak dijaga Baby Mo. Olahraga bersama teman itu menyenangkan dan menyehatkan!', 'Tap 🏀 Basketball: tap ✋ when the marker is in the green to shoot. Tap ⚽ Penalties: kick when your aim is where Baby Mo isn’t. Sport with friends is fun and keeps you healthy!'],
+    loot: [[I.APPLE, 3], [I.GOLD_INGOT, 1], [B.LANTERN, 2]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      foundation(b, x - 15, z - 14, x + 15, z + 13, y, B.DIRT);
+      b.box(x - 15, y, z - 14, x + 15, y, z + 13, B.GRASS);
+      b.box(x - 15, y + 1, z - 14, x + 15, y + 9, z + 13, B.AIR);
+      // the basketball court: wooden floor, white lines, a red key, the three-point arc
+      const bx = x - 8, rz = z - 9.55;
+      b.box(x - 14, y, z - 12, x - 2, y, z + 4, (X, _Y, Z) => {
+        const edge = X === x - 14 || X === x - 2 || Z === z - 12 || Z === z + 4;
+        const key = Math.abs(X - bx) <= 2 && Z <= z - 6;
+        const ft = Z === z - 6 && Math.abs(X - bx) <= 2;
+        const arc = Math.abs(Math.hypot(X + 0.5 - (bx + 0.5), Z + 0.5 - rz) - 6.5) < 0.5 && Z > z - 12;
+        if (edge || ft || arc || (key && Math.abs(X - bx) === 2)) return B.WOOL_WHITE;
+        return key ? B.WOOL_RED : B.PLANKS;
+      });
+      // the hoop: a post, a glass backboard (the ring is added by the game)
+      b.box(bx, y + 1, z - 12, bx, y + 5, z - 12, B.COBBLE);
+      b.box(bx - 1, y + 4, z - 11, bx + 1, y + 5, z - 11, B.GLASS);
+      b.stamp(bx, y + 5, z - 12, B.COBBLE);
+      // the football pitch: green with white lines, a penalty box, and a goal with a see-through net
+      const sx = x + 8;
+      b.box(x + 2, y, z - 12, x + 14, y, z + 12, (X, _Y, Z) => {
+        const edge = X === x + 2 || X === x + 14 || Z === z - 12 || Z === z + 12 || Z === z;
+        const box = (Math.abs(X - sx) === 4 && Z <= z - 7) || (Z === z - 7 && Math.abs(X - sx) <= 4);
+        const spot = X === sx && Z === z - 5;
+        return edge || box || spot ? B.WOOL_WHITE : B.WOOL_GREEN;
+      });
+      for (const px of [sx - 3, sx + 3]) b.box(px, y + 1, z - 11, px, y + 3, z - 11, B.WOOL_WHITE);
+      b.box(sx - 3, y + 4, z - 11, sx + 3, y + 4, z - 11, B.WOOL_WHITE);
+      b.box(sx - 2, y + 1, z - 13, sx + 2, y + 3, z - 13, B.GLASS);
+      for (const px of [sx - 3, sx + 3]) b.box(px, y + 1, z - 13, px, y + 3, z - 12, B.GLASS);
+      // benches and a chest between the two
+      b.box(x, y + 1, z - 6, x, y + 1, z + 6, B.PLANKS);
+      b.stamp(x, y + 1, z + 8, B.CHEST);
+      for (const [lx, lz] of [[x - 15, z - 14], [x + 15, z - 14], [x - 15, z + 13], [x + 15, z + 13]]) { b.box(lx, y + 1, lz, lx, y + 4, lz, B.OAK_LOG); b.stamp(lx, y + 5, lz, B.LANTERN); }
+      return { y: y + 1, at: { hoop: [bx + 0.5, y + 1 + 3.05, rz], court: [bx + 0.5, y + 1, z - 2.5], goal: [sx + 0.5, y + 1, z - 10.5], spot: [sx + 0.5, y + 1, z - 4.5], entry: [x + 0.5, y + 1, z + 10.5] } };
+    },
+  },
+  {
+    // a horse farm: a red barn, a fenced paddock where the horses graze, and a riding track round it with jumps
+    id: 'horse_farm', icon: '🐴', name: ['Peternakan Kuda', 'The Horse Farm'], biomes: [Biome.MEADOW, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.FOREST, Biome.BEACH, Biome.DESERT, Biome.SNOWY], dist: [60, 220], r: 18, loose: true, clear: 18,
+    ok: c => c.h > SEA && c.h < SEA + 14,
+    hint: ['Ada peternakan kuda dengan kandang merah. Kuda-kudanya merumput di padang. Bisakah kamu menunggang kuda?', 'There’s a horse farm with a red barn. The horses graze in the paddock. Can you ride one?'],
+    fact: ['Dekati seekor kuda, lalu ketuk 🐴 Tunggang kuda. Kudamu berlari di lintasan — ketuk ✋ sebelum rintangan untuk melompat! Rasulullah ﷺ menganjurkan belajar menunggang kuda.', 'Go up to a horse, then tap 🐴 Ride. Your horse gallops round the track — tap ✋ before each jump to leap over! The Prophet ﷺ encouraged learning to ride.'],
+    loot: [[I.APPLE, 4], [I.GOLD_INGOT, 1], [B.LANTERN, 2]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      foundation(b, x - 16, z - 18, x + 16, z + 13, y, B.DIRT);
+      b.box(x - 16, y, z - 18, x + 16, y, z + 13, B.GRASS);
+      b.box(x - 16, y + 1, z - 18, x + 16, y + 10, z + 13, B.AIR);
+      // the riding track: a dirt ring round the paddock
+      b.box(x - 14, y, z - 11, x + 14, y, z + 11, (X, _Y, Z) => (Math.abs(X - x) >= 10 || Math.abs(Z - z) >= 7 ? B.DIRT : null));
+      // the paddock fence, with a gate on the south side
+      for (let X = x - 9; X <= x + 9; X++) for (const Z of [z - 6, z + 6]) if (!(Z === z + 6 && Math.abs(X - x) <= 1)) b.stamp(X, y + 1, Z, (X - x) % 3 === 0 ? B.OAK_LOG : B.PLANKS);
+      for (let Z = z - 6; Z <= z + 6; Z++) for (const X of [x - 9, x + 9]) b.stamp(X, y + 1, Z, (Z - z) % 3 === 0 ? B.OAK_LOG : B.PLANKS);
+      // a water trough and hay in the paddock
+      b.box(x + 4, y + 1, z - 3, x + 6, y + 1, z - 3, B.WATER); b.box(x + 3, y + 1, z - 4, x + 7, y + 1, z - 4, B.PLANKS); b.box(x + 3, y + 1, z - 2, x + 7, y + 1, z - 2, B.PLANKS);
+      b.stamp(x + 3, y + 1, z - 3, B.PLANKS); b.stamp(x + 7, y + 1, z - 3, B.PLANKS);
+      b.box(x - 6, y + 1, z - 4, x - 5, y + 2, z - 3, B.SANDSTONE);
+      // the red barn to the north, door facing the track
+      b.box(x - 6, y + 1, z - 17, x + 6, y + 5, z - 13, (X, Y, Z) => {
+        const wall = X === x - 6 || X === x + 6 || Z === z - 17 || Z === z - 13;
+        if (!wall) return B.AIR;
+        if (Z === z - 13 && Math.abs(X - x) <= 1 && Y <= y + 3) return B.AIR;
+        return Y === y + 5 ? B.WOOL_WHITE : B.WOOL_RED;
+      });
+      b.box(x - 7, y + 6, z - 18, x + 7, y + 6, z - 12, B.PLANKS);
+      b.box(x - 5, y + 7, z - 17, x + 5, y + 7, z - 13, B.PLANKS);
+      b.stamp(x - 7, y + 1, z + 3, B.CHEST);
+      for (const [lx, lz] of [[x - 15, z + 12], [x + 15, z + 12], [x - 15, z - 12], [x + 15, z - 12]]) { b.box(lx, y + 1, lz, lx, y + 3, lz, B.OAK_LOG); b.stamp(lx, y + 4, lz, B.LANTERN); }
+      return { y: y + 1, at: { paddock: [x + 0.5, y + 1, z + 0.5], track: [x + 0.5, y + 1, z + 0.5], gate: [x + 0.5, y + 1, z + 8.5], entry: [x + 0.5, y + 1, z + 9.5] } };
+    },
+  },
+  {
+    // an ice rink in the snow, with a ticket booth that rents and sells skates
+    id: 'ice_rink', icon: '⛸️', name: ['Arena Seluncur Es', 'The Ice Rink'], biomes: [Biome.SNOWY], relaxed: [Biome.SNOWY, Biome.MOUNTAIN, Biome.FOREST, Biome.MEADOW], dist: [70, 320], r: 14, loose: true, clear: 12,
+    ok: c => c.h > SEA && c.h < SEA + 18,
+    hint: ['Di tempat bersalju ada arena seluncur es dengan loket tiket. Sewa sepatu es dan meluncurlah!', 'In the snow there’s an ice rink with a ticket booth. Rent some skates and glide!'],
+    fact: ['Di loket 🎟️ kamu bisa menyewa sepatu es (10 koin) atau membelinya (60 koin). Meluncur di es itu licin — dorong pelan-pelan, lalu meluncur. Kumpulkan kepingan salju ❄️! Subhanallah, air bisa membeku jadi es yang keras.', 'At the 🎟️ booth you can rent skates (10 coins) or buy them (60 coins). Ice is slippery — push gently, then glide. Collect the snowflakes ❄️! Subhanallah, water can freeze into hard ice.'],
+    loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 3], [I.APPLE, 2]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      foundation(b, x - 12, z - 10, x + 12, z + 12, y, B.DIRT);
+      b.box(x - 12, y, z - 10, x + 12, y, z + 12, B.SNOW_GRASS);
+      b.box(x - 12, y + 1, z - 10, x + 12, y + 9, z + 12, B.AIR);
+      // the ice, and low boards round it with a gap by the booth
+      b.box(x - 9, y, z - 7, x + 9, y, z + 6, B.ICE);
+      b.box(x - 10, y + 1, z - 8, x + 10, y + 1, z + 7, (X, _Y, Z) => {
+        const edge = X === x - 10 || X === x + 10 || Z === z - 8 || Z === z + 7;
+        if (!edge || (Z === z + 7 && Math.abs(X - x) <= 1)) return null;
+        return (X + Z) % 2 === 0 ? B.WOOL_WHITE : B.WOOL_BLUE;
+      });
+      // the ticket booth: a little hut with a window
+      b.box(x - 3, y + 1, z + 9, x + 3, y + 3, z + 11, (X, Y, Z) => {
+        const wall = X === x - 3 || X === x + 3 || Z === z + 9 || Z === z + 11;
+        if (!wall) return B.AIR;
+        if (Z === z + 9 && Y === y + 2 && Math.abs(X - x) <= 1) return B.GLASS;
+        return B.PLANKS;
+      });
+      b.box(x - 4, y + 4, z + 8, x + 4, y + 4, z + 12, B.WOOL_RED);
+      b.box(x - 1, y + 1, z + 8, x + 1, y + 1, z + 8, B.PLANKS);
+      b.stamp(x + 5, y + 1, z + 10, B.CHEST);
+      for (const [lx, lz] of [[x - 11, z - 9], [x + 11, z - 9], [x - 11, z + 8], [x + 11, z + 8]]) { b.box(lx, y + 1, lz, lx, y + 4, lz, B.PINE_LOG); b.stamp(lx, y + 5, lz, B.LANTERN); }
+      return { y: y + 1, at: { rink: [x + 0.5, y + 1, z - 0.5], booth: [x + 0.5, y + 1, z + 7.3], entry: [x + 0.5, y + 1, z + 7.5] } };
+    },
+  },
 ];
 
 export const landmarkIds = () => SPECS().filter(s => !s.ghost).map(s => s.id);

@@ -330,6 +330,7 @@ export class Tennis {
       text += `<br>🎾 ${tr('Reli terpanjang', 'Longest rally')}: ${g.stats.tennisRally ?? 0}`;
     }
     g.addCoins(coins, from => g.ui.coinPop(coins, from));
+    g.goodWord(this.mode === 'match' && this.me < this.mo ? 'other_won' : 'finished', true);
     SFX.fanfare(); g.ui.confetti(30 + this.good * 3); g.ents.mo.celebrate = 2;
     const mode = this.mode;
     g.ui.dialog({

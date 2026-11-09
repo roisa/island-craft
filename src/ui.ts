@@ -75,6 +75,9 @@ export class UI {
   <div id="raceMath" class="hidden"></div>
   <div id="phraseCard" class="pill hidden"><img src="img/baby-mo-idea.webp" alt=""><div><small class="pt"></small><b class="pe"></b><small class="pid"></small></div><button class="say" id="phSay" aria-label="Listen">${ic('speaker')}</button><button class="btn small gold" id="phSaid">⭐ <span></span></button><button class="phx" id="phX" aria-label="Close">✕</button></div>
   <div id="wordCard" class="pill hidden"><span class="wi"></span><div><b class="we"></b><small class="wid"></small></div><button class="say" id="wordSay" aria-label="Listen">${ic('speaker')}</button></div>
+  <div id="actHud" class="pill hidden"><span id="actT"></span><button class="btn small ghost" id="actX">${tr('Keluar', 'Exit')}</button></div>
+  <div id="meter" class="hidden"><div class="mz"></div><div class="mk"></div><small id="meterL"></small></div>
+  <div id="dzikir" class="pill hidden"><b class="dar" lang="ar" dir="rtl"></b><div><b class="dsay"></b><small class="dmean"></small></div></div>
   <div id="tennisHud" class="pill hidden"><span id="tennisT"></span><button class="btn small ghost" id="tennisX">${tr('Keluar', 'Exit')}</button></div>
   <div id="bedHud" class="pill hidden"><span id="bedT"></span><button class="btn small gold" id="bedNow">😴 ${tr('Tidur sekarang', 'Sleep now')}</button></div>
   <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
@@ -94,7 +97,7 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
-  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bTennis" aria-label="${tr('Main tenis', 'Play tennis')}"><span class="mi">🎾</span><span>${tr('Main tenis', 'Play tennis')}</span></button><button class="pill hidden" id="bRace" aria-label="${tr('Balapan', 'Race')}"><span class="mi">🏁</span><span>${tr('Balapan!', 'Race!')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
+  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bTennis" aria-label="${tr('Main tenis', 'Play tennis')}"><span class="mi">🎾</span><span>${tr('Main tenis', 'Play tennis')}</span></button><button class="pill hidden" id="bRaceSoon" aria-label="Big race"><span class="mi">🏁</span><span class="pl"></span></button><button class="pill hidden" id="bPlay" aria-label="Play"><span class="mi"></span><span class="pl"></span></button><button class="pill hidden" id="bRace" aria-label="${tr('Balapan', 'Race')}"><span class="mi">🏁</span><span>${tr('Balapan!', 'Race!')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
   <button class="pill hidden" id="bStroke" aria-label="Swimming stroke">${ic('swim')}<span class="sn"></span><span class="si"></span></button>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
@@ -357,6 +360,52 @@ export class UI {
     el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
     clearTimeout(this.wordT); this.wordT = window.setTimeout(() => el.classList.add('hidden'), 4200);
   }
+  /** the button for the place you're at (🏹 archery, 🏀 basketball, 🐴 riding, ⛸️ skating…); null hides it */
+  private playKey = '';
+  showPlay(b: { icon: string; label: string; fn: () => void } | null) {
+    const el = $('#bPlay'), key = b ? b.icon + b.label : '';
+    if (key === this.playKey) return;
+    this.playKey = key;
+    if (!b) { el.classList.add('hidden'); return; }
+    el.querySelector('.mi')!.textContent = b.icon; el.querySelector('.pl')!.textContent = b.label;
+    (el as HTMLElement).onclick = () => { SFX.click(); b.fn(); };
+    el.classList.remove('hidden');
+  }
+  /** the big race is coming: a button to go and join it (it never stops the game); null hides it */
+  raceSoon(label: string | null, fn?: () => void) {
+    const el = $('#bRaceSoon');
+    if (!label) { el.classList.add('hidden'); return; }
+    el.querySelector('.pl')!.textContent = label;
+    (el as HTMLElement).onclick = () => { SFX.click(); el.classList.add('hidden'); fn?.(); };
+    el.classList.remove('hidden');
+  }
+  /** the bar at the top while playing (score, tries) with an Exit button; null hides it */
+  private actShown = '';
+  actHud(txt: string | null, exit?: () => void) {
+    const el = $('#actHud');
+    if (!txt) { el.classList.add('hidden'); this.actShown = ''; return; }
+    if (txt !== this.actShown) { this.actShown = txt; $('#actT').innerHTML = txt; }
+    if (exit) ($('#actX') as HTMLElement).onclick = () => { SFX.click(); exit(); };
+    el.classList.remove('hidden');
+  }
+  /** a timing bar: the marker moves; tap when it's in the green part. null hides it */
+  meter(m: { pos: number; zone: [number, number]; label?: string } | null) {
+    const el = $('#meter');
+    if (!m) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    const z = el.querySelector<HTMLElement>('.mz')!, k = el.querySelector<HTMLElement>('.mk')!;
+    z.style.left = (m.zone[0] * 100).toFixed(1) + '%'; z.style.width = ((m.zone[1] - m.zone[0]) * 100).toFixed(1) + '%';
+    k.style.left = (m.pos * 100).toFixed(1) + '%';
+    $('#meterL').textContent = m.label ?? '';
+  }
+  /** a good word for the moment (Alhamdulillah, Masya Allah…) with what it means */
+  dzikir(ar: string, say: string, mean: string) {
+    const el = $('#dzikir');
+    el.querySelector('.dar')!.textContent = ar; el.querySelector('.dsay')!.textContent = say; el.querySelector('.dmean')!.textContent = mean;
+    el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
+    clearTimeout(this.dzT); this.dzT = window.setTimeout(() => el.classList.add('hidden'), 3800);
+  }
+  private dzT = 0;
   /** the 🎾 button at the tennis court */
   showTennis(on: boolean) { const b = $('#bTennis'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
   private tennisShown = '';
@@ -381,7 +430,7 @@ export class UI {
   raceHud(r: { lap: number; laps: number; place: number; of: number; time: number; coins?: number } | null) {
     const el = $('#raceHud');
     if (!r) { el.classList.add('hidden'); $('#raceMath').classList.add('hidden'); this.raceShown = ''; return; }
-    const nth = getLang() === 'id' ? `ke-${r.place}` : ['1st', '2nd', '3rd', '4th'][r.place - 1];
+    const nth = getLang() === 'id' ? `ke-${r.place}` : ['1st', '2nd', '3rd', '4th', '5th', '6th'][r.place - 1];
     const txt = `🏁 ${tr('Putaran', 'Lap')} ${r.lap}/${r.laps} · <b>${nth}</b> / ${r.of} · 🪙 ${r.coins ?? 0} · ⏱️ ${r.time.toFixed(1)}`;
     if (txt !== this.raceShown) { this.raceShown = txt; $('#raceT').innerHTML = txt; }
     el.classList.remove('hidden');

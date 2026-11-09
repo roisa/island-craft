@@ -328,3 +328,20 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 #phraseCard .phx { background: none; border: 0; font-size: 16px; opacity: .55; padding: 4px; cursor: pointer; }
 @media (max-width: 560px), (max-height: 520px) { #phraseCard img { display: none; } #phraseCard .pe { font-size: 17px; } #phraseCard .btn span { display: none; } }
 @media (max-height: 520px) { #phraseCard { bottom: calc(62px + var(--safe-b)); } }
+/* the bar while playing at a place (archery, basketball, riding, skating) */
+#actHud { position: fixed; left: 50%; top: calc(64px + var(--safe-t)); transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; font-size: 16px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#actHud .btn { margin: 0; }
+@media (max-width: 520px) { #actHud { font-size: 13px; } }
+/* the timing bar: tap when the marker is in the green */
+#meter { position: fixed; left: 50%; bottom: calc(100px + var(--safe-b)); transform: translateX(-50%); z-index: 7; width: min(420px, 70vw); height: 26px; border-radius: 13px; background: rgba(255, 255, 255, .85); box-shadow: 0 4px 14px rgba(0, 0, 0, .2); pointer-events: none; }
+#meter .mz { position: absolute; top: 3px; bottom: 3px; border-radius: 10px; background: #5ccf6a; }
+#meter .mk { position: absolute; top: -6px; width: 8px; margin-left: -4px; height: 38px; border-radius: 4px; background: #e4423a; box-shadow: 0 0 0 2px #fff; }
+#meter small { position: absolute; left: 0; right: 0; top: -24px; text-align: center; font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+@media (max-height: 520px) { #meter { bottom: calc(66px + var(--safe-b)); } }
+/* a good word for the moment */
+#dzikir { position: fixed; left: 50%; top: calc(150px + var(--safe-t)); transform: translateX(-50%); z-index: 8; display: flex; align-items: center; gap: 10px; padding: 6px 14px; border: 3px solid #2aa198; pointer-events: none; white-space: nowrap; }
+#dzikir.pop { animation: tutpop .4s ease-out; }
+#dzikir .dar { font-family: var(--ar); font-size: 26px; color: #1b6e66; }
+#dzikir .dsay { display: block; font-size: 18px; color: #1b6e66; }
+#dzikir small { display: block; font-size: 12px; opacity: .75; font-weight: 700; }
+@media (max-height: 520px) { #dzikir { top: calc(100px + var(--safe-t)); } #dzikir .dar { font-size: 20px; } #dzikir .dsay { font-size: 15px; } }

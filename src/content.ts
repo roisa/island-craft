@@ -75,6 +75,16 @@ export interface Stats {
   /** tennis matches with Baby Mo: played, won, and the longest rally */
   tennis?: number; tennisWins?: number; tennisRally?: number;
   /** fruit picked in the orchard, growing back: [x, y, z, block, when] */
+  /** archery: the highest level open (1–6, 6 = all passed) and the best score of each; rounds played; the champion's trophy */
+  archery?: { lv: number; best: number[] }; archeryRounds?: number; archeryChampion?: boolean;
+  /** ice skates: your own ('own') or rented for this game day (the day number); days skated; snowflake sets collected */
+  skates?: 'own' | number; skateDays?: number; flakeSets?: number;
+  /** horse rides, and clear rounds (no pole knocked) */
+  horseRides?: number; clearRounds?: number;
+  /** basketball games and best score; penalty games and goals */
+  basketGames?: number; basketBest?: number; soccerGames?: number; soccerGoals?: number;
+  /** big races (at set times, with villagers watching) you took part in */
+  grandRaces?: number;
   /** Baby Mo showed where the go-karts wait */
   raceHint?: number;
   fruitPicked?: [number, number, number, number, number][];

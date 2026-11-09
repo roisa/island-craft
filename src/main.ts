@@ -56,7 +56,13 @@ import { FishCoach } from './game/fishcoach';
 import { Fishers } from './game/fishers';
 import { Race } from './game/race';
 import { Tennis } from './game/tennis';
+import { Archery } from './game/archery';
+import { Basketball, Soccer } from './game/sports';
+import { HorseFarm } from './game/horses';
+import { IceRink } from './game/skating';
 import { applyStroke } from './game/tennispose';
+import type { Activity } from './game/activity';
+import { DZIKIR, MOMENTS, canSay } from './game/phrases';
 import { English } from './game/english';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
@@ -186,6 +192,26 @@ export class Game {
   race: Race | null = null;
   /** tennis with Baby Mo at the tennis court */
   tennis: Tennis | null = null;
+  /** places to play at: archery, basketball & football, the horse course, the ice rink */
+  activities: Activity[] = [];
+  /** the activity going on now, if any */
+  get playing() { return this.activities.find(a => a.active) ?? null; }
+  private dzAt = -1e9; private dzLast: Record<string, number> = {};
+  /**
+   * A good word for the moment, the way a Muslim family says it: Alhamdulillah when something good
+   * happens, Subhanallah at something beautiful, Masya Allah for something well done, Astaghfirullah
+   * after a mistake, Bismillah to begin, Insya Allah for next time. Shown and said, not too often.
+   */
+  goodWord(what: string, force = false) {
+    const m = MOMENTS[what]; if (!m) return false;
+    const now = performance.now();
+    if (!force && !canSay(now, this.dzAt, this.dzLast[m])) return false;
+    this.dzAt = now; this.dzLast[m] = now;
+    const d = DZIKIR[m];
+    this.ui.dzikir(d.ar, d.say + '!', t2(d.mean));
+    if (this.settings.moVoice) Speech.talk(d.say, 'id', false, 0);
+    return true;
+  }
   /** English word cards: praise, animals, fruits */
   english!: English;
   private attackCd = 0;
@@ -383,6 +409,14 @@ export class Game {
     if (rt?.at?.centre) this.race = new Race(this, rt);
     const tc = this.gen.landmarks.find(l => l.id === 'tennis');
     if (tc?.at?.centre) this.tennis = new Tennis(this, tc);
+    const ar = this.gen.landmarks.find(l => l.id === 'archery');
+    if (ar?.at?.shoot) this.activities.push(new Archery(this, ar));
+    const sp = this.gen.landmarks.find(l => l.id === 'sports');
+    if (sp?.at?.hoop) this.activities.push(new Basketball(this, sp), new Soccer(this, sp));
+    const hf = this.gen.landmarks.find(l => l.id === 'horse_farm');
+    if (hf?.at?.track) this.activities.push(new HorseFarm(this, hf));
+    const ir = this.gen.landmarks.find(l => l.id === 'ice_rink');
+    if (ir?.at?.rink) this.activities.push(new IceRink(this, ir));
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -649,7 +683,7 @@ export class Game {
     if (Math.random() < 0.15) this.fx.sparkle(f.x, f.y + 1.2, f.z, 1, 0x9a9a9a, 0.5);
   }
   /** the fun places you can go to straight away from the map (the ones that exist in this world) */
-  funPlaces() { return ['fish_pond', 'race_track', 'camp', 'tennis', 'orchard'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
+  funPlaces() { return ['fish_pond', 'race_track', 'camp', 'tennis', 'orchard', 'archery', 'sports', 'horse_farm', 'ice_rink'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
   /** quick travel to a place's entry point, with Baby Mo */
   goPlace(id: string) {
     if (id === 'fish_pond') return this.goToPond();
@@ -855,7 +889,7 @@ export class Game {
   /** busy play (walking, digging, swimming) makes you thirsty faster */
   private thirstTick(dt: number) {
     const p = this.player, busy = p.speed > 1 || !!this.mining || p.inWater || this.mineAnim > 0;
-    this.thirst.update(dt, busy && !this.fun.riding && !this.race?.active && !this.tennis?.active);
+    this.thirst.update(dt, busy && !this.fun.riding && !this.race?.active && !this.tennis?.active && !this.playing);
     p.thirstMul = thirstSpeed(this.thirst.h.me);
     this.ui.thirstHud(this.thirst.h);
   }
@@ -888,6 +922,10 @@ export class Game {
     this.ui.showRace(!!this.race?.near(p.pos) && !this.race.active && !this.fun.riding);
     this.race?.idle(p.pos);
     this.ui.showTennis(!!this.tennis?.near(p.pos) && !this.tennis.active && !this.fun.riding && !this.race?.active);
+    // the button of the place you're at (archery, basketball, horses, ice rink)
+    const free = !this.playing && !this.fun.riding && !this.race?.active && !this.tennis?.active;
+    const here = free ? this.activities.find(a => a.near(p.pos)) : undefined;
+    if (here) { const [icon, label] = here.button(); this.ui.showPlay({ icon, label, fn: () => here.open() }); } else this.ui.showPlay(null);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
   }
   private fishTick(dt: number, t: number) {
@@ -904,6 +942,7 @@ export class Game {
     const loot: [number, number] = kind === 'golden' ? [I.GOLDEN_FISH, 1] : kind === 'big' ? [I.BIG_FISH, 1] : kind === 'treasure' ? (Math.random() < 0.5 ? [I.CRYSTAL, 2] : [I.GOLD_INGOT, 1]) : [I.SMALL_FISH, 1];
     this.inv.add(loot[0], loot[1]); this.collectFx(loot[0], loot[1], at.clone().setY(at.y + 0.3));
     this.stats.fish = (this.stats.fish || 0) + 1;
+    this.goodWord('caught_fish');
     this.addXp('fishing', kind === 'golden' ? 8 : kind === 'big' ? 3 : 2);
     this.anim.play('collect');
     SFX.splash(); SFX.pickup();
@@ -1049,6 +1088,8 @@ export class Game {
     this.fishCoach?.update(dt);
     this.fishers?.update(dt, t);
     this.english?.update(dt);
+    this.race?.tick(dt, this.hour);
+    for (const a of this.activities) a.idle?.(dt, t);
     this.campfireTick(dt);
     if (this.ambient) {
       this.ambient.enabled = !this.settings.lowGfx;
@@ -1107,7 +1148,9 @@ export class Game {
     if (this.race?.active) { inp.tapAt = null; if (inp.takeUse()) this.race.quit(); }
     // tennis: ✋ or a tap anywhere on the world swings the racket
     if (this.tennis?.active) { const tap = !!inp.tapAt; inp.tapAt = null; if (inp.takeUse() || tap) this.tennis.swing(); }
-    if (!this.race?.step(dt) && !this.tennis?.step(dt) && !this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
+    const act = this.playing;
+    if (act) { const tap = !!inp.tapAt; inp.tapAt = null; if (inp.takeUse() || tap) act.tap(); }
+    if (!this.race?.step(dt) && !this.tennis?.step(dt) && !act?.step(dt, performance.now() / 1000) && !this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
     this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }
 
@@ -1676,6 +1719,7 @@ export class Game {
       this.stats.sahur++; this.kid.reward('sahur');
       this.ui.toast(tr('🍚 Sahur yang berkah! Bismillah', '🍚 A blessed suhoor! Bismillah'));
     } else this.ui.toast(tr(`😋 Bismillah… ${t2(nameOf(held.id))} enak! Alhamdulillah`, `😋 Bismillah… yummy ${t2(nameOf(held.id))}! Alhamdulillah`));
+    this.goodWord('ate');
     this.checkQuests();
   }
 
@@ -1954,6 +1998,7 @@ export class Game {
     for (const l of this.gen.landmarks) {
       if (found.includes(l.id) || Math.hypot(l.x - p.x, l.z - p.z) > l.r || Math.abs(l.y - p.y) > 14) continue;
       found.push(l.id);
+      setTimeout(() => this.goodWord(l.id === 'volcano' ? 'volcano' : 'landmark'), 1500);
       if (this.exploreTarget === l.id) this.exploreTarget = null;
       this.kid.reward('biome', 3);
       SFX.fanfare(); haptic([15, 40, 15]);
@@ -2054,8 +2099,13 @@ export class Game {
   }
 
   // ---------- camera & avatar ----------
+  private baseFov = 0;
   private updateCamera() {
     const p = this.player, eye = p.eye(), dir = p.look();
+    // a place you're playing at can point the camera (and zoom); afterwards the zoom goes back
+    if (!this.baseFov) this.baseFov = this.camera.fov;
+    if (this.playing?.camera?.(this.camera)) return;
+    if (this.camera.fov !== this.baseFov) { this.camera.fov = this.baseFov; this.camera.updateProjectionMatrix(); }
     document.body.classList.toggle('praying-together', this.prayingTogether);
     if (this.prayingTogether && this.prayingPose) {
       // praying together: look at you and Baby Mo from just behind the row, a little above
@@ -2117,6 +2167,7 @@ export class Game {
     // tennis: forehand, backhand, serve (and the ready stance between shots), for you and Baby Mo
     const tp = this.tennis?.pose; if (tp) applyStroke(a, tp.kind, tp.u);
     const mp = this.tennis?.moPose; if (mp) applyStroke(this.ents.mo.rig, mp.kind, mp.u);
+    const act = this.playing; if (act) { act.pose?.(a, t); act.moPose?.(this.ents.mo.rig, t); }
   }
 
   /** item in hand: on the avatar's right hand, and in front of the camera in first person */

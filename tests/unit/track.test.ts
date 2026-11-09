@@ -63,3 +63,20 @@ describe('the big circuit: coins to add up and boost pads', () => {
     expect(onBoost(LAP * 0.25, 0)).toBe(false);
   });
 });
+
+import { raceSoon, crowdTime, RACE_TIMES, PRIZE } from '../../src/game/race';
+describe('the big races at set times', () => {
+  it('tells you a quarter of an hour before each big race, once', () => {
+    expect(RACE_TIMES.length).toBeGreaterThanOrEqual(2);
+    expect(raceSoon(9.7, 9.76)).toBe(10);
+    expect(raceSoon(9.76, 9.8)).toBeNull();
+    expect(raceSoon(15.7, 15.8)).toBe(16);
+    expect(raceSoon(12, 12.1)).toBeNull();
+  });
+  it('the villagers come to watch around race time', () => {
+    expect(crowdTime(9.6)).toBe(true);
+    expect(crowdTime(11)).toBe(true);
+    expect(crowdTime(13)).toBe(false);
+  });
+  it('has prizes for six racers', () => { expect(PRIZE.length).toBeGreaterThanOrEqual(6); });
+});

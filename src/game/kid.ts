@@ -110,6 +110,7 @@ export class Kid {
     const gifts: [number, number][] = [[B.LANTERN, 2], [B.GOLD_TILE, 4 + lv], [B.MOSAIC, 4 + lv]];
     for (const [id, k] of gifts) this.g.inv.add(id, k);
     this.g.onLevelUp?.(lv);
+    this.g.goodWord('level', true);
     this.g.ui.levelUp(lv, titleOf(lv), gifts);
   }
 

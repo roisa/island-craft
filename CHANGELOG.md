@@ -5,6 +5,84 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Archery, the big race, basketball & penalties, a horse farm, an ice rink, and good words 🏹🏁🏀⚽🐴⛸️🤲
+
+Requested by a parent: an archery range with levels and rewards and easy
+sums; races at set times with villagers watching and more racers; a
+basketball court and mini football; a horse farm with a riding course; an
+ice rink where you rent or buy skates; and the good words of Islam said at
+the right moments.
+
+- **Places to play** (new `src/game/activity.ts`): each new place shows its
+  own button when you're there (🏹, 🏀, ⚽, 🐴, ⛸️/🎟️), a bar at the top
+  with the score and Exit, and can point the camera and pose you and Baby
+  Mo. All are in the map’s fun places. (New landmarks, added last, so no
+  world’s places move.)
+- **The archery range** (`archery.ts`): a long lane with distance flags.
+  - A little red circle (your aim) wanders over the target; tap ✋ when
+    it’s over the middle. The camera looks over your shoulder, zoomed in.
+  - Rings score 10, 20, 50 and 100 (with the numbers painted on), added
+    up out loud: “50 + 20 = 70”.
+  - 5 levels, 5 arrows each: closer and big → further and smaller →
+    faster → a moving target → wind. Pass a level to win a new arrow:
+    big, golden (sparkles), rainbow, star; then the Archery Champion
+    trophy. Better arrows land a little nearer the middle.
+  - Every 10 points is 1 coin, shown as a sum (“250 ÷ 10 = 25”).
+- **The big race** (`race.ts`): at 10:00 and 16:00 (game time), a quarter
+  of an hour before, Baby Mo tells you and a 🏁 “Race at 10:00 — join!”
+  button appears: it takes you there and starts it. It never stops the
+  game (an early pop-up version could block a prayer gathering, which the
+  layout checks caught), and goes away once the time has passed. Villagers fill the grandstand around race time and cheer while you
+  race. Six karts now (two more racers: Pak Budi and Kak Sari), and the
+  big race pays double.
+- **The sports park** (`sports.ts`): a basketball court (wooden floor,
+  red key, three-point arc, a hoop with a net on a glass backboard) and a
+  mini football pitch with a goal and penalty spot.
+  - **Basketball**: 5 shots from 5 spots, closer to further. Tap when the
+    marker on the bar is in the green (it gets narrower further out); in
+    = 2 points, 3 from outside the arc, added up out loud. Off the rim,
+    short or long otherwise. Baby Mo passes the ball back.
+  - **Penalties**: 5 kicks with Baby Mo in goal. Your aim slides across
+    the goal; tap to kick. Baby Mo dives one way — score where he isn’t!
+    Each goal is 10 coins (10 + 10 + 10 = 30).
+  - Shooting and kicking motions (both arms up; the kicking leg swings
+    through), and Baby Mo dives.
+- **The horse farm** (`horses.ts`): a red barn, a paddock where three
+  horses graze and wander (brown, white, black), a water trough, and a
+  riding track round it. Walk up to a horse and tap 🐴 Ride: two laps
+  following Baby Mo on his pony; tap ✋ just before each of the 6 jumps to
+  leap over. Clear, or the pole falls. 5 coins a clear jump, +30 for a
+  clear round. You sit astride with the reins; the camera follows.
+- **The ice rink** (`skating.ts`), in a snowy place: ice inside blue and
+  white boards, and a ticket booth. Rent skates for today (10 coins) or
+  buy your own (60), with the sum shown (“150 − 10 = 140”). Ice is
+  slippery: push and glide, bounce off the boards, jump to spin. Collect
+  the 8 snowflakes for 20 coins. Baby Mo skates circles; both of you
+  skate with a pushing stride and swinging arms.
+- **Good words for the moment** (`phrases.ts`): a small pill shows the
+  word in Arabic and Latin with what it means, and Baby Mo says it (never
+  more than one every few seconds):
+  - **Alhamdulillah** after eating, catching a fish, a gift, finishing,
+    winning; **Subhanallah** on finding a beautiful place, all the
+    snowflakes; **Masya Allah** for a bullseye, a basket, a goal, a clear
+    jump, levelling up, when someone else wins; **Astaghfirullah** after
+    bumping the kart into the wall or knocking a pole; **Bismillah** when
+    a race, a ride or a game begins; **Insya Allah** after a miss (next
+    time!); **Allahu Akbar** at the volcano and for a clear round.
+- Tested:
+  - Unit tests: archery rings, levels, wind and better arrows, sums;
+    basketball green zone and results; penalty results and aim; the horse
+    course (a smooth closed lap, jumps on the straights, jump height);
+    skating glide and the boards; the big race times and the crowd; the
+    good words for each moment and how often; every world has the four
+    new places built.
+  - Looked at in the game: each place, aiming and shooting, a basket and a
+    goal, the ride with jumps, skating, the race notice and the crowd.
+  - Smoke test on all four devices: an arrow scores and is added up (and
+    Bismillah shows); the race notice and the crowd; a basket and a kick;
+    finding a horse and clearing a jump; renting skates (with the sum),
+    gliding and collecting a snowflake. The race tests now expect 6 karts.
+
 ### A real tennis court: drill, serve practice and a game 🎾
 
 Requested by a parent: a tennis court like a real one with the correct

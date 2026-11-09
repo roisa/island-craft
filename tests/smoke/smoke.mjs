@@ -404,7 +404,7 @@ async function run(name) {
       await g(() => document.querySelector('#raceX').click());
       const after = await g(() => ({ active: __game.race.active, karts: __game.race.karts.length, moSeat: !!__game.ents.mo.seat, hud: document.querySelector('#raceHud').classList.contains('hidden') }));
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
-      if (mid.karts !== 4 || !mid.moSeat || !/Lap|Putaran/.test(mid.hud) || after.active || after.karts || after.moSeat || !after.hud) throw new Error(JSON.stringify({ mid, after }));
+      if (mid.karts !== 6 || !mid.moSeat || !/Lap|Putaran/.test(mid.hud) || after.active || after.karts || after.moSeat || !after.hud) throw new Error(JSON.stringify({ mid, after }));
       return { mid, after };
     });
     await step('waterfall camp: go there from the map, the campfire grills like a furnace, a stream to fish in', async () => {
@@ -432,12 +432,12 @@ async function run(name) {
       if (!ok) throw new Error('no race track in this world');
       await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x, k.y + 0.5, k.z - 8); G.player.vel.set(0, 0, 0); });
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
-      await p.waitForFunction(() => __game.race.parked.length === 4, null, { timeout: 10000, polling: 200 });
+      await p.waitForFunction(() => __game.race.parked.length === 6, null, { timeout: 10000, polling: 200 });
       await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x + 0.3, k.y + 0.3, k.z); G.player.vel.set(0, 0, 0); });
       await p.waitForFunction(() => __game.race.active || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 });
       const r = await g(() => ({ active: __game.race.active, parked: __game.race.parked.length, karts: __game.race.karts.length }));
       await g(() => { const G = __game; G.race.quit(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
-      if (!r.active || r.parked !== 0 || r.karts !== 4) throw new Error(JSON.stringify(r));
+      if (!r.active || r.parked !== 0 || r.karts !== 6) throw new Error(JSON.stringify(r));
       return r;
     });
     await step('tennis: real court; menu; a drill shot, a serve into the box, and a game that can be left', async () => {
@@ -450,8 +450,9 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       await p.waitForFunction(() => !document.querySelector('#bTennis').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 300 });
       // the 🎾 button asks what to play
-      await g(() => document.querySelector('#bTennis').click());
-      await p.waitForFunction(() => document.querySelectorAll('.veil.on #dbtns button').length >= 3, null, { timeout: 10000 });
+      await g(() => { __game.ui.closeAllModals(); document.querySelector('#bTennis').click(); });
+      // the menu waits in line behind any pop-up still queued (a place just discovered nearby…): clear them until it shows
+      await p.waitForFunction(() => document.querySelectorAll('.veil.on #dbtns button').length >= 3 && /tenis|tennis/i.test(document.querySelector('.veil.on .dialog')?.textContent || '') || (__game.ui.modals.filter(m => !/tenis|tennis/i.test(m.veil.textContent || '')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 });
       const menu = await g(() => document.querySelectorAll('.veil.on #dbtns button').length);
       // drill: Baby Mo feeds, you hit it back in time
       await g(() => document.querySelector('.veil.on #dbtns button').click());
@@ -526,6 +527,80 @@ async function run(name) {
       if (r.colour !== 'Blue' || r.count !== 'Four eggs!' || wudu.tag !== 'Face' || !wudu.hands || said.coins < 10 || !said.day || said.blocking || !said.hidden || !chat.fine || !chat.back) throw new Error(JSON.stringify({ r, wudu, said, chat }));
       return { ...r, wudu, said, chat };
     });
+    // the places to play: go there from the map, the place's button shows, and one go works
+    const goTo = async (id) => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.closeBook?.(); });
+      await g(id => __game.goPlace(id), id);
+      await p.waitForTimeout(900);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+    };
+    const act = (id) => `__game.activities.find(a => a.id === '${id}')`;
+    await step('archery: aim, shoot into the target, the points are added up; a good word shows', async () => {
+      await goTo('archery');
+      await p.waitForFunction(() => !document.querySelector('#bPlay').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 }).catch(async e => { throw new Error('no 🏹 button: ' + await g(() => { const G = __game, P = G.player.pos, A = G.activities.find(a => a.id === 'archery'); return JSON.stringify({ pos: [P.x, P.y, P.z].map(v => v.toFixed(1)), near: A?.near(P), lane: A?.lane, playing: G.playing?.id, riding: !!G.fun.riding, race: G.race?.active, tennis: G.tennis?.active, paused: G.paused }); })); });
+      const btn = await g(() => document.querySelector('#bPlay').textContent);
+      await g(() => { __game.ui.closeAllModals(); __game.activities.find(a => a.id === 'archery').start(0); });
+      const word = await g(() => document.querySelector('#dzikir .dsay')?.textContent);
+      // shoot when the aim is near the middle
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); const A = __game.activities.find(a => a.id === 'archery'); if (A.state !== 'aim') return false; const lv = { sway: 0.5, speed: 1.0 }, x = lv.sway * Math.sin(A.t * lv.speed * 1.7), y = lv.sway * 0.75 * Math.sin(A.t * lv.speed * 2.3 + 0.6); if (Math.hypot(x, y) < 0.3) { A.tap(); return true; } return false; }, null, { timeout: 30000, polling: 16 });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'archery').state !== 'fly'), null, { timeout: 15000 });
+      const r = await g(() => { const A = __game.activities.find(a => a.id === 'archery'); const out = { points: A.points, shot: A.shot, math: document.querySelector('#raceMath').textContent }; A.quit(); return out; });
+      if (!/Archery|Memanah/.test(btn) || word !== 'Bismillah!' || r.shot !== 1 || r.points < 10 || !/🎯/.test(r.math)) throw new Error(JSON.stringify({ btn, word, r }));
+      return { btn, word, ...r };
+    });
+    await step('big race: a 🏁 join button before the set time (nothing stops the game), and villagers on the grandstand', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.hour = 9.7; G.lastHour = 9.7; });
+      await p.waitForFunction(() => !document.querySelector('#bRaceSoon').classList.contains('hidden'), null, { timeout: 30000, polling: 100 });
+      const r = await g(() => ({ btn: document.querySelector('#bRaceSoon').textContent, open: __game.ui.isOpen(), watching: __game.race.watching }));
+      // it goes away by itself once the race time has passed
+      await g(() => { const G = __game; G.hour = 11.5; });
+      await p.waitForFunction(() => document.querySelector('#bRaceSoon').classList.contains('hidden'), null, { timeout: 10000, polling: 100 });
+      if (!/10:00/.test(r.btn) || r.open || r.watching < 8) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('sports park: a basket is added up, and a penalty kick at Baby Mo in goal', async () => {
+      await goTo('sports');
+      await g(() => { __game.ui.closeAllModals(); __game.activities.find(a => a.id === 'basketball').start(); });
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); const A = __game.activities.find(a => a.id === 'basketball'); if (A.state !== 'aim') return false; const k = (A.t * 0.8) % 2, pos = k < 1 ? k : 2 - k; if (pos > A.zone[0] + 0.04 && pos < A.zone[1] - 0.04) { A.tap(); return true; } return false; }, null, { timeout: 30000, polling: 16 });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'basketball').state !== 'fly'), null, { timeout: 15000 });
+      const bb = await g(() => { const A = __game.activities.find(a => a.id === 'basketball'); const o = { points: A.points, shot: A.shot, math: document.querySelector('#raceMath').textContent }; A.quit(); return o; });
+      await g(() => { __game.ui.closeAllModals(); __game.activities.find(a => a.id === 'soccer').start(); });
+      await p.waitForTimeout(300);
+      await g(() => __game.activities.find(a => a.id === 'soccer').tap());
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'soccer').state === 'pause'), null, { timeout: 15000 });
+      const sc = await g(() => { const A = __game.activities.find(a => a.id === 'soccer'); const o = { kick: A.kick, goals: A.goals, math: document.querySelector('#raceMath').textContent }; A.quit(); return o; });
+      if (bb.shot !== 1 || bb.points < 2 || !/🏀/.test(bb.math) || sc.kick !== 1 || !sc.math) throw new Error(JSON.stringify({ bb, sc }));
+      return { bb, sc };
+    });
+    await step('horse farm: find a horse, ride the course, jump a pole', async () => {
+      await goTo('horse_farm');
+      await g(() => { const G = __game, H = G.activities.find(a => a.id === 'horses'), h = H.horses[0]; G.ui.closeAllModals(); G.player.pos.set(h.x + 1.2, h.obj.position.y, h.z + 1.2); });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), /Ride|Tunggang/.test(document.querySelector('#bPlay').textContent) && !document.querySelector('#bPlay').classList.contains('hidden')), null, { timeout: 15000, polling: 200 });
+      await g(() => document.querySelector('#bPlay').click());
+      await p.waitForFunction(() => { const H = __game.activities.find(a => a.id === 'horses'), r = H.ride; __game.ui.closeAllModals(); if (!r) return false; const L = 87.7, lap = ((r.s % 1e9)); for (const hd of H.hurdles) { const per = 4 * 9 + 4 * 6 + 4 * Math.PI / 2 * 3, dd = ((hd.s - (r.s % per)) + per) % per; if (dd > 1.4 && dd < 2.8 && !r.jumpT) H.tap(); } return H.clear + H.knocked >= 2; }, null, { timeout: 60000, polling: 30 });
+      const r = await g(() => { const H = __game.activities.find(a => a.id === 'horses'); const o = { clear: H.clear, knocked: H.knocked, moSeat: !!__game.ents.mo.seat }; H.quit(); return o; });
+      if (r.clear < 1 || !r.moSeat) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('ice rink: rent skates at the booth (the sum shows), glide, and collect a snowflake', async () => {
+      await goTo('ice_rink');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.coins = Math.max(G.stats.coins || 0, 100); G.stats.skates = undefined; });
+      await p.waitForFunction(() => !document.querySelector('#bPlay').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      await g(() => document.querySelector('#bPlay').click());
+      await p.waitForSelector('.veil.on #dbtns button');
+      const sum = await g(() => document.querySelector('.veil.on .dialog').textContent.match(/\d+ − 10 = \d+/)?.[0]);
+      const c0 = await g(() => __game.stats.coins);
+      await g(() => document.querySelector('.veil.on #dbtns button').click());
+      await p.waitForFunction(() => __game.activities.find(a => a.id === 'skating').active || (__game.ui.closeAllModals(), false), null, { timeout: 5000 });
+      // push forward (as if holding W / the joystick up) until you're gliding
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); __game.input.keys.add('KeyW'); const A = __game.activities.find(a => a.id === 'skating'); return Math.hypot(A.v.x, A.v.z) > 1.5; }, null, { timeout: 20000 }).catch(async () => { throw new Error('no glide: ' + await g(() => { const A = __game.activities.find(a => a.id === 'skating'); return JSON.stringify({ v: A.v, active: A.active, ax: __game.input.axis(), paused: __game.paused, open: __game.ui.isOpen() }); })); });
+      await g(() => { __game.input.keys.delete('KeyW'); });
+      await g(() => { const A = __game.activities.find(a => a.id === 'skating'), f = A.flakes.find(f => f.visible).position; A.pos.set(f.x, A.pos.y, f.z); A.v.x = 0; A.v.z = 0; });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'skating').got >= 1), null, { timeout: 10000 });
+      const r = await g(c0 => { const A = __game.activities.find(a => a.id === 'skating'); const o = { paid: c0 - __game.stats.coins, got: A.got, rented: __game.stats.skates === __game.day }; A.quit(); __game.ui.closeAllModals(); __game.player.pos.set(0.5, 47, 3.5); return o; }, c0);
+      if (!sum || r.paid !== 10 || r.got < 1 || !r.rented) throw new Error(JSON.stringify({ sum, ...r }));
+      return { sum, ...r };
+    });
     await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
       const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
       if (!L) throw new Error('no Grand Masjid in this world');
@@ -595,7 +670,8 @@ async function run(name) {
       }
       if (!shown) throw new Error('the ⛵ button never showed at ' + spots.length + ' shores');
       await g(() => { const G = __game; G.inv.remove(220, G.inv.count(220)); document.querySelector('#bBoat').click(); });
-      await p.waitForSelector('.veil.on #bgOk');
+      // the boat gift waits in line behind any pop-up still queued (a place just discovered nearby…): clear them until it shows
+      await p.waitForFunction(() => !!document.querySelector('.veil.on #bgOk') || (__game.ui.modals.filter(m => !m.veil.querySelector('#bgOk')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 });
       await g(() => document.querySelector('.veil.on #bgOk').click());
       await p.waitForFunction(() => __game.fun.riding?.kind === 'boat', null, { timeout: 10000 });
       const r = await g(() => ({ mo: !!__game.ents.mo.seat, gift: __game.stats.boatGift }));
