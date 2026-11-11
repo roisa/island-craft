@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="BabyMo Craft — jelajahi dua dunia voxel bersama Ibra & Baby Mo: Pulau Hijaiyah dan Hutan Ajaib.">
+<title>BabyMo Craft</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#0A2118;--pine:#0F2016;
+  --card:rgba(15,32,22,.74);--card-b:rgba(240,232,216,.14);
+  --green:#1FA971;--green-lt:#3FD08C;
+  --violet:#8A5CFF;--violet-lt:#B98CFF;
+  --gold:#E0B84D;--gold-lt:#FFD874;
+  --cream:#F2F7F2;--cream-dim:#9FB5A8;
+  --ui:'Nunito',ui-rounded,-apple-system,system-ui,sans-serif;
+  --ar:'Scheherazade New','Amiri',serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;font-family:var(--ui);color:var(--cream);overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none}
+body{background:radial-gradient(circle at 50% -10%,#163A2B 0%,#0A2118 55%,#081A12 100%);
+  display:flex;flex-direction:column;align-items:center;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
+  min-height:100%}
+header{text-align:center;padding:48px 0 18px;max-width:480px}
+.wordmark{font-family:var(--ar);font-size:40px;color:var(--gold-lt);line-height:1;margin-bottom:10px;opacity:.9}
+h1{font-size:28px;font-weight:900;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--gold-lt)}
+p.tag{font-size:14px;color:var(--cream-dim);margin-top:8px;line-height:1.5}
+main{width:100%;max-width:480px;display:flex;flex-direction:column;gap:16px;padding:12px 0 40px;flex:1}
+.world{display:block;text-decoration:none;color:inherit;border-radius:24px;padding:20px;
+  background:var(--card);border:1.5px solid var(--card-b);
+  -webkit-backdrop-filter:blur(10px) saturate(150%);backdrop-filter:blur(10px) saturate(150%);
+  box-shadow:0 10px 26px -10px rgba(0,0,0,.5);display:flex;align-items:center;gap:16px;
+  transition:transform .15s ease}
+.world:active{transform:scale(.97)}
+.world .ico{font-size:34px;flex:0 0 auto;width:62px;height:62px;border-radius:18px;
+  display:grid;place-items:center;background:rgba(255,255,255,.06)}
+.world.w1 .ico{box-shadow:inset 0 0 0 2px rgba(31,169,113,.4)}
+.world.w2 .ico{box-shadow:inset 0 0 0 2px rgba(138,92,255,.45)}
+.world .body{flex:1;min-width:0}
+.world h2{font-size:18px;font-weight:900;margin-bottom:3px}
+.world.w1 h2{color:var(--green-lt)}
+.world.w2 h2{color:var(--violet-lt)}
+.world p{font-size:13px;color:var(--cream-dim);line-height:1.4}
+.world .arrow{font-size:20px;color:var(--cream-dim);flex:0 0 auto}
+footer{padding-bottom:16px;font-size:11.5px;color:rgba(159,181,168,.6);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="wordmark">ا ب ت ✦ 🪄</div>
+  <h1>BabyMo <em>Craft</em></h1>
+  <p class="tag">Petualangan voxel Ibra &amp; Baby Mo — jalan-jalan bebas, gali, bangun, dan jelajahi dua dunia.</p>
+</header>
+<main>
+  <a class="world w1" href="babymo-hijaiyah.html">
+    <div class="ico">🏝️</div>
+    <div class="body">
+      <h2>Pulau Hijaiyah</h2>
+      <p>Jelajahi pulau, gali &amp; bangun apa saja, temukan 28 huruf hijaiyah tersembunyi.</p>
+    </div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="world w2" href="babymo-hutan-ajaib.html">
+    <div class="ico">🪄</div>
+    <div class="body">
+      <h2>Hutan Ajaib</h2>
+      <p>Dunia kedua: kalahkan golem-golem kristal yang ramah pakai tongkat sihir.</p>
+    </div>
+    <div class="arrow">›</div>
+  </a>
+</main>
+<footer>BabyMo Craft · dari pembuat Baby Mo</footer>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "BabyMo Craft",
+  "short_name": "BabyMo Craft",
+  "description": "Petualangan voxel Ibra & Baby Mo di dua dunia: Pulau Hijaiyah dan Hutan Ajaib.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0A2118",
+  "theme_color": "#0A2118",
+  "orientation": "any",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

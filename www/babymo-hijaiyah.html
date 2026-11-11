@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="Jelajahi Pulau Hijaiyah bersama Baby Mo: gali, bangun, dan temukan 28 huruf hijaiyah tersembunyi di pulau voxel yang bisa dijelajahi bebas.">
+<title>Pulau Hijaiyah — Petualangan Ibra bersama Baby Mo | Baby Mo</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --bg:#0A2118;--bg2:#0C2A20;--pine:#0F2016;
+  --card:rgba(15,32,22,.74);--card-b:rgba(240,232,216,.14);
+  --green:#1FA971;--green-lt:#3FD08C;
+  --gold:#E0B84D;--gold-lt:#FFD874;--gold-deep:#9B6818;
+  --cream:#F2F7F2;--cream-dim:#9FB5A8;
+  --sand:#FFF6E0;
+  --ui:'Nunito',ui-rounded,-apple-system,system-ui,sans-serif;
+  --ar:'Scheherazade New','Traditional Arabic','Amiri','Noto Naskh Arabic',serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:var(--ui);color:var(--cream);
+  overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none}
+body{background:linear-gradient(180deg,#8FD3EC 0%,#BEE6E0 55%,#DDF1E6 100%);transition:background 6s ease}
+canvas{display:block;position:fixed;inset:0;z-index:0}
+
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.card{background:var(--card);border:1.5px solid var(--card-b);border-radius:18px;
+  -webkit-backdrop-filter:blur(10px) saturate(150%);backdrop-filter:blur(10px) saturate(150%);
+  box-shadow:0 8px 20px -8px rgba(0,0,0,.4)}
+
+#topbar{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;align-items:center;pointer-events:none}
+#btnBack{pointer-events:auto;flex:0 0 42px;width:42px;height:42px;border-radius:14px;border:none;
+  background:var(--card);border:1.5px solid var(--card-b);color:var(--cream);font-size:17px;display:grid;place-items:center}
+#btnJournal{pointer-events:auto;flex:1;display:flex;align-items:center;gap:9px;padding:8px 12px;min-width:0;border:none;text-align:left;color:var(--cream)}
+#jIcon{font-size:20px;flex:0 0 auto}
+#jText{min-width:0;flex:1}
+#jLabel{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green-lt);font-weight:800}
+#jCount{font-size:15px;font-weight:900;color:var(--gold-lt)}
+#btnMenu{pointer-events:auto;flex:0 0 42px;width:42px;height:42px;border-radius:14px;border:none;
+  background:var(--card);border:1.5px solid var(--card-b);color:var(--cream);font-size:18px;display:grid;place-items:center}
+
+/* hotbar */
+#hotbar{position:absolute;left:50%;bottom:calc(228px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  display:flex;gap:6px;pointer-events:auto;max-width:96vw;overflow-x:auto}
+.slot{width:52px;height:52px;border-radius:14px;background:var(--card);border:2px solid var(--card-b);
+  background-size:cover;background-position:center;position:relative;display:flex;align-items:flex-end;justify-content:flex-end}
+.slot.active{border-color:var(--gold-lt);box-shadow:0 0 0 2px rgba(255,216,116,.35)}
+.slot b{font-size:10px;font-weight:900;color:#06231A;background:var(--gold-lt);border-radius:8px;
+  padding:1px 5px;margin:3px}
+
+/* controls */
+#stick{position:absolute;left:16px;bottom:74px;width:126px;height:126px;border-radius:50%;
+  background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.5);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;
+  background:rgba(255,252,244,.92);box-shadow:0 4px 0 rgba(18,38,31,.18)}
+#actionCluster{position:absolute;right:16px;bottom:66px;width:150px;height:150px;pointer-events:none}
+.abtn{position:absolute;border:none;border-radius:50%;background:var(--card);border:1.5px solid var(--card-b);
+  color:var(--cream);display:grid;place-items:center;pointer-events:auto;font-size:20px}
+.abtn span{font-size:9.5px;font-weight:800;display:block;margin-top:1px}
+#btnJump{width:66px;height:66px;right:0;bottom:78px}
+#btnMine{width:60px;height:60px;right:78px;bottom:20px}
+#btnPlace{width:60px;height:60px;right:0;bottom:0}
+.abtn:active{transform:scale(.9)}
+.desktop #stick,.desktop #actionCluster{display:none}
+#crosshair{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(0,0,0,.25);display:none}
+.desktop #crosshair{display:block}
+#desktopHint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);pointer-events:none;
+  font-size:12px;font-weight:700;color:rgba(255,255,255,.75);text-shadow:0 1px 3px rgba(0,0,0,.5);display:none}
+.desktop #desktopHint{display:block}
+
+/* veils */
+.veil{position:fixed;inset:0;display:none;place-items:center;padding:16px;
+  background:rgba(6,16,11,.62);backdrop-filter:blur(6px);z-index:20}
+.veil.on{display:grid}
+.panel{width:min(460px,100%);max-height:92vh;overflow:auto;padding:22px;text-align:center;
+  background:linear-gradient(180deg,#12281D,#0C2016);border:1.5px solid rgba(240,232,216,.12);
+  border-radius:26px;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+h1{font-size:25px;margin:0 0 4px;letter-spacing:-.01em;color:var(--cream)}
+h2{font-size:20px;margin:0 0 6px;color:var(--cream)}
+p{font-size:14px;line-height:1.55;color:var(--cream-dim);margin:6px 0}
+.btn{-webkit-appearance:none;appearance:none;border:none;font-family:var(--ui);font-weight:900;
+  font-size:16px;padding:15px 22px;border-radius:18px;background:var(--green);color:#06231A;
+  box-shadow:0 6px 0 #124D34;width:100%;margin-top:10px;letter-spacing:.01em}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #124D34}
+.btn.gold{background:var(--gold);box-shadow:0 6px 0 var(--gold-deep);color:#3A2A08}
+.btn.ghost{background:transparent;color:var(--cream);box-shadow:none;border:2px solid rgba(240,232,216,.18);padding:12px}
+.row{display:flex;gap:10px}
+.row .btn{margin-top:10px}
+.set{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;
+  border-bottom:1px solid rgba(240,232,216,.1);font-size:14px;font-weight:700;text-align:left;color:var(--cream)}
+.set select,.set input[type=range]{font-family:var(--ui);font-size:13px;max-width:52%}
+.set select{padding:7px 9px;border-radius:10px;border:1.5px solid rgba(240,232,216,.2);background:#0F2016;color:var(--cream)}
+#voiceWarn{background:rgba(224,184,77,.12);border:1.5px solid var(--gold);border-radius:14px;padding:10px 12px;
+  font-size:12.5px;line-height:1.5;color:var(--gold-lt);margin-top:12px;text-align:left;display:none}
+
+/* journal */
+#journalGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0 6px}
+.jcell{aspect-ratio:1;border-radius:14px;background:var(--sand);border:2px solid var(--gold);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--ar);
+  color:#12261F;padding-bottom:2px}
+.jcell .g{font-size:22px;line-height:1}
+.jcell .l{font-size:8px;font-weight:800;color:var(--gold-deep);margin-top:2px;font-family:var(--ui)}
+.jcell.locked{background:rgba(255,255,255,.06);border-color:rgba(240,232,216,.14);color:rgba(240,232,216,.28)}
+.jcell.locked .g{font-size:20px}
+
+#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%) translateY(-14px);opacity:0;
+  background:var(--pine);color:#fff;padding:10px 18px;border-radius:99px;font-weight:800;font-size:14px;
+  z-index:30;transition:.25s;pointer-events:none;text-align:center;max-width:88vw;border:1.5px solid rgba(240,232,216,.14)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="topbar">
+    <button id="btnBack" title="Kembali">←</button>
+    <button id="btnJournal" class="card">
+      <span id="jIcon">📖</span>
+      <span id="jText"><span id="jLabel">Huruf ditemukan</span><br><span id="jCount">0 / 28</span></span>
+    </button>
+    <button id="btnMenu">☰</button>
+  </div>
+
+  <div id="hotbar"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <div id="actionCluster">
+    <button class="abtn" id="btnJump">⬆<span>LOMPAT</span></button>
+    <button class="abtn" id="btnMine">⛏️<span>GALI</span></button>
+    <button class="abtn" id="btnPlace">🧱<span>BANGUN</span></button>
+  </div>
+  <div id="crosshair"></div>
+  <div id="desktopHint">Klik kiri: gali &nbsp;·&nbsp; Klik kanan: bangun &nbsp;·&nbsp; WASD jalan &nbsp;·&nbsp; Spasi lompat</div>
+</div>
+
+<!-- START -->
+<div class="veil on" id="vStart"><div class="panel">
+  <div style="font-family:var(--ar);font-size:56px;line-height:1;color:var(--green-lt);padding-bottom:8px">ا ب ت</div>
+  <h1>Pulau Hijaiyah</h1>
+  <p>Ibra &amp; Baby Mo menjelajahi pulau voxel bersama-sama. Jalan-jalan bebas, gali balok, bangun apa saja, dan temukan huruf-huruf hijaiyah yang tersembunyi di sekitar pulau.</p>
+  <div class="set"><span>Suara huruf</span><select id="selVoice"></select></div>
+  <div class="set" style="border:none"><span>Kecepatan bicara</span><input id="rngRate" type="range" min="0.5" max="1.1" step="0.05" value="0.8"></div>
+  <div id="voiceWarn"></div>
+  <button class="btn" id="btnPlay">Mulai Petualangan</button>
+  <p style="font-size:12px;margin-top:12px">HP/tablet: joystick kiri jalan · geser kanan lihat sekeliling · ⛏️ gali · 🧱 bangun.<br>Komputer: WASD jalan · mouse lihat sekeliling · klik kiri gali · klik kanan bangun.</p>
+</div></div>
+
+<!-- JOURNAL -->
+<div class="veil" id="vJournal"><div class="panel">
+  <h2>📖 Buku Huruf Ibra</h2>
+  <p>Ketuk huruf yang sudah ditemukan untuk dengar lagi. Yang masih gelap belum ditemukan — cari terus ya!</p>
+  <div id="journalGrid"></div>
+  <button class="btn gold" id="btnCloseJournal">Tutup</button>
+</div></div>
+
+<!-- MENU -->
+<div class="veil" id="vMenu"><div class="panel">
+  <h2>Jeda</h2>
+  <div class="set"><span>Suara huruf</span><select id="selVoice2"></select></div>
+  <div class="set" style="border:none"><span>Kecepatan bicara</span><input id="rngRate2" type="range" min="0.5" max="1.1" step="0.05" value="0.8"></div>
+  <button class="btn ghost" id="btnToggleSfx">🔊 Efek Suara: Aktif</button>
+  <button class="btn ghost" id="btnToggleMusic">🎵 Musik Latar: Aktif</button>
+  <button class="btn ghost" id="btnToggleFly">🚶 Mode Jalan (bukan Terbang)</button>
+  <button class="btn gold" id="btnShare">📸 Bagikan Pulauku</button>
+  <button class="btn ghost" id="btnGoHutan">🌟 Hutan Ajaib (dunia baru)</button>
+  <button class="btn" id="btnResume">Lanjut Main</button>
+  <a class="btn ghost" id="btnHome" href="index.html" style="display:block;text-decoration:none;text-align:center">← Kembali ke Beranda</a>
+  <button class="btn ghost" id="btnReset">Ulangi dari Awal (hapus progres)</button>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   DATA — 28 huruf hijaiyah
+   ============================================================ */
+const L = [
+  ['ا','أَلِف','Alif','a',  ['أَ','إِ','أُ']],
+  ['ب','بَاء','Ba','b'],   ['ت','تَاء','Ta','t'],   ['ث','ثَاء','Tsa','ts'],
+  ['ج','جِيم','Jim','j'],   ['ح','حَاء','Ha','h'],   ['خ','خَاء','Kha','kh'],
+  ['د','دَال','Dal','d'],   ['ذ','ذَال','Dzal','dz'],['ر','رَاء','Ra','r'],
+  ['ز','زَاي','Zai','z'],   ['س','سِين','Sin','s'],  ['ش','شِين','Syin','sy'],
+  ['ص','صَاد','Shad','sh'], ['ض','ضَاد','Dhad','dh'],['ط','طَاء','Tha','th'],
+  ['ظ','ظَاء','Zha','zh'],  ['ع','عَيْن','Ain','a'],  ['غ','غَيْن','Ghain','gh'],
+  ['ف','فَاء','Fa','f'],    ['ق','قَاف','Qaf','q'],  ['ك','كَاف','Kaf','k'],
+  ['ل','لَام','Lam','l'],   ['م','مِيم','Mim','m'],  ['ن','نُون','Nun','n'],
+  ['و','وَاو','Wau','w'],   ['ه','هَاء','Ha','h'],   ['ي','يَاء','Ya','y']
+].map(r=>({
+  g:r[0], ar:r[1], name:r[2], t:r[3],
+  drill: r[4] || [r[0]+'َ', r[0]+'ِ', r[0]+'ُ'],
+  drillLat:[r[3]+'a', r[3]+'i', r[3]+'u']
+}));
+
+/* ============================================================
+   SUARA
+   ============================================================ */
+const Speech = {
+  voices:[], ar:null, id:null, chosen:null, rate:0.8, seq:0,
+  init(cb){
+    const load=()=>{
+      this.voices = speechSynthesis.getVoices()||[];
+      this.ar = this.voices.find(v=>/^ar/i.test(v.lang)) || null;
+      this.id = this.voices.find(v=>/^id/i.test(v.lang)) || this.voices.find(v=>/^ms/i.test(v.lang)) || null;
+      this.chosen = this.ar || this.id || this.voices[0] || null;
+      cb && cb();
+    };
+    load();
+    speechSynthesis.onvoiceschanged = load;
+    setTimeout(load, 700);
+  },
+  isArabic(){ return this.chosen && /^ar/i.test(this.chosen.lang); },
+  stop(){ this.seq++; try{speechSynthesis.cancel();}catch(e){} },
+  say(items, done){
+    this.stop();
+    const my = this.seq, useAr = this.isArabic();
+    let i = 0;
+    const next = ()=>{
+      if(my !== this.seq) return;
+      if(i >= items.length){ done && done(); return; }
+      const it = items[i++];
+      const u = new SpeechSynthesisUtterance(useAr ? it.ar : it.lat);
+      u.lang = this.chosen ? this.chosen.lang : 'ar-SA';
+      if(this.chosen) u.voice = this.chosen;
+      u.rate = this.rate; u.pitch = 1.05;
+      u.onend   = ()=>{ if(my===this.seq) setTimeout(next, it.gap!=null?it.gap:220); };
+      u.onerror = ()=>{ if(my===this.seq) setTimeout(next, 260); };
+      try{ speechSynthesis.speak(u); }catch(e){ setTimeout(next,300); }
+    };
+    setTimeout(next, 60);
+  }
+};
+
+/* ============================================================
+   EFEK SUARA — sintesis ringan, tanpa file audio
+   ============================================================ */
+let sfxOn = true, musicOn = true;
+let _audioCtx = null;
+function getAudioCtx(){
+  if(!_audioCtx){ try{ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(_audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
+  return _audioCtx;
+}
+const SFX = (function(){
+  function getCtx(){ return sfxOn ? getAudioCtx() : null; }
+  function tone(freq, dur, type, peak, delay){
+    const c = getCtx(); if(!c) return;
+    const t0 = c.currentTime + (delay||0);
+    const osc = c.createOscillator(), gain = c.createGain();
+    osc.type = type||'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(peak||0.18, t0+0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    osc.connect(gain); gain.connect(c.destination);
+    osc.start(t0); osc.stop(t0+dur+0.02);
+  }
+  function noiseBurst(dur, peak){
+    const c = getCtx(); if(!c) return;
+    const n = Math.max(1, Math.round(c.sampleRate*dur));
+    const buf = c.createBuffer(1, n, c.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<n;i++) data[i] = (Math.random()*2-1)*(1-i/n);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const filter = c.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=900;
+    const gain = c.createGain(); gain.gain.value = peak||0.2;
+    src.connect(filter); filter.connect(gain); gain.connect(c.destination);
+    src.start();
+  }
+  function warm(){ getCtx(); }
+  return {
+    warm,
+    mine(){ try{ noiseBurst(0.12,0.22); }catch(e){} },
+    place(){ try{ tone(320,0.08,'square',0.14); tone(480,0.06,'square',0.1,0.03); }catch(e){} },
+    jump(){ try{ tone(440,0.12,'triangle',0.14); }catch(e){} },
+    critterPop(){ try{ tone(660,0.1,'sine',0.2); tone(880,0.12,'sine',0.17,0.06); tone(1100,0.14,'sine',0.14,0.12); }catch(e){} },
+    weaponUp(){ try{ tone(392,0.12,'triangle',0.17); tone(523,0.12,'triangle',0.17,0.09); tone(659,0.18,'triangle',0.19,0.18); }catch(e){} },
+    letterFound(){ try{ tone(784,0.1,'sine',0.15); tone(988,0.14,'sine',0.13,0.07); }catch(e){} },
+    finale(){ try{
+      tone(523,0.18,'triangle',0.2); tone(659,0.18,'triangle',0.2,0.16);
+      tone(784,0.18,'triangle',0.2,0.32); tone(1047,0.4,'triangle',0.24,0.48);
+      tone(784,0.16,'sine',0.16,0.7); tone(1047,0.3,'sine',0.2,0.86);
+    }catch(e){} }
+  };
+})();
+function haptic(pattern){
+  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+}
+
+/* ============================================================
+   MUSIK LATAR — drone lembut yang berubah seiring siang/malam
+   ============================================================ */
+const Music = (function(){
+  let master=null, o1=null, o2=null, o3=null, lfo=null, running=false;
+  function ensure(){
+    if(running) return true;
+    const c = getAudioCtx(); if(!c) return false;
+    master = c.createGain(); master.gain.value = 0;
+    master.connect(c.destination);
+    o1 = c.createOscillator(); o1.type='sine'; o1.frequency.value=130.81; // C3
+    o2 = c.createOscillator(); o2.type='sine'; o2.frequency.value=196.00; // G3
+    o3 = c.createOscillator(); o3.type='triangle'; o3.frequency.value=261.63; // C4
+    const g1=c.createGain(), g2=c.createGain(), g3=c.createGain();
+    g1.gain.value=0.05; g2.gain.value=0.035; g3.gain.value=0.02;
+    o1.connect(g1); g1.connect(master);
+    o2.connect(g2); g2.connect(master);
+    o3.connect(g3); g3.connect(master);
+    lfo = c.createOscillator(); lfo.frequency.value = 0.06;
+    const lfoGain = c.createGain(); lfoGain.gain.value = 0.018;
+    lfo.connect(lfoGain); lfoGain.connect(master.gain);
+    o1.start(); o2.start(); o3.start(); lfo.start();
+    running = true;
+    return true;
+  }
+  function setMood(dayT){
+    if(!running) return;
+    const night = dayT>=0.6 && dayT<=0.9;
+    o2.frequency.setTargetAtTime(night ? 174.61 : 196.00, master.context.currentTime, 2.5); // F3 at night, G3 by day
+  }
+  function setEnabled(on){
+    if(on){ if(!ensure()) return; master.gain.setTargetAtTime(0.09, master.context.currentTime, 1.2); }
+    else if(running){ master.gain.setTargetAtTime(0, master.context.currentTime, 1.2); }
+  }
+  return { ensure, setMood, setEnabled };
+})();
+
+/* ============================================================
+   THREE — dunia voxel
+   ============================================================ */
+const SIZE = 44, HALF = SIZE/2, MAXH = 24;
+const PEAK = {x:13, z:-12, r:6, h:13};
+const CAVE_HILL = {x:-13, z:9, r:4.5, h:6};
+function bump(x,z,b){
+  const dx=x-b.x, dz=z-b.z, d2=dx*dx+dz*dz;
+  if(d2 > b.r*b.r*4) return 0;
+  return b.h*Math.exp(-d2/(2*b.r*b.r));
+}
+let scene, cam, renderer, clock, hemiLight, sunLight;
+const solids = new Set();
+const key = (x,y,z)=>x+','+y+','+z;
+const solidAt = (x,y,z)=>solids.has(key(x,y,z));
+const blockGeo = new THREE.BoxGeometry(1,1,1);
+const blockIndex = new Map();   // key -> {mesh,idx,type,taken}
+const placedBlocks = new Map(); // key -> {mesh,type}
+let MATS = null;
+
+function tex(draw, s, smooth){
+  s = s||32;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const x = c.getContext('2d'); draw(x, s);
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = smooth ? THREE.LinearFilter : THREE.NearestFilter;
+  t.minFilter = THREE.LinearMipMapLinearFilter;
+  t.anisotropy = 4;
+  return t;
+}
+function speck(x,s,colors,n){
+  for(let i=0;i<n;i++){
+    x.fillStyle = colors[(Math.random()*colors.length)|0];
+    const w = 2+((Math.random()*3)|0);
+    x.fillRect((Math.random()*s)|0,(Math.random()*s)|0,w,w);
+  }
+}
+const T = {};
+const LEGO_COLORS = [
+  ['legoRed','#E4423A'],['legoBlue','#2E6FE0'],['legoYellow','#F4C430'],
+  ['legoGreen','#3FA34D'],['legoOrange','#F2872E'],['legoWhite','#F2F2F2']
+];
+const HOTBAR = ['grassTop','dirt','stone','sand','wood','leaf', ...LEGO_COLORS.map(c=>c[0])];
+const HOTBAR_LABEL = {grassTop:'Rumput',dirt:'Tanah',stone:'Batu',sand:'Pasir',wood:'Kayu',leaf:'Daun',
+  legoRed:'Lego Merah',legoBlue:'Lego Biru',legoYellow:'Lego Kuning',legoGreen:'Lego Hijau',legoOrange:'Lego Oranye',legoWhite:'Lego Putih'};
+const BLOCK_DEBRIS_COLOR = {grassTop:0x6CBF4F, dirt:0x9A6B44, stone:0x8D949B, sand:0xE6D3A2, wood:0x8A5C38, leaf:0x4F9E48,
+  legoRed:0xE4423A, legoBlue:0x2E6FE0, legoYellow:0xF4C430, legoGreen:0x3FA34D, legoOrange:0xF2872E, legoWhite:0xF2F2F2};
+function buildTextures(){
+  T.grassTop = tex((x,s)=>{x.fillStyle='#6CBF4F';x.fillRect(0,0,s,s);speck(x,s,['#7FD05E','#5CA842','#84D967'],46);});
+  T.grassSide= tex((x,s)=>{x.fillStyle='#9A6B44';x.fillRect(0,0,s,s);speck(x,s,['#8A5D3A','#A97A50'],34);
+    x.fillStyle='#6CBF4F';x.fillRect(0,0,s,s*0.28);
+    for(let i=0;i<s;i+=3){x.fillStyle='#5CA842';x.fillRect(i,s*0.28,2,2+((Math.random()*4)|0));}});
+  T.dirt = tex((x,s)=>{x.fillStyle='#9A6B44';x.fillRect(0,0,s,s);speck(x,s,['#8A5D3A','#A97A50','#7C5231'],42);});
+  T.stone= tex((x,s)=>{x.fillStyle='#8D949B';x.fillRect(0,0,s,s);speck(x,s,['#7E858C','#9DA4AB','#767D84'],40);});
+  T.sand = tex((x,s)=>{x.fillStyle='#E6D3A2';x.fillRect(0,0,s,s);speck(x,s,['#DCC793','#EFDDB0'],36);});
+  T.wood = tex((x,s)=>{x.fillStyle='#8A5C38';x.fillRect(0,0,s,s);
+    for(let i=0;i<s;i+=4){x.fillStyle=i%8?'#7B5131':'#96683F';x.fillRect(i,0,2,s);}});
+  T.leaf = tex((x,s)=>{x.fillStyle='#4F9E48';x.fillRect(0,0,s,s);speck(x,s,['#5FB055','#438A3D','#68BB5D'],52);});
+  T.glow = tex((x,s)=>{
+    const g = x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    g.addColorStop(0,'rgba(255,216,116,.85)'); g.addColorStop(1,'rgba(255,216,116,0)');
+    x.fillStyle=g; x.fillRect(0,0,s,s);
+  },64,true);
+  T.water = tex((x,s)=>{
+    const g = x.createLinearGradient(0,0,0,s);
+    g.addColorStop(0,'#5DC3E0'); g.addColorStop(1,'#1E7FA8');
+    x.fillStyle=g; x.fillRect(0,0,s,s);
+    x.strokeStyle='rgba(255,255,255,.4)'; x.lineWidth=1.4;
+    for(let i=0;i<5;i++){
+      const yy=(i+0.5)*s/5;
+      x.beginPath(); x.moveTo(0,yy);
+      x.bezierCurveTo(s*0.25,yy-5,s*0.75,yy+5,s,yy); x.stroke();
+    }
+  },64,true);
+  T.water.wrapS = T.water.wrapT = THREE.RepeatWrapping;
+  T.water.repeat.set(26,26);
+  T.cloud = tex((x,s)=>{
+    const g = x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(.55,'rgba(255,255,255,.7)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle=g; x.fillRect(0,0,s,s);
+  },128,true);
+  const petalColors = [['#FF7FA6','#FFD65C'],['#FFE066','#FF9F1C'],['#8FD3FF','#FFFFFF']];
+  T.flowers = petalColors.map(([petal,center])=>tex((x,s)=>{
+    x.clearRect(0,0,s,s);
+    x.strokeStyle='#3F8A46'; x.lineWidth=s*0.06;
+    x.beginPath(); x.moveTo(s/2,s*0.98); x.lineTo(s/2,s*0.42); x.stroke();
+    x.fillStyle=petal;
+    for(let i=0;i<5;i++){
+      const a = i/5*Math.PI*2;
+      x.beginPath();
+      x.ellipse(s/2+Math.cos(a)*s*0.16, s*0.3+Math.sin(a)*s*0.16, s*0.13, s*0.09, a, 0, Math.PI*2);
+      x.fill();
+    }
+    x.fillStyle=center; x.beginPath(); x.arc(s/2,s*0.3,s*0.09,0,Math.PI*2); x.fill();
+  }, 40, true));
+  const wingColors = [['#FF9F4D','#3A2A08'],['#7FC8FF','#183A54'],['#FFD766','#5A4200']];
+  T.butterflies = wingColors.map(([wing,body])=>tex((x,s)=>{
+    x.clearRect(0,0,s,s);
+    x.fillStyle=wing;
+    [-1,1].forEach(side=>{
+      x.beginPath();
+      x.ellipse(s/2+side*s*0.24, s*0.36, s*0.22, s*0.17, side*0.35, 0, Math.PI*2); x.fill();
+      x.beginPath();
+      x.ellipse(s/2+side*s*0.18, s*0.62, s*0.15, s*0.12, side*0.2, 0, Math.PI*2); x.fill();
+    });
+    x.fillStyle=body; x.beginPath(); x.ellipse(s/2,s*0.5,s*0.045,s*0.26,0,0,Math.PI*2); x.fill();
+  }, 40, true));
+  LEGO_COLORS.forEach(([key,hex])=>{
+    T[key] = tex((x,s)=>{
+      x.fillStyle=hex; x.fillRect(0,0,s,s);
+      x.fillStyle='rgba(255,255,255,.25)';
+      for(let gx=0;gx<2;gx++)for(let gy=0;gy<2;gy++){
+        x.beginPath();
+        x.arc(s*(0.28+gx*0.44), s*(0.28+gy*0.44), s*0.12, 0, Math.PI*2);
+        x.fill();
+      }
+      x.strokeStyle='rgba(0,0,0,.15)'; x.lineWidth=2; x.strokeRect(1,1,s-2,s-2);
+    }, 32, true);
+  });
+  T.fish = tex((x,s)=>{
+    x.clearRect(0,0,s,s);
+    x.fillStyle='#7FC8E8';
+    x.beginPath(); x.ellipse(s*0.42,s*0.5,s*0.28,s*0.14,0,0,Math.PI*2); x.fill();
+    x.beginPath(); x.moveTo(s*0.14,s*0.5); x.lineTo(s*0.0,s*0.34); x.lineTo(s*0.0,s*0.66); x.closePath(); x.fill();
+    x.fillStyle='#fff'; x.beginPath(); x.arc(s*0.58,s*0.46,s*0.035,0,Math.PI*2); x.fill();
+  },32,true);
+  T.rain = tex((x,s)=>{
+    x.clearRect(0,0,s,s);
+    const g = x.createLinearGradient(0,0,0,s);
+    g.addColorStop(0,'rgba(191,227,240,0)'); g.addColorStop(0.5,'rgba(191,227,240,.9)'); g.addColorStop(1,'rgba(191,227,240,0)');
+    x.fillStyle=g; x.fillRect(s*0.42,0,s*0.16,s);
+  },16,true);
+  T.rainbow = tex((x,s)=>{
+    x.clearRect(0,0,s,s);
+    const colors=['#FF6B6B','#FFB86B','#FFE66B','#6BFF9E','#6BC6FF','#8F6BFF'];
+    const cx=s/2, cy=s*1.05;
+    colors.forEach((c,i)=>{
+      x.strokeStyle=c; x.lineWidth=s*0.045; x.globalAlpha=0.85;
+      x.beginPath(); x.arc(cx,cy, s*0.62-i*s*0.05, Math.PI, 2*Math.PI); x.stroke();
+    });
+    x.globalAlpha=1;
+  },256,true);
+  T.bird = tex((x,s)=>{
+    x.clearRect(0,0,s,s);
+    x.strokeStyle='#4A3A2A'; x.lineWidth=s*0.1; x.lineCap='round';
+    x.beginPath();
+    x.moveTo(s*0.04,s*0.6);
+    x.quadraticCurveTo(s*0.5,s*0.1,s*0.5,s*0.48);
+    x.quadraticCurveTo(s*0.5,s*0.1,s*0.96,s*0.6);
+    x.stroke();
+  },32,true);
+  T.glowSoft = tex((x,s)=>{
+    const g = x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle=g; x.fillRect(0,0,s,s);
+  },64,true);
+  T.chest = tex((x,s)=>{
+    x.fillStyle='#8A5C38'; x.fillRect(0,0,s,s);
+    x.fillStyle='#6B4423'; x.fillRect(0,0,s,s*0.12);
+    x.fillStyle='#E0B84D';
+    x.fillRect(s*0.42,0,s*0.16,s);
+    x.beginPath(); x.arc(s*0.5,s*0.12,s*0.09,0,Math.PI*2); x.fill();
+    speck(x,s,['#7B5131','#96683F'],18);
+  },32,true);
+}
+function letterTex(letter){
+  return tex((x,s)=>{
+    const g = x.createLinearGradient(0,0,s,s);
+    g.addColorStop(0,'#FFF9E8'); g.addColorStop(1,'#FBE7B8');
+    x.fillStyle=g; x.fillRect(0,0,s,s);
+    x.strokeStyle='#E0B84D'; x.lineWidth=s*0.075; x.strokeRect(x.lineWidth/2,x.lineWidth/2,s-x.lineWidth,s-x.lineWidth);
+    x.fillStyle='#12261F'; x.textAlign='center'; x.textBaseline='middle';
+    x.font = 'bold '+Math.round(s*0.6)+'px "Traditional Arabic","Amiri","Noto Naskh Arabic",serif';
+    x.fillText(letter.g, s/2, s*0.46);
+    x.fillStyle='#1FA971'; x.font='bold '+Math.round(s*0.115)+'px system-ui,sans-serif';
+    x.fillText(letter.name.toUpperCase(), s/2, s*0.87);
+  }, 256, true);
+}
+
+function heightAt(x,z){
+  let h = 3
+    + 1.7*Math.sin(x*0.21)*Math.cos(z*0.18)
+    + 1.1*Math.sin((x+z)*0.11)
+    + 0.8*Math.cos(x*0.07 - z*0.09);
+  h += bump(x,z,PEAK) + bump(x,z,CAVE_HILL);
+  return Math.max(1, Math.min(MAXH, Math.round(h)));
+}
+
+const letterBlocks = [];
+const spots = [];
+
+function planSpots(){
+  for(let i=0;i<L.length;i++){
+    const a = 0.6 + i/L.length * Math.PI*2*2.4;
+    const r = 8 + (i/L.length)*11;
+    spots.push([Math.round(Math.cos(a)*r), Math.round(Math.sin(a)*r)]);
+  }
+}
+const nearSpot = (x,z)=>spots.some(s=>Math.abs(s[0]-x)<4 && Math.abs(s[1]-z)<4);
+
+function caveCarveSet(){
+  const carved = new Set();
+  const ex = CAVE_HILL.x - 5, ez = CAVE_HILL.z;
+  const baseY = Math.max(1, heightAt(ex,ez) - 1);
+  for(let i=0;i<7;i++){
+    const cx = ex + i;
+    for(let dy=0;dy<=1;dy++)
+      for(let dw=-1;dw<=1;dw++)
+        carved.add(key(cx, baseY+dy, ez+dw));
+  }
+  const chx = ex+7;
+  for(let dx2=0;dx2<=2;dx2++)for(let dz2=-2;dz2<=2;dz2++)for(let dy2=0;dy2<=2;dy2++)
+    carved.add(key(chx+dx2, baseY+dy2, ez+dz2));
+  return { carved, baseY, chamber:{x:chx+1, y:baseY+1, z:ez} };
+}
+let caveInfo = null;
+function buildWorld(){
+  const cells = {grassTop:[],dirt:[],stone:[],sand:[],wood:[],leaf:[]};
+  caveInfo = caveCarveSet();
+  const carved = caveInfo.carved;
+  for(let x=-HALF;x<HALF;x++){
+    for(let z=-HALF;z<HALF;z++){
+      const edge = Math.max(Math.abs(x),Math.abs(z)) >= HALF-1;
+      const h = edge ? heightAt(x,z)+2 : heightAt(x,z);
+      for(let y=0;y<=h;y++){
+        const k = key(x,y,z);
+        if(carved.has(k)) continue;
+        solids.add(k);
+        if(edge && y>h-2) cells.stone.push([x,y,z]);
+        else if(y===h) cells.grassTop.push([x,y,z]);
+        else if(y>h-3) cells.dirt.push([x,y,z]);
+        else cells.stone.push([x,y,z]);
+      }
+    }
+  }
+  let seed = 7;
+  const rr = ()=> (seed = (seed*9301+49297)%233280)/233280;
+  for(let i=0;i<26;i++){
+    const x = Math.round((rr()-0.5)*(SIZE-8));
+    const z = Math.round((rr()-0.5)*(SIZE-8));
+    if(Math.hypot(x,z) < 5 || nearSpot(x,z)) continue;
+    const h = heightAt(x,z), th = 3+((rr()*2)|0);
+    for(let y=h+1;y<=h+th;y++){ solids.add(key(x,y,z)); cells.wood.push([x,y,z]); }
+    for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++)for(let dy=0;dy<=2;dy++){
+      if(Math.abs(dx)+Math.abs(dz)+dy > 3) continue;
+      const px=x+dx, py=h+th+dy, pz=z+dz;
+      if(solidAt(px,py,pz)) continue;
+      solids.add(key(px,py,pz)); cells.leaf.push([px,py,pz]);
+    }
+  }
+  for(let x=-3;x<=3;x++)for(let z=-3;z<=3;z++){
+    if(x*x+z*z>11) continue;
+    const h = heightAt(x,z);
+    cells.grassTop = cells.grassTop.filter(c=>!(c[0]===x&&c[1]===h&&c[2]===z));
+    cells.sand.push([x,h,z]);
+  }
+
+  const grassSet = new Set(cells.grassTop.map(c=>key(c[0],c[1],c[2])));
+  const flowerSpots = [];
+  for(let i=0;i<90;i++){
+    const x = Math.round((rr()-0.5)*(SIZE-6));
+    const z = Math.round((rr()-0.5)*(SIZE-6));
+    if(Math.hypot(x,z) < 5 || nearSpot(x,z)) continue;
+    const h = heightAt(x,z);
+    if(!grassSet.has(key(x,h,z))) continue;
+    flowerSpots.push([x+0.5, h+1.15, z+0.5, (rr()*3)|0]);
+  }
+
+  const mats = {
+    grassTop:[T.grassSide,T.grassSide,T.grassTop,T.dirt,T.grassSide,T.grassSide]
+      .map(m=>new THREE.MeshLambertMaterial({map:m})),
+    dirt : new THREE.MeshLambertMaterial({map:T.dirt}),
+    stone: new THREE.MeshLambertMaterial({map:T.stone}),
+    sand : new THREE.MeshLambertMaterial({map:T.sand}),
+    wood : new THREE.MeshLambertMaterial({map:T.wood}),
+    leaf : new THREE.MeshLambertMaterial({map:T.leaf})
+  };
+  LEGO_COLORS.forEach(([key])=>{ mats[key] = new THREE.MeshLambertMaterial({map:T[key]}); });
+  MATS = mats;
+  const m4 = new THREE.Matrix4();
+  for(const k in cells){
+    const list = cells[k]; if(!list.length) continue;
+    const im = new THREE.InstancedMesh(blockGeo, mats[k], list.length);
+    list.forEach((c,i)=>{
+      im.setMatrixAt(i, m4.makeTranslation(c[0]+0.5, c[1]+0.5, c[2]+0.5));
+      blockIndex.set(key(c[0],c[1],c[2]), {mesh:im, idx:i, type:k, taken:false});
+    });
+    im.instanceMatrix.needsUpdate = true;
+    im.frustumCulled = false;
+    scene.add(im);
+  }
+  flowerSpots.forEach(([fx,fy,fz,ti])=>{
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:T.flowers[ti], transparent:true, depthWrite:false}));
+    spr.scale.set(0.55,0.55,1);
+    spr.position.set(fx,fy,fz);
+    scene.add(spr);
+  });
+}
+const HIDE_POS = new THREE.Vector3(0,-2000,0);
+const HIDE_Q = new THREE.Quaternion();
+const HIDE_S = new THREE.Vector3(0.0001,0.0001,0.0001);
+function hideInstance(rec){
+  const m = new THREE.Matrix4().compose(HIDE_POS, HIDE_Q, HIDE_S);
+  rec.mesh.setMatrixAt(rec.idx, m);
+  rec.mesh.instanceMatrix.needsUpdate = true;
+}
+
+function placeLetters(){
+  const geo = new THREE.BoxGeometry(0.92,0.92,0.92);
+  L.forEach((letter,i)=>{
+    const x = spots[i][0], z = spots[i][1];
+    const y = heightAt(x,z) + 1;
+    const mat = new THREE.MeshLambertMaterial({map:letterTex(letter), emissive:0x2a2000, emissiveIntensity:0.35});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x+0.5, y+0.9, z+0.5);
+    scene.add(mesh);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({map:T.glow, transparent:true, depthWrite:false}));
+    glow.scale.set(2.2,2.2,1);
+    glow.position.set(x+0.5, y+0.2, z+0.5);
+    scene.add(glow);
+    letterBlocks.push({letter, mesh, glow, i, base:y+0.9, taken:false});
+  });
+}
+
+/* ============================================================
+   PENANDA — puncak yang bisa didaki & gua kecil untuk dijelajahi
+   ============================================================ */
+let peakVisited = false, caveVisited = false;
+function buildLandmarks(){
+  const py = heightAt(PEAK.x, PEAK.z);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,3,6), new THREE.MeshLambertMaterial({color:0x8A5C38}));
+  pole.position.set(PEAK.x+0.5, py+1+1.5, PEAK.z+0.5);
+  scene.add(pole);
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.7), new THREE.MeshLambertMaterial({color:0xE0B84D, side:THREE.DoubleSide}));
+  flag.position.set(PEAK.x+0.5+0.55, py+1+2.4, PEAK.z+0.5);
+  scene.add(flag);
+  const peakGlow = new THREE.Sprite(new THREE.SpriteMaterial({map:T.glow, color:0xFFD874, transparent:true, depthWrite:false}));
+  peakGlow.scale.set(3,3,1);
+  peakGlow.position.set(PEAK.x+0.5, py+1+2.2, PEAK.z+0.5);
+  scene.add(peakGlow);
+
+  const mouthGlow = new THREE.Sprite(new THREE.SpriteMaterial({map:T.glow, color:0xFFC98A, transparent:true, depthWrite:false, opacity:0.6}));
+  mouthGlow.scale.set(1.6,1.6,1);
+  mouthGlow.position.set(caveInfo.chamber.x-6.5, caveInfo.baseY+1, caveInfo.chamber.z+0.5);
+  scene.add(mouthGlow);
+  const caveLight = new THREE.PointLight(0xFFA860, 0.9, 8);
+  caveLight.position.set(caveInfo.chamber.x+0.5, caveInfo.chamber.y+0.6, caveInfo.chamber.z+0.5);
+  scene.add(caveLight);
+}
+
+/* ============================================================
+   PORTAL — jalan menuju Hutan Ajaib (dunia kedua), terbuka setelah
+   Ibra menemukan cukup banyak huruf di Pulau Hijaiyah
+   ============================================================ */
+const PORTAL_POS = {x:-15, z:-15};
+const PORTAL_UNLOCK_AT = 5;
+let portalRing = null, portalTriggered = false;
+function buildPortal(){
+  const py = heightAt(PORTAL_POS.x, PORTAL_POS.z);
+  const ringMat = new THREE.MeshLambertMaterial({color:0x8A5CFF, emissive:0x4B2E8A, emissiveIntensity:0.55, side:THREE.DoubleSide});
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.1,0.13,8,20), ringMat);
+  ring.position.set(PORTAL_POS.x+0.5, py+1+1.3, PORTAL_POS.z+0.5);
+  scene.add(ring);
+  portalRing = ring;
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({map:T.glow, color:0x8A5CFF, transparent:true, depthWrite:false}));
+  glow.scale.set(2.6,2.6,1);
+  glow.position.copy(ring.position);
+  scene.add(glow);
+}
+function updatePortal(dt){
+  if(portalRing) portalRing.rotation.z += dt*0.6;
+}
+function checkPortal(){
+  if(portalTriggered) return;
+  const d = Math.hypot(P.x-(PORTAL_POS.x+0.5), P.z-(PORTAL_POS.z+0.5));
+  if(d > 1.8) return;
+  if(collected.size >= PORTAL_UNLOCK_AT){
+    portalTriggered = true;
+    toast('🌟 Masuk ke Hutan Ajaib...', 1400);
+    SFX.weaponUp();
+    setTimeout(()=>{ location.href = 'babymo-hutan-ajaib.html'; }, 900);
+  } else {
+    toast('🔒 Kumpulkan '+(PORTAL_UNLOCK_AT-collected.size)+' huruf lagi untuk buka Hutan Ajaib!', 2600);
+  }
+}
+
+/* ============================================================
+   JEMBATAN BATU — lompat ke pulau kecil untuk peti harta karun
+   (tantangan lompat ringan, tanpa hukuman kalau jatuh ke laut)
+   ============================================================ */
+const BRIDGE_START = {x:0, z:HALF-1};
+let chestPos = null, chestOpened = false;
+function buildBridge(){
+  const stoneMat = new THREE.MeshLambertMaterial({map:T.stone});
+  const sandMat = new THREE.MeshLambertMaterial({map:T.sand});
+  const by = 2;
+  // each value is center-to-center spacing; platforms are 2 cells deep, so
+  // the real open-water gap a player must jump is (spacing - 2).
+  const gapSeq = [2.6,3.2,2.7,3.3,2.6,3.1,2.7,3.2];
+  let gz = BRIDGE_START.z;
+  gapSeq.forEach(gap=>{
+    gz += gap;
+    const cx = Math.round(BRIDGE_START.x), cz = Math.round(gz);
+    [[0,0],[1,0],[0,1],[1,1]].forEach(([dx,dz])=>{
+      const x=cx+dx, z=cz+dz, k=key(x,by,z);
+      if(!solids.has(k)){
+        const m = new THREE.Mesh(blockGeo, stoneMat);
+        m.position.set(x+0.5, by+0.5, z+0.5);
+        scene.add(m);
+        solids.add(k);
+      }
+    });
+  });
+  gz += 2.8;
+  const ix = Math.round(BRIDGE_START.x)-1, iz = Math.round(gz);
+  for(let dx=0; dx<3; dx++) for(let dz=0; dz<3; dz++){
+    const x=ix+dx, z=iz+dz, k=key(x,by,z);
+    if(!solids.has(k)){
+      const m = new THREE.Mesh(blockGeo, sandMat);
+      m.position.set(x+0.5, by+0.5, z+0.5);
+      scene.add(m);
+      solids.add(k);
+    }
+  }
+  chestPos = {x: ix+1.5, y: by+1, z: iz+1.5};
+  const chestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.5,0.42), new THREE.MeshLambertMaterial({map:T.chest}));
+  chestMesh.position.set(chestPos.x, chestPos.y+0.25, chestPos.z);
+  scene.add(chestMesh);
+  const chestGlow = new THREE.Sprite(new THREE.SpriteMaterial({map:T.glow, color:0xFFD874, transparent:true, depthWrite:false}));
+  chestGlow.scale.set(1.7,1.7,1);
+  chestGlow.position.set(chestPos.x, chestPos.y+0.1, chestPos.z);
+  scene.add(chestGlow);
+}
+
+function updateLandmarks(){
+  if(!peakVisited){
+    const d = Math.hypot(P.x-(PEAK.x+0.5), P.z-(PEAK.z+0.5));
+    if(d < 2.5 && P.y > heightAt(PEAK.x,PEAK.z)-1){
+      peakVisited = true;
+      toast('⛰️ Sampai di puncak! Pemandangannya keren ya~', 3200);
+      SFX.weaponUp(); saveWorld();
+    }
+  }
+  if(!caveVisited){
+    const d = Math.hypot(P.x-(caveInfo.chamber.x+0.5), P.z-(caveInfo.chamber.z+0.5));
+    if(d < 3 && Math.abs(P.y-caveInfo.chamber.y) < 3){
+      caveVisited = true;
+      toast('🕯️ Ketemu gua rahasia! Ada yang bersinar di sini~', 3200);
+      SFX.weaponUp(); saveWorld();
+    }
+  }
+  if(!chestOpened && chestPos){
+    const d = Math.hypot(P.x-chestPos.x, P.z-chestPos.z);
+    if(d < 1.6 && Math.abs(P.y-chestPos.y) < 2.5){
+      chestOpened = true;
+      LEGO_COLORS.forEach(([k])=>{ inv[k] = (inv[k]||0)+15; });
+      updateHotbar();
+      toast('🎁 Peti harta karun! +15 Lego tiap warna, hebat berhasil lompat sampai sini!', 3400);
+      SFX.weaponUp(); saveWorld();
+    }
+  }
+}
+
+/* ============================================================
+   PULAU JAUH & IKAN — dunia terasa lebih luas
+   ============================================================ */
+function buildDistantIslands(){
+  const geo = new THREE.SphereGeometry(1,8,6);
+  const mat = new THREE.MeshLambertMaterial({color:0x6CBF4F});
+  [[55,-40,6],[-58,35,8],[24,58,5],[-62,-30,7]].forEach(([ix,iz,isize])=>{
+    const m = new THREE.Mesh(geo, mat);
+    m.scale.set(isize, isize*0.32, isize);
+    m.position.set(ix, 0.4, iz);
+    scene.add(m);
+  });
+}
+const fishes = [];
+function buildFish(){
+  for(let i=0;i<10;i++){
+    const a = Math.random()*Math.PI*2, r = HALF+4+Math.random()*20;
+    const home = {x:Math.cos(a)*r, z:Math.sin(a)*r};
+    const mat = new THREE.SpriteMaterial({map:T.fish, transparent:true, depthWrite:false});
+    const spr = new THREE.Sprite(mat);
+    spr.scale.set(0.5,0.25,1);
+    spr.position.set(home.x, 1.35+Math.random()*0.15, home.z);
+    scene.add(spr);
+    fishes.push({spr, home, phase:Math.random()*10, dir:Math.random()<0.5?1:-1});
+  }
+}
+function updateFish(dt,t){
+  fishes.forEach(f=>{
+    const ang = t*0.3*f.dir + f.phase;
+    f.spr.position.x = f.home.x + Math.cos(ang)*3;
+    f.spr.position.z = f.home.z + Math.sin(ang)*3;
+    f.spr.material.rotation = -ang - (f.dir>0?Math.PI/2:-Math.PI/2);
+  });
+}
+
+/* ============================================================
+   BURUNG — melingkar tinggi di langit, bikin pulau terasa hidup
+   ============================================================ */
+const birds = [];
+function buildBirds(){
+  const mat = new THREE.SpriteMaterial({map:T.bird, transparent:true, depthWrite:false});
+  for(let i=0;i<7;i++){
+    const a = (i/7)*Math.PI*2;
+    const home = {x:Math.cos(a)*(10+Math.random()*9), z:Math.sin(a)*(10+Math.random()*9), y:15+Math.random()*7};
+    const spr = new THREE.Sprite(mat);
+    spr.scale.set(0.9,0.5,1);
+    scene.add(spr);
+    birds.push({spr, home, phase:Math.random()*20, speed:0.22+Math.random()*0.1, dir:Math.random()<0.5?1:-1});
+  }
+}
+function updateBirds(t){
+  birds.forEach(b=>{
+    const ang = t*b.speed*b.dir + b.phase;
+    b.spr.position.set(b.home.x+Math.cos(ang)*9, b.home.y+Math.sin(t*0.6+b.phase)*0.6, b.home.z+Math.sin(ang)*9);
+    b.spr.material.rotation = Math.sin(t*9+b.phase)*0.3;
+  });
+}
+
+/* ============================================================
+   KUNANG-KUNANG — hidup di malam hari, mengikuti siklus siang/malam
+   ============================================================ */
+const fireflies = [];
+function buildFireflies(){
+  for(let i=0;i<16;i++){
+    const a = Math.random()*Math.PI*2, r = Math.random()*(HALF-3);
+    const home = {x:Math.cos(a)*r, z:Math.sin(a)*r};
+    home.y = heightAt(Math.round(home.x), Math.round(home.z));
+    const mat = new THREE.SpriteMaterial({map:T.glowSoft, color:0xCFFF8A, transparent:true, depthWrite:false, opacity:0});
+    const spr = new THREE.Sprite(mat);
+    spr.scale.set(0.22,0.22,1);
+    scene.add(spr);
+    fireflies.push({spr, home, phase:Math.random()*20});
+  }
+}
+function updateFireflies(dt,t){
+  fireflies.forEach(f=>{
+    const {home, phase} = f;
+    f.spr.position.set(home.x+Math.sin(t*0.55+phase)*1.6, home.y+0.9+Math.sin(t*1.7+phase)*0.35, home.z+Math.cos(t*0.5+phase)*1.6);
+    const twinkle = 0.4+0.6*Math.max(0, Math.sin(t*2.4+phase*3));
+    const target = nightAmt*twinkle*0.9;
+    f.spr.material.opacity += (target - f.spr.material.opacity)*Math.min(1, dt*3);
+  });
+}
+
+/* ============================================================
+   CUACA — hujan sesekali, lalu pelangi
+   ============================================================ */
+const RAIN_COUNT = 55;
+const rainDrops = [];
+let rainbowSprite = null;
+function buildWeather(){
+  const geo = new THREE.PlaneGeometry(1,1);
+  for(let i=0;i<RAIN_COUNT;i++){
+    const mat = new THREE.SpriteMaterial({map:T.rain, transparent:true, depthWrite:false, opacity:0});
+    const m = new THREE.Sprite(mat);
+    m.scale.set(0.06,0.6,1);
+    scene.add(m);
+    rainDrops.push({ spr:m, ox:(Math.random()-0.5)*16, oz:(Math.random()-0.5)*16, y:Math.random()*10 });
+  }
+  const rbMat = new THREE.SpriteMaterial({map:T.rainbow, transparent:true, depthWrite:false, opacity:0});
+  rainbowSprite = new THREE.Sprite(rbMat);
+  rainbowSprite.scale.set(70,35,1);
+  rainbowSprite.position.set(0,20,-72);
+  scene.add(rainbowSprite);
+}
+let rainActive=false, rainUntil=0, nextWeatherCheck=45, rainbowUntil=0;
+function updateWeather(dt,t){
+  if(t > nextWeatherCheck){
+    nextWeatherCheck = t + 55 + Math.random()*70;
+    if(!rainActive && Math.random()<0.4){
+      rainActive = true; rainUntil = t + 22 + Math.random()*14;
+      toast('🌧️ Hujan turun sebentar...', 2400);
+    }
+  }
+  if(rainActive && t > rainUntil){
+    rainActive = false;
+    const dayT = (t % DAY_CYCLE) / DAY_CYCLE;
+    if(dayT < 0.5){ rainbowUntil = t + 14; toast('🌈 Lihat, ada pelangi!', 2600); }
+  }
+  const targetOpacity = rainActive ? 0.55 : 0;
+  const k = Math.min(1, dt*3);
+  rainDrops.forEach(d=>{
+    d.spr.material.opacity += (targetOpacity - d.spr.material.opacity)*k;
+    if(rainActive){
+      d.y -= dt*9;
+      if(d.y < 0) d.y = 10;
+      d.spr.position.set(P.x+d.ox, visY+d.y, P.z+d.oz);
+    }
+  });
+  const rbTarget = (t < rainbowUntil) ? 0.85 : 0;
+  rainbowSprite.material.opacity += (rbTarget - rainbowSprite.material.opacity) * Math.min(1, dt*1.5);
+}
+
+let waterMesh = null;
+function buildWater(){
+  const mat = new THREE.MeshLambertMaterial({map:T.water, transparent:true, opacity:0.88});
+  waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(320,320), mat);
+  waterMesh.rotation.x = -Math.PI/2;
+  waterMesh.position.y = 1.6;
+  scene.add(waterMesh);
+}
+
+const clouds = [];
+function buildClouds(){
+  for(let i=0;i<11;i++){
+    const mat = new THREE.SpriteMaterial({map:T.cloud, transparent:true, depthWrite:false, opacity:0.8});
+    const spr = new THREE.Sprite(mat);
+    const s = 9+Math.random()*11;
+    spr.scale.set(s, s*0.55, 1);
+    spr.position.set((Math.random()-0.5)*100, 24+Math.random()*11, (Math.random()-0.5)*100);
+    scene.add(spr);
+    clouds.push({spr, speed:0.25+Math.random()*0.45});
+  }
+}
+
+const butterflies = [];
+function buildButterflies(){
+  for(let i=0;i<9;i++){
+    const a = (i/9)*Math.PI*2;
+    const r = 6+Math.random()*13;
+    const home = {x:Math.cos(a)*r, z:Math.sin(a)*r};
+    home.y = heightAt(home.x, home.z);
+    const mat = new THREE.SpriteMaterial({map:T.butterflies[i%3], transparent:true, depthWrite:false});
+    const spr = new THREE.Sprite(mat);
+    spr.scale.set(0.42,0.42,1);
+    scene.add(spr);
+    butterflies.push({spr, home, phase:Math.random()*10});
+  }
+}
+
+/* ============================================================
+   SIANG & MALAM — siklus lembut, tak pernah benar-benar gelap
+   ============================================================ */
+const DAY_CYCLE = 210;
+const DAY_BG  = 'linear-gradient(180deg,#8FD3EC 0%,#BEE6E0 55%,#DDF1E6 100%)';
+const DUSK_BG = 'linear-gradient(180deg,#FF9D6C 0%,#FF7E6B 45%,#F6C177 100%)';
+const NIGHT_BG= 'linear-gradient(180deg,#28376A 0%,#3B4C82 45%,#5A6494 100%)';
+const DAWN_BG = 'linear-gradient(180deg,#FFC98A 0%,#BEE6E0 55%,#DDF1E6 100%)';
+const SKY_KEYFRAMES = [
+  {at:0.00, bg:DAY_BG,   sun:0.85, hemi:1.0,  hemiSky:0xFFF6E0, hemiGround:0x5A7A55, fog:0xDDF1E6, star:0},
+  {at:0.42, bg:DAY_BG,   sun:0.85, hemi:1.0,  hemiSky:0xFFF6E0, hemiGround:0x5A7A55, fog:0xDDF1E6, star:0},
+  {at:0.52, bg:DUSK_BG,  sun:0.5,  hemi:0.72, hemiSky:0xFFD9A6, hemiGround:0x6B5A46, fog:0xF3A97C, star:0.15},
+  {at:0.62, bg:NIGHT_BG, sun:0.2,  hemi:0.42, hemiSky:0x8FA0D6, hemiGround:0x2B3350, fog:0x3B4C82, star:0.9},
+  {at:0.86, bg:NIGHT_BG, sun:0.2,  hemi:0.42, hemiSky:0x8FA0D6, hemiGround:0x2B3350, fog:0x3B4C82, star:0.9},
+  {at:0.96, bg:DAWN_BG,  sun:0.6,  hemi:0.85, hemiSky:0xFFEBC2, hemiGround:0x5A7A55, fog:0xE7D3A8, star:0.2},
+  {at:1.00, bg:DAY_BG,   sun:0.85, hemi:1.0,  hemiSky:0xFFF6E0, hemiGround:0x5A7A55, fog:0xDDF1E6, star:0}
+];
+function lerpHex(a,b,k){
+  const ar=(a>>16)&255, ag=(a>>8)&255, ab=a&255;
+  const br=(b>>16)&255, bg=(b>>8)&255, bb=b&255;
+  return (Math.round(ar+(br-ar)*k)<<16)|(Math.round(ag+(bg-ag)*k)<<8)|Math.round(ab+(bb-ab)*k);
+}
+function skyAt(dayT){
+  const kf = SKY_KEYFRAMES;
+  for(let i=0;i<kf.length-1;i++){
+    const a=kf[i], b=kf[i+1];
+    if(dayT>=a.at && dayT<=b.at){
+      const span = b.at-a.at;
+      const k = span>0 ? (dayT-a.at)/span : 0;
+      return {
+        sun: a.sun+(b.sun-a.sun)*k,
+        hemi: a.hemi+(b.hemi-a.hemi)*k,
+        hemiSky: lerpHex(a.hemiSky,b.hemiSky,k),
+        hemiGround: lerpHex(a.hemiGround,b.hemiGround,k),
+        fog: lerpHex(a.fog,b.fog,k),
+        star: a.star+(b.star-a.star)*k,
+        bg: k<0.5 ? a.bg : b.bg
+      };
+    }
+  }
+  return kf[0];
+}
+let starGroup, moonSprite, lastSkyBg = '', nightAmt = 0;
+function buildSky(){
+  starGroup = new THREE.Group();
+  for(let i=0;i<40;i++){
+    const mat = new THREE.SpriteMaterial({map:T.glow, color:0xFFFFFF, transparent:true, depthWrite:false, opacity:0});
+    const s = new THREE.Sprite(mat);
+    const a = Math.random()*Math.PI*2, h = 15+Math.random()*45, r = 50+Math.random()*40;
+    s.position.set(Math.cos(a)*r, h, Math.sin(a)*r);
+    const sc = 0.6+Math.random()*0.5;
+    s.scale.set(sc,sc,1);
+    starGroup.add(s);
+  }
+  scene.add(starGroup);
+  const moonMat = new THREE.SpriteMaterial({map:T.cloud, color:0xE9F0FF, transparent:true, depthWrite:false, opacity:0});
+  moonSprite = new THREE.Sprite(moonMat);
+  moonSprite.scale.set(6,6,1);
+  moonSprite.position.set(-46,34,18);
+  scene.add(moonSprite);
+}
+function updateSky(dt,t){
+  const dayT = (t % DAY_CYCLE) / DAY_CYCLE;
+  const sky = skyAt(dayT);
+  const k = Math.min(1, dt*0.6);
+  sunLight.intensity += (sky.sun - sunLight.intensity) * k;
+  hemiLight.intensity += (sky.hemi - hemiLight.intensity) * k;
+  hemiLight.color.setHex(sky.hemiSky);
+  hemiLight.groundColor.setHex(sky.hemiGround);
+  if(scene.fog) scene.fog.color.setHex(sky.fog);
+  if(sky.bg !== lastSkyBg){ lastSkyBg = sky.bg; document.body.style.background = sky.bg; }
+  starGroup.children.forEach(s=>{ s.material.opacity += (sky.star - s.material.opacity)*k; });
+  moonSprite.material.opacity += (sky.star - moonSprite.material.opacity)*k;
+  nightAmt = sky.star;
+  Music.setMood(dayT);
+}
+
+function initThree(){
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xDDF1E6, 30, 66);
+  cam = new THREE.PerspectiveCamera(66, innerWidth/innerHeight, 0.1, 200);
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+  hemiLight = new THREE.HemisphereLight(0xFFF6E0, 0x5A7A55, 1.0);
+  scene.add(hemiLight);
+  sunLight = new THREE.DirectionalLight(0xFFF3D2, 0.8);
+  sunLight.position.set(28,46,16); scene.add(sunLight);
+  clock = new THREE.Clock();
+  buildTextures(); planSpots(); buildWorld(); placeLetters();
+  buildWater(); buildClouds(); buildButterflies(); buildCritters(); buildSky();
+  buildLandmarks(); buildPortal(); buildBridge(); buildDistantIslands(); buildFish(); buildBirds(); buildFireflies(); buildWeather();
+  buildPlayerModel(); buildCompanionModel();
+  loadWorld();
+  const cv = renderer.domElement;
+  cv.addEventListener('click', ()=>{
+    if(!running) return;
+    if(!isTouch && document.pointerLockElement !== cv){ cv.requestPointerLock(); return; }
+    if(!isTouch) mineTarget();
+  });
+  cv.addEventListener('contextmenu', e=>{ e.preventDefault(); if(running && !isTouch) placeTarget(); });
+  addEventListener('mousemove', e=>{
+    if(document.pointerLockElement !== cv) return;
+    P.yaw -= e.movementX*0.0022;
+    P.pitch = Math.max(-0.9, Math.min(1.0, P.pitch - e.movementY*0.0022));
+  });
+  addEventListener('resize', ()=>{
+    cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+}
+
+/* ============================================================
+   MODEL VOXEL — PEMAIN (gaya petualang blocky) & TEMAN (Baby Mo)
+   ============================================================ */
+let playerGroup, playerParts, moGroup, moParts;
+function playerFaceTex(){
+  return tex((x,s)=>{
+    x.fillStyle='#E8B892'; x.fillRect(0,0,s,s);
+    x.fillStyle='rgba(255,148,138,.32)';
+    x.beginPath(); x.arc(s*0.2,s*0.58,s*0.09,0,Math.PI*2); x.fill();
+    x.beginPath(); x.arc(s*0.8,s*0.58,s*0.09,0,Math.PI*2); x.fill();
+    x.strokeStyle='#3A2A1E'; x.lineWidth=s*0.04; x.lineCap='round';
+    x.beginPath(); x.moveTo(s*0.28,s*0.3); x.lineTo(s*0.43,s*0.27); x.stroke();
+    x.beginPath(); x.moveTo(s*0.57,s*0.27); x.lineTo(s*0.72,s*0.3); x.stroke();
+    x.fillStyle='#2A1E14';
+    x.beginPath(); x.arc(s*0.35,s*0.42,s*0.085,0,Math.PI*2); x.fill();
+    x.beginPath(); x.arc(s*0.65,s*0.42,s*0.085,0,Math.PI*2); x.fill();
+    x.fillStyle='#fff';
+    x.beginPath(); x.arc(s*0.37,s*0.395,s*0.028,0,Math.PI*2); x.fill();
+    x.beginPath(); x.arc(s*0.67,s*0.395,s*0.028,0,Math.PI*2); x.fill();
+    x.strokeStyle='#8B5E3C'; x.lineWidth=s*0.045; x.lineCap='round';
+    x.beginPath(); x.arc(s*0.5,s*0.53,s*0.16,0.18*Math.PI,0.82*Math.PI); x.stroke();
+  },64,true);
+}
+function buildPlayerModel(){
+  const g = new THREE.Group();
+  const upper = new THREE.Group(); g.add(upper);
+  // Baby Mo brand palette (matches this file's --green/--gold CSS vars) so
+  // Ibra's outfit reads as part of the same world as Baby Mo and the HUD.
+  const skin  = new THREE.MeshLambertMaterial({color:0xE8B892});
+  const shirt = new THREE.MeshLambertMaterial({color:0x1FA971});
+  const shirtTrim = new THREE.MeshLambertMaterial({color:0xFFD874});
+  const pants = new THREE.MeshLambertMaterial({color:0x5A4A32});
+  const shoe  = new THREE.MeshLambertMaterial({color:0x2B2320});
+  const hairMat = new THREE.MeshLambertMaterial({color:0x3A2A1E});
+  const beltMat = new THREE.MeshLambertMaterial({color:0x9B6818});
+  const packMat = new THREE.MeshLambertMaterial({color:0xE0B84D});
+  const strapMat = new THREE.MeshLambertMaterial({color:0x9B6818});
+
+  const headMats = [skin,skin,skin,skin,skin, new THREE.MeshLambertMaterial({map:playerFaceTex()})];
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), headMats);
+  head.position.y = 1.5; upper.add(head);
+
+  const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.53,0.15,0.53), hairMat);
+  hairTop.position.y = 1.72; upper.add(hairTop);
+  const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.53,0.3,0.16), hairMat);
+  hairBack.position.set(0,1.56,0.17); upper.add(hairBack);
+  const hairSideGeo = new THREE.BoxGeometry(0.08,0.26,0.5);
+  const hairSideL = new THREE.Mesh(hairSideGeo, hairMat);
+  hairSideL.position.set(-0.25,1.58,0); upper.add(hairSideL);
+  const hairSideR = new THREE.Mesh(hairSideGeo, hairMat);
+  hairSideR.position.set(0.25,1.58,0); upper.add(hairSideR);
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.68,0.3), shirt);
+  torso.position.y = 1.06; upper.add(torso);
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.53,0.06,0.32), shirtTrim);
+  collar.position.y = 1.2; upper.add(collar); // just under the head (head bottom is y=1.25) so it isn't buried inside it
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.52,0.08,0.32), beltMat);
+  belt.position.y = 0.72; upper.add(belt);
+
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.4,0.16), packMat);
+  pack.position.set(0,1.08,0.23); upper.add(pack);
+  const strapGeo = new THREE.BoxGeometry(0.07,0.4,0.03);
+  const strapL = new THREE.Mesh(strapGeo, strapMat);
+  strapL.position.set(-0.14,1.16,0.16); upper.add(strapL);
+  const strapR = new THREE.Mesh(strapGeo, strapMat);
+  strapR.position.set(0.14,1.16,0.16); upper.add(strapR);
+
+  const mkLimb = (geo, mat, x, y)=>{
+    const m = new THREE.Mesh(geo, mat);
+    m.geometry = geo.clone();
+    m.geometry.translate(0, -geo.parameters.height/2, 0);
+    m.position.set(x, y, 0);
+    g.add(m);
+    return m;
+  };
+  const mkArm = (x)=>{
+    const shoulder = new THREE.Group();
+    shoulder.position.set(x, 1.4, 0);
+    upper.add(shoulder);
+    const sleeveGeo = new THREE.BoxGeometry(0.18,0.36,0.18); sleeveGeo.translate(0,-0.18,0);
+    const sleeve = new THREE.Mesh(sleeveGeo, shirt); shoulder.add(sleeve);
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.16), skin);
+    hand.position.y = -0.44; shoulder.add(hand);
+    return shoulder;
+  };
+  const legGeo = new THREE.BoxGeometry(0.19,0.66,0.19);
+  const armL = mkArm(-0.33);
+  const armR = mkArm(0.33);
+  const legL = mkLimb(legGeo, pants, -0.12, 0.72);
+  const legR = mkLimb(legGeo, pants,  0.12, 0.72);
+  const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.1,0.24), shoe);
+  shoeL.position.set(-0.12,0.05,0.02); g.add(shoeL);
+  const shoeR = shoeL.clone(); shoeR.position.x = 0.12; g.add(shoeR);
+
+  g.position.set(P.x, P.y, P.z);
+  scene.add(g);
+  playerGroup = g;
+  playerParts = {armL, armR, legL, legR, upper};
+}
+function buildCompanionModel(){
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshLambertMaterial({color:0x2C8A5E});
+  const legMat  = new THREE.MeshLambertMaterial({color:0xE0B84D});
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.36), bodyMat);
+  body.position.y = 0.52; g.add(body);
+
+  const mkLimb = (x)=>{
+    const geo = new THREE.BoxGeometry(0.16,0.32,0.16);
+    geo.translate(0,-0.16,0);
+    const m = new THREE.Mesh(geo, legMat);
+    m.position.set(x, 0.27, 0);
+    g.add(m);
+    return m;
+  };
+  const legL = mkLimb(-0.14), legR = mkLimb(0.14);
+
+  let face = null;
+  try{
+    const faceTex = new THREE.TextureLoader().load('baby-mo-poses/baby-mo-pose-05.png');
+    face = new THREE.Sprite(new THREE.SpriteMaterial({map:faceTex, transparent:true}));
+    face.scale.set(0.85,0.85,1);
+    face.position.y = 1.02;
+    g.add(face);
+  }catch(e){}
+
+  g.position.set(P.x-1.6, P.y, P.z+1.1);
+  scene.add(g);
+  moGroup = g;
+  moParts = {legL, legR, face};
+  moState.x = g.position.x; moState.z = g.position.z; moState.y = g.position.y;
+}
+const moState = {x:0,y:0,z:0};
+
+/* ============================================================
+   SENJATA — tumbuh seiring huruf yang ditemukan
+   ============================================================ */
+const WEAPON_TIERS = [
+  {min:1,  name:'Tongkat Kayu',    blade:0x8A5C38, guard:0x6B4423, len:0.36},
+  {min:8,  name:'Pedang Kayu',     blade:0xA97A50, guard:0x6B4423, len:0.44},
+  {min:15, name:'Pedang Batu',     blade:0x9DA4AB, guard:0x5A5F66, len:0.5},
+  {min:22, name:'Pedang Hijaiyah', blade:0xE0B84D, guard:0x9B6818, len:0.56}
+];
+let currentWeaponTier = -1, weaponMesh = null, attackAnim = 0;
+function tierForCount(n){
+  let t = -1;
+  WEAPON_TIERS.forEach((w,i)=>{ if(n>=w.min) t=i; });
+  return t;
+}
+function buildWeaponMesh(tier){
+  const w = WEAPON_TIERS[tier];
+  const g = new THREE.Group();
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07,w.len,0.02), new THREE.MeshLambertMaterial({color:w.blade}));
+  blade.position.y = w.len/2 + 0.06; g.add(blade);
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.05,0.05), new THREE.MeshLambertMaterial({color:w.guard}));
+  guard.position.y = 0.06; g.add(guard);
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.12,0.06), new THREE.MeshLambertMaterial({color:0x3A2A1E}));
+  grip.position.y = -0.02; g.add(grip);
+  return g;
+}
+function updateWeapon(announce){
+  const tier = tierForCount(collected.size);
+  if(tier === currentWeaponTier) return;
+  const leveledUp = tier > currentWeaponTier;
+  currentWeaponTier = tier;
+  if(weaponMesh){ playerParts.armR.remove(weaponMesh); weaponMesh = null; }
+  if(tier >= 0){
+    weaponMesh = buildWeaponMesh(tier);
+    weaponMesh.position.set(0, -0.5, 0.05);
+    weaponMesh.rotation.z = -0.4;
+    playerParts.armR.add(weaponMesh);
+    if(announce && leveledUp){
+      const w = WEAPON_TIERS[tier];
+      SFX.weaponUp(); haptic([12,40,18]);
+      setTimeout(()=>toast((tier===0?'🗡️ Bonus! Dapat ':'⚔️ Bonus! Senjata naik jadi ')+w.name+'!'), 1600);
+    }
+  }
+}
+
+/* ============================================================
+   MAKHLUK USIL — bonus mini-game aman, tanpa bahaya untuk Ibra
+   ============================================================ */
+const CRITTER_COLORS = [0x7FC8A9,0xF4A6B7,0xF7D060,0x9E9FFF,0xFF9F6B];
+const critters = [];
+function spawnCritterHome(){
+  const a = Math.random()*Math.PI*2, r = 4+Math.random()*15;
+  return {x:Math.cos(a)*r, z:Math.sin(a)*r};
+}
+function buildCritters(){
+  for(let i=0;i<7;i++){
+    const home = spawnCritterHome();
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.26,10,8),
+      new THREE.MeshLambertMaterial({color:CRITTER_COLORS[i%CRITTER_COLORS.length]}));
+    body.scale.set(1,0.82,1); g.add(body);
+    const eyeGeo = new THREE.SphereGeometry(0.042,6,6);
+    const eyeMat = new THREE.MeshBasicMaterial({color:0x1A1A1A});
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.09,0.05,0.22); g.add(eyeL);
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(0.09,0.05,0.22); g.add(eyeR);
+    g.position.set(home.x, heightAt(home.x,home.z)+0.3, home.z);
+    scene.add(g);
+    critters.push({ group:g, home, tx:home.x, tz:home.z, waitT:Math.random()*2, popped:false, respawnAt:0, phase:Math.random()*10, tamed:false, name:null });
+  }
+}
+let tamedCritter = null;
+const PET_NAMES = ['Kelip','Momo','Boba','Kiki','Dodo','Tutu','Miko','Coco'];
+function updateCritters(dt,t){
+  critters.forEach(c=>{
+    if(c.tamed){
+      const ang = P.yaw - 2.35;
+      const tx = P.x + Math.sin(ang)*1.5;
+      const tz = P.z + Math.cos(ang)*1.5;
+      const k = Math.min(1, dt*2.0);
+      const gx = c.group.position.x + (tx-c.group.position.x)*k;
+      const gz = c.group.position.z + (tz-c.group.position.z)*k;
+      const bob = Math.abs(Math.sin(t*5+c.phase))*0.1;
+      c.group.position.set(gx, heightAt(gx,gz)+0.3+bob, gz);
+      if(Math.hypot(tx-gx, tz-gz) > 0.05) c.group.rotation.y = Math.atan2(tx-gx, tz-gz);
+      return;
+    }
+    if(c.popped){
+      if(t >= c.respawnAt){
+        c.popped = false;
+        c.home = spawnCritterHome();
+        c.group.position.set(c.home.x, heightAt(c.home.x,c.home.z)+0.3, c.home.z);
+        c.group.visible = true;
+        c.tx = c.home.x; c.tz = c.home.z; c.waitT = 1+Math.random()*2;
+      }
+      return;
+    }
+    c.waitT -= dt;
+    if(c.waitT <= 0){
+      const a = Math.random()*Math.PI*2, r = 1+Math.random()*2.5;
+      c.tx = c.home.x + Math.cos(a)*r; c.tz = c.home.z + Math.sin(a)*r;
+      c.waitT = 1.5+Math.random()*2.5;
+    }
+    const k = Math.min(1, dt*1.2);
+    const gx = c.group.position.x + (c.tx-c.group.position.x)*k;
+    const gz = c.group.position.z + (c.tz-c.group.position.z)*k;
+    const bob = Math.abs(Math.sin(t*3+c.phase))*0.08;
+    c.group.position.set(gx, heightAt(gx,gz)+0.3+bob, gz);
+    if(Math.hypot(c.tx-gx, c.tz-gz) > 0.05) c.group.rotation.y = Math.atan2(c.tx-gx, c.tz-gz);
+  });
+}
+function popCritter(c, t){
+  c.popped = true;
+  c.respawnAt = t + 6 + Math.random()*4;
+  c.group.visible = false;
+  spawnBurst(c.group.position.x, c.group.position.y+0.2, c.group.position.z, 0xFFD874);
+  SFX.critterPop(); haptic([10,25,10]);
+  toast('✨ Kena! Makhluk usilnya kabur sebentar~');
+}
+function tameCritter(c){
+  c.tamed = true;
+  c.name = PET_NAMES[(Math.random()*PET_NAMES.length)|0];
+  tamedCritter = c;
+  spawnBurst(c.group.position.x, c.group.position.y+0.2, c.group.position.z, 0xFF9F6B);
+  SFX.critterPop(); haptic([12,30,12,30,20]);
+  toast('🐾 '+c.name+' jadi teman barumu! Dia bakal ikut kamu terus~', 3600);
+  saveWorld();
+}
+const bursts = [];
+function spawnBurst(x,y,z,color){
+  for(let i=0;i<8;i++){
+    const mat = new THREE.SpriteMaterial({map:T.glow, color, transparent:true, depthWrite:false});
+    const spr = new THREE.Sprite(mat);
+    spr.scale.set(0.32,0.32,1);
+    spr.position.set(x,y,z);
+    scene.add(spr);
+    const ang = Math.random()*Math.PI*2, spd = 0.8+Math.random()*1.2;
+    bursts.push({ spr, vx:Math.cos(ang)*spd, vz:Math.sin(ang)*spd, vy:1.3+Math.random()*0.8, life:0.55, maxLife:0.55 });
+  }
+}
+function spawnDust(x,y,z,color){
+  for(let i=0;i<5;i++){
+    const mat = new THREE.SpriteMaterial({map:T.glow, color, transparent:true, depthWrite:false, opacity:0.75});
+    const spr = new THREE.Sprite(mat);
+    spr.scale.set(0.16,0.16,1);
+    spr.position.set(x,y,z);
+    scene.add(spr);
+    const ang = Math.random()*Math.PI*2, spd = 0.4+Math.random()*0.6;
+    bursts.push({ spr, vx:Math.cos(ang)*spd, vz:Math.sin(ang)*spd, vy:0.5+Math.random()*0.4, life:0.3, maxLife:0.3 });
+  }
+}
+function updateBursts(dt){
+  for(let i=bursts.length-1;i>=0;i--){
+    const b = bursts[i];
+    b.life -= dt;
+    if(b.life <= 0){ scene.remove(b.spr); b.spr.material.dispose(); bursts.splice(i,1); continue; }
+    b.spr.position.x += b.vx*dt; b.spr.position.z += b.vz*dt;
+    b.spr.position.y += b.vy*dt; b.vy -= 3*dt;
+    b.spr.material.opacity = Math.max(0, b.life/b.maxLife);
+  }
+}
+
+/* ============================================================
+   PEMAIN — gerak & fisika
+   ============================================================ */
+const P = { x:0.5, y:heightAt(0,0)+1, z:5.5, vy:0, yaw:Math.PI, pitch:0.35, ground:true };
+const keys = {};
+const move = {x:0, y:0};
+let running = false;
+
+function hits(x,y,z){
+  const x0=Math.floor(x-0.3), x1=Math.floor(x+0.3);
+  const y0=Math.floor(y+0.05),y1=Math.floor(y+1.6);
+  const z0=Math.floor(z-0.3), z1=Math.floor(z+0.3);
+  for(let a=x0;a<=x1;a++)for(let b=y0;b<=y1;b++)for(let c=z0;c<=z1;c++)
+    if(solidAt(a,b,c)) return true;
+  return false;
+}
+
+let lastSpeed = 0;
+let visY = P.y;
+let flyMode = false;
+let landKick = 0;
+let edgeNotified = false;
+function step(dt){
+  const wasGrounded = P.ground;
+  const sp = flyMode ? 5.6 : 4.4;
+  let fx = 0, fz = 0;
+  if(keys['w']||keys['arrowup']) fz -= 1;
+  if(keys['s']||keys['arrowdown']) fz += 1;
+  if(keys['a']||keys['arrowleft']) fx -= 1;
+  if(keys['d']||keys['arrowright']) fx += 1;
+  fx += move.x; fz += move.y;
+  const len = Math.hypot(fx,fz);
+  if(len>1){ fx/=len; fz/=len; }
+  lastSpeed = len;
+
+  const sin = Math.sin(P.yaw), cos = Math.cos(P.yaw);
+  const dx = ( fx*cos + fz*sin) * sp * dt;
+  const dz = (-fx*sin + fz*cos) * sp * dt;
+
+  const ox = P.x, oz = P.z;
+  P.x += dx;
+  if(hits(P.x,P.y,P.z)){
+    if(!flyMode && P.ground && !hits(P.x, P.y+1, P.z)) P.y += 1;
+    else P.x = ox;
+  }
+  P.z += dz;
+  if(hits(P.x,P.y,P.z)){
+    if(!flyMode && P.ground && !hits(P.x, P.y+1, P.z)) P.y += 1;
+    else P.z = oz;
+  }
+
+  if(flyMode){
+    if(keys['space']) P.vy = Math.min(P.vy + 22*dt, 4.4);
+    else P.vy = Math.max(P.vy - 9*dt, -2.2);
+    P.y += P.vy*dt;
+    P.ground = false;
+    if(P.y < 1.2){ P.y = 1.2; P.vy = 0; }
+    if(P.y > 30){ P.y = 30; P.vy = 0; }
+  } else {
+    P.vy -= 24*dt;
+    if(P.vy < -30) P.vy = -30;
+    const preVy = P.vy;
+    P.y += P.vy*dt;
+    P.ground = false;
+    if(hits(P.x,P.y,P.z)){
+      if(P.vy <= 0){
+        P.y = Math.ceil(P.y); P.ground = true;
+        if(!wasGrounded && preVy < -3.5) landKick = Math.min(0.3, -preVy*0.03);
+      }
+      else P.y = Math.floor(P.y+1.6) - 1.6 - 0.02;
+      P.vy = 0;
+    }
+    if(P.y < -8){ P.x=0.5; P.z=5.5; P.y=heightAt(0,0)+2; P.vy=0; }
+  }
+
+  const lim = HALF - 2.4;
+  const cx = Math.max(-lim, Math.min(lim, P.x));
+  const cz = Math.max(-lim, Math.min(lim, P.z));
+  if((cx !== P.x || cz !== P.z) && !edgeNotified){
+    edgeNotified = true;
+    toast('🏝️ Ini ujung pulaunya! Baliklah ke tengah yuk~', 2600);
+  } else if(Math.abs(P.x) < lim-1.5 && Math.abs(P.z) < lim-1.5){
+    edgeNotified = false;
+  }
+  P.x = cx; P.z = cz;
+}
+function jump(){
+  if(flyMode) return;
+  if(P.ground){ P.vy = 8.2; P.ground = false; SFX.jump(); }
+}
+
+function updateCamera(){
+  const dist = 5.2, height = 1.15;
+  const horiz = dist*Math.cos(P.pitch);
+  const camX = P.x + Math.sin(P.yaw)*horiz;
+  const camZ = P.z + Math.cos(P.yaw)*horiz;
+  let camY = visY + height + dist*Math.sin(P.pitch) - landKick;
+  const floorY = heightAt(camX,camZ)+0.7;
+  if(camY < floorY) camY = floorY;
+  cam.position.set(camX, camY, camZ);
+  cam.lookAt(P.x, visY+1.15, P.z);
+}
+let footTimer = 0;
+function updatePlayerModel(dt,t){
+  playerGroup.position.set(P.x, visY, P.z);
+  playerGroup.rotation.y = P.yaw;
+  const amt = Math.min(1, lastSpeed) * (P.ground?1:0.4);
+  const swing = Math.sin(t*9)*0.55*amt;
+  playerParts.armL.rotation.x = swing;
+  if(attackAnim > 0){
+    attackAnim = Math.max(0, attackAnim-dt);
+    const p = 1 - attackAnim/0.18;
+    playerParts.armR.rotation.x = -2.0 + Math.sin(p*Math.PI)*1.1;
+  } else {
+    playerParts.armR.rotation.x = -swing;
+  }
+  playerParts.legL.rotation.x = -swing;
+  playerParts.legR.rotation.x = swing;
+  playerParts.upper.position.y = Math.sin(t*1.6)*0.012*(1-Math.min(1,lastSpeed*3));
+  if(lastSpeed > 0.15 && !flyMode && Math.abs(P.y-visY) < 1.2){
+    footTimer -= dt;
+    if(footTimer <= 0){
+      footTimer = 0.3;
+      spawnDust(P.x, visY+0.06, P.z, 0xC9B486);
+    }
+  } else {
+    footTimer = 0.08;
+  }
+}
+let celebrating = false, celebrateUntil = 0;
+function updateCompanion(dt,t){
+  if(celebrating && t > celebrateUntil) celebrating = false;
+  const tx = P.x + Math.sin(P.yaw+0.7)*1.9;
+  const tz = P.z + Math.cos(P.yaw+0.7)*1.9;
+  const k = Math.min(1, dt*2.4);
+  moState.x += (tx-moState.x)*k;
+  moState.z += (tz-moState.z)*k;
+  const gy = heightAt(moState.x, moState.z);
+  moState.y += (gy-moState.y)*Math.min(1,dt*5);
+  const bob = celebrating ? Math.abs(Math.sin(t*9))*0.28 : Math.sin(t*2.4)*0.05;
+  moGroup.position.set(moState.x, moState.y + bob, moState.z);
+  if(celebrating){
+    moGroup.rotation.y += dt*7;
+  } else {
+    moGroup.rotation.y = Math.atan2(P.x-moState.x, P.z-moState.z);
+  }
+  const moving = Math.hypot(tx-moState.x, tz-moState.z) > 0.08;
+  const swing = (moving || celebrating) ? Math.sin(t*8)*0.5 : 0;
+  moParts.legL.rotation.x = swing; moParts.legR.rotation.x = -swing;
+}
+
+/* ============================================================
+   GALI & BANGUN
+   ============================================================ */
+const inv = {grassTop:14, dirt:14, stone:14, sand:10, wood:12, leaf:10,
+  legoRed:60, legoBlue:60, legoYellow:60, legoGreen:60, legoOrange:60, legoWhite:60};
+let selectedSlot = 0;
+function raycastVoxel(origin, dir, maxDist){
+  const step = 0.08;
+  let px=origin.x, py=origin.y, pz=origin.z, before=null;
+  for(let t=0;t<maxDist;t+=step){
+    const x=Math.floor(px), y=Math.floor(py), z=Math.floor(pz);
+    if(solidAt(x,y,z)) return {x,y,z,before};
+    before = {x,y,z};
+    px += dir.x*step; py += dir.y*step; pz += dir.z*step;
+  }
+  return null;
+}
+function playerOccupies(x,y,z){
+  const x0=Math.floor(P.x-0.3), x1=Math.floor(P.x+0.3);
+  const y0=Math.floor(P.y+0.05),y1=Math.floor(P.y+1.6);
+  const z0=Math.floor(P.z-0.3), z1=Math.floor(P.z+0.3);
+  return x>=x0&&x<=x1&&y>=y0&&y<=y1&&z>=z0&&z<=z1;
+}
+function mineTarget(){
+  const dir = new THREE.Vector3(); cam.getWorldDirection(dir);
+  const eye = new THREE.Vector3(P.x, visY+1.15, P.z);
+  const hit = raycastVoxel(eye, dir, 6);
+  if(!hit){ toast('Tidak ada balok di sana'); return; }
+  const {x,y,z} = hit;
+  if(y<=0){ toast('Sudah sampai dasar pulau'); return; }
+  const k = key(x,y,z);
+  let type = null;
+  if(placedBlocks.has(k)){
+    const rec = placedBlocks.get(k);
+    scene.remove(rec.mesh);
+    placedBlocks.delete(k);
+    type = rec.type;
+  }else if(blockIndex.has(k) && !blockIndex.get(k).taken){
+    const rec = blockIndex.get(k);
+    hideInstance(rec); rec.taken = true;
+    type = rec.type;
+  }else return;
+  solids.delete(k);
+  inv[type] = (inv[type]||0)+1;
+  SFX.mine(); haptic(8); mineCount++;
+  spawnDust(x+0.5, y+0.5, z+0.5, BLOCK_DEBRIS_COLOR[type]||0xAAAAAA);
+  updateHotbar(); saveWorld();
+}
+function placeTarget(){
+  const dir = new THREE.Vector3(); cam.getWorldDirection(dir);
+  const eye = new THREE.Vector3(P.x, visY+1.15, P.z);
+  const hit = raycastVoxel(eye, dir, 6);
+  if(!hit || !hit.before){ toast('Arahkan ke tempat kosong'); return; }
+  const {x,y,z} = hit.before;
+  if(y<0 || y>MAXH+3 || Math.abs(x)>=HALF || Math.abs(z)>=HALF) return;
+  const k = key(x,y,z);
+  if(solidAt(x,y,z) || playerOccupies(x,y,z)) return;
+  const type = HOTBAR[selectedSlot];
+  if((inv[type]||0)<=0){ toast('Balok habis, gali dulu ya!'); return; }
+  const mesh = new THREE.Mesh(blockGeo, MATS[type]);
+  mesh.position.set(x+0.5, y+0.5, z+0.5);
+  scene.add(mesh);
+  placedBlocks.set(k, {mesh, type});
+  solids.add(k);
+  inv[type]--;
+  SFX.place(); haptic(8); placeCount++;
+  spawnDust(x+0.5, y+0.5, z+0.5, BLOCK_DEBRIS_COLOR[type]||0xAAAAAA);
+  updateHotbar(); saveWorld();
+}
+
+/* ============================================================
+   HURUF — kuil harta karun (tanpa urutan, tanpa paksaan)
+   ============================================================ */
+const collected = new Set();
+function proximity(t){
+  if(!running) return;
+  for(const b of letterBlocks){
+    if(b.taken) continue;
+    const d = Math.hypot(b.mesh.position.x-P.x, b.mesh.position.z-P.z);
+    const dy = Math.abs(b.base-(P.y+0.9));
+    if(d<1.5 && dy<2.2) collectLetter(b);
+  }
+  for(const c of critters){
+    if(c.popped || c.tamed) continue;
+    const d = Math.hypot(c.group.position.x-P.x, c.group.position.z-P.z);
+    if(d < 1.1){
+      if(currentWeaponTier >= 0){
+        if(!tamedCritter) tameCritter(c);
+        else popCritter(c, t);
+        attackAnim = 0.18;
+      } else {
+        c.tx = c.group.position.x + (c.group.position.x-P.x)*3;
+        c.tz = c.group.position.z + (c.group.position.z-P.z)*3;
+        c.waitT = 0.1;
+      }
+    }
+  }
+}
+function collectLetter(b){
+  b.taken = true; b.mesh.visible = false; b.glow.visible = false;
+  collected.add(b.i);
+  updateJournalBadge();
+  updateWeapon(true);
+  SFX.letterFound(); haptic(15);
+  toast('✨ Ditemukan: '+b.letter.name+' — '+b.letter.ar);
+  Speech.say([{ar:b.letter.ar, lat:b.letter.name}]);
+  saveWorld();
+  if(collected.size === L.length){
+    setTimeout(()=>{
+      toast('🏆 Semua 28 huruf hijaiyah ditemukan, hebat Ibra!', 4200);
+      SFX.finale(); haptic([15,60,15,60,15,80,30]);
+      celebrating = true; celebrateUntil = performance.now()/1000 + 6;
+      fireworksAt(P.x, visY+2, P.z);
+      setTimeout(()=>fireworksAt(P.x, visY+2, P.z), 900);
+      setTimeout(()=>fireworksAt(P.x, visY+2, P.z), 1900);
+    }, 1700);
+  }
+}
+function fireworksAt(cx, cy, cz){
+  const colors = [0xFFD874, 0xFF6F91, 0x8FD3EC, 0x7FC8A9, 0xE0B84D];
+  for(let i=0;i<6;i++){
+    setTimeout(()=>{
+      const ox = cx + (Math.random()-0.5)*6;
+      const oz = cz + (Math.random()-0.5)*6;
+      const oy = cy + 2 + Math.random()*3;
+      spawnBurst(ox, oy, oz, colors[i%colors.length]);
+    }, i*180);
+  }
+}
+
+/* ============================================================
+   PENYIMPANAN
+   ============================================================ */
+const SAVE_KEY = 'bm-pulau-hijaiyah-v1';
+let isFirstTime = true;
+try{ isFirstTime = !localStorage.getItem(SAVE_KEY); }catch(e){}
+let mineCount = 0, placeCount = 0;
+function saveWorld(){
+  try{
+    const mined = [];
+    blockIndex.forEach((rec,k)=>{ if(rec.taken) mined.push(k); });
+    const placed = [];
+    placedBlocks.forEach((rec,k)=>{ placed.push(k+'|'+rec.type); });
+    const petIdx = tamedCritter ? critters.indexOf(tamedCritter) : -1;
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ collected:[...collected], mined, placed, inv, flyMode, sfxOn, musicOn, petIdx, petName: tamedCritter ? tamedCritter.name : null, peakVisited, caveVisited, chestOpened }));
+  }catch(e){}
+}
+function loadWorld(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    (data.collected||[]).forEach(i=>{
+      const b = letterBlocks[i]; if(!b) return;
+      b.taken = true; b.mesh.visible = false; b.glow.visible = false; collected.add(i);
+    });
+    (data.mined||[]).forEach(k=>{
+      const rec = blockIndex.get(k);
+      if(rec && !rec.taken){ hideInstance(rec); rec.taken = true; solids.delete(k); }
+    });
+    (data.placed||[]).forEach(entry=>{
+      const [k,type] = entry.split('|');
+      if(!MATS[type]) return;
+      const [x,y,z] = k.split(',').map(Number);
+      if(solidAt(x,y,z)) return;
+      const mesh = new THREE.Mesh(blockGeo, MATS[type]);
+      mesh.position.set(x+0.5,y+0.5,z+0.5);
+      scene.add(mesh);
+      placedBlocks.set(k,{mesh,type});
+      solids.add(k);
+    });
+    if(data.inv) Object.assign(inv, data.inv);
+    if(typeof data.flyMode === 'boolean') flyMode = data.flyMode;
+    if(typeof data.sfxOn === 'boolean') sfxOn = data.sfxOn;
+    if(typeof data.musicOn === 'boolean') musicOn = data.musicOn;
+    if(typeof data.petIdx === 'number' && data.petIdx >= 0 && critters[data.petIdx]){
+      const pet = critters[data.petIdx];
+      pet.tamed = true; pet.name = data.petName || PET_NAMES[0];
+      tamedCritter = pet;
+    }
+    if(typeof data.peakVisited === 'boolean') peakVisited = data.peakVisited;
+    if(typeof data.caveVisited === 'boolean') caveVisited = data.caveVisited;
+    if(typeof data.chestOpened === 'boolean') chestOpened = data.chestOpened;
+    updateWeapon(false);
+  }catch(e){}
+}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+const $ = s=>document.querySelector(s);
+const veil = { start:$('#vStart'), journal:$('#vJournal'), menu:$('#vMenu') };
+function toast(msg, ms){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), ms||2000);
+}
+function updateJournalBadge(){ $('#jCount').textContent = collected.size+' / '+L.length; }
+function buildHotbar(){
+  const el = $('#hotbar'); el.innerHTML = '';
+  HOTBAR.forEach((type,i)=>{
+    const d = document.createElement('button');
+    d.type = 'button'; d.className = 'slot'+(i===selectedSlot?' active':'');
+    d.style.backgroundImage = 'url('+T[type].image.toDataURL()+')';
+    d.title = HOTBAR_LABEL[type];
+    const b = document.createElement('b'); b.textContent = inv[type]||0;
+    d.appendChild(b);
+    d.onclick = ()=>{ selectedSlot = i; updateHotbar(); };
+    el.appendChild(d);
+  });
+}
+function updateHotbar(){
+  const el = $('#hotbar');
+  [...el.children].forEach((d,i)=>{
+    d.classList.toggle('active', i===selectedSlot);
+    d.querySelector('b').textContent = inv[HOTBAR[i]]||0;
+  });
+}
+function buildJournal(){
+  const grid = $('#journalGrid'); grid.innerHTML = '';
+  L.forEach((letter,i)=>{
+    const c = document.createElement('button');
+    c.type = 'button';
+    const isOn = collected.has(i);
+    c.className = 'jcell'+(isOn?'':' locked');
+    c.innerHTML = isOn
+      ? '<div class="g">'+letter.g+'</div><div class="l">'+letter.name+'</div>'
+      : '<div class="g">?</div>';
+    c.onclick = ()=>{
+      if(!collected.has(i)){ toast('Belum ditemukan — cari terus ya!'); return; }
+      Speech.say([{ar:letter.ar,lat:letter.name},{ar:letter.drill.join(' ، '),lat:letter.drillLat.join(', '),gap:150}]);
+    };
+    grid.appendChild(c);
+  });
+}
+
+/* ============================================================
+   BAGIKAN — kartu bermerek dari cuplikan pulau sungguhan
+   ============================================================ */
+function dataURLtoFile(dataURL, name){
+  const parts = dataURL.split(',');
+  const mime = (parts[0].match(/:(.*?);/)||[])[1] || 'image/png';
+  const bstr = atob(parts[1]);
+  let n = bstr.length;
+  const u8 = new Uint8Array(n);
+  while(n--) u8[n] = bstr.charCodeAt(n);
+  return new File([u8], name, {type:mime});
+}
+function buildShareCardDataURL(){
+  const shotCanvas = renderer.domElement;
+  const W = 1080, H = 1350;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.fillStyle = '#0A2118'; x.fillRect(0,0,W,H);
+  const shotH = Math.round(H*0.7);
+  const sw = shotCanvas.width, sh = shotCanvas.height;
+  if(sw>0 && sh>0){
+    const scale = Math.max(W/sw, shotH/sh);
+    const dw = sw*scale, dh = sh*scale;
+    x.drawImage(shotCanvas, (W-dw)/2, (shotH-dh)/2, dw, dh);
+  }
+  const g = x.createLinearGradient(0,shotH,0,H);
+  g.addColorStop(0,'#0F2016'); g.addColorStop(1,'#0A1811');
+  x.fillStyle = g; x.fillRect(0,shotH,W,H-shotH);
+  x.fillStyle = 'rgba(224,184,77,.6)'; x.fillRect(0,shotH,W,3);
+  x.textAlign = 'center';
+  x.fillStyle = '#E0B84D';
+  x.font = '800 34px Nunito, system-ui, sans-serif';
+  x.fillText('🌙 BABY MO', W/2, shotH+70);
+  x.fillStyle = '#F2F7F2';
+  x.font = '900 54px Nunito, system-ui, sans-serif';
+  x.fillText('Pulau Hijaiyah', W/2, shotH+140);
+  x.fillStyle = '#9FB5A8';
+  x.font = '700 30px Nunito, system-ui, sans-serif';
+  const wname = currentWeaponTier>=0 ? WEAPON_TIERS[currentWeaponTier].name : 'Belum ada senjata';
+  x.fillText('📖 '+collected.size+' / '+L.length+' huruf ditemukan  ·  ⚔️ '+wname, W/2, shotH+195);
+  x.fillStyle = '#E0B84D';
+  x.font = '900 30px Nunito, system-ui, sans-serif';
+  x.fillText('play.babymo.id', W/2, H-38);
+  return c.toDataURL('image/png');
+}
+function shareBuild(){
+  try{
+    const url = 'https://play.babymo.id/babymo-hijaiyah.html';
+    const text = '🌙 Pulau Hijaiyah — Baby Mo\nIbra sudah temukan '+collected.size+'/'+L.length+' huruf hijaiyah sambil membangun pulaunya sendiri!\n'+url+'\n#BabyMo #BelajarIslam';
+    const dataURL = buildShareCardDataURL();
+    const file = dataURL ? dataURLtoFile(dataURL, 'pulau-hijaiyah.png') : null;
+    if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+      navigator.share({files:[file], text, title:'Pulau Hijaiyah'}).catch(()=>{});
+      return;
+    }
+    if(navigator.share){
+      navigator.share({title:'Pulau Hijaiyah', text, url}).catch(()=>{});
+      return;
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(()=>toast('📋 Tautan disalin!'));
+      return;
+    }
+    window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
+  }catch(e){ toast('Gagal membagikan, coba lagi ya'); }
+}
+
+/* ============================================================
+   AJAKAN MEMBANGUN — Baby Mo sesekali kasih ide, bukan target
+   ============================================================ */
+const BUILD_PROMPTS = [
+  '🏠 Baby Mo: "Yuk coba bangun rumah kecil!"',
+  '🕌 Baby Mo: "Bangun masjid mini, gimana?"',
+  '🌉 Baby Mo: "Bikin jembatan di atas air, yuk!"',
+  '🗼 Baby Mo: "Coba bangun menara paling tinggi!"',
+  '🌳 Baby Mo: "Tanam \'taman\' kecil di sekitar sini!"',
+  '🚧 Baby Mo: "Buat pagar sekeliling rumahmu!"',
+  '⛺ Baby Mo: "Bikin tenda buat istirahat, seru tuh!"'
+];
+let nextBuildPromptAt = 75;
+const usedPromptIdx = new Set();
+function maybeBuildPrompt(t){
+  if(!running || t < nextBuildPromptAt) return;
+  nextBuildPromptAt = t + 100 + Math.random()*60;
+  if(usedPromptIdx.size >= BUILD_PROMPTS.length) usedPromptIdx.clear();
+  let idx;
+  do{ idx = Math.floor(Math.random()*BUILD_PROMPTS.length); }
+  while(usedPromptIdx.has(idx) && usedPromptIdx.size < BUILD_PROMPTS.length-1);
+  usedPromptIdx.add(idx);
+  toast(BUILD_PROMPTS[idx], 3400);
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+const isTouch = matchMedia('(hover:none) and (pointer:coarse)').matches;
+if(!isTouch) document.body.classList.add('desktop');
+
+addEventListener('keydown', e=>{
+  keys[e.key.toLowerCase()] = true;
+  if(e.code === 'Space'){ e.preventDefault(); keys['space'] = true; jump(); }
+  if(e.key === 'Escape' && running) openMenu();
+});
+addEventListener('keyup', e=>{
+  keys[e.key.toLowerCase()] = false;
+  if(e.code === 'Space') keys['space'] = false;
+});
+
+(function(){
+  const el = $('#stick'), knob = $('#knob');
+  let id = null, cx = 0, cy = 0;
+  const R = 50;
+  el.addEventListener('touchstart', e=>{
+    const t = e.changedTouches[0]; id = t.identifier;
+    const r = el.getBoundingClientRect(); cx = r.left+r.width/2; cy = r.top+r.height/2;
+    e.preventDefault();
+  }, {passive:false});
+  el.addEventListener('touchmove', e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier !== id) continue;
+      let dx = t.clientX-cx, dy = t.clientY-cy;
+      const d = Math.hypot(dx,dy) || 1;
+      const k = Math.min(1, d/R);
+      dx = dx/d*k; dy = dy/d*k;
+      move.x = dx; move.y = dy;
+      knob.style.transform = 'translate('+(dx*R)+'px,'+(dy*R)+'px)';
+    }
+    e.preventDefault();
+  }, {passive:false});
+  const end = e=>{
+    for(const t of e.changedTouches) if(t.identifier === id){
+      id = null; move.x = move.y = 0; knob.style.transform = '';
+    }
+  };
+  el.addEventListener('touchend', end); el.addEventListener('touchcancel', end);
+})();
+
+(function(){
+  let id = null, lx = 0, ly = 0;
+  addEventListener('touchstart', e=>{
+    if(!running) return;
+    for(const t of e.changedTouches){
+      if(t.clientX < innerWidth*0.42) continue;
+      if(t.target.closest('button, .panel')) continue;
+      id = t.identifier; lx = t.clientX; ly = t.clientY; break;
+    }
+  }, {passive:true});
+  addEventListener('touchmove', e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier !== id) continue;
+      P.yaw -= (t.clientX-lx)*0.0055;
+      P.pitch = Math.max(-0.9, Math.min(1.0, P.pitch - (t.clientY-ly)*0.0055));
+      lx = t.clientX; ly = t.clientY;
+    }
+  }, {passive:true});
+  const end = e=>{ for(const t of e.changedTouches) if(t.identifier===id) id = null; };
+  addEventListener('touchend', end); addEventListener('touchcancel', end);
+})();
+
+$('#btnJump').addEventListener('touchstart', e=>{ e.preventDefault(); keys['space']=true; jump(); }, {passive:false});
+$('#btnJump').addEventListener('touchend', ()=>{ keys['space']=false; }, {passive:true});
+$('#btnJump').addEventListener('touchcancel', ()=>{ keys['space']=false; }, {passive:true});
+$('#btnJump').addEventListener('click', jump);
+$('#btnMine').addEventListener('touchstart', e=>{ e.preventDefault(); if(running) mineTarget(); }, {passive:false});
+$('#btnMine').addEventListener('click', ()=>{ if(running) mineTarget(); });
+$('#btnPlace').addEventListener('touchstart', e=>{ e.preventDefault(); if(running) placeTarget(); }, {passive:false});
+$('#btnPlace').addEventListener('click', ()=>{ if(running) placeTarget(); });
+
+/* ============================================================
+   UI wiring
+   ============================================================ */
+function fillVoices(sel){
+  sel.innerHTML = '';
+  const list = Speech.voices.filter(v=>/^(ar|id|ms|en)/i.test(v.lang));
+  (list.length?list:Speech.voices).forEach(v=>{
+    const o = document.createElement('option');
+    o.value = v.name; o.textContent = (/^ar/i.test(v.lang)?'🕌 ':'') + v.name + ' (' + v.lang + ')';
+    sel.appendChild(o);
+  });
+  if(Speech.chosen) sel.value = Speech.chosen.name;
+}
+function syncVoiceUI(){
+  fillVoices($('#selVoice')); fillVoices($('#selVoice2'));
+  const w = $('#voiceWarn');
+  if(!Speech.ar){
+    w.style.display = 'block';
+    w.innerHTML = '<b>Belum ada suara Arab di perangkat ini.</b> Sementara memakai suara Indonesia dengan ejaan latin (ba, bi, bu). Untuk suara asli: pasang bahasa Arab di pengaturan sistem (Android: Setelan → Bahasa → tambah <i>العربية</i>; iOS/Mac: Settings → Accessibility → Spoken Content → Voices → Arabic).';
+  } else w.style.display = 'none';
+}
+function pickVoice(name){
+  Speech.chosen = Speech.voices.find(v=>v.name===name) || Speech.chosen;
+  $('#selVoice').value = $('#selVoice2').value = Speech.chosen ? Speech.chosen.name : '';
+}
+$('#selVoice').onchange = e=>pickVoice(e.target.value);
+$('#selVoice2').onchange = e=>pickVoice(e.target.value);
+$('#rngRate').oninput = e=>{ Speech.rate = +e.target.value; $('#rngRate2').value = e.target.value; };
+$('#rngRate2').oninput = e=>{ Speech.rate = +e.target.value; $('#rngRate').value = e.target.value; };
+
+$('#btnPlay').onclick = ()=>{
+  veil.start.classList.remove('on');
+  running = true;
+  SFX.warm();
+  if(musicOn) Music.setEnabled(true);
+  buildHotbar(); updateHotbar(); updateJournalBadge();
+  Speech.say([{ar:'بِسْمِ اللهِ', lat:'Bismillah'}]);
+  setTimeout(()=>toast('Jelajahi pulau, gali & bangun sesukamu ✨'), 900);
+  if(isFirstTime){
+    setTimeout(()=>{ if(mineCount===0 && placeCount===0 && collected.size===0)
+      toast('Baby Mo: Jalan-jalan yuk, cari kotak keemasan di pulau! ✨', 3800); }, 7000);
+    setTimeout(()=>{ if(collected.size===0)
+      toast('Baby Mo: Dekati kotak keemasan buat dengar hurufnya! 🔤', 3800); }, 17000);
+    setTimeout(()=>{ if(mineCount===0)
+      toast('Baby Mo: Coba tekan ⛏️ Gali di dekat balok, ya! 🪨', 3800); }, 29000);
+  }
+};
+$('#btnBack').onclick = ()=>{ location.href = 'index.html'; };
+$('#btnJournal').onclick = ()=>{ buildJournal(); running=false; veil.journal.classList.add('on'); };
+$('#btnCloseJournal').onclick = ()=>{ veil.journal.classList.remove('on'); running=true; };
+
+function updateToggleButtons(){
+  $('#btnToggleSfx').textContent = sfxOn ? '🔊 Efek Suara: Aktif' : '🔇 Efek Suara: Mati';
+  $('#btnToggleMusic').textContent = musicOn ? '🎵 Musik Latar: Aktif' : '🔇 Musik Latar: Mati';
+  $('#btnToggleFly').textContent = flyMode ? '🕊️ Mode Terbang: Aktif' : '🚶 Mode Jalan (bukan Terbang)';
+}
+$('#btnToggleSfx').onclick = ()=>{ sfxOn = !sfxOn; if(sfxOn) SFX.warm(); updateToggleButtons(); saveWorld(); };
+$('#btnToggleMusic').onclick = ()=>{ musicOn = !musicOn; Music.setEnabled(musicOn); updateToggleButtons(); saveWorld(); };
+$('#btnShare').onclick = ()=>{ shareBuild(); };
+$('#btnGoHutan').onclick = ()=>{
+  if(collected.size >= PORTAL_UNLOCK_AT){ location.href = 'babymo-hutan-ajaib.html'; }
+  else toast('🔒 Kumpulkan '+(PORTAL_UNLOCK_AT-collected.size)+' huruf lagi untuk buka Hutan Ajaib!', 2600);
+};
+$('#btnToggleFly').onclick = ()=>{
+  flyMode = !flyMode;
+  updateToggleButtons();
+  toast(flyMode ? '🕊️ Mode terbang aktif! Tahan tombol lompat untuk naik.' : '🚶 Mode terbang dimatikan.');
+  saveWorld();
+};
+
+function openMenu(){
+  running = false; Speech.stop();
+  document.exitPointerLock && document.exitPointerLock();
+  $('#selVoice2').value = $('#selVoice').value; $('#rngRate2').value = Speech.rate;
+  updateToggleButtons();
+  veil.menu.classList.add('on');
+}
+$('#btnMenu').onclick = openMenu;
+$('#btnResume').onclick = ()=>{ veil.menu.classList.remove('on'); running = true; };
+$('#btnReset').onclick = ()=>{
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  location.reload();
+};
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+function tick(){
+  requestAnimationFrame(tick);
+  const dt = Math.min(0.05, clock.getDelta());
+  const t = performance.now()/1000;
+
+  if(running){ step(dt); proximity(t); updateLandmarks(); checkPortal(); }
+  updatePortal(dt);
+  maybeBuildPrompt(t);
+  visY += (P.y - visY) * Math.min(1, dt*14);
+  landKick *= Math.max(0, 1 - dt*9);
+  updatePlayerModel(dt,t);
+  updateCompanion(dt,t);
+  updateCritters(dt,t);
+  updateBursts(dt);
+  updateSky(dt,t);
+  updateFish(dt,t);
+  updateBirds(t);
+  updateFireflies(dt,t);
+  updateWeather(dt,t);
+  updateCamera();
+
+  letterBlocks.forEach((b,i)=>{
+    if(!b.mesh.visible) return;
+    b.mesh.rotation.y += dt*0.7;
+    b.mesh.position.y = b.base + Math.sin(t*1.6 + i)*0.12;
+    b.glow.material.opacity = 0.55 + 0.25*Math.sin(t*1.6+i);
+  });
+
+  if(waterMesh){
+    waterMesh.material.map.offset.x += dt*0.015;
+    waterMesh.material.map.offset.y += dt*0.009;
+    waterMesh.position.y = 1.6 + Math.sin(t*0.6)*0.05;
+  }
+  clouds.forEach(c=>{
+    c.spr.position.x += c.speed*dt;
+    if(c.spr.position.x > 75) c.spr.position.x = -75;
+  });
+  butterflies.forEach(b=>{
+    const {home, phase} = b;
+    b.spr.position.set(
+      home.x + Math.sin(t*0.8+phase)*2.1,
+      home.y + 1.3 + Math.sin(t*3+phase)*0.18,
+      home.z + Math.cos(t*0.55+phase)*2.1
+    );
+    b.spr.material.rotation = Math.sin(t*14+phase)*0.5;
+  });
+
+  renderer.render(scene, cam);
+}
+
+/* ============================================================
+   MULAI
+   ============================================================ */
+initThree();
+Speech.init(syncVoiceUI);
+tick();
+</script>
+</body>
+</html>
