@@ -658,8 +658,8 @@ async function run(name) {
       await g(() => document.querySelector('.veil.on #cOk').click());
       const imam = await g(() => { const G = __game; G.ui.closeAllModals(); G.jamaah = { step: { pose: 'qiyam', name: ['Berdiri', 'Standing'], rakaat: 1 }, total: 4 }; const r = G.imamReads(); G.jamaah = null; return r; });
       const bed = await g(() => { const G = __game; G.ui.closeAllModals(); G.hour = G.schedule.isha + 0.5; G.sleep(); return document.querySelector('.veil.on #dbtns button')?.textContent; });
-      await g(() => document.querySelector('.veil.on #dbtns button').click());
-      const quls = await g(() => document.querySelectorAll('.veil.on .ayah').length);
+      // (open the Quls without going to sleep afterwards, so the night doesn't pass under the next steps)
+      const quls = await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.reciteSurahs(G.iqroQuls(), 'test'); return document.querySelectorAll('.veil.on .ayah').length; });
       await g(a => { const G = __game; G.ui.closeAllModals(); G.hour = 9; G.lastHour = 9; G.stats.letters = a.keep; G.stats.iqro = a.iq; }, all);
       if (!/Iqro/.test(dad) || !exam.cert || !exam.exams?.includes(2) || !/Al-Fatihah \+ /.test(imam || '') || !/Qul|surah|surat/i.test(bed || '') || quls !== 15) throw new Error(JSON.stringify({ dad, exam, imam, bed, quls }));
       return { dad, exam, imam, bed, quls };
@@ -674,6 +674,7 @@ async function run(name) {
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       await wait('🕌 button', () => !document.querySelector('#bMasjid').classList.contains('hidden') || (__game.ui.closeAllModals(), __game.ui.closeBook(), false), null, 15000);
       const arrow = await g(() => __game.compass()?.masjid === true);
+      const why = await g(() => { const G = __game; return JSON.stringify({ ev: G.gameEvent, guide: !!G.masjidGuide, jam: !!G.jamaah, site: G.siteAt(G.player.pos)?.id, c: G.compass() }); });
       // tap it and choose the Grand Masjid
       await g(() => document.querySelector('#bMasjid').click());
       await wait('picker', () => !!document.querySelector('.veil.on #dbtns button') || (__game.ui.closeAllModals(), __game.ui.masjidPicker(), false), null, 15000);
@@ -688,7 +689,7 @@ async function run(name) {
       await g(() => { const j = __game.jamaah; j.i = j.plan.length - 1; j.t = 0; });
       await p.waitForFunction(() => !__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
       const after = await g(() => __game.stats.jamaah);
-      if (!arrow || mid.site !== 'grand' || mid.people < 15 || after !== mid.jamaah + 1) throw new Error(JSON.stringify({ arrow, mid, after }));
+      if (!arrow || mid.site !== 'grand' || mid.people < 15 || after !== mid.jamaah + 1) throw new Error(JSON.stringify({ arrow, why, mid, after }));
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
       return { ...mid, after };
     });

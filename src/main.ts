@@ -1740,7 +1740,7 @@ export class Game {
     const night = h >= s.isha - 0.5 || h < s.fajr - 0.5;
     if (!night) { this.ui.toast(tr('🛏️ Kasur dipakai saat malam (setelah Isya)', '🛏️ Beds are for night time (after Isha)')); return; }
     // the Prophet ﷺ recited Al-Ikhlas, Al-Falaq and An-Nas before sleeping: the ones you have learned
-    const quls = learnedSurahs(this.stats.iqro?.stars).filter(x => ['ikhlas', 'falaq', 'nas'].includes(x.id));
+    const quls = this.iqroQuls();
     this.ui.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo', text: quls.length ? tr('Sebelum tidur, Rasulullah ﷺ membaca Al-Ikhlas, Al-Falaq dan An-Nas. Mau baca bersama? Atau dengar cerita? 📚', 'Before sleeping, the Prophet ﷺ recited Al-Ikhlas, Al-Falaq and An-Nas. Shall we recite them together? Or hear a story? 📚') : tr('Mau dengar cerita dulu sebelum tidur? 📚', 'Shall I tell you a story before bed? 📚'),
       buttons: [
@@ -1807,6 +1807,8 @@ export class Game {
     if (this.readNote !== j) { this.readNote = j; this.ui.toast(tr(`📖 Imam membaca Al-Fatihah dan ${s.name} — surat yang sudah kamu pelajari! Ikuti dalam hati ya 🤲`, `📖 The imam reads Al-Fatihah and ${s.name} — a surah you learned! Recite along quietly 🤲`), 5000); }
     return `Al-Fatihah + ${s.name}`;
   }
+  /** the three Quls you have learned (recited before sleeping) */
+  iqroQuls() { return learnedSurahs(this.stats.iqro?.stars).filter(x => ['ikhlas', 'falaq', 'nas'].includes(x.id)); }
   /** Dad's Iqro exams: for each finished stage not passed yet, an exam and a certificate */
   iqroExam(stage: number) {
     this.ui.iqroExam(stage, examPool(stage), right => {
