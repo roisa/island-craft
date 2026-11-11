@@ -5,6 +5,27 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The iPhone/iPad app (Xcode project) 📱
+
+Asked by a parent: build the game for iOS with Xcode.
+
+- **Capacitor 8** wraps the same web game in a native iOS app. `ios/` is a
+  ready Xcode project (Swift Package Manager, iOS 15+, no CocoaPods).
+  `npm run ios` builds the game and copies it in; `npm run ios:open` opens
+  Xcode. Step-by-step guide: [`docs/IOS.md`](docs/IOS.md) (run on your
+  device, TestFlight, App Store).
+- Home Screen name **Baby Mo**, the Baby Mo icon (1024×1024) and a
+  sky-blue launch screen; full screen with no status bar; portrait and
+  landscape; iPad full screen.
+- Permission messages iOS requires, in Indonesian and English: location
+  (prayer times where you are), camera and photos (avatar colours from a
+  photo). Export compliance: no non-exempt encryption.
+- Inside the app: no offline service worker and no “Add to Home Screen”
+  hint (`isNativeApp()` in `src/install.ts`). The website is unchanged.
+- Tested: unit tests and the desktop smoke test (the website still works);
+  the Xcode project was generated and the game copied in; the Info.plist
+  checked. Building and signing need a Mac with Xcode.
+
 ### The Iqro journey in the rest of the game 🎓🕌🌙
 
 The second batch: what you learn on the Iqro journey now shows up in the

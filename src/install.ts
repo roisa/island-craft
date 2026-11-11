@@ -9,9 +9,11 @@ addEventListener('appinstalled', () => { deferred = null; onChange?.(); });
 let onChange: (() => void) | null = null;
 export const onInstallChange = (f: () => void) => { onChange = f; };
 
-/** already running as an installed app (Home Screen / full screen)? */
+/** running inside the iPhone/iPad app (the Capacitor wrapper around this same game)? */
+export const isNativeApp = () => !!(window as any).Capacitor?.isNativePlatform?.();
+/** already running as an installed app (the iOS app, Home Screen, full screen)? */
 export const isInstalled = () =>
-  (navigator as any).standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches;
+  isNativeApp() || (navigator as any).standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches;
 /** iPhone or iPad (iPadOS reports itself as a Mac with touch) */
 export const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const canPrompt = () => !!deferred;
@@ -31,6 +33,7 @@ export function toggleFullscreen() {
 export const hintDismissed = () => { try { return localStorage.getItem('bm_install_hint') === 'no'; } catch { return false; } };
 export const dismissHint = () => { try { localStorage.setItem('bm_install_hint', 'no'); } catch { /* private mode */ } };
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// (not in the iOS app: everything is already inside it, and app pages can't use service workers)
+if ('serviceWorker' in navigator && import.meta.env.PROD && !isNativeApp()) {
   addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
