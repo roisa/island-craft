@@ -15,8 +15,12 @@ Asked by a parent: everything needed for the App Store submission.
 - **No links out inside the iOS app**: the “More Baby Mo games” link in
   the settings is hidden in the app (Apple's Kids rules); it stays on the
   website.
-- Screenshots (iPhone 6.9″/6.5″/6.3″ and iPad 13″, both languages) and the
-  listing text were made outside the repo for App Store Connect.
+- **The kit online** at `/appstore/` on the website: screenshots for
+  iPhone 6.9″ and iPad 13″ in both languages (previews, full-size files
+  and one zip per language), the listing text with copy buttons, and the
+  privacy, age-rating, review and checklist answers. The `appstore/` folder
+  is copied in only when the website is published, so it isn't in the
+  iOS app.
 - Tested: 233 unit tests, build (both pages in `dist/`), desktop smoke.
 
 ### The iPhone/iPad app (Xcode project) 📱

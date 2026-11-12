@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Baby Mo App Store Kit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: a single reading column with a language switch; screenshots in a wrapping grid */
+:root{--bg:#f3f8f7;--panel:#ffffff;--fg:#17302e;--muted:#5b716e;--line:#d5e3e0;--sea:#0f7c86;--sun:#e8a33a;--ok:#2f8a4c;
+--display:"Baloo 2",ui-rounded,system-ui,sans-serif;--body:"Nunito Sans",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a1a;--panel:#152625;--fg:#e2eeec;--muted:#93aaa6;--line:#29403e;--sea:#4cc3cc;--sun:#f0b85a;--ok:#5fc27d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1a1a;--panel:#152625;--fg:#e2eeec;--muted:#93aaa6;--line:#29403e;--sea:#4cc3cc;--sun:#f0b85a;--ok:#5fc27d;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--body)}
+.wrap{max-width:1100px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:2.4rem;font-weight:800;color:var(--sea)}
+h2{font-size:1.6rem;margin-top:8px}
+h3{font-size:1.2rem;margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
+.px{font:400 .8rem var(--mono);color:var(--muted)}
+p{margin:0;max-width:68ch}.lead{color:var(--muted);font-size:1.05rem}
+.note{color:var(--muted);font-size:.9rem;margin-top:4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:0}dt{color:var(--muted)}dd{margin:0;min-width:0;overflow-wrap:anywhere}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.tabs{display:flex;gap:8px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:10px;z-index:5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.tabs button{font:700 1rem var(--body);padding:8px 18px;border-radius:999px;border:1.5px solid var(--sea);background:transparent;color:var(--sea);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--sea);color:var(--bg)}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.fhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fhead label{font-weight:700}
+.count{font:400 .78rem var(--mono);color:var(--ok);font-variant-numeric:tabular-nums}
+.copy{margin-left:auto;font:600 .85rem var(--body);padding:4px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer}
+textarea{width:100%;box-sizing:border-box;font:15px/1.5 var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:10px}
+figure{margin:0;display:flex;flex-direction:column;gap:6px}
+figure img{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+figcaption{font-size:.88rem;color:var(--muted)}figcaption b{font-family:var(--mono);color:var(--sea);font-weight:400}
+ol.check{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:8px}
+ol.check li{max-width:72ch}
+.tag{display:inline-block;font:700 .75rem var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--sun)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-weight:600}
+.tw{overflow-x:auto}
+a{color:var(--sea);font-weight:700}figure a{display:block}
+.dl{display:flex;flex-wrap:wrap;gap:10px}.big{display:inline-block;padding:10px 18px;border-radius:12px;background:var(--sea);color:var(--bg);text-decoration:none}
+</style>
+</head><body>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:8px">
+<span class="tag">App Store Connect · ready to paste</span>
+<h1>Baby Mo App Store Kit</h1>
+<p class="lead">Everything the store page needs: screenshots at Apple's required sizes, the listing text in English and Indonesian with checked lengths, and the answers for privacy, age rating and review.</p>
+</header>
+
+<div class="cols">
+<div class="card"><h3 style="margin:0">App information</h3><dl>
+<dt>Bundle ID</dt><dd class="mono">com.babymo.islandcraft</dd>
+<dt>SKU</dt><dd class="mono">babymo-islandcraft-1</dd>
+<dt>Primary language</dt><dd>English (add Indonesian as a localization)</dd>
+<dt>Primary category</dt><dd>Education</dd>
+<dt>Secondary</dt><dd>Games → Family (or Educational)</dd>
+<dt>Kids Category</dt><dd>Optional: Ages 6–8</dd>
+<dt>Price</dt><dd>Free, no in-app purchases</dd>
+<dt>Copyright</dt><dd>2026 your name</dd>
+</dl></div>
+<div class="card"><h3 style="margin:0">Links</h3><dl>
+<dt>Privacy Policy</dt><dd class="mono">https://roisa.github.io/island-craft/privacy.html</dd>
+<dt>Support URL</dt><dd class="mono">https://roisa.github.io/island-craft/support.html</dd>
+<dt>Marketing URL</dt><dd class="mono">https://roisa.github.io/island-craft/</dd>
+</dl><p class="note">The support page still needs your contact email before you submit.</p></div>
+</div>
+
+<div class="card"><h3 style="margin:0">Screenshot files</h3>
+<p>Apple needs two sets per language: <b>iPhone 6.9″</b> and <b>iPad 13″</b>. Smaller iPhones use the 6.9″ set automatically. Upload the 9 files of each set in order, 01 first. Tap a preview to open the full-size file.</p>
+<div class="dl"><a class="big" href="zip/BabyMo-AppStore-en.zip" download>⬇ English screenshots (zip, 18 files)</a><a class="big" href="zip/BabyMo-AppStore-id.zip" download>⬇ Indonesian screenshots (zip, 18 files)</a></div>
+<div class="tw"><table><tr><th>Folder in the zip</th><th>App Store Connect slot</th><th>Size (px)</th></tr>
+<tr><td class="mono">iphone-6.9</td><td>iPhone 6.9″ display</td><td class="mono">2868 × 1320</td></tr>
+<tr><td class="mono">ipad-13</td><td>iPad 13″ display</td><td class="mono">2752 × 2064</td></tr></table></div>
+<p class="note">All RGB JPEG with no transparency, landscape, real gameplay with a short caption (guideline 2.3.3).</p></div>
+
+<nav class="tabs" aria-label="Listing language"><button id="t-en" aria-pressed="true" data-l="en">English</button><button id="t-id" aria-pressed="false" data-l="id">Indonesian</button></nav>
+<section class="lang" data-lang="en"><h2>English listing</h2><div class="field"><div class="fhead"><label for="en-name">App name</label><span class="count">20 / 30 characters</span><button class="copy" data-t="en-name">Copy</button></div><textarea id="en-name" readonly rows="2">Baby Mo Island Craft</textarea></div><div class="field"><div class="fhead"><label for="en-subtitle">Subtitle</label><span class="count">27 / 30 characters</span><button class="copy" data-t="en-subtitle">Copy</button></div><textarea id="en-subtitle" readonly rows="2">Learn Iqro, Islam &amp; English</textarea></div><div class="field"><div class="fhead"><label for="en-promo">Promotional text</label><span class="count">153 / 170 characters</span><button class="copy" data-t="en-promo">Copy</button></div><textarea id="en-promo" readonly rows="3">New: the Iqro journey! After the 28 hijaiyah letters, read syllables, words and short surahs — then race karts, ride horses and try archery with Baby Mo.</textarea></div><div class="field"><div class="fhead"><label for="en-keywords">Keywords</label><span class="count">99 / 100 bytes</span><button class="copy" data-t="en-keywords">Copy</button></div><textarea id="en-keywords" readonly rows="2">islamic,quran,iqro,hijaiyah,arabic,muslim,kids,prayer,wudu,ramadan,english,maths,learning,adventure</textarea></div><div class="field"><div class="fhead"><label for="en-description">Description</label><span class="count">1898 / 4000 characters</span><button class="copy" data-t="en-description">Copy</button></div><textarea id="en-description" readonly rows="18">Assalamu’alaikum! Baby Mo Island Craft is a cozy island adventure where children learn about Islam, the Qur’an, English and simple maths — while they explore, build and play with their friend Baby Mo.
+
+LEARN THE HIJAIYAH LETTERS
+• Follow the golden compass to 28 glowing letter shrines around the island.
+• Hear each letter with fathah, kasrah and dhammah (ba, bi, bu), plus long vowels and tanwin.
+• Letter quiz and word builder games.
+
+THE IQRO JOURNEY
+• After the 28 letters, lesson books appear in the world: vowel marks, tanwin and long vowels, reading words syllable by syllable, and short surahs (Al-Kautsar, Al-Ikhlas, Al-‘Asr, Al-Falaq, An-Nas and Al-Fatihah).
+• Every ayah with transliteration and meaning, recite-along, and an ayat order game.
+• Dad’s exam and a certificate at the end of each stage.
+
+WUDU AND PRAYER
+• Step-by-step picture guides for wudu and prayer.
+• At prayer time the villagers gather at the masjid — pray together in the row, led by the imam.
+• Good words at the right moment: Bismillah, Alhamdulillah, Subhanallah, Masya Allah, Insya Allah.
+
+ENGLISH AND MATHS WHILE PLAYING
+• English word cards for animals, fruits, colours, numbers and actions, said aloud.
+• Add up coins in kart races, archery points and basketball scores: 2 + 3 = 5!
+
+SO MUCH TO DO
+• Kart races (with villagers cheering at the big races), archery with 5 levels, tennis, basketball and penalty kicks.
+• A horse farm with a jumping course, an ice rink, kites, fishing, a fruit orchard, a waterfall camp, a coral reef and a volcano island.
+• Build houses and a masjid, cook, plant trees and look after animals.
+
+MADE FOR FAMILIES
+• No ads, no purchases, no accounts and no chat. No data is collected.
+• Parent area behind a grown-up check: daily play-time limit with a calm bedtime wind-down, and a learning report.
+• Plays in Indonesian or English.
+
+Made with love for our children, insya Allah.</textarea></div><div class="field"><div class="fhead"><label for="en-whatsnew">What's New</label><span class="count">65 / 4000 characters</span><button class="copy" data-t="en-whatsnew">Copy</button></div><textarea id="en-whatsnew" readonly rows="2">First release. Assalamu’alaikum! Explore the island with Baby Mo.</textarea></div><h3>iPhone 6.9″ screenshots <span class="px">2868 × 1320 px · landscape</span></h3><p class="note">Required. Also covers 6.7″ and 6.5″ if you upload only this size.</p><div class="grid"><figure><a href="full/en/iphone-6.9/01-island.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-01-island.jpg" alt="The island"></a><figcaption><b>01</b> The island</figcaption></figure><figure><a href="full/en/iphone-6.9/02-letters.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-02-letters.jpg" alt="Hijaiyah letters"></a><figcaption><b>02</b> Hijaiyah letters</figcaption></figure><figure><a href="full/en/iphone-6.9/03-iqro.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-03-iqro.jpg" alt="Iqro lesson"></a><figcaption><b>03</b> Iqro lesson</figcaption></figure><figure><a href="full/en/iphone-6.9/04-prayer.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-04-prayer.jpg" alt="Prayer guide"></a><figcaption><b>04</b> Prayer guide</figcaption></figure><figure><a href="full/en/iphone-6.9/05-race.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-05-race.jpg" alt="Kart race + adding"></a><figcaption><b>05</b> Kart race + adding</figcaption></figure><figure><a href="full/en/iphone-6.9/06-archery.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-06-archery.jpg" alt="Archery"></a><figcaption><b>06</b> Archery</figcaption></figure><figure><a href="full/en/iphone-6.9/07-horse.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-07-horse.jpg" alt="Horse jumping"></a><figcaption><b>07</b> Horse jumping</figcaption></figure><figure><a href="full/en/iphone-6.9/08-english.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-08-english.jpg" alt="English word cards"></a><figcaption><b>08</b> English word cards</figcaption></figure><figure><a href="full/en/iphone-6.9/09-parents.jpg" target="_blank"><img loading="lazy" src="shots/en-iphone-6.9-09-parents.jpg" alt="Parent area"></a><figcaption><b>09</b> Parent area</figcaption></figure></div><h3>iPad 13″ screenshots <span class="px">2752 × 2064 px · landscape</span></h3><p class="note">Required because the app runs on iPad.</p><div class="grid"><figure><a href="full/en/ipad-13/01-island.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-01-island.jpg" alt="The island"></a><figcaption><b>01</b> The island</figcaption></figure><figure><a href="full/en/ipad-13/02-letters.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-02-letters.jpg" alt="Hijaiyah letters"></a><figcaption><b>02</b> Hijaiyah letters</figcaption></figure><figure><a href="full/en/ipad-13/03-iqro.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-03-iqro.jpg" alt="Iqro lesson"></a><figcaption><b>03</b> Iqro lesson</figcaption></figure><figure><a href="full/en/ipad-13/04-prayer.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-04-prayer.jpg" alt="Prayer guide"></a><figcaption><b>04</b> Prayer guide</figcaption></figure><figure><a href="full/en/ipad-13/05-race.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-05-race.jpg" alt="Kart race + adding"></a><figcaption><b>05</b> Kart race + adding</figcaption></figure><figure><a href="full/en/ipad-13/06-archery.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-06-archery.jpg" alt="Archery"></a><figcaption><b>06</b> Archery</figcaption></figure><figure><a href="full/en/ipad-13/07-horse.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-07-horse.jpg" alt="Horse jumping"></a><figcaption><b>07</b> Horse jumping</figcaption></figure><figure><a href="full/en/ipad-13/08-english.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-08-english.jpg" alt="English word cards"></a><figcaption><b>08</b> English word cards</figcaption></figure><figure><a href="full/en/ipad-13/09-parents.jpg" target="_blank"><img loading="lazy" src="shots/en-ipad-13-09-parents.jpg" alt="Parent area"></a><figcaption><b>09</b> Parent area</figcaption></figure></div></section>
+<section class="lang" data-lang="id"><h2>Indonesian listing</h2><div class="field"><div class="fhead"><label for="id-name">App name</label><span class="count">20 / 30 characters</span><button class="copy" data-t="id-name">Copy</button></div><textarea id="id-name" readonly rows="2">Baby Mo Island Craft</textarea></div><div class="field"><div class="fhead"><label for="id-subtitle">Subtitle</label><span class="count">29 / 30 characters</span><button class="copy" data-t="id-subtitle">Copy</button></div><textarea id="id-subtitle" readonly rows="2">Belajar Iqro, Islam &amp; Inggris</textarea></div><div class="field"><div class="fhead"><label for="id-promo">Promotional text</label><span class="count">156 / 170 characters</span><button class="copy" data-t="id-promo">Copy</button></div><textarea id="id-promo" readonly rows="3">Baru: perjalanan Iqro! Setelah 28 huruf hijaiyah, belajar harakat, membaca kata, dan surat pendek — lalu balap gokart, berkuda, dan memanah bersama Baby Mo.</textarea></div><div class="field"><div class="fhead"><label for="id-keywords">Keywords</label><span class="count">94 / 100 bytes</span><button class="copy" data-t="id-keywords">Copy</button></div><textarea id="id-keywords" readonly rows="2">islami,quran,iqro,hijaiyah,mengaji,muslim,anak,sholat,wudhu,ramadhan,inggris,berhitung,edukasi</textarea></div><div class="field"><div class="fhead"><label for="id-description">Description</label><span class="count">2041 / 4000 characters</span><button class="copy" data-t="id-description">Copy</button></div><textarea id="id-description" readonly rows="18">Assalamu’alaikum! Baby Mo Island Craft adalah petualangan di pulau yang seru, tempat anak-anak belajar tentang Islam, Al-Qur’an, bahasa Inggris, dan berhitung — sambil menjelajah, membangun, dan bermain bersama sahabatnya, Baby Mo.
+
+BELAJAR HURUF HIJAIYAH
+• Ikuti kompas emas ke 28 kuil huruf yang bersinar di seluruh pulau.
+• Dengar setiap huruf dengan fathah, kasrah, dan dhammah (ba, bi, bu), juga bacaan panjang dan tanwin.
+• Permainan tebak huruf dan susun kata.
+
+PERJALANAN IQRO
+• Setelah 28 huruf, buku pelajaran muncul di dunia: harakat, tanwin dan bacaan panjang, membaca kata suku demi suku, dan surat pendek (Al-Kautsar, Al-Ikhlas, Al-‘Asr, Al-Falaq, An-Nas, dan Al-Fatihah).
+• Setiap ayat dengan bacaan latin dan artinya, baca bersama, dan permainan menyusun ayat.
+• Ujian dari Ayah dan syahadah di akhir setiap tahap.
+
+WUDHU DAN SHOLAT
+• Panduan bergambar wudhu dan sholat, langkah demi langkah.
+• Saat waktu sholat, warga berkumpul di masjid — sholat berjamaah di shaf, dipimpin imam.
+• Kalimat baik di saat yang tepat: Bismillah, Alhamdulillah, Subhanallah, Masya Allah, Insya Allah.
+
+BAHASA INGGRIS DAN BERHITUNG SAMBIL MAIN
+• Kartu kata bahasa Inggris untuk hewan, buah, warna, angka, dan gerakan, lengkap dengan suaranya.
+• Jumlahkan koin di balap gokart, poin memanah, dan skor basket: 2 + 3 = 5!
+
+BANYAK YANG BISA DILAKUKAN
+• Balap gokart (warga bersorak di balapan besar), memanah 5 level, tenis, basket, dan adu penalti.
+• Peternakan kuda dengan lintasan rintangan, arena seluncur es, layang-layang, memancing, kebun buah, perkemahan air terjun, taman karang, dan pulau gunung api.
+• Bangun rumah dan masjid, memasak, menanam pohon, dan merawat hewan.
+
+DIBUAT UNTUK KELUARGA
+• Tanpa iklan, tanpa pembelian, tanpa akun, dan tanpa obrolan. Tidak ada data yang dikumpulkan.
+• Area orang tua dengan soal hitungan untuk orang dewasa: batas waktu main harian dengan pengantar tidur yang tenang, dan laporan belajar.
+• Bisa dimainkan dalam bahasa Indonesia atau Inggris.
+
+Dibuat dengan cinta untuk anak-anak kita, insya Allah.</textarea></div><div class="field"><div class="fhead"><label for="id-whatsnew">What's New</label><span class="count">64 / 4000 characters</span><button class="copy" data-t="id-whatsnew">Copy</button></div><textarea id="id-whatsnew" readonly rows="2">Rilis pertama. Assalamu’alaikum! Jelajahi pulau bersama Baby Mo.</textarea></div><h3>iPhone 6.9″ screenshots <span class="px">2868 × 1320 px · landscape</span></h3><p class="note">Required. Also covers 6.7″ and 6.5″ if you upload only this size.</p><div class="grid"><figure><a href="full/id/iphone-6.9/01-island.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-01-island.jpg" alt="The island"></a><figcaption><b>01</b> The island</figcaption></figure><figure><a href="full/id/iphone-6.9/02-letters.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-02-letters.jpg" alt="Hijaiyah letters"></a><figcaption><b>02</b> Hijaiyah letters</figcaption></figure><figure><a href="full/id/iphone-6.9/03-iqro.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-03-iqro.jpg" alt="Iqro lesson"></a><figcaption><b>03</b> Iqro lesson</figcaption></figure><figure><a href="full/id/iphone-6.9/04-prayer.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-04-prayer.jpg" alt="Prayer guide"></a><figcaption><b>04</b> Prayer guide</figcaption></figure><figure><a href="full/id/iphone-6.9/05-race.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-05-race.jpg" alt="Kart race + adding"></a><figcaption><b>05</b> Kart race + adding</figcaption></figure><figure><a href="full/id/iphone-6.9/06-archery.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-06-archery.jpg" alt="Archery"></a><figcaption><b>06</b> Archery</figcaption></figure><figure><a href="full/id/iphone-6.9/07-horse.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-07-horse.jpg" alt="Horse jumping"></a><figcaption><b>07</b> Horse jumping</figcaption></figure><figure><a href="full/id/iphone-6.9/08-english.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-08-english.jpg" alt="English word cards"></a><figcaption><b>08</b> English word cards</figcaption></figure><figure><a href="full/id/iphone-6.9/09-parents.jpg" target="_blank"><img loading="lazy" src="shots/id-iphone-6.9-09-parents.jpg" alt="Parent area"></a><figcaption><b>09</b> Parent area</figcaption></figure></div><h3>iPad 13″ screenshots <span class="px">2752 × 2064 px · landscape</span></h3><p class="note">Required because the app runs on iPad.</p><div class="grid"><figure><a href="full/id/ipad-13/01-island.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-01-island.jpg" alt="The island"></a><figcaption><b>01</b> The island</figcaption></figure><figure><a href="full/id/ipad-13/02-letters.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-02-letters.jpg" alt="Hijaiyah letters"></a><figcaption><b>02</b> Hijaiyah letters</figcaption></figure><figure><a href="full/id/ipad-13/03-iqro.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-03-iqro.jpg" alt="Iqro lesson"></a><figcaption><b>03</b> Iqro lesson</figcaption></figure><figure><a href="full/id/ipad-13/04-prayer.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-04-prayer.jpg" alt="Prayer guide"></a><figcaption><b>04</b> Prayer guide</figcaption></figure><figure><a href="full/id/ipad-13/05-race.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-05-race.jpg" alt="Kart race + adding"></a><figcaption><b>05</b> Kart race + adding</figcaption></figure><figure><a href="full/id/ipad-13/06-archery.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-06-archery.jpg" alt="Archery"></a><figcaption><b>06</b> Archery</figcaption></figure><figure><a href="full/id/ipad-13/07-horse.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-07-horse.jpg" alt="Horse jumping"></a><figcaption><b>07</b> Horse jumping</figcaption></figure><figure><a href="full/id/ipad-13/08-english.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-08-english.jpg" alt="English word cards"></a><figcaption><b>08</b> English word cards</figcaption></figure><figure><a href="full/id/ipad-13/09-parents.jpg" target="_blank"><img loading="lazy" src="shots/id-ipad-13-09-parents.jpg" alt="Parent area"></a><figcaption><b>09</b> Parent area</figcaption></figure></div></section>
+
+<div class="cols">
+<div class="card"><h3 style="margin:0">App Privacy</h3>
+<p><b>Data Not Collected.</b> In App Store Connect → App Privacy, answer “No, we do not collect data from this app”.</p>
+<p class="note">Progress is saved only on the device. Location (prayer times) and photos (avatar colours) are used on the device and never sent anywhere. No analytics, ads, accounts or chat.</p></div>
+<div class="card"><h3 style="margin:0">Age rating</h3>
+<p>Answer <b>None</b> to every content question and <b>No</b> to web access, contests, gambling and user-generated content. The result is <b>4+</b>.</p>
+<p class="note">For the Kids Category Apple also requires no links out of the app and no third-party ads or analytics without a parental gate. Inside the app there are no links out; the parent area is behind a grown-up check.</p></div>
+</div>
+
+<div class="card"><h3 style="margin:0">Notes for the reviewer</h3>
+<div class="field" style="margin:0"><div class="fhead"><label for="review">App Review notes</label><button class="copy" data-t="review">Copy</button></div>
+<textarea id="review" readonly rows="7">No login is needed. The game starts on an island with Baby Mo.
+• Fun places (kart race, tennis, archery, horse farm, ice rink and more): tap the Map button, then a place under "Fun places".
+• Hijaiyah letters: follow the golden compass to the glowing letter shrines. The Iqro lesson books appear after all 28 letters are found.
+• Parent area: the Menu button (top), then "For parents", then answer the grown-up check (a multiplication, e.g. 7 × 6).
+The app collects no data. Location is optional and only used on the device for prayer times.</textarea></div></div>
+
+<div class="card"><h3 style="margin:0">Submission checklist</h3>
+<ol class="check">
+<li>Join the Apple Developer Program and sign in to App Store Connect.</li>
+<li>Apps → <b>+</b> → New App: platform iOS, name, primary language, bundle ID <code>com.babymo.islandcraft</code>, SKU.</li>
+<li>In Xcode, Product → Archive, then Distribute App → App Store Connect → Upload. Wait for the build to finish processing.</li>
+<li>App Information: categories, Kids Category if wanted, privacy policy URL, age rating questionnaire.</li>
+<li>App Privacy: Data Not Collected.</li>
+<li>Pricing and Availability: Free, choose countries.</li>
+<li>Version page (English): screenshots for iPhone 6.9″ and iPad 13″, promotional text, description, keywords, support URL, What's New, copyright.</li>
+<li>Add the Indonesian localization and paste its text and screenshots.</li>
+<li>Select the uploaded build, add the reviewer notes, answer “No” to export compliance (already set in the app).</li>
+<li>Add for Review → Submit. Review usually takes one to three days.</li>
+</ol></div>
+</div>
+<script>
+const tabs=[...document.querySelectorAll('.tabs button')];
+function show(l){document.querySelectorAll('.lang').forEach(s=>s.hidden=s.dataset.lang!==l);tabs.forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===l))}
+tabs.forEach(b=>b.addEventListener('click',()=>show(b.dataset.l)));show('en');
+document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',()=>{const t=document.getElementById(b.dataset.t);
+const done=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)};
+navigator.clipboard.writeText(t.value).then(done).catch(()=>{t.focus();t.select();b.textContent='Selected'})}));
+</script>
+</body></html>
