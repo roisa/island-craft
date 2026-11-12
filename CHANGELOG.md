@@ -5,7 +5,7 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
-### A sharper “Baby Mo Craft” icon, and more of a real iPhone app 📱
+### A sharper “Mo Craft” icon, and more of a real iPhone app 📱
 
 Asked by a parent: a sharper App Store icon with “Craft” on it, and less risk
 of the app being turned down as “just a website” (Apple guideline 4.2).
