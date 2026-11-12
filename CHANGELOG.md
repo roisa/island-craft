@@ -11,8 +11,9 @@ Asked by a parent: a sharper App Store icon with “Craft” on it, and less ris
 of the app being turned down as “just a website” (Apple guideline 4.2).
 
 - **New icon**: made at 1024×1024 from the full-size Baby Mo logo (it was the
-  512 web icon enlarged), with “Craft” under “Baby Mo” in the same lettering.
-  Used for the app, its launch screen and the website icons.
+  512 web icon enlarged): Baby Mo's head with “Mo Craft” on one line, in
+  the logo's lettering. Used for the app, its launch screen and the website
+  icons.
 - **The iOS share sheet** for the Photo button and the parent area's “Save to
   a file”: these were browser downloads, which do nothing inside the app.
   The website still downloads them.

@@ -71,7 +71,7 @@ category (**Games → Family / Educational**; you can also choose the
 
 ## Good to know
 
-- **The icon** (Baby Mo with “Baby Mo Craft”) is made at 1024×1024 from the
+- **The icon** (Baby Mo with “Mo Craft”) is made at 1024×1024 from the
   full-size Baby Mo logo: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png`
   (no transparency). The website icons and the launch screen use the same art.
 - **Recitation and letter sounds**: the app uses the device voice. Recorded
