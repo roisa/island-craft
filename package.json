@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Baby Mo Island Craft \u2014 a cozy Ramadhan voxel adventure for kids (web, later iOS/Android via Capacitor).",
+  "description": "Baby Mo Island Craft — a cozy Ramadhan voxel adventure for kids (web, later iOS/Android via Capacitor).",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
@@ -17,7 +17,10 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.6.0",
+    "@capacitor/share": "^8.0.3",
     "@fontsource/nunito": "^5.2.7",
     "@fontsource/scheherazade-new": "^5.2.5",
     "adhan": "4.4.3",

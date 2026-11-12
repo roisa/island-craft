@@ -78,5 +78,7 @@
 	<string>Untuk mengambil foto, agar warna avatarmu sesuai dengan bajumu. / To take a photo so your avatar can match your clothes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Untuk memilih foto, agar warna avatarmu sesuai dengan bajumu. / To pick a photo so your avatar can match your clothes.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Untuk menyimpan foto dunia Baby Mo yang kamu ambil. / To save the photos you take of Baby Mo's world.</string>
 </dict>
 </plist>

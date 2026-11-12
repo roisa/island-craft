@@ -70,6 +70,7 @@ import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type Masji
 import { Jamaah, rowPose } from './game/jamaah';
 import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './game/amal';
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
+import { shareFile } from './native';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -1034,7 +1035,7 @@ export class Game {
   photo() {
     this.render();
     const url = this.renderer.domElement.toDataURL('image/png');
-    const a = document.createElement('a'); a.href = url; a.download = 'dunia-baby-mo.png'; a.click();
+    void shareFile('dunia-baby-mo.png', url, 'image/png');
   }
 
   // ---------- input ----------

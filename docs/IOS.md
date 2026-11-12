@@ -65,19 +65,20 @@ category (**Games → Family / Educational**; you can also choose the
 - Full screen, no status bar; portrait and landscape; iPad full screen.
 - The permission messages iOS requires (location for prayer times; camera
   and photos for matching the avatar's colours), in Indonesian and English.
-- No offline service worker or “Add to Home Screen” hint inside the app.
+- No offline service worker or “Add to Home Screen” hint inside the app, and
+  no links out of the app (Apple's Kids rules).
 - Saves stay on the device as on the website (IndexedDB inside the app).
 
 ## Good to know
 
-- **The icon** is made from the 512×512 web icon, enlarged to 1024×1024.
-  If you have a sharper original, replace
-  `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png`
-  (1024×1024 PNG, no transparency).
+- **The icon** (Baby Mo with “Baby Mo Craft”) is made at 1024×1024 from the
+  full-size Baby Mo logo: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png`
+  (no transparency). The website icons and the launch screen use the same art.
 - **Recitation and letter sounds**: the app uses the device voice. Recorded
   files can be added in `public/audio/` (see the CHANGELOG) and are
   included in the app at the next `npm run ios`.
-- **“Save to a file”** in the parent settings may not download inside the
-  app; opening a saved file works.
+- **Photo** (Settings) and **Save to a file** (parent area) open the iOS share
+  sheet in the app, so you can save to Photos or Files or AirDrop them. Building,
+  letters, quests and rewards give a gentle tap (haptics).
 - If Xcode shows a package error, use **File → Packages → Reset Package
   Caches**, then build again.

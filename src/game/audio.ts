@@ -1,5 +1,6 @@
 // Sound: light synthesized effects (no audio files), a calm generative
 // background melody, and letter speech (recorded files if present, else TTS).
+import { buzz } from '../native';
 
 let ctx: AudioContext | null = null;
 export const audioState = { sfx: true, music: true };
@@ -117,8 +118,8 @@ function throttle(key: string, ms: number) {
 export const SFX = {
   warm() { actx(); },
   hit(soft = false) { if (on()) noise(0.06, soft ? 0.08 : 0.12, soft ? 1400 : 700); },
-  breakBlock() { if (on()) { noise(0.14, 0.2, 800); tone(180, 0.08, 'triangle', 0.06); } },
-  place() { if (on()) { tone(300, 0.07, 'square', 0.07); tone(450, 0.06, 'square', 0.05, 0.03); } },
+  breakBlock() { buzz('thud'); if (on()) { noise(0.14, 0.2, 800); tone(180, 0.08, 'triangle', 0.06); } },
+  place() { buzz('tap'); if (on()) { tone(300, 0.07, 'square', 0.07); tone(450, 0.06, 'square', 0.05, 0.03); } },
   pickup() { if (on() && throttle('pickup', 70)) { tone(880, 0.06, 'sine', 0.08); tone(1320, 0.08, 'sine', 0.06, 0.04); } },
   /** the "pop into the bag" note rises a little with each item in a burst */
   pop(i = 0) { if (on() && throttle('pop', 45)) tone(988 * Math.pow(2, Math.min(i, 7) / 12), 0.07, 'sine', 0.07); },
@@ -169,11 +170,11 @@ export const SFX = {
   twinkle() { if (on()) [1568, 2093, 2637].forEach((f, i) => tone(f, 0.18, 'sine', 0.05, i * 0.07)); },
   /** a firework: whoosh up, then a soft pop */
   boom() { if (on()) { noise(0.5, 0.04, 2400, 0, 'highpass'); noise(0.5, 0.11, 500, 0.45); tone(90, 0.3, 'sine', 0.08, 0.45); } },
-  craft() { if (on()) { tone(523, 0.1, 'triangle', 0.12); tone(659, 0.1, 'triangle', 0.12, 0.08); tone(784, 0.16, 'triangle', 0.12, 0.16); } },
+  craft() { buzz('success'); if (on()) { tone(523, 0.1, 'triangle', 0.12); tone(659, 0.1, 'triangle', 0.12, 0.08); tone(784, 0.16, 'triangle', 0.12, 0.16); } },
   pet() { if (on()) { tone(660, 0.1, 'sine', 0.14); tone(990, 0.14, 'sine', 0.1, 0.07); } },
-  letter() { if (on()) { tone(784, 0.12, 'sine', 0.14); tone(988, 0.12, 'sine', 0.12, 0.09); tone(1175, 0.2, 'sine', 0.12, 0.18); } },
-  quest() { if (on()) { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.13, i * 0.11)); } },
-  error() { if (on()) tone(220, 0.12, 'sine', 0.08); },
+  letter() { buzz('success'); if (on()) { tone(784, 0.12, 'sine', 0.14); tone(988, 0.12, 'sine', 0.12, 0.09); tone(1175, 0.2, 'sine', 0.12, 0.18); } },
+  quest() { buzz('success'); if (on()) { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.13, i * 0.11)); } },
+  error() { buzz('oops'); if (on()) tone(220, 0.12, 'sine', 0.08); },
   click() { if (on()) tone(700, 0.04, 'sine', 0.06); },
   /** soft bell chime for prayer time (not an adhan recording) */
   chime() {
@@ -186,7 +187,7 @@ export const SFX = {
     const c = actx(); if (!c) return;
     for (let i = 0; i < times; i++) bedugStrike(c, c.currentTime + 0.02 + i * 0.55, i === times - 1 ? 1 : 0.85);
   },
-  fanfare() { if (on()) { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, i * 0.14)); } },
+  fanfare() { buzz('success'); if (on()) { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, i * 0.14)); } },
 };
 
 export function haptic(p: number | number[]) { try { navigator.vibrate?.(p); } catch { /* ignore */ } }

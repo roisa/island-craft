@@ -552,7 +552,8 @@ async function run(name) {
     });
     await step('big race: a 🏁 join button before the set time (nothing stops the game), and villagers on the grandstand', async () => {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.hour = 9.7; G.lastHour = 9.7; });
-      await p.waitForFunction(() => !document.querySelector('#bRaceSoon').classList.contains('hidden'), null, { timeout: 30000, polling: 100 });
+      // the game clock stops while a pop-up is open, so close any that come up and help the clock past 9:45
+      await p.waitForFunction(() => { const G = __game; if (!document.querySelector('#bRaceSoon').classList.contains('hidden')) return true; G.ui.closeAllModals(); G.hour = Math.min(G.hour + 0.01, 9.9); return false; }, null, { timeout: 30000, polling: 100 });
       const r = await g(() => ({ btn: document.querySelector('#bRaceSoon').textContent, open: __game.ui.isOpen(), watching: __game.race.watching }));
       // it goes away by itself once the race time has passed
       await g(() => { const G = __game; G.hour = 11.5; });

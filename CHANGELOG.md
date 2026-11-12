@@ -5,6 +5,25 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A sharper “Baby Mo Craft” icon, and more of a real iPhone app 📱
+
+Asked by a parent: a sharper App Store icon with “Craft” on it, and less risk
+of the app being turned down as “just a website” (Apple guideline 4.2).
+
+- **New icon**: made at 1024×1024 from the full-size Baby Mo logo (it was the
+  512 web icon enlarged), with “Craft” under “Baby Mo” in the same lettering.
+  Used for the app, its launch screen and the website icons.
+- **The iOS share sheet** for the Photo button and the parent area's “Save to
+  a file”: these were browser downloads, which do nothing inside the app.
+  The website still downloads them.
+- **Haptics** in the app: a light tap when placing or breaking blocks, a happy
+  buzz for letters, quests, crafting and fanfares, a nudge on mistakes.
+- Plugins (`@capacitor/haptics`, `share`, `filesystem`) load only inside the
+  app; the photo permission text for saving to Photos is added.
+- Smoke test fix: the big race test helps the game clock past 9:45 and closes
+  stray pop-ups (the clock stops while one is open), which failed on CI.
+- Tested: 233 unit tests, build, smoke on desktop and iPhone.
+
 ### App Store kit 🛍️
 
 Asked by a parent: everything needed for the App Store submission.

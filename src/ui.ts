@@ -26,6 +26,7 @@ import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASE
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
 import { guessLook, toCss, type Look } from './game/photo';
+import { shareFile } from './native';
 import { isNativeApp, isInstalled, isIOS, canPrompt, promptInstall, canFullscreen, toggleFullscreen, hintDismissed, dismissHint, onInstallChange } from './install';
 import type { T2 } from './i18n';
 import { ic, tile, COLORS as C } from './icons';
@@ -1470,11 +1471,8 @@ export class UI {
     $<HTMLSelectElement>('#pWater', el).onchange = e => { s.water = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();
     $('#pExp', el).onclick = async () => {
-      const blob = new Blob([await g.exportSave()], { type: 'application/json' });
-      const url = URL.createObjectURL(blob), link = document.createElement('a');
-      link.href = url; link.download = `baby-mo-island-craft-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
-      this.toast(tr('💾 File simpanan dibuat', '💾 Save file created'));
+      const ok = await shareFile(`baby-mo-island-craft-${new Date().toISOString().slice(0, 10)}.json`, await g.exportSave(), 'application/json');
+      if (ok) this.toast(tr('💾 File simpanan dibuat', '💾 Save file created'));
     };
     const file = $<HTMLInputElement>('#pFile', el);
     $('#pImp', el).onclick = () => file.click();
