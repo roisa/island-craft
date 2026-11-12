@@ -26,7 +26,7 @@ import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASE
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
 import { guessLook, toCss, type Look } from './game/photo';
-import { isInstalled, isIOS, canPrompt, promptInstall, canFullscreen, toggleFullscreen, hintDismissed, dismissHint, onInstallChange } from './install';
+import { isNativeApp, isInstalled, isIOS, canPrompt, promptInstall, canFullscreen, toggleFullscreen, hintDismissed, dismissHint, onInstallChange } from './install';
 import type { T2 } from './i18n';
 import { ic, tile, COLORS as C } from './icons';
 import { arImg } from './arabic';
@@ -1373,7 +1373,7 @@ export class UI {
       <div class="set"><span>${tile('hand', C.pink)}${tr('Kepekaan geser', 'Look sensitivity')}</span><input type="range" id="sSens" min="0.4" max="2" step="0.1" value="${s.sens}"></div>
       <div class="set"><span>${tile('game', C.purple)}${tr('Mode', 'Mode')}</span><select id="sMode"><option value="adventure" ${s.mode === 'adventure' ? 'selected' : ''}>${tr('Petualangan', 'Adventure')}</option><option value="creative" ${s.mode === 'creative' ? 'selected' : ''}>${tr('Kreatif (balok tak terbatas, terbang)', 'Creative (unlimited blocks, fly)')}</option></select></div>
       <div class="row"><button class="btn ghost small" id="bHome">${ic('home')} ${tr('Pulang ke desa', 'Back to village')}</button><button class="btn ghost small" id="bShot">${ic('camera')} ${tr('Foto', 'Photo')}</button></div>
-      <a class="btn ghost small" href="https://play.babymo.id/" id="bHub">${ic('back')} ${tr('Game Baby Mo lainnya', 'More Baby Mo games')}</a>
+      ${isNativeApp() ? '' : `<a class="btn ghost small" href="https://play.babymo.id/" id="bHub">${ic('back')} ${tr('Game Baby Mo lainnya', 'More Baby Mo games')}</a>`}
       <button class="btn small" id="bResume">${ic('play')} ${tr('Lanjut main', 'Continue')}</button>
       <button class="btn ghost small" id="bParents">${ic('family')} ${tr('Untuk orang tua', 'For parents')} ${ic('lock')}</button>`;
     const flip = (id: string, k: 'sfx' | 'music' | 'moVoice') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });

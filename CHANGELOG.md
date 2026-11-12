@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### App Store kit 🛍️
+
+Asked by a parent: everything needed for the App Store submission.
+
+- **Privacy policy** (`privacy.html`) and **support page** (`support.html`)
+  in English and Indonesian, published with the game. The support page's
+  contact address is still a placeholder (`CONTACT_EMAIL`).
+- **No links out inside the iOS app**: the “More Baby Mo games” link in
+  the settings is hidden in the app (Apple's Kids rules); it stays on the
+  website.
+- Screenshots (iPhone 6.9″/6.5″/6.3″ and iPad 13″, both languages) and the
+  listing text were made outside the repo for App Store Connect.
+- Tested: 233 unit tests, build (both pages in `dist/`), desktop smoke.
+
 ### The iPhone/iPad app (Xcode project) 📱
 
 Asked by a parent: build the game for iOS with Xcode.
