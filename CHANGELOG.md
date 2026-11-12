@@ -23,6 +23,8 @@ of the app being turned down as “just a website” (Apple guideline 4.2).
   app; the photo permission text for saving to Photos is added.
 - Smoke test fix: the big race test helps the game clock past 9:45 and closes
   stray pop-ups (the clock stops while one is open), which failed on CI.
+- Smoke test fix: the village shop check counts coins right around the tap
+  (a reward arriving while the shop opened made it fail on the iPad on CI).
 - Tested: 233 unit tests, build, smoke on desktop and iPhone.
 
 ### App Store kit 🛍️

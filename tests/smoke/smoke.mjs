@@ -289,11 +289,14 @@ async function run(name) {
       // spend some at the village shop
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.deeds.maybeExtraChange = () => {}; G.ui.shop(); }); // the random extra-change test has its own check
       await p.waitForSelector('.veil.on .shopRow');
-      const dates = await g(() => __game.inv.count(214));
-      await g(() => document.querySelector('.veil.on [data-buy="0"]').click());
-      const bought = await g(d => ({ dates: __game.inv.count(214) - d, coins: __game.stats.coins }), dates);
+      // coins are counted right around the tap: a reward can arrive while the shop opens on a slow device
+      const bought = await g(() => {
+        const G = __game, d = G.inv.count(214), c = G.stats.coins;
+        document.querySelector('.veil.on [data-buy="0"]').click();
+        return { dates: G.inv.count(214) - d, paid: c - G.stats.coins, coins: G.stats.coins };
+      });
       await g(() => __game.ui.closeAllModals());
-      if (bought.dates !== 5 || bought.coins !== after.coins - 20) throw new Error(JSON.stringify(bought));
+      if (bought.dates !== 5 || bought.paid !== 20) throw new Error(JSON.stringify(bought));
       return { hud, coins: after.coins, shop: bought };
     });
     await step('today’s goals give coins, and finds can be sold', async () => {
