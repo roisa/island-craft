@@ -39,8 +39,9 @@ Asked by a parent: everything needed for the App Store submission.
   website.
 - **The kit online** at `/appstore/` on the website: screenshots for
   App Store Connect's “iPhone with Dynamic Island (medium display)” slot
-  (2622 × 1206; the 6.9″ files were refused there) and iPad 13″ in both
-  languages (previews, full-size files
+  (2622 × 1206; the 6.9″ files were refused there), “iPhone Duo”
+  (2034 × 1398) and iPad 13″ in both languages, plus the Header image
+  (3840 × 1646) (previews, full-size files
   and one zip per language), the listing text with copy buttons, and the
   privacy, age-rating, review and checklist answers. The `appstore/` folder
   is copied in only when the website is published, so it isn't in the
