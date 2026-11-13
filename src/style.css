@@ -596,3 +596,36 @@ body.desktop #bRot { bottom: calc(110px + var(--safe-b)); right: 20px; }
 .mapZoom .btn, #book .row .btn.small[data-z] { min-height: 40px; }
 /* small buttons inside pop-ups stay comfortably tappable on phones */
 .panel .btn.small, #book .btn.small { min-height: 36px; }
+
+/* ================= iOS 26-style refresh: hierarchical symbols + clearer liquid glass ================= */
+.ic { stroke-width: 2.15; }
+.ic .d { fill: currentColor; stroke: none; opacity: .2; }
+.tile .ic .d { opacity: .3; }
+.pill, .ibtn, .abtn {
+  background: linear-gradient(180deg, rgba(255,255,255,.66) 0%, rgba(255,255,255,.38) 55%, rgba(255,255,255,.48) 100%) !important;
+  border: 0 !important;
+  -webkit-backdrop-filter: blur(16px) saturate(210%) brightness(1.04) !important; backdrop-filter: blur(16px) saturate(210%) brightness(1.04) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), inset 0 1.5px 0 rgba(255,255,255,1), inset 0 -10px 18px -12px rgba(90,150,210,.45), 0 10px 26px -12px rgba(15,35,70,.5) !important;
+}
+/* the gloss highlight needs a positioned button: the action buttons already are (absolute); the small round ones get relative */
+.abtn { overflow: hidden; }
+#topbar .ibtn, #sideBtns .ibtn { position: relative; overflow: hidden; }
+.ibtn::after, .abtn::after { content: ''; position: absolute; left: 14%; top: 7%; width: 55%; height: 32%; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,0)); pointer-events: none; }
+.ibtn .ic { width: 23px; height: 23px; }
+#bHome .ic { color: #0A84FF; } #bBag .ic { color: #FF9F0A; } #bLetters .ic { color: #34C759; } #bCam .ic { color: #AF52DE; } #bMenu .ic { color: #1C1C1E; }
+.abtn .ic { width: 32px; height: 32px; }
+.pill .mi .ic { width: 22px; height: 22px; }
+.pill .mi { display: inline-grid; place-items: center; }
+#bMasjid .mi .ic { color: #1FA952; } #bTennis .mi .ic { color: #9ACD32; } #bRace .mi .ic, #bRaceSoon .mi .ic { color: #FF3B30; } #bPlay .mi .ic { color: #0A84FF; }
+/* the book's tabs: a glass capsule, the chosen one a tinted lens */
+.tabs { background: rgba(120,130,150,.14) !important; border-radius: 999px !important; padding: 4px !important; box-shadow: inset 0 1px 2px rgba(0,0,0,.06); }
+.tab { border-radius: 999px !important; padding: 7px 12px !important; }
+.tab.on { background: linear-gradient(180deg, #ffffff, #f3f8ff) !important; box-shadow: 0 3px 10px -2px rgba(20,60,120,.25), inset 0 0 0 1px rgba(255,255,255,.9) !important; color: #0A84FF !important; }
+.tab.on .ic { color: #0A84FF; }
+@media (prefers-reduced-transparency: reduce) { .pill, .ibtn, .abtn { background: #f4f6f9 !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
+/* icon tiles in headings (they replace emoji) */
+h2 > .tile, h3 > .tile { vertical-align: middle; margin: -3px 6px 0 0; }
+h3 > .tile { width: 24px; height: 24px; border-radius: 7px; }
+h3 > .tile .ic { width: 15px; height: 15px; }
+.btn > .ic { margin-right: 4px; }
+.amalHead b > .tile { vertical-align: middle; margin: -3px 6px 0 0; }

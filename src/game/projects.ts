@@ -10,6 +10,7 @@ import { VILLAGE_Y } from '../world/gen';
 import { kindTotal, newLog, type ProjectKind } from './amal';
 import { PLACES, ROUTINES } from './routines';
 import { SFX, haptic } from './audio';
+import { tile, COLORS as C } from '../icons';
 
 const G = VILLAGE_Y; // the village ground level (blocks stand on G + 1)
 
@@ -127,7 +128,7 @@ export class Projects {
   /** after loading a save: villagers keep using what was built */
   restore() { for (const p of PROJECTS) if (this.built.includes(p.id)) this.useIt(p); }
   html() {
-    return `<h3>🏗️ ${tr('Proyek desa (sedekah jariyah)', 'Village projects (ongoing charity)')}</h3><div class="projList">${PROJECTS.map(p => {
+    return `<h3>${tile('building', C.orange)} ${tr('Proyek desa (sedekah jariyah)', 'Village projects (ongoing charity)')}</h3><div class="projList">${PROJECTS.map(p => {
       const b = this.built.includes(p.id), n = this.progress(p);
       const kind = { kind: tr('kebaikan & berbagi', 'kindness & sharing'), learn: tr('belajar', 'learning'), worship: tr('ibadah', 'worship') }[p.kind];
       return `<div class="projRow ${b ? 'built' : ''}"><div class="ic">${p.icon}</div><div class="tx"><b>${esc(t2(p.name))}</b><small>${b ? '✅ ' + tr('Sudah dibangun di desa!', 'Built in the village!') : tr(`Butuh ${p.need} amal ${kind}: ${n}/${p.need}`, `Needs ${p.need} good deeds of ${kind}: ${n}/${p.need}`)}</small>${b ? '' : `<div class="bar"><i style="width:${Math.round(n / p.need * 100)}%"></i></div>`}</div></div>`;

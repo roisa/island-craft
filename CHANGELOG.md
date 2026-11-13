@@ -5,6 +5,33 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Icons in the style of the latest iOS ✨
+
+Asked by a parent: update the old icons to modern ones inspired by the
+latest iOS, checking everything in batches.
+
+- **Two-tone symbols** (iOS “hierarchical” style): every closed shape in an
+  icon gets a soft fill of its own colour behind the outline, done once for
+  the whole icon set; slightly bolder lines.
+- **Clearer liquid glass** on the round buttons, the action buttons and the
+  top cards: more see-through, a bright rim and a gloss highlight; each
+  round button has its own colour (home blue, bag orange, letters green,
+  camera purple). The book's tabs are a glass capsule with the chosen tab
+  as a lens.
+- **New symbols** that replace emoji on buttons: masjid, tennis, archery
+  target, race flag, basketball, football, horse, skates, kite, compass,
+  tasbih beads, sprout, photo, scroll, building.
+- **Icon tiles instead of emoji** in headings (Tasbih, my look from a
+  photo, fun places, Explorer’s Journal, Treasure Map, the Iqro journey,
+  today’s goals, learning report, Full Mo Craft, water break, goodnight,
+  village projects, Good Deeds Book) and icons in their buttons.
+- Pictures that are content (blueprints, hats, items, quest pictures, the
+  wudu body parts) stay as they are.
+- Checked on an icon sheet (every icon on glass, on a tile and as an
+  outline; horse, masjid and tasbih were redrawn after the first look) and
+  on phone screenshots of the game screen and every book tab. Tests: unit,
+  smoke on desktop and iPhone, the layout checks.
+
 ### Shorter prayer, a lively wudu, and Baby Mo free in the prayer guide 💧
 
 Asked by a parent: the prayer took too long; wudu should make a child want

@@ -33,7 +33,7 @@ const P: Record<string, string> = {
   moon: '<path d="M19.8 14.6A8.4 8.4 0 1 1 9.4 4.2a6.8 6.8 0 0 0 10.4 10.4Z"/>',
   gift: '<rect x="3.5" y="8" width="17" height="4.2" rx="1.2"/><path d="M5.2 12.2V20h13.6v-7.8M12 8v12"/><path d="M12 8C10.4 4.6 6.6 4.4 6.6 6.6 6.6 8 9 8 12 8Zm0 0c1.6-3.4 5.4-3.6 5.4-1.4C17.4 8 15 8 12 8Z"/>',
   gear: '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.8l1.6 2.2 2.7-.6.7 2.7 2.4 1.4-1 2.5 1 2.5-2.4 1.4-.7 2.7-2.7-.6L12 21.2 10.4 19l-2.7.6-.7-2.7-2.4-1.4 1-2.5-1-2.5L7 8.1l.7-2.7 2.7.6Z"/>',
-  mosque: '<path d="M3.5 20.5h17M5.5 20.5v-8.2a6.5 6.5 0 0 1 13 0v8.2M12 3.2v2.6"/><path d="M10 20.5v-3.6a2 2 0 0 1 4 0v3.6"/>',
+  mosque: '<path d="M2.8 20.5h18.4"/><path d="M7 20.5v-5.4a5 5 0 0 1 10 0v5.4Z"/><path d="M12 10.1V7.6"/><path d="M12.8 4.1a1.7 1.7 0 1 0 0 2.9 2.1 2.1 0 0 1 0-2.9Z"/><path d="M4.1 20.5v-8.6l.95-1.6.95 1.6v8.6M18 20.5v-8.6l.95-1.6.95 1.6v8.6"/><path d="M10.6 20.5v-2.4a1.4 1.4 0 0 1 2.8 0v2.4"/>',
   shirt: '<path d="M8.4 4 4 6.8l1.9 4 2.1-1V20h8V9.8l2.1 1 1.9-4L15.6 4c-.6 1.6-2 2.6-3.6 2.6S9 5.6 8.4 4Z"/>',
   blueprint: '<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M3.5 9.5h17M9.5 9.5v11"/>',
   lock: '<rect x="5" y="10.6" width="14" height="10" rx="2.6"/><path d="M8.2 10.6V8a3.8 3.8 0 0 1 7.6 0v2.6"/>',
@@ -58,12 +58,45 @@ const P: Record<string, string> = {
   ruler: '<path d="M3.5 15.5 15.5 3.5l5 5-12 12Z"/><path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/>',
   paw: '<circle class="f" cx="7" cy="9.5" r="1.8"/><circle class="f" cx="10.6" cy="6.4" r="1.8"/><circle class="f" cx="14.6" cy="6.6" r="1.8"/><circle class="f" cx="17.8" cy="10" r="1.8"/><path class="f" d="M12.2 11.2c-2.8 0-5.2 3.4-5.2 5.8 0 1.9 1.6 2.6 3 2.2.8-.2 1.4-.6 2.2-.6s1.4.4 2.2.6c1.4.4 3-.3 3-2.2 0-2.4-2.4-5.8-5.2-5.8Z"/>',
   trophy: '<path d="M8 4.5h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6.5H5a2.5 2.5 0 0 0 3 3.6M16 6.5h3a2.5 2.5 0 0 1-3 3.6M12 13.5V17M8.5 20h7M9.5 17h5v3h-5Z"/>',
+  // sports, play and worship (they replace emoji on buttons)
+  target: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="5"/><circle class="f" cx="12" cy="12" r="1.7"/>',
+  flag: '<path d="M5.5 21V3.8"/><path d="M5.5 4.5h12l-2.6 4.2 2.6 4.2h-12Z"/>',
+  tennis: '<circle cx="12" cy="12" r="8.6"/><path d="M5.3 6.4a9.3 9.3 0 0 1 0 11.2M18.7 6.4a9.3 9.3 0 0 0 0 11.2"/>',
+  basketball: '<circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2M12 3.4v17.2M6.1 5.7a10.4 10.4 0 0 1 0 12.6M17.9 5.7a10.4 10.4 0 0 0 0 12.6"/>',
+  soccer: '<circle cx="12" cy="12" r="8.6"/><path d="m12 8.3 3.3 2.4-1.3 3.9h-4l-1.3-3.9Z"/><path d="M12 8.3V3.6M15.3 10.7l4.4-1.5M14 14.6l2.8 3.8M10 14.6l-2.8 3.8M8.7 10.7 4.3 9.2"/>',
+  horse: '<path d="M6.8 20.5h11"/><path d="M8.3 20.5c0-3.3 1.8-4.9 3.6-6.5-2 .3-3.6 1-4.9 2.2l-1.6-2.1 2.6-4.3c.7-2.6 2.8-4.7 5.6-5.1l.6-1.8 1.6 2.2c2.4 1.6 3.6 4.6 3.4 8.2-.2 3-1.1 5.3-1.1 7.2"/><circle class="f" cx="11.7" cy="8.6" r=".95"/>',
+  skate: '<path d="M6 4.2h4.6v6l6.4 2.3a2.5 2.5 0 0 1 1.7 2.4v1.6H6Z"/><path d="M4.4 20.2h14.7a2.1 2.1 0 0 0 1.6-.9"/><path d="M8.2 16.5v3.7M15.6 16.5v3.7M10.6 7.4H8.4"/>',
+  kite: '<path d="M12 2.8 18.2 10 12 17.2 5.8 10Z"/><path d="M12 2.8v14.4M5.8 10h12.4"/><path d="M12 17.2c-.4 2 .8 3 2.4 3s2.6.8 2.6 1.8"/>',
+  compass: '<circle cx="12" cy="12" r="8.6"/><path class="f" d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1Z"/>',
+  beads: '<circle cx="12" cy="9.4" r="6" stroke-dasharray="1.2 2.6"/><circle class="f" cx="12.00" cy="3.40" r="1.75"/><circle class="f" cx="15.86" cy="4.80" r="1.75"/><circle class="f" cx="17.91" cy="8.36" r="1.75"/><circle class="f" cx="17.20" cy="12.40" r="1.75"/><circle class="f" cx="6.80" cy="12.40" r="1.75"/><circle class="f" cx="6.09" cy="8.36" r="1.75"/><circle class="f" cx="8.14" cy="4.80" r="1.75"/><path d="M12 15.4v3.2"/><path d="m10.2 21.2 1.8-2.6 1.8 2.6"/>',
+  sprout: '<path d="M12 20.5V11.2"/><path d="M12 11.2c0-3.7-2.5-6.2-6.2-6.2 0 3.7 2.5 6.2 6.2 6.2Z"/><path d="M12 13.6c0-3.3 2.3-5.6 5.7-5.6 0 3.3-2.3 5.6-5.7 5.6Z"/>',
+  photo: '<rect x="3.5" y="4.5" width="17" height="15" rx="3.2"/><circle cx="9" cy="9.6" r="1.7"/><path d="m3.8 17.4 5-4.6 3.6 3.2 3-2.6 5.1 4.4"/>',
+  scroll: '<path d="M7 4.2h10.5a2.3 2.3 0 0 1 0 4.6H17v9.4a2.3 2.3 0 0 1-2.3 2.3H6.2"/><path d="M6.2 20.5a2.3 2.3 0 0 0 2.3-2.3V6.5A2.3 2.3 0 0 0 6.2 4.2a2.3 2.3 0 0 0-2.3 2.3v1.1h4.6"/><path d="M11.3 12.5h3M11.3 15.5h2"/>',
+  building: '<path d="M4.5 20.5V8.4L12 3.6l7.5 4.8v12.1Z"/><path d="M9.5 20.5v-5h5v5M8.3 10.8h1.6M14.1 10.8h1.6"/>',
   door: '<path d="M14 4.5H7a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h7"/><path d="M14 8.5 18 12l-4 3.5M18 12H10"/>',
 };
 
-export function ic(name: keyof typeof P | string, cls = '') {
-  return `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[name] ?? ''}</svg>`;
+/**
+ * iOS-style "hierarchical" symbols: every closed shape (circles, rects, closed paths) also gets a soft
+ * fill in the same colour behind its outline, so icons read as solid, friendly shapes. Small dots and
+ * shapes that are already filled are left as they are. `ic(name, 'line')` keeps the plain outline.
+ */
+const CLOSED = /<(?:circle|rect|ellipse)\b[^>]*\/>|<path\b[^>]*\bd="[^"]*[Zz]"[^>]*\/>/g;
+const duoCache: Record<string, string> = {};
+function duo(svg: string) {
+  return (svg.match(CLOSED) ?? [])
+    .filter(e => !/class="f"/.test(e) && !/\br="(?:0?\.\d+|1(?:\.\d+)?)"/.test(e))
+    .map(e => e.replace(/\s*\/>$/, ' class="d"/>'))
+    .join('');
 }
+export function ic(name: keyof typeof P | string, cls = '') {
+  const body = P[name] ?? '';
+  const back = cls.includes('line') ? '' : (duoCache[name] ??= duo(body));
+  return `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${back}${body}</svg>`;
+}
+/** buttons that used to show an emoji show the matching symbol instead */
+export const EMOJI_IC: Record<string, string> = { '🏹': 'target', '🏀': 'basketball', '⚽': 'soccer', '🐴': 'horse', '🐎': 'horse', '⛸️': 'skate', '🎾': 'tennis', '🏁': 'flag', '🕌': 'mosque', '⛵': 'boat', '🎣': 'fish', '📿': 'beads', '🪁': 'kite', '🧭': 'compass', '💧': 'drop', '📷': 'camera', '🗺️': 'map', '📅': 'calendar', '📖': 'book', '🌱': 'sprout', '🏗️': 'building', '⭐': 'star', '🏆': 'trophy', '🎁': 'gift' };
+export const symbol = (emojiOrName: string) => ic(EMOJI_IC[emojiOrName] ?? emojiOrName);
 /** iOS Settings-style icon: white glyph on a coloured rounded square */
 export function tile(name: string, color: string) {
   return `<span class="tile" style="background:${color}">${ic(name)}</span>`;
