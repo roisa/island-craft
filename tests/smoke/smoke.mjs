@@ -86,6 +86,23 @@ async function run(name) {
       if (r.full || r.stored === '1' || !r.field) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('guide arrow: a glass arrow ahead of you points like the compass, and Settings can turn it off', async () => {
+      const r = await p.evaluate(async () => {
+        const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
+        const c = G.compass(); if (!c || c.dist <= 5) return { skip: true };
+        await wait(1200);
+        const a = G.guide; const on = !!a && a.obj.visible;
+        const diff = a ? Math.abs(Math.atan2(Math.sin(a.obj.rotation.y - G.compass().ta), Math.cos(a.obj.rotation.y - G.compass().ta))) : 9;
+        G.settings.guide = false;
+        for (let i = 0; i < 40 && a.obj.visible; i++) await wait(150);
+        const off = !a.obj.visible;
+        G.settings.guide = true;
+        return { on, off, diff };
+      });
+      if (r.skip) return r;
+      if (!r.on || !r.off || r.diff > 0.3) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('touch controls shown only on touch devices', async () => {
       const vis = await p.isVisible('#stick');
       if (vis !== touch) throw new Error(`stick visible=${vis}, touch=${touch}`);

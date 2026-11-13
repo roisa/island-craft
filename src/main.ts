@@ -74,6 +74,7 @@ import { shareFile } from './native';
 import { store } from './store';
 import { allowed } from './game/unlock';
 import { startEmoji3D } from './emoji3d';
+import { GuideArrow } from './game/guide';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -83,6 +84,8 @@ export interface Settings {
   water: number;
   /** naughty beetles at dusk (parents can turn them off) */
   beetles?: boolean;
+  /** the glass arrow in front of you that points to the mission (on unless switched off) */
+  guide?: boolean;
   /** colours picked from a photo (the photo itself is never kept) */
   look?: { hair: number; skin: number; shirt: number; pants: number };
   /** the swimming stroke you chose */
@@ -564,17 +567,17 @@ export class Game {
     return null;
   }
   compass() {
-    let best: { rot: number; dist: number; landmark?: string; masjid?: boolean } | null = null, bd = Infinity;
+    let best: { rot: number; dist: number; ta: number; landmark?: string; masjid?: boolean } | null = null, bd = Infinity;
     const p = this.player?.pos; if (!p) return null;
     const ms = this.masjidTarget();
     if (ms) {
       const ta = Math.atan2(ms.spot.x - p.x, ms.spot.z - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
-      return { rot: -(ta - la), dist: Math.hypot(ms.spot.x - p.x, ms.spot.z - p.z), landmark: '🕌', masjid: true };
+      return { rot: -(ta - la), ta, dist: Math.hypot(ms.spot.x - p.x, ms.spot.z - p.z), landmark: '🕌', masjid: true };
     }
     const lm: { x: number; z: number; icon: string } | null | undefined = this.exploreTarget ? (this.sanctuary?.target(this.exploreTarget) ?? this.treasure?.target(this.exploreTarget) ?? this.gen.landmarks.find(l => l.id === this.exploreTarget)) : null;
     if (lm) {
       const ta = Math.atan2(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
-      return { rot: -(ta - la), dist: Math.hypot(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), landmark: lm.icon };
+      return { rot: -(ta - la), ta, dist: Math.hypot(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), landmark: lm.icon };
     }
     const have = new Set(this.stats.letters);
     for (const s of this.gen.shrines) {
@@ -584,14 +587,14 @@ export class Game {
         bd = d;
         const ta = Math.atan2(s.x + 0.5 - p.x, s.z + 0.5 - p.z);
         const la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
-        best = { rot: -(ta - la), dist: d };
+        best = { rot: -(ta - la), ta, dist: d };
       }
     }
     // all the letters found: the compass points to the next Iqro book
     const bk = this.iqro?.stone;
     if (!best && bk) {
       const ta = Math.atan2(bk[0] - p.x, bk[2] - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
-      return { rot: -(ta - la), dist: Math.hypot(bk[0] - p.x, bk[2] - p.z), landmark: '📖' };
+      return { rot: -(ta - la), ta, dist: Math.hypot(bk[0] - p.x, bk[2] - p.z), landmark: '📖' };
     }
     return best;
   }
@@ -1981,6 +1984,17 @@ export class Game {
     if (this.congregation && gs) this.congregation.update(!!ev && Math.hypot(pp.x - gs.spot.x, pp.z - gs.spot.z) < 80, !!this.jamaah && this.jamaahSite === gs, !!ev?.prayed);
     this.beacons?.update(t, this.camera.position, !!ev && !ev.prayed && !this.jamaah && !this.siteAt(pp), !!this.sky.night);
     this.masjidTrail(dt);
+    this.guideTick(dt);
+  }
+  /** the glass arrow ahead of you, pointing to the mission; hidden when close, busy or switched off */
+  guide: GuideArrow | null = null;
+  private guideTick(dt: number) {
+    if (!this.player) return;
+    this.guide ??= new GuideArrow(this.scene);
+    const c = this.compass();
+    const busy = !!this.playing || !!this.race?.active || !!this.tennis?.active || !!this.fun?.riding || !!this.jamaah || this.ui.isOpen();
+    const on = this.settings.guide !== false && !!c && c.dist > 5 && !busy;
+    this.guide.update(dt, this.player.pos, this.player.yaw, c ? c.ta : null, on);
   }
   private endPrayerTime() {
     for (const n of this.ents.npcs) n.goPray(false, n.home);

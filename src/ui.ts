@@ -1409,6 +1409,7 @@ export class UI {
       ${tog('tMusic', s.music, tile('music', C.red) + tr('Musik', 'Music'))}
       ${tog('tVoice', s.moVoice, tile('bubble', C.green) + tr('Baby Mo membacakan teks', 'Baby Mo reads text aloud'))}
       ${tog('tEnglish', s.english !== false, tile('globe', C.teal) + tr('Kartu kata Bahasa Inggris', 'English word cards'))}
+      ${tog('tGuide', s.guide !== false, tile('arrow', C.indigo) + tr('Panah penunjuk misi', 'Guide arrow to the mission'))}
       <div class="set"><span>${tile('globe', C.blue)}${tr('Bahasa', 'Language')}</span>${this.langSeg()}</div>
       <div class="set"><span>${tile('camera', C.gray)}${tr('Kamera', 'Camera')}</span><select id="sCam"><option value="third" ${s.cam === 'third' ? 'selected' : ''}>${tr('Orang ketiga', 'Third person')}</option><option value="first" ${s.cam === 'first' ? 'selected' : ''}>${tr('Orang pertama', 'First person')}</option></select></div>
       <div class="set"><span>${tile('eye', C.teal)}${tr('Jarak pandang', 'View distance')}</span><select id="sDist">${[3, 4, 5, 6, 8].map(n => `<option value="${n}" ${s.dist === n ? 'selected' : ''}>${n * 16} m</option>`).join('')}</select></div>
@@ -1422,6 +1423,7 @@ export class UI {
     const flip = (id: string, k: 'sfx' | 'music' | 'moVoice') => ($('#' + id, body).onclick = () => { s[k] = !s[k]; g.applySettings(); this.renderBook(); });
     flip('tSfx', 'sfx'); flip('tMusic', 'music'); flip('tVoice', 'moVoice');
     $('#tEnglish', body).onclick = () => { s.english = s.english === false; SFX.click(); g.saveSoon(); this.renderBook(); };
+    $('#tGuide', body).onclick = () => { s.guide = s.guide === false; SFX.click(); g.saveSoon(); this.renderBook(); };
     $('#bParents', body).onclick = () => this.parentGate(() => this.parentsPanel());
     this.bindLangSeg(body, () => { this.refreshHotbar(); this.updateHud(); this.renderBook(); g.saveSoon(); });
     $<HTMLSelectElement>('#sCam', body).onchange = e => { s.cam = (e.target as HTMLSelectElement).value as 'first' | 'third'; g.applySettings(); };

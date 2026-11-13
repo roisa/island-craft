@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Glass guide arrow to the mission ➡️
+
+Asked by a parent: Ibra was not always sure where the mission is.
+- A frosted grey glass arrow now floats a few steps ahead of you and turns
+  to point at what the golden compass shows (the next letter, the Iqro
+  book, the masjid at prayer time, or a place you chose to visit). It bobs
+  and glows softly, fades out when you are close (under 5 m), and hides
+  while you play a game, ride, pray or have a window open.
+- Settings has a new switch, "Guide arrow to the mission", to turn it off.
+  It is on by default; old saves keep working.
+- Tested: 237 unit tests; a new smoke step checks that the arrow shows,
+  points the same way as the compass and hides when switched off (all 5
+  device profiles via `npm run qa`).
+
 ### Emoji in a modern 3D style 😊
 
 Asked by a parent: keep the friendly emoji (not boxed icons), but make
