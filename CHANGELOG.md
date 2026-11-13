@@ -5,6 +5,32 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Baby Mo leans out from behind the text boxes 👦
+
+Asked by a parent: Baby Mo's pictures should feel more alive, upper body only
+where it suits, with Mo partly behind the text box (the pictures are
+transparent).
+- New waist-up pictures of Baby Mo for his five poses (`baby-mo-*-up.webp`).
+- **Speech bubble:** he leans over the bubble's top-left corner, with his head
+  and hands above the edge and the rest of him fading behind the frosted glass.
+  He pops up with a little bounce each time he says something new, then sways
+  gently.
+- **Dialogs where Baby Mo talks** (bedtime, water bottle, fishing tips…): he
+  leans over the top of the sheet instead of sitting in a small square.
+- **"Say it" phrase card:** the same peek, smaller.
+- Full-body poses stay where he stands on his own: start screen, loading and
+  "Try again".
+- No motion with "reduce motion" switched on.
+- The word card (e.g. Cat / Kucing) no longer covers Baby Mo's speech bubble:
+  while he talks it sits just under it.
+- A smoke test step (Eid bazaar) is steadier: a card that pops up first is
+  closed before waiting for the stall.
+- The QA check "prayer time in the game" now says what it saw if prayer time
+  doesn't arrive (it failed once under heavy load, then passed on every profile).
+- Tested: 243 unit tests; smoke on desktop, iPhone, iPad and Android; `npm run qa`
+  on desktop and iPhone; screenshots of the bubble and dialogs on phone (both
+  ways) and desktop.
+
 ### Release fixes from the audit 🛠️
 
 - **The name is BabyMo Craft everywhere**: start screen, browser tab, home-screen

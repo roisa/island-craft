@@ -78,14 +78,14 @@ export class UI {
   <div id="raceHud" class="pill hidden"><span id="raceT"></span><button class="btn small ghost" id="raceX">${tr('Keluar', 'Exit')}</button></div>
   <div id="raceCount" class="hidden"></div>
   <div id="raceMath" class="hidden"></div>
-  <div id="phraseCard" class="pill hidden"><img src="img/baby-mo-idea.webp" alt=""><div><small class="pt"></small><b class="pe"></b><small class="pid"></small></div><button class="say" id="phSay" aria-label="Listen">${ic('speaker')}</button><button class="btn small gold" id="phSaid">⭐ <span></span></button><button class="phx" id="phX" aria-label="Close">✕</button></div>
+  <div id="phraseCard" class="pill moHost hidden"><img class="moPeek" src="img/baby-mo-idea-up.webp" alt=""><div><small class="pt"></small><b class="pe"></b><small class="pid"></small></div><button class="say" id="phSay" aria-label="Listen">${ic('speaker')}</button><button class="btn small gold" id="phSaid">⭐ <span></span></button><button class="phx" id="phX" aria-label="Close">✕</button></div>
   <div id="wordCard" class="pill hidden"><span class="wi"></span><div><b class="we"></b><small class="wid"></small></div><button class="say" id="wordSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="actHud" class="pill hidden"><span id="actT"></span><button class="btn small ghost" id="actX">${tr('Keluar', 'Exit')}</button></div>
   <div id="meter" class="hidden"><div class="mz"></div><div class="mk"></div><small id="meterL"></small></div>
   <div id="dzikir" class="pill hidden"><b class="dar" lang="ar" dir="rtl"></b><div><b class="dsay"></b><small class="dmean"></small></div></div>
   <div id="tennisHud" class="pill hidden"><span id="tennisT"></span><button class="btn small ghost" id="tennisX">${tr('Keluar', 'Exit')}</button></div>
   <div id="bedHud" class="pill hidden"><span id="bedT"></span><button class="btn small gold" id="bedNow">😴 ${tr('Tidur sekarang', 'Sleep now')}</button></div>
-  <div class="pill" id="bubble"><img src="img/baby-mo-idea.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
+  <div class="pill moHost" id="bubble"><img class="moPeek" src="img/baby-mo-idea-up.webp" alt=""><div><div class="who">BABY MO</div><div class="txt" id="bubbleTxt"></div></div><button class="say" id="bubbleSay" aria-label="Listen">${ic('speaker')}</button></div>
   <div id="tut" class="pill hidden"><span class="ti" id="tutIcon"></span><div class="tt"><small id="tutN"></small><b id="tutTxt"></b></div><button class="say" id="tutSay" aria-label="Listen">${ic('speaker')}</button><button class="skip" id="tutSkip">${tr('Lewati', 'Skip')} ›</button></div>
   <button id="moHi" class="hidden" aria-label="Say hi">👋 <span>${tr('Hai!', 'Hi!')}</span></button>
   <div class="pill" id="quest"></div>
@@ -191,10 +191,14 @@ export class UI {
   }
   say(text: string, pose: 'idea' | 'ok' | 'alright' | 'pose-05' = 'idea', ms?: number) {
     ms = ms ?? Math.min(7000, 2600 + text.length * 45);
-    $<HTMLImageElement>('#bubble img').src = `img/baby-mo-${pose}.webp`;
+    // Baby Mo (waist up) pops up again from behind the bubble each time he says something new
+    const mo = $<HTMLImageElement>('#bubble img.moPeek');
+    mo.src = `img/baby-mo-${pose}-up.webp`;
+    mo.classList.add('again'); void mo.offsetWidth; mo.classList.remove('again');
     $('#bubbleTxt').textContent = text;
     $('#bubble').classList.add('on');
-    clearTimeout(this.bubbleT); this.bubbleT = window.setTimeout(() => $('#bubble').classList.remove('on'), ms);
+    clearTimeout(this.bubbleT); this.bubbleT = window.setTimeout(() => { $('#bubble').classList.remove('on'); this.placeWordCard(); }, ms);
+    requestAnimationFrame(() => this.placeWordCard());
     if (this.g.settings.moVoice && !this.modals.length) Speech.talk(text, getLang());
   }
   speak(text: string, force = false) { Speech.talk(text, getLang(), force, 1); }
@@ -364,6 +368,15 @@ export class UI {
     el.querySelector('.wid')!.textContent = w.id;
     el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
     clearTimeout(this.wordT); this.wordT = window.setTimeout(() => el.classList.add('hidden'), 4200);
+    this.placeWordCard();
+  }
+  /** the word card never covers Baby Mo's speech bubble: while he talks it sits just under the bubble */
+  placeWordCard() {
+    const card = $('#wordCard'), b = $('#bubble');
+    if (!b.classList.contains('on')) { card.style.top = ''; return; }
+    const r = b.getBoundingClientRect(), c = card.getBoundingClientRect();
+    const overlaps = c.width > 0 ? !(c.right < r.left || c.left > r.right) : true;
+    card.style.top = overlaps ? `${Math.round(r.bottom + 10)}px` : '';
   }
   /** the button for the place you're at (🏹 archery, 🏀 basketball, 🐴 riding, ⛸️ skating…); null hides it */
   private playKey = '';
@@ -1723,7 +1736,13 @@ export class UI {
 
   dialog(o: { face: string; who: string; text: string; buttons?: Btn[]; img?: boolean; speak?: boolean }) {
     const btns = o.buttons ?? [{ label: tr('Oke!', 'Okay!') }];
-    const { el, close } = this.modal(`<div class="dialog">${o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div style="flex:1"><div class="who">${esc(o.who)}</div><div class="say" id="dTxt">${o.text}</div></div><button class="say" id="dSpeak" aria-label="Listen">🔊</button></div><div id="dbtns"></div>`, () => Speech.stop(1), { onShow: () => { if (o.speak !== false && this.g.settings.moVoice) setTimeout(() => Speech.talk(plain(), getLang(), false, 1), 150); } });
+    // Baby Mo talking: he leans over the top of the sheet (waist up) instead of sitting in a small square
+    const mo = o.img && /baby-mo-[a-z0-9-]+\.webp$/.test(o.face) ? o.face.replace(/\.webp$/, '-up.webp') : null;
+    const { el, close } = this.modal(`<div class="dialog">${mo ? '' : o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div style="flex:1"><div class="who">${esc(o.who)}</div><div class="say" id="dTxt">${o.text}</div></div><button class="say" id="dSpeak" aria-label="Listen">🔊</button></div><div id="dbtns"></div>`, () => Speech.stop(1), { onShow: () => { if (o.speak !== false && this.g.settings.moVoice) setTimeout(() => Speech.talk(plain(), getLang(), false, 1), 150); } });
+    if (mo) {
+      const stage = h(`<div class="moStage"><img class="moPeek" src="${mo}" alt=""></div>`);
+      el.parentNode!.insertBefore(stage, el); stage.appendChild(el);
+    }
     const plain = () => ($('#dTxt', el).textContent || '');
     $('#dSpeak', el).onclick = () => Speech.talk(plain(), getLang(), true, 1);
     const wrap = $('#dbtns', el);

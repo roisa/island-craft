@@ -8,6 +8,7 @@ import '@fontsource/scheherazade-new/700.css';
 import './style.css';
 import './features.css';
 import './ios.css';
+import './mo.css';
 import './install';
 import * as THREE from 'three';
 import { tr, t2, getLang, setLang } from './i18n';

@@ -181,7 +181,7 @@ for (const name of profiles) {
   });
   await check('prayer time in the game: villagers go to the masjid, pray together', async () => {
     await g(() => { const G = __game; const h = G.schedule.dhuhr; G.hour = h - 0.05; G.lastHour = G.hour; G.settings.dayMinutes = 1; G.player.pos.set(0.5, 46, -14.5); });
-    await p.waitForFunction(() => !!__game.gameEvent, null, { timeout: 30000 });
+    try { await p.waitForFunction(() => !!__game.gameEvent, null, { timeout: 30000 }); } catch (e) { throw new Error('prayer time did not come: ' + JSON.stringify(await g(() => { const G = __game; return { hour: G.hour, dhuhr: G.schedule.dhuhr, paused: G.paused, open: G.ui.isOpen(), modals: G.ui.modals.length, q: G.ui.modalQueue.length, who: [...document.querySelectorAll('.veil.on .who, .veil.on h2')].map(e => e.textContent).slice(0, 4), book: document.querySelector('#vBook').className }; }))); }
     await g(() => { const G = __game; G.settings.dayMinutes = 600; for (const n of G.ents.npcs) if (n.target) { n.pos.copy(n.target); n.target = null; } });
     await p.waitForTimeout(800);
     await closeAll();

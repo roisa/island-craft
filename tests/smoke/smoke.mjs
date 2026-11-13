@@ -228,7 +228,8 @@ async function run(name) {
         return { open: G.eid.open, food: G.inv.count(253) };
       });
       if (!e.open) throw new Error('bazaar did not open');
-      try { await p.waitForSelector('.veil.on #dbtns button.gold', { timeout: 15000 }); } catch (err) { throw new Error('the stall did not open: ' + JSON.stringify(await g(() => { const G = __game, s = G.eid.stalls.find(s => s.id === 'food'), pp = G.player.pos; return { open: G.ui.isOpen(), at: G.eid.atStall, d: Math.hypot(s.front.x - pp.x, s.front.z - pp.z), dy: pp.y - s.front.y, veils: [...document.querySelectorAll('.veil.on, .gateScr, #fatal, .lockScr')].map(e => e.id || e.className), running: G.running, paused: G.paused }; }))); }
+      // another card (a discovery, a level up…) can pop up first: close it, then the stall opens by itself
+      try { await p.waitForFunction(() => { const G = __game; if (G.eid.atStall === 'food' && document.querySelector('.veil.on #dbtns button.gold')) return true; if (G.ui.isOpen() && G.eid.atStall !== 'food') G.ui.closeAllModals(); return false; }, null, { timeout: 15000, polling: 250 }); } catch (err) { throw new Error('the stall did not open: ' + JSON.stringify(await g(() => { const G = __game, s = G.eid.stalls.find(s => s.id === 'food'), pp = G.player.pos; return { open: G.ui.isOpen(), at: G.eid.atStall, d: Math.hypot(s.front.x - pp.x, s.front.z - pp.z), dy: pp.y - s.front.y, veils: [...document.querySelectorAll('.veil.on .who')].map(e => e.textContent), running: G.running, paused: G.paused }; }))); }
       await g(() => document.querySelector('.veil.on #dbtns button.gold').click());
       const f = await g(() => { const G = __game; G.ui.closeAllModals(); G.inv.slots[G.inv.sel] = null; G.talkNpc(G.ents.npcs.find(n => n.id === 'yusuf')); return { food: G.inv.count(253), angpao: G.inv.count(255) }; });
       if (f.food < e.food + 2 || f.angpao < 1) throw new Error(JSON.stringify({ e, f }));
