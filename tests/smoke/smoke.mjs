@@ -76,6 +76,16 @@ async function run(name) {
       if (r.letters !== 7 || !r.card || !r.iqro || r.archery || !r.archeryCard || !r.free || !r.full) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('family code (website): a wrong code is refused in the parent area', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.setFull(false); G.ui.parentsPanel(); });
+      await p.waitForSelector('.veil.on #pFam');
+      await g(() => { document.querySelector('.veil.on #pFam').value = 'MO-AAAA-AAAA'; document.querySelector('.veil.on #pFamGo').click(); });
+      await p.waitForTimeout(400);
+      const r = await g(() => ({ full: __game.full, stored: localStorage.getItem('mocraft-family'), field: !!document.querySelector('.veil.on #pFam') }));
+      await g(() => { __game.ui.closeAllModals(); __game.setFull(true); });
+      if (r.full || r.stored === '1' || !r.field) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('touch controls shown only on touch devices', async () => {
       const vis = await p.isVisible('#stick');
       if (vis !== touch) throw new Error(`stick visible=${vis}, touch=${touch}`);

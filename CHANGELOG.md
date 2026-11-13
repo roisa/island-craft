@@ -23,6 +23,12 @@ download with one in-app purchase, and the website as the same free part.
   Ask to Buy handled (the island opens once a parent approves). Also in
   the parent area. On the website the card says Full Mo Craft is in the
   app.
+- **Family code** (website only): a grown-up enters it in the parent area
+  and Full Mo Craft opens in that browser, so a family that already plays on
+  the website keeps the whole island until the app is out. Only the code's
+  SHA-256 is in the source. In the app, Apple allows only the purchase.
+  Tested: a unit test for the code check, a smoke step (a wrong code is
+  refused) and the real code in a fresh browser.
 - **Our own StoreKit 2 plugin** (`ios/App/App/StoreKitPlugin.swift`,
   registered by `MainViewController.swift`): no outside service, so the
   app still collects no data. The answer is remembered for offline starts.
@@ -30,7 +36,7 @@ download with one in-app purchase, and the website as the same free part.
   updated FAQ; privacy and support pages, the store description, the
   reviewer notes, the kit (in-app purchase fields and review screenshot)
   and docs/IOS.md (App Store Connect setup and TestFlight testing).
-- Tested: 239 unit tests (3 new for the rules), build, smoke on all five
+- Tested: 236 unit tests (3 new for the rules), build, smoke on all five
   device profiles with a new step for the free part (letter 8, Iqro and
   archery show the card; the free places stay open). The native purchase
   itself can only be tried on a device (TestFlight).

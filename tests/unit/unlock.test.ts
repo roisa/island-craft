@@ -19,3 +19,17 @@ describe('free + one-time unlock', () => {
     for (const id of ['fish_pond', 'race_track', 'orchard', 'camp', 'masjid', 'prayer', 'wudu']) expect(allowed(false, id)).toBe(true);
   });
 });
+
+describe('family code (website)', () => {
+  it('matches a code by its hash, ignoring case, spaces and dashes', async () => {
+    const { isFamilyCode, sha256Hex, normCode, FAMILY_HASH } = await import('../../src/game/unlock');
+    expect(normCode('mo-ab12 cd34')).toBe('MOAB12CD34');
+    const hash = await sha256Hex('MOTEST1234');
+    expect(await isFamilyCode('mo-test-1234', hash)).toBe(true);
+    expect(await isFamilyCode('MO TEST 1234', hash)).toBe(true);
+    expect(await isFamilyCode('MO-TEST-1235', hash)).toBe(false);
+    expect(await isFamilyCode('', hash)).toBe(false);
+    // the real code is not in the source, only its hash
+    expect(FAMILY_HASH).toMatch(/^[0-9a-f]{64}$/);
+  });
+});

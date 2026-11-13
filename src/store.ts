@@ -1,10 +1,12 @@
 // Full Mo Craft: whether it's unlocked, and buying or restoring it in the
 // iPhone/iPad app (our own StoreKit plugin, ios/App/App/StoreKitPlugin.swift).
 // The website has no purchase: it is the free part.
-import { FULL_ID } from './game/unlock';
+import { FULL_ID, isFamilyCode } from './game/unlock';
 
 const native = () => typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
 const KEY = 'mocraft-full';
+/** the website: unlocked in this browser with the family code */
+const FAMILY = 'mocraft-family';
 
 interface StoreKitPlugin {
   product(o: { id: string }): Promise<{ price?: string }>;
@@ -31,7 +33,7 @@ export const store = {
   },
   /** at start: the remembered answer first, then ask the App Store */
   async init() {
-    if (!native()) return;
+    if (!native()) { try { this.full = localStorage.getItem(FAMILY) === '1'; } catch { /* private mode */ } return; }
     try { this.full = localStorage.getItem(KEY) === '1'; } catch { /* private mode */ }
     try {
       const k = await kit();
@@ -48,6 +50,13 @@ export const store = {
       if (r.owned) { this.set(true); return 'owned'; }
       return r.pending ? 'pending' : 'cancelled';
     } catch { return 'error'; }
+  },
+  /** the website only: the family code opens Full Mo Craft in this browser */
+  async redeem(code: string): Promise<boolean> {
+    if (native() || !(await isFamilyCode(code))) return false;
+    try { localStorage.setItem(FAMILY, '1'); } catch { /* private mode: for this visit only */ }
+    this.full = true; for (const f of this.listeners) f(true);
+    return true;
   },
   async restore(): Promise<boolean> {
     if (!native()) return false;

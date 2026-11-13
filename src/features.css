@@ -401,3 +401,4 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
   .unlockCard .ulNote { font-size: 12px; }
   .unlockCard .row { margin: 0; }
 }
+.famRow input { flex: 1; min-width: 0; max-width: 220px; padding: 8px 12px; border-radius: 12px; border: 2px solid #cfe3ea; font: 700 15px/1.2 inherit; letter-spacing: .06em; text-transform: uppercase; }

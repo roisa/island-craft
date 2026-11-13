@@ -1503,6 +1503,7 @@ export class UI {
       <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
       <h3>🏝️ ${tr('Mo Craft Lengkap', 'Full Mo Craft')}</h3>
       <div class="row">${g.full ? `<span class="chipOk">✓ ${tr('Sudah terbuka', 'Unlocked')}</span>` : `<button class="btn gold small" id="pFull">🔓 ${tr('Buka seluruh pulau', 'Open the whole island')}</button>`}${store.canBuy() ? `<button class="btn ghost small" id="pRestore">${tr('Pulihkan pembelian', 'Restore purchase')}</button>` : ''}</div>
+      ${!store.canBuy() && !g.full ? `<div class="row famRow"><input id="pFam" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="${tr('Kode keluarga', 'Family code')}" aria-label="${tr('Kode keluarga', 'Family code')}"><button class="btn ghost small" id="pFamGo">${tr('Pakai kode', 'Use code')}</button></div>` : ''}
       <div class="row"><button class="btn ghost small" id="pExp">${ic('down')} ${tr('Simpan ke file', 'Save to a file')}</button><button class="btn ghost small" id="pImp">${ic('up')} ${tr('Buka file simpanan', 'Open a save file')}</button></div>
       <button class="btn ghost small hidden" id="pPrev">${ic('undo')} ${tr('Kembalikan dunia sebelumnya', 'Bring back the previous world')}</button>
       <input type="file" id="pFile" accept=".json,application/json" hidden>
@@ -1518,6 +1519,14 @@ export class UI {
     $<HTMLSelectElement>('#pWater', el).onchange = e => { s.water = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();
     el.querySelector<HTMLElement>('#pFull')?.addEventListener('click', () => { close(); this.unlock(); });
+    const fam = el.querySelector<HTMLInputElement>('#pFam');
+    if (fam) {
+      fam.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') el.querySelector<HTMLElement>('#pFamGo')!.click(); };
+      el.querySelector<HTMLElement>('#pFamGo')!.onclick = async () => {
+        if (await store.redeem(fam.value)) { SFX.fanfare(); this.confetti(60); this.toast(tr('✓ Mo Craft Lengkap terbuka di browser ini', '✓ Full Mo Craft is open in this browser')); close(); this.parentsPanel(); }
+        else { SFX.error(); fam.value = ''; this.toast(tr('Kode belum tepat', 'That code isn’t right')); }
+      };
+    }
     el.querySelector<HTMLElement>('#pRestore')?.addEventListener('click', async () => { const ok = await store.restore(); this.toast(ok ? tr('✓ Mo Craft Lengkap dipulihkan', '✓ Full Mo Craft restored') : tr('Belum ada pembelian di akun ini', 'No purchase found on this account')); if (ok) { close(); this.parentsPanel(); } });
     $('#pExp', el).onclick = async () => {
       const ok = await shareFile(`baby-mo-island-craft-${new Date().toISOString().slice(0, 10)}.json`, await g.exportSave(), 'application/json');
