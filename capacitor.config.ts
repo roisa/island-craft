@@ -5,7 +5,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // Bundle Identifier you register in your Apple Developer account).
 const config: CapacitorConfig = {
   appId: 'com.babymo.islandcraft',
-  appName: 'Baby Mo Island Craft',
+  appName: 'BabyMo Craft',
   webDir: 'dist',
   ios: {
     contentInset: 'never',          // the game draws edge to edge; it keeps clear of the notch itself (safe-area CSS)

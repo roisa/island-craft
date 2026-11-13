@@ -5,6 +5,42 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Release fixes from the audit 🛠️
+
+- **The name is BabyMo Craft everywhere**: start screen, browser tab, home-screen
+  name, the iPhone/iPad app name, the web app, privacy and support pages, the
+  marketing page and the App Store kit. The unlock is "Full BabyMo Craft" /
+  "BabyMo Craft Lengkap".
+- **Saving can't silently stop on iPhone**: when iOS drops the storage
+  connection after the app was in the background, the game reconnects and
+  saves again. If saving keeps failing, a grown-up sees a notice; if storage
+  can't be used at all, the game says progress will be lost on close.
+- **A world is never thrown away**:
+  - Starting a new world keeps the old one as "Previous world", also from the
+    start screen.
+  - A world this version can't open (e.g. made by a newer version) shows a
+    notice and is kept whole, including what was built, so it can be brought
+    back after updating.
+- **Grown-ups check** before sharing a photo (AirDrop, Messages…), using the
+  device location for prayer times, choosing a photo for the outfit colours,
+  and the "More Baby Mo games" link on the website.
+- **Guide arrow**: during the tutorial it points to the tutorial step (e.g.
+  Baby Mo, a tree), and it hides on steps with no place to go. On tall portrait
+  screens it is smaller.
+- **No more stuck screens**: if the game can't start, or iOS takes the 3D view
+  away under memory pressure, a friendly "Try again" screen appears; progress
+  is saved first.
+- **Purchases**: the App Store is asked as soon as the app opens and again when
+  you come back to it, so an Ask to Buy approval shows up right away; an
+  approval that arrives while the game is still loading is kept until the game
+  listens; an unverified purchase shows a message instead of looking cancelled.
+- **Start screen on landscape phones**: everything fits without scrolling, and
+  the not-chosen buttons are clearly visible.
+- Tested: 243 unit tests (new: storage reconnect and the memory fallback, the
+  website unlock); new smoke steps for the newer-version save, the grown-ups
+  check, and the arrow during the tutorial; smoke on desktop, iPhone, iPad and
+  Android profiles and `npm run qa` all pass.
+
 ### Glass guide arrow to the mission ➡️
 
 Asked by a parent: Ibra was not always sure where the mission is.

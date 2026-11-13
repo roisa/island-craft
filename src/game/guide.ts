@@ -36,7 +36,7 @@ export class GuideArrow {
     scene.add(this.obj);
   }
   /** `dir` = the world direction to the target (atan2(dx, dz)), or null for none; `yaw` = where you face */
-  update(dt: number, feet: THREE.Vector3, yaw: number, dir: number | null, on: boolean) {
+  update(dt: number, feet: THREE.Vector3, yaw: number, dir: number | null, on: boolean, portrait = false) {
     this.t += dt;
     this.show += ((on && dir !== null ? 1 : 0) - this.show) * Math.min(1, dt * 4);
     this.obj.visible = this.show > 0.02;
@@ -45,11 +45,13 @@ export class GuideArrow {
     let d = dir - this.ang; d = Math.atan2(Math.sin(d), Math.cos(d));
     this.ang = this.placed ? this.ang + d * Math.min(1, dt * 6) : dir;
     // it floats in front of you (where you look), just above the ground past your shoulders, and turns to point at the mission
-    const ahead = 5, bob = Math.sin(this.t * 2.6) * 0.07;
+    // on a tall (portrait) screen the view is narrow: a smaller arrow, a bit further on
+    const ahead = portrait ? 6 : 5, bob = Math.sin(this.t * 2.6) * 0.07;
     const x = feet.x - Math.sin(yaw) * ahead, z = feet.z - Math.cos(yaw) * ahead, y = feet.y + 1.7 + bob;
     if (!this.placed) { this.obj.position.set(x, y, z); this.placed = true; }
     else this.obj.position.lerp(new THREE.Vector3(x, y, z), Math.min(1, dt * 10));
     this.obj.rotation.y = this.ang;
+    this.obj.scale.setScalar(portrait ? 0.62 : 1);
     // a gentle "this way" pulse
     const pulse = 0.5 + 0.5 * Math.sin(this.t * 3.2);
     this.glass.opacity = (0.62 + 0.18 * pulse) * this.show;

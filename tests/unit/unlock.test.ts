@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { allowed, FREE_LETTERS, LOCKED } from '../../src/game/unlock';
 
 describe('free + one-time unlock', () => {
-  it('lets the first 7 letters be found for free, then needs Full Mo Craft', () => {
+  it('lets the first 7 letters be found for free, then needs Full BabyMo Craft', () => {
     expect(FREE_LETTERS).toBe(7);
     for (let n = 0; n < 7; n++) expect(allowed(false, 'letter', n)).toBe(true);
     expect(allowed(false, 'letter', 7)).toBe(false);
     expect(allowed(false, 'letter', 27)).toBe(false);
     expect(allowed(true, 'letter', 27)).toBe(true);
   });
-  it('keeps the Iqro journey and the exams for Full Mo Craft', () => {
+  it('keeps the Iqro journey and the exams for Full BabyMo Craft', () => {
     expect(allowed(false, 'iqro')).toBe(false);
     expect(allowed(false, 'exam')).toBe(false);
     expect(allowed(true, 'iqro')).toBe(true);

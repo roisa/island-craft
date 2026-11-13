@@ -22,7 +22,7 @@ export function setLang(l: Lang) {
   lang = l;
   try { localStorage.setItem('bm_lang', l); } catch { /* ignore */ }
   document.documentElement.lang = l;
-  document.title = l === 'en' ? 'Baby Mo’s World — Ramadan Island Craft' : 'Dunia Baby Mo — Island Craft Ramadhan';
+  document.title = l === 'en' ? 'BabyMo Craft — Ramadan Adventure' : 'BabyMo Craft — Petualangan Ramadhan';
 }
 
 /** tr('Indonesian', 'English') */

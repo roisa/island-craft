@@ -1,4 +1,4 @@
-# Dunia Baby Mo — Island Craft 🌙
+# BabyMo Craft 🌙
 
 A cozy block-building adventure for children, built for Ramadhan. It's a whole
 world to explore, build in and learn from, with no timers, no losing and no

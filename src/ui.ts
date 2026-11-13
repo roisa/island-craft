@@ -1041,7 +1041,8 @@ export class UI {
     paint();
     el.querySelectorAll<HTMLElement>('.sw').forEach(b => (b.onclick = () => { pick = b.dataset.k as keyof Look; SFX.click(); paint(); }));
     const file = $<HTMLInputElement>('#plFile', el);
-    $('#plPick', el).onclick = () => file.click();
+    // the photo picker opens the camera / photo library: a grown-up says yes first
+    $('#plPick', el).onclick = () => this.parentGate(() => file.click(), undefined, true);
     file.onchange = () => {
       const f = file.files?.[0]; if (!f) return;
       const img = new Image(), url = URL.createObjectURL(f);
@@ -1393,8 +1394,9 @@ export class UI {
     $<HTMLSelectElement>('#selCity', body).onchange = e => {
       const v = (e.target as HTMLSelectElement).value;
       if (v === 'gps') {
-        navigator.geolocation?.getCurrentPosition(p => { g.setLocation({ name: tr('Lokasiku', 'My location'), lat: p.coords.latitude, lng: p.coords.longitude }); this.renderBook(); },
-          () => this.toast(tr('Lokasi tidak bisa dipakai. Pilih kota saja ya.', 'Location unavailable. Please pick a city.')), { timeout: 8000 });
+        // using the device location asks for a permission: only a grown-up can turn it on
+        this.parentGate(() => navigator.geolocation?.getCurrentPosition(p => { g.setLocation({ name: tr('Lokasiku', 'My location'), lat: p.coords.latitude, lng: p.coords.longitude }); this.renderBook(); },
+          () => this.toast(tr('Lokasi tidak bisa dipakai. Pilih kota saja ya.', 'Location unavailable. Please pick a city.')), { timeout: 8000 }), () => this.renderBook());
       } else if (v) { const c = CITIES[+v]; g.setLocation({ name: c.n, lat: c.lat, lng: c.lng }); this.renderBook(); }
     };
     $<HTMLSelectElement>('#selMethod', body).onchange = e => { g.settings.method = (e.target as HTMLSelectElement).value as MethodId; g.refreshTimes(); g.saveSoon(); this.renderBook(); };
@@ -1433,6 +1435,8 @@ export class UI {
     $<HTMLSelectElement>('#sMode', body).onchange = e => { s.mode = (e.target as HTMLSelectElement).value as 'adventure' | 'creative'; g.applySettings(); this.refreshHotbar(); };
     $('#bHome', body).onclick = () => { g.goHome(); this.closeBook(); };
     $('#bShot', body).onclick = () => { this.closeBook(); setTimeout(() => g.photo(), 120); };
+    const hub = body.querySelector<HTMLAnchorElement>('#bHub');
+    if (hub) hub.onclick = e => { e.preventDefault(); this.parentGate(() => { location.href = hub.href; }, undefined, true); };
     $('#bResume', body).onclick = () => this.closeBook();
   }
 
@@ -1444,17 +1448,17 @@ export class UI {
    * including the play-time lock.
    */
   /**
-   * Full Mo Craft: what it opens and, in the app, a purchase behind the grown-up check (with Restore).
+   * Full BabyMo Craft: what it opens and, in the app, a purchase behind the grown-up check (with Restore).
    * On the website: the full game is in the iPhone/iPad app.
    */
   unlock(what = '') {
     const g = this.g, app = store.canBuy();
     const why: Record<string, [string, string]> = {
-      letter: ['Huruf ke-8 sampai ke-28 ada di Mo Craft Lengkap.', 'Letters 8 to 28 are in Full Mo Craft.'],
-      iqro: ['Perjalanan Iqro ada di Mo Craft Lengkap.', 'The Iqro journey is in Full Mo Craft.'],
-      exam: ['Ujian Iqro dari Ayah ada di Mo Craft Lengkap.', 'Dad’s Iqro exams are in Full Mo Craft.'],
+      letter: ['Huruf ke-8 sampai ke-28 ada di BabyMo Craft Lengkap.', 'Letters 8 to 28 are in Full BabyMo Craft.'],
+      iqro: ['Perjalanan Iqro ada di BabyMo Craft Lengkap.', 'The Iqro journey is in Full BabyMo Craft.'],
+      exam: ['Ujian Iqro dari Ayah ada di BabyMo Craft Lengkap.', 'Dad’s Iqro exams are in Full BabyMo Craft.'],
     };
-    const [wid, wen] = why[what] ?? ['Tempat ini ada di Mo Craft Lengkap.', 'This place is in Full Mo Craft.'];
+    const [wid, wen] = why[what] ?? ['Tempat ini ada di BabyMo Craft Lengkap.', 'This place is in Full BabyMo Craft.'];
     const price = store.price ? ` · ${esc(store.price)}` : '';
     const { el, close } = this.modal(`<div class="unlockCard"><div class="ulHero">🏝️🔓</div>
       <h2>${tr('Buka seluruh pulau!', 'Open the whole island!')}</h2>
@@ -1467,7 +1471,7 @@ export class UI {
       <p class="ulNote">${tr('Sekali bayar · tanpa iklan · tanpa langganan', 'One payment · no ads · no subscription')}</p>
       ${app ? `<div class="row"><button class="btn gold" id="ulBuy">🔓 ${tr('Untuk orang tua: buka', 'Grown-ups: unlock')}${price}</button></div>
         <div class="row"><button class="btn ghost small" id="ulRestore">${tr('Pulihkan pembelian', 'Restore purchase')}</button><button class="btn ghost small" id="ulX">${tr('Nanti saja', 'Not now')}</button></div>`
-      : `<p class="ulNote">${tr('Mo Craft Lengkap ada di aplikasi iPhone & iPad (segera di App Store).', 'Full Mo Craft is in the iPhone & iPad app (coming soon on the App Store).')}</p>
+      : `<p class="ulNote">${tr('BabyMo Craft Lengkap ada di aplikasi iPhone & iPad (segera di App Store).', 'Full BabyMo Craft is in the iPhone & iPad app (coming soon on the App Store).')}</p>
         <div class="row"><button class="btn gold" id="ulX">${tr('Oke', 'OK')}</button></div>`}
       <p class="ulMsg" id="ulMsg"></p></div>`);
     const msg = el.querySelector<HTMLElement>('#ulMsg')!;
@@ -1482,11 +1486,12 @@ export class UI {
     }));
     el.querySelector<HTMLElement>('#ulRestore')?.addEventListener('click', async () => {
       msg.textContent = tr('Memeriksa pembelian…', 'Checking purchases…');
-      if (await store.restore()) done(); else msg.textContent = tr('Belum ada pembelian Mo Craft Lengkap di akun ini.', 'No Full Mo Craft purchase found on this account.');
+      if (await store.restore()) done(); else msg.textContent = tr('Belum ada pembelian BabyMo Craft Lengkap di akun ini.', 'No Full BabyMo Craft purchase found on this account.');
     });
     void g;
   }
-  parentGate(ok: () => void, onCancel?: () => void) {
+  /** `now`: run `ok` inside the tap itself (needed to open the photo picker or the share sheet) */
+  parentGate(ok: () => void, onCancel?: () => void, now = false) {
     const { a, b, ans } = adultSum();
     const wrap = document.createElement('div');
     wrap.className = 'gateScr';
@@ -1500,7 +1505,7 @@ export class UI {
     let tries = 0;
     const done = () => wrap.remove();
     const check = () => {
-      if (+inp.value.trim() === ans) { done(); setTimeout(ok, 30); return; }
+      if (+inp.value.trim() === ans) { done(); if (now) ok(); else setTimeout(ok, 30); return; }
       tries++; inp.value = ''; SFX.error();
       msg.textContent = tries >= 3 ? tr('Minta bantuan ayah atau ibu ya 😊', 'Please ask a grown-up 😊') : tr('Jawaban kurang tepat', 'Not quite right');
       if (tries >= 3) { done(); onCancel?.(); }
@@ -1543,7 +1548,7 @@ export class UI {
       <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
       <h3>💾 ${tr('Simpanan', 'Saved game')}</h3>
       <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
-      <h3>🏝️ ${tr('Mo Craft Lengkap', 'Full Mo Craft')}</h3>
+      <h3>🏝️ ${tr('BabyMo Craft Lengkap', 'Full BabyMo Craft')}</h3>
       <div class="row">${g.full ? `<span class="chipOk">✓ ${tr('Sudah terbuka', 'Unlocked')}</span>` : `<button class="btn gold small" id="pFull">🔓 ${tr('Buka seluruh pulau', 'Open the whole island')}</button>`}${store.canBuy() ? `<button class="btn ghost small" id="pRestore">${tr('Pulihkan pembelian', 'Restore purchase')}</button>` : ''}</div>
       ${!store.canBuy() && !g.full ? `<div class="row famRow"><input id="pFam" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="${tr('Kode keluarga', 'Family code')}" aria-label="${tr('Kode keluarga', 'Family code')}"><button class="btn ghost small" id="pFamGo">${tr('Pakai kode', 'Use code')}</button></div>` : ''}
       <div class="row"><button class="btn ghost small" id="pExp">${ic('down')} ${tr('Simpan ke file', 'Save to a file')}</button><button class="btn ghost small" id="pImp">${ic('up')} ${tr('Buka file simpanan', 'Open a save file')}</button></div>
@@ -1565,11 +1570,11 @@ export class UI {
     if (fam) {
       fam.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') el.querySelector<HTMLElement>('#pFamGo')!.click(); };
       el.querySelector<HTMLElement>('#pFamGo')!.onclick = async () => {
-        if (await store.redeem(fam.value)) { SFX.fanfare(); this.confetti(60); this.toast(tr('✓ Mo Craft Lengkap terbuka di browser ini', '✓ Full Mo Craft is open in this browser')); close(); this.parentsPanel(); }
+        if (await store.redeem(fam.value)) { SFX.fanfare(); this.confetti(60); this.toast(tr('✓ BabyMo Craft Lengkap terbuka di browser ini', '✓ Full BabyMo Craft is open in this browser')); close(); this.parentsPanel(); }
         else { SFX.error(); fam.value = ''; this.toast(tr('Kode belum tepat', 'That code isn’t right')); }
       };
     }
-    el.querySelector<HTMLElement>('#pRestore')?.addEventListener('click', async () => { const ok = await store.restore(); this.toast(ok ? tr('✓ Mo Craft Lengkap dipulihkan', '✓ Full Mo Craft restored') : tr('Belum ada pembelian di akun ini', 'No purchase found on this account')); if (ok) { close(); this.parentsPanel(); } });
+    el.querySelector<HTMLElement>('#pRestore')?.addEventListener('click', async () => { const ok = await store.restore(); this.toast(ok ? tr('✓ BabyMo Craft Lengkap dipulihkan', '✓ Full BabyMo Craft restored') : tr('Belum ada pembelian di akun ini', 'No purchase found on this account')); if (ok) { close(); this.parentsPanel(); } });
     $('#pExp', el).onclick = async () => {
       const ok = await shareFile(`baby-mo-island-craft-${new Date().toISOString().slice(0, 10)}.json`, await g.exportSave(), 'application/json');
       if (ok) this.toast(tr('💾 File simpanan dibuat', '💾 Save file created'));
@@ -1579,7 +1584,7 @@ export class UI {
     file.onchange = async () => {
       const f = file.files?.[0]; if (!f) return;
       const err = await g.importSave(await f.text());
-      if (err) this.toast(tr('😕 File ini bukan simpanan Baby Mo Island Craft', '😕 This is not a Baby Mo Island Craft save file'), 4000);
+      if (err) this.toast(tr('😕 File ini bukan simpanan BabyMo Craft', '😕 This is not a BabyMo Craft save file'), 4000);
     };
     g.hasPrevious().then(has => { if (!has) return; const b = $('#pPrev', el); b.classList.remove('hidden');
       b.onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia sebelumnya', 'Previous world'), text: tr('Kembalikan dunia sebelum “Dunia baru”? Dunia sekarang akan disimpan sebagai gantinya.', 'Bring back the world from before “New world”? The current world is kept in its place.'), speak: false, buttons: [{ label: tr('Ya, kembalikan', 'Yes, bring it back'), cls: 'gold', fn: () => { g.restorePrevious(); } }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
@@ -2060,7 +2065,7 @@ export class UI {
         <div class="chips center"><span class="chip on">⭐ Level ${levelOf(st?.stars || 0)}</span><span class="chip on">🔤 ${(st?.letters || []).length}/28</span>${st?.pet ? `<span class="chip on">🐾 ${esc(st.pet.name)}</span>` : ''}</div>
         <button class="btn big" id="sPlay">${ic('play')} ${tr('Lanjut main!', 'Keep playing!')}</button>
         <div class="row"><button class="btn ghost small" id="sMore">${ic('gear')} ${tr('Ganti tokoh / mode', 'Change hero / mode')}</button><button class="btn ghost small" id="sNew">${ic('globe')} ${tr('Dunia baru', 'New world')} ${ic('lock')}</button></div>` : '';
-      el.innerHTML = `${this.langSeg()}<img class="logo ${hasSave && !full ? 'round' : ''}" src="${hasSave && !full ? (s.avatar === 'girl' ? 'img/ais-face.webp' : 'img/adam-face.webp') : 'img/baby-mo-pose-05.webp'}" alt=""><h1>${tr('Dunia Baby Mo', 'Baby Mo’s World')}</h1>` + (back || `
+      el.innerHTML = `${this.langSeg()}<img class="logo ${hasSave && !full ? 'round' : ''}" src="${hasSave && !full ? (s.avatar === 'girl' ? 'img/ais-face.webp' : 'img/adam-face.webp') : 'img/baby-mo-pose-05.webp'}" alt=""><h1>BabyMo Craft</h1>` + (this.g.unreadable ? `<div class="saveWarn">${ic('shield')} ${/newer/.test(this.g.unreadable) ? tr('Dunia tersimpan dibuat oleh versi yang lebih baru. Perbarui aplikasi, lalu kembalikan lewat area orang tua (Dunia sebelumnya). Dunia itu tetap aman.', 'Your saved world was made by a newer version. Update the app, then bring it back in the parents’ area (Previous world). It is kept safe.') : tr('Dunia tersimpan tidak bisa dibuka, tapi tetap disimpan dengan aman (area orang tua → Dunia sebelumnya).', 'Your saved world couldn’t be opened, but it is kept safe (parents’ area → Previous world).')}</div>` : '') + (back || `
         <div class="sub">${tr('Jelajahi hutan, gurun kurma, bukit salju & gua. Bangun masjidmu, temukan 28 huruf hijaiyah, dan sambut Ramadhan! 🌙', 'Explore forests, date deserts, snowy hills & caves. Build your masjid, find 28 hijaiyah letters and welcome Ramadan! 🌙')}</div>
         <div class="choice" id="cAv"><button data-v="boy" class="${s.avatar === 'boy' ? 'on' : ''}"><img class="av" src="img/adam-face.webp" alt="">Adam</button><button data-v="girl" class="${s.avatar === 'girl' ? 'on' : ''}"><img class="av" src="img/ais-face.webp" alt="">Baby Ais</button></div>
         <div class="choice" id="cMode"><button data-v="adventure" class="${s.mode === 'adventure' ? 'on' : ''}"><span class="e">🧭</span>${tr('Petualangan', 'Adventure')}<small>${tr('kumpulkan & buat barang', 'gather & craft')}</small></button><button data-v="creative" class="${s.mode === 'creative' ? 'on' : ''}"><span class="e">🧱</span>${tr('Kreatif', 'Creative')}<small>${tr('balok bebas & terbang', 'free blocks & flying')}</small></button></div>

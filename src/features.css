@@ -383,7 +383,7 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 .cert .ar { font-family: var(--ar); font-size: 28px; margin: 6px 0 0; }
 .cert .cSign { font-style: italic; margin: 10px 0; opacity: .8; }
 
-/* Full Mo Craft: the unlock card and the parent-area status */
+/* Full BabyMo Craft: the unlock card and the parent-area status */
 .unlockCard { text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .unlockCard .ulHero { font-size: 46px; line-height: 1; }
 .unlockCard .ulWhy { font-weight: 700; }

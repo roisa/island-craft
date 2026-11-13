@@ -52,7 +52,7 @@ async function run(name) {
       await p.waitForTimeout(1500);
       return await g(() => ({ chunks: __game.world.chunks.size, animals: __game.ents.animals.length, npcs: __game.ents.npcs?.length }));
     });
-    await step('free part: letter 8, Iqro and archery show the Full Mo Craft card; free places stay open; then everything is opened for the tests', async () => {
+    await step('free part: letter 8, Iqro and archery show the Full BabyMo Craft card; free places stay open; then everything is opened for the tests', async () => {
       const r = await g(() => {
         const G = __game, out = {};
         G.ui.closeAllModals(); G.setFull(false);
@@ -89,14 +89,15 @@ async function run(name) {
     await step('guide arrow: a glass arrow ahead of you points like the compass, and Settings can turn it off', async () => {
       const r = await p.evaluate(async () => {
         const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
-        const c = G.compass(); if (!c || c.dist <= 5) return { skip: true };
+        const tut0 = G.stats.tut; G.stats.tut = 99; // (after the tutorial: the arrow follows the compass)
+        const c = G.compass(); if (!c || c.dist <= 5) { G.stats.tut = tut0; return { skip: true }; }
         await wait(1200);
         const a = G.guide; const on = !!a && a.obj.visible;
         const diff = a ? Math.abs(Math.atan2(Math.sin(a.obj.rotation.y - G.compass().ta), Math.cos(a.obj.rotation.y - G.compass().ta))) : 9;
         G.settings.guide = false;
         for (let i = 0; i < 40 && a.obj.visible; i++) await wait(150);
         const off = !a.obj.visible;
-        G.settings.guide = true;
+        G.settings.guide = true; G.stats.tut = tut0;
         return { on, off, diff };
       });
       if (r.skip) return r;
@@ -227,7 +228,7 @@ async function run(name) {
         return { open: G.eid.open, food: G.inv.count(253) };
       });
       if (!e.open) throw new Error('bazaar did not open');
-      await p.waitForSelector('.veil.on #dbtns button.gold', { timeout: 15000 });
+      try { await p.waitForSelector('.veil.on #dbtns button.gold', { timeout: 15000 }); } catch (err) { throw new Error('the stall did not open: ' + JSON.stringify(await g(() => { const G = __game, s = G.eid.stalls.find(s => s.id === 'food'), pp = G.player.pos; return { open: G.ui.isOpen(), at: G.eid.atStall, d: Math.hypot(s.front.x - pp.x, s.front.z - pp.z), dy: pp.y - s.front.y, veils: [...document.querySelectorAll('.veil.on, .gateScr, #fatal, .lockScr')].map(e => e.id || e.className), running: G.running, paused: G.paused }; }))); }
       await g(() => document.querySelector('.veil.on #dbtns button.gold').click());
       const f = await g(() => { const G = __game; G.ui.closeAllModals(); G.inv.slots[G.inv.sel] = null; G.talkNpc(G.ents.npcs.find(n => n.id === 'yusuf')); return { food: G.inv.count(253), angpao: G.inv.count(255) }; });
       if (f.food < e.food + 2 || f.angpao < 1) throw new Error(JSON.stringify({ e, f }));
@@ -906,7 +907,53 @@ async function run(name) {
         if (!err) throw new Error('accepted a bad file');
         return { bytes: text.length };
       });
+      await step('a world from a newer version is never thrown away: a notice on the start screen, and it is kept as the previous world', async () => {
+        const cur = await kv('get', 'meta');
+        await kv('put', 'meta', { ...cur, v: 99, seed: 777 }); await kv('del', 'backup'); await kv('del', 'broken');
+        await p.reload(); await p.waitForSelector('#sPlay');
+        const warn = await g(() => document.querySelector('#startPanel .saveWarn')?.innerText || '');
+        if (!/newer|lebih baru/i.test(warn)) throw new Error('no notice: ' + warn);
+        await p.click('#sPlay');
+        await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+        const prev = await kv('get', 'previous'), broken = await kv('get', 'broken');
+        if (prev?.meta?.v !== 99 || prev.meta.seed !== 777) throw new Error('not kept as previous: ' + JSON.stringify(prev?.meta?.v));
+        if (broken?.meta?.v !== 99 || !broken.edits) throw new Error('broken copy without the world');
+        await g(() => __game.setFull(true));
+        return { warn: warn.slice(0, 50) };
+      });
     }
+    await step('grown-ups check before sharing a photo, using the location and choosing a photo', async () => {
+      const gate = async (open) => {
+        await g(open);
+        await p.waitForSelector('.gateScr #pgX', { timeout: 5000 });
+        await g(() => document.querySelector('.gateScr #pgX').click());
+        return true;
+      };
+      await g(() => __game.ui.closeAllModals());
+      await gate(() => __game.photo());
+      await gate(() => { __game.ui.openBook('prayer'); const s = document.querySelector('#selCity'); s.value = 'gps'; s.dispatchEvent(new Event('change')); });
+      const city = await g(() => { const s = __game.settings; return s.city ?? s.location?.name ?? null; });
+      await g(() => { __game.ui.closeBook(); __game.ui.closeAllModals(); });
+      return { city };
+    });
+    await step('during the tutorial the guide arrow points to the tutorial step (Baby Mo), not the letter', async () => {
+      const r = await p.evaluate(async () => {
+        const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
+        const tut0 = G.stats.tut, w0 = G.kid.walked; G.kid.walked = 0; G.stats.tut = 0; G.ui.closeAllModals(); // step 1 "walk to Baby Mo", not yet done
+        const mo = G.ents.mo, pp = G.player.pos;
+        const res = [];
+        for (let i = 0; i < 12; i++) {
+          mo.pos.set(pp.x + 14, mo.pos.y, pp.z + 3); // Baby Mo a little way off
+          await wait(150);
+          const want = Math.atan2(mo.pos.x - pp.x, mo.pos.z - pp.z), got = G.guide.obj.rotation.y;
+          res.push({ vis: G.guide.obj.visible, diff: Math.abs(Math.atan2(Math.sin(got - want), Math.cos(got - want))) });
+        }
+        G.stats.tut = tut0; G.kid.walked = w0; G.ui.tutorial(null);
+        return res[res.length - 1];
+      });
+      if (!r.vis || r.diff > 0.35) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('bedtime: evening and a sleepy Mo, sleep now, goodnight card, a grown-up adds time and Mo wakes', async () => {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.playLimit = 60; G.stats.play = { day: new Date().toDateString(), sec: 60 * 60 - 400 }; });
       await p.waitForFunction(() => __game.bedtime.phase === 1 && !document.querySelector('#bedHud').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 });

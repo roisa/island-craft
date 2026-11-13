@@ -1,4 +1,4 @@
-// Full Mo Craft: whether it's unlocked, and buying or restoring it in the
+// Full BabyMo Craft: whether it's unlocked, and buying or restoring it in the
 // iPhone/iPad app (our own StoreKit plugin, ios/App/App/StoreKitPlugin.swift).
 // The website has no purchase: it is the free part.
 import { FULL_ID, isFamilyCode } from './game/unlock';
@@ -10,7 +10,7 @@ const FAMILY = 'mocraft-family';
 
 interface StoreKitPlugin {
   product(o: { id: string }): Promise<{ price?: string }>;
-  buy(o: { id: string }): Promise<{ owned: boolean; pending?: boolean }>;
+  buy(o: { id: string }): Promise<{ owned: boolean; pending?: boolean; unverified?: boolean }>;
   restore(o: { id: string }): Promise<{ owned: boolean }>;
   owned(o: { id: string }): Promise<{ owned: boolean }>;
   addListener(ev: 'owned', fn: (d: { id: string; owned: boolean }) => void): Promise<unknown>;
@@ -31,8 +31,15 @@ export const store = {
     try { localStorage.setItem(KEY, v ? '1' : '0'); } catch { /* private mode */ }
     for (const f of this.listeners) f(v);
   },
-  /** at start: the remembered answer first, then ask the App Store */
-  async init() {
+  ready: null as Promise<void> | null,
+  /** at start: the remembered answer first, then ask the App Store (once; later calls share it) */
+  init() { return (this.ready ??= this.load()); },
+  /** back in the app (e.g. a parent approved Ask to Buy meanwhile): ask the App Store again */
+  async recheck() {
+    if (!native()) return;
+    try { this.set((await (await kit()).owned({ id: FULL_ID })).owned); } catch { /* offline: keep it */ }
+  },
+  async load() {
     if (!native()) { try { this.full = localStorage.getItem(FAMILY) === '1'; } catch { /* private mode */ } return; }
     try { this.full = localStorage.getItem(KEY) === '1'; } catch { /* private mode */ }
     try {
@@ -48,10 +55,10 @@ export const store = {
     try {
       const r = await (await kit()).buy({ id: FULL_ID });
       if (r.owned) { this.set(true); return 'owned'; }
-      return r.pending ? 'pending' : 'cancelled';
+      return r.pending ? 'pending' : r.unverified ? 'error' : 'cancelled';
     } catch { return 'error'; }
   },
-  /** the website only: the family code opens Full Mo Craft in this browser */
+  /** the website only: the family code opens Full BabyMo Craft in this browser */
   async redeem(code: string): Promise<boolean> {
     if (native() || !(await isFamilyCode(code))) return false;
     try { localStorage.setItem(FAMILY, '1'); } catch { /* private mode: for this visit only */ }

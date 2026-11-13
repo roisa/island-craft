@@ -2,7 +2,7 @@ import Foundation
 import Capacitor
 import StoreKit
 
-/// The one-time "Full Mo Craft" unlock, with Apple's StoreKit 2.
+/// The one-time "Full BabyMo Craft" unlock, with Apple's StoreKit 2.
 /// No outside service: Apple handles the payment and keeps the receipt,
 /// so the app still collects no data.
 ///   product({id}) -> {price}          the price in the shopper's currency
@@ -28,7 +28,8 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
             for await result in Transaction.updates {
                 guard case .verified(let t) = result else { continue }
                 await t.finish()
-                self?.notifyListeners("owned", data: ["id": t.productID, "owned": t.revocationDate == nil])
+                // kept until the game listens, so an approval that arrives during start-up is not lost
+                self?.notifyListeners("owned", data: ["id": t.productID, "owned": t.revocationDate == nil], retainUntilConsumed: true)
             }
         }
     }
@@ -59,7 +60,7 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 switch try await p.purchase() {
                 case .success(let verification):
                     if case .verified(let t) = verification { await t.finish(); call.resolve(["owned": true]) }
-                    else { call.resolve(["owned": false]) }
+                    else { call.resolve(["owned": false, "unverified": true]) } // Apple could not verify it: say so
                 case .pending: call.resolve(["owned": false, "pending": true])
                 case .userCancelled: call.resolve(["owned": false])
                 @unknown default: call.resolve(["owned": false])

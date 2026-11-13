@@ -80,6 +80,12 @@ export class Kid {
   /** skip everything that's left (offered after a skip) */
   skipAll() { this.g.stats.tut = STEPS.length; this.g.ui.tutorial(null); this.g.saveSoon(); }
   tutorialActive() { return this.step < STEPS.length; }
+  /** while the tutorial runs: where its step wants you to go (null = a step with no place, e.g. look around);
+   *  undefined when the tutorial is over, so the guide arrow follows the mission instead */
+  tutorialTarget(): THREE.Vector3 | null | undefined {
+    if (!this.tutorialActive()) return undefined;
+    return STEPS[this.step].target?.(this) ?? null;
+  }
 
   /** called once after loading: players with progress skip the tutorial */
   start(isNew: boolean) {

@@ -11,6 +11,7 @@ import './ios.css';
 import './install';
 import * as THREE from 'three';
 import { tr, t2, getLang, setLang } from './i18n';
+import { showFatal } from './fatal';
 import { buildTextureArray } from './world/atlas';
 import { initMesherTables, WorldUniforms } from './world/mesher';
 import { Generator, Biome, BIOME_INFO, SEA, VILLAGE_Y, H, CS } from './world/gen';
@@ -206,7 +207,7 @@ export class Game {
   iqro!: IqroQuest;
   /** the activity going on now, if any */
   get playing() { return this.activities.find(a => a.active) ?? null; }
-  /** Full Mo Craft (the one-time unlock in the app); `devFull` lets tests and screenshots see everything */
+  /** Full BabyMo Craft (the one-time unlock in the app); `devFull` lets tests and screenshots see everything */
   devFull = false;
   get full() { return store.full || this.devFull; }
   setFull(v: boolean) { this.devFull = v; }
@@ -254,6 +255,9 @@ export class Game {
   private iftarDay = -1;
   private dirtySave = false;
   private saveCount = 0;
+  private saveFails = 0;
+  /** why the saved world could not be opened (e.g. made by a newer version), or null */
+  unreadable: string | null = null;
   private loadedFrom: 'main' | 'backup' | 'none' = 'none';
   private backupEdits: unknown;
   private prayingPose = false;
@@ -266,6 +270,8 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // iOS can take the 3D view away under memory pressure: save, then offer a fresh start
+    canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); if (this.running) void this.save(); showFatal('gl'); });
     this.input = new Input(canvas);
     this.fx = new FX(this.scene);
     this.ui = new UI(this);
@@ -298,7 +304,7 @@ export class Game {
       jump: document.getElementById('bJump')!, mine: document.getElementById('bMine')!, use: document.getElementById('bUse')!, down: document.getElementById('bDown')!,
     });
     document.getElementById('bJump')!.addEventListener('touchstart', () => this.jumpTap());
-    document.addEventListener('visibilitychange', () => { if (document.hidden) this.save(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.save(); else void store.recheck(); });
     addEventListener('pagehide', () => this.save());
     Speech.init();
     this.refreshTimes();
@@ -312,12 +318,15 @@ export class Game {
 
   // ---------- boot ----------
   async boot() {
+    void store.init(); // ask the App Store early, so a purchase approved meanwhile is seen on the start screen
     const [rawMeta, rawBackup] = await Promise.all([Save.get('meta'), Save.get<any>('backup')]);
     const res = chooseSave(rawMeta, rawBackup);
     if (res.error) {
       console.warn('[save] main save unusable:', res.error, '→', res.source);
       // keep the unreadable save so nothing is ever thrown away silently
-      await Save.put('broken', { meta: rawMeta, at: Date.now(), error: res.error });
+      // keep the built world too, and never overwrite an earlier rescued copy
+      if (!(await Save.get('broken'))) await Save.put('broken', { meta: rawMeta, edits: await Save.get('edits'), backup: rawBackup, at: Date.now(), error: res.error });
+      this.unreadable = res.source === 'none' ? res.error : null;
     }
     if (res.repaired.length) console.warn('[save] repaired fields:', res.repaired.join(', '));
     this.loadedFrom = res.source;
@@ -326,16 +335,23 @@ export class Game {
     if (meta?.settings) Object.assign(this.settings, meta.settings);
     setLang(meta?.lang ?? getLang());
     this.ui.labels();
-    this.ui.showStart(meta ?? null, fresh => this.start(fresh ? null : meta));
+    this.ui.showStart(meta ?? null, fresh => { this.start(fresh ? null : meta).catch(e => showFatal('start', e)); });
     this.loop();
   }
 
   private async start(meta: any) {
     SFX.warm();
-    void store.init(); // the app: is Full Mo Craft unlocked? (the website stays the free part)
+    void store.init(); // the app: is Full BabyMo Craft unlocked? (the website stays the free part)
     this.ui.loading(0);
     await new Promise(r => setTimeout(r, 30));
-    if (!meta) { await Save.del('meta'); await Save.del('edits'); }
+    if (!meta) {
+      // starting fresh: an older world on this device is kept as "previous" (even one this version can't
+      // read, e.g. from a newer version), so a parent can bring it back from the parents' area later
+      const [oldMeta, oldEdits] = await Promise.all([Save.get('meta'), Save.get('edits')]);
+      if (oldMeta) await Save.put('previous', { meta: oldMeta, edits: oldEdits, at: Date.now() });
+      await Save.del('meta'); await Save.del('edits');
+    }
+    if (Save.memoryOnly) setTimeout(() => this.ui.toast(tr('⚠️ Penyimpanan tidak tersedia: progres hilang saat aplikasi ditutup.', '⚠️ Storage isn’t available: progress will be lost when the app closes.'), 6000), 4000);
     this.seed = meta?.seed ?? Math.floor(Math.random() * 1e9);
     if (meta) {
       this.hour = meta.hour ?? 7.5; this.day = meta.day ?? 1;
@@ -1054,7 +1070,8 @@ export class Game {
   photo() {
     this.render();
     const url = this.renderer.domElement.toDataURL('image/png');
-    void shareFile('dunia-baby-mo.png', url, 'image/png');
+    // the picture is taken now; sharing it (AirDrop, Messages…) needs a grown-up
+    this.ui.parentGate(() => void shareFile('babymo-craft.png', url, 'image/png'), undefined, true);
   }
 
   // ---------- input ----------
@@ -1786,7 +1803,7 @@ export class Game {
 
   private collectLetter(i: number, x: number, y: number, z: number) {
     if (this.stats.letters.includes(i)) return;
-    if (!this.can('letter', true)) return; // letters 8-28: Full Mo Craft
+    if (!this.can('letter', true)) return; // letters 8-28: Full BabyMo Craft
     this.stats.letters.push(i);
     this.anim.play('celebrate', 1.6);
     this.world.set(x, y, z, B.AIR);
@@ -1991,10 +2008,15 @@ export class Game {
   private guideTick(dt: number) {
     if (!this.player) return;
     this.guide ??= new GuideArrow(this.scene);
-    const c = this.compass();
+    // the tutorial comes first ("walk to Baby Mo", "chop a tree"…), then the compass mission
+    const p = this.player.pos, tt = this.kid?.tutorialTarget();
+    let dir: number | null = null, dist = 0;
+    if (tt) { dir = Math.atan2(tt.x - p.x, tt.z - p.z); dist = Math.hypot(tt.x - p.x, tt.z - p.z) + 2.5; }
+    else if (tt === undefined) { const c = this.compass(); if (c) { dir = c.ta; dist = c.dist; } }
     const busy = !!this.playing || !!this.race?.active || !!this.tennis?.active || !!this.fun?.riding || !!this.jamaah || this.ui.isOpen();
-    const on = this.settings.guide !== false && !!c && c.dist > 5 && !busy;
-    this.guide.update(dt, this.player.pos, this.player.yaw, c ? c.ta : null, on);
+    const on = this.settings.guide !== false && dir !== null && dist > 5 && !busy;
+    const portrait = innerHeight > innerWidth;
+    this.guide.update(dt, p, this.player.yaw, dir, on, portrait);
   }
   private endPrayerTime() {
     for (const n of this.ents.npcs) n.goPray(false, n.home);
@@ -2290,11 +2312,17 @@ export class Game {
     const edits: Edits = Save.serializeEdits(this.world.edits);
     // meta and edits in one transaction, so they can never get out of step
     const ok = await Save.putMany([['meta', meta], ['edits', edits]]);
-    if (!ok) { this.dirtySave = true; console.warn('[save] write failed, will retry'); }
+    if (!ok) {
+      this.dirtySave = true; console.warn('[save] write failed, will retry');
+      // tell a grown-up once if saving keeps failing (e.g. the device is out of space)
+      if (++this.saveFails === 3) this.ui.toast(tr('⚠️ Permainan belum bisa disimpan. Cek ruang penyimpanan perangkat.', '⚠️ The game can’t save right now. Check the device has free space.'), 6000);
+    } else this.saveFails = 0;
   }
 }
 
 startEmoji3D(); // emoji as modern 3D pictures
-const game = new Game();
-(window as any).__game = game;
-game.boot();
+try {
+  const game = new Game();
+  (window as any).__game = game;
+  game.boot().catch(e => showFatal('start', e));
+} catch (e) { showFatal('start', e); }

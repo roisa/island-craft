@@ -1,4 +1,4 @@
-// Picture guides for wudu and sholat, drawn from the Dunia Baby Mo pose
+// Picture guides for wudu and sholat, drawn from the BabyMo Craft pose
 // renders (public/img/poses). Each step has one or more frames that play in a
 // loop, like a little cartoon, with a short sentence a child can follow.
 import type { T2 } from '../i18n';

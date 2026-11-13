@@ -1,4 +1,4 @@
-# Baby Mo Island Craft on iPhone and iPad (Xcode)
+# BabyMo Craft on iPhone and iPad (Xcode)
 
 The iOS app is the same game as the website, wrapped in a native app with
 [Capacitor](https://capacitorjs.com). The `ios/` folder is a ready Xcode
@@ -58,7 +58,7 @@ no personal data is enough, if that stays true), the age rating, and the
 category (**Games → Family / Educational**; you can also choose the
 **Kids** category: the game already has a grown-up gate for the settings).
 
-## 4. The “Full Mo Craft” in-app purchase
+## 4. The “Full BabyMo Craft” in-app purchase
 
 The app is free to download; one in-app purchase opens the rest of the
 island (letters 8–28, the Iqro journey and exams, tennis, archery, the
@@ -71,7 +71,7 @@ collection. You set up the product once in App Store Connect:
    bank and tax details (needed for any paid item, even in a free app).
 2. **Your app → Monetization → In-App Purchases → +**:
    - Type: **Non-Consumable**
-   - Reference name: `Full Mo Craft`
+   - Reference name: `Full BabyMo Craft`
    - Product ID: **`com.babymo.islandcraft.full`** (exactly this; it is in
      `src/game/unlock.ts`)
    - Price: e.g. US$2.99 (Apple sets the price in each country).
@@ -103,7 +103,7 @@ child reaches a locked place, and in **Menu → Settings → For parents**
 
 ## Good to know
 
-- **The icon** (Baby Mo with “Mo Craft”) is made at 1024×1024 from the
+- **The icon** (Baby Mo with “BabyMo Craft”) is made at 1024×1024 from the
   full-size Baby Mo logo: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png`
   (no transparency). The website icons and the launch screen use the same art.
 - **Recitation and letter sounds**: the app uses the device voice. Recorded
