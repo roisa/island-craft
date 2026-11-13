@@ -25,6 +25,10 @@ them look more modern; the 3D look was chosen from samples.
 - The icon tiles added to headings and buttons in the icon update are back
   to emoji (💧 wudu, 🕌 prayer, 📿 tasbih…), now in 3D; the round glass
   buttons keep their symbols.
+- Smoke test fix: the desktop walk step walks again, longer, if a slow CI
+  machine (a few frames a second) moved the player too little the first
+  time (CI failed with 0.39 blocks; the frame rate is the same with and
+  without the emoji pictures, measured).
 - Tested: unit tests, smoke on desktop and iPhone, the layout checks, and
   phone screenshots of the wudu, the prayer guide, the Good Deeds Book,
   blueprints, outfits, quests, the map and the game screen.

@@ -104,7 +104,15 @@ async function run(name) {
         await p.waitForTimeout(1200);
         anim = await g(() => __game.anim.loco);
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      } else { await p.keyboard.down('KeyW'); await p.waitForTimeout(1200); anim = await g(() => __game.anim.loco); await p.keyboard.up('KeyW'); }
+      } else {
+        // a slow CI machine can run the game at a few frames a second: walk again (longer) if the first try was short
+        for (let tryN = 0; tryN < 2; tryN++) {
+          await g(() => { __game.ui.closeAllModals?.(); document.activeElement?.blur?.(); });
+          await p.keyboard.down('KeyW'); await p.waitForTimeout(1200 + tryN * 1500); anim = await g(() => __game.anim.loco); await p.keyboard.up('KeyW');
+          const now = await g(() => [__game.player.pos.x, __game.player.pos.z]);
+          if (Math.hypot(now[0] - a[0], now[1] - a[1]) >= 0.5) break;
+        }
+      }
       if (anim !== 'walk' && anim !== 'run') throw new Error('avatar animation while walking: ' + anim);
       const b = await g(() => [__game.player.pos.x, __game.player.pos.z]);
       const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
