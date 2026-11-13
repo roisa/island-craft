@@ -73,6 +73,7 @@ import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
 import { shareFile } from './native';
 import { store } from './store';
 import { allowed } from './game/unlock';
+import { startEmoji3D } from './emoji3d';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -2279,6 +2280,7 @@ export class Game {
   }
 }
 
+startEmoji3D(); // emoji as modern 3D pictures
 const game = new Game();
 (window as any).__game = game;
 game.boot();

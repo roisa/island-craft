@@ -5,6 +5,30 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Emoji in a modern 3D style 😊
+
+Asked by a parent: keep the friendly emoji (not boxed icons), but make
+them look more modern; the 3D look was chosen from samples.
+
+- Every emoji the game shows (headings, buttons, the wudu steps,
+  blueprints, hats and outfits, places, quests, Baby Mo's speech bubble,
+  toasts) is drawn as its **Fluent Emoji 3D** picture by Microsoft (MIT
+  licence, credited on the support page; `public/emoji/LICENSE.txt`), so
+  it looks soft, modern and the same on every device.
+- 263 small pictures in `public/emoji/` (about 1.1 MB), made by
+  `scripts/emoji3d.py` (run it again after adding new emoji). Flags and a
+  few emoji without a 3D picture stay as they are.
+- `src/emoji3d.ts` swaps them in as the page changes; the emoji character
+  stays in the page (only made transparent over its picture), so reading
+  aloud, copying and the tests still see it. Arabic text, inputs and
+  drop-down lists are left alone.
+- The icon tiles added to headings and buttons in the icon update are back
+  to emoji (💧 wudu, 🕌 prayer, 📿 tasbih…), now in 3D; the round glass
+  buttons keep their symbols.
+- Tested: unit tests, smoke on desktop and iPhone, the layout checks, and
+  phone screenshots of the wudu, the prayer guide, the Good Deeds Book,
+  blueprints, outfits, quests, the map and the game screen.
+
 ### Icons in the style of the latest iOS ✨
 
 Asked by a parent: update the old icons to modern ones inspired by the

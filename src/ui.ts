@@ -31,7 +31,7 @@ import { store } from './store';
 import { LOCKED } from './game/unlock';
 import { isNativeApp, isInstalled, isIOS, canPrompt, promptInstall, canFullscreen, toggleFullscreen, hintDismissed, dismissHint, onInstallChange } from './install';
 import type { T2 } from './i18n';
-import { ic, tile, COLORS as C, EMOJI_IC, symbol } from './icons';
+import { ic, tile, COLORS as C } from './icons';
 import { arImg } from './arabic';
 const PICON: Record<string, string> = { fajr: 'sunrise', dhuhr: 'sun', asr: 'cloudsun', maghrib: 'sunset', isha: 'moon' };
 import { isTouch } from './game/input';
@@ -102,7 +102,7 @@ export class UI {
   <div id="hotbarWrap"><div id="hotbar" class="pill"></div></div>
   <button class="pill hidden" id="bUndo">${ic('undo')} <span></span></button>
   <button class="pill hidden" id="bRot" aria-label="Rotate">${ic('rotate')}</button>
-  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">${ic('mosque')}</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bTennis" aria-label="${tr('Main tenis', 'Play tennis')}"><span class="mi">${ic('tennis')}</span><span>${tr('Main tenis', 'Play tennis')}</span></button><button class="pill hidden" id="bRaceSoon" aria-label="Big race"><span class="mi">${ic('flag')}</span><span class="pl"></span></button><button class="pill hidden" id="bPlay" aria-label="Play"><span class="mi"></span><span class="pl"></span></button><button class="pill hidden" id="bRace" aria-label="${tr('Balapan', 'Race')}"><span class="mi">${ic('flag')}</span><span>${tr('Balapan!', 'Race!')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
+  <div id="waterBtns"><button class="pill hidden" id="bMasjid" aria-label="${tr('Ke masjid', 'Go to the masjid')}"><span class="mi">🕌</span><span>${tr('Ke masjid', 'To the masjid')}</span></button><button class="pill hidden" id="bTennis" aria-label="${tr('Main tenis', 'Play tennis')}"><span class="mi">🎾</span><span>${tr('Main tenis', 'Play tennis')}</span></button><button class="pill hidden" id="bRaceSoon" aria-label="Big race"><span class="mi">🏁</span><span class="pl"></span></button><button class="pill hidden" id="bPlay" aria-label="Play"><span class="mi"></span><span class="pl"></span></button><button class="pill hidden" id="bRace" aria-label="${tr('Balapan', 'Race')}"><span class="mi">🏁</span><span>${tr('Balapan!', 'Race!')}</span></button><button class="pill hidden" id="bBoat" aria-label="Boat">${ic('boat')}<span></span></button><button class="pill hidden" id="bFishHelp" aria-label="How to fish">${ic('fish')}<b>${ic('question')}</b></button></div>
   <button class="pill hidden" id="bStroke" aria-label="Swimming stroke">${ic('swim')}<span class="sn"></span><span class="si"></span></button>
   <div id="fishCue" class="hidden">${tr('KETUK!', 'TAP!')} <small>👆</small></div>
   <button class="pill hidden" id="bPray">🤲 <span>${tr('Sholat bersama', 'Pray together')}</span></button>
@@ -372,7 +372,7 @@ export class UI {
     if (key === this.playKey) return;
     this.playKey = key;
     if (!b) { el.classList.add('hidden'); return; }
-    el.querySelector('.mi')!.innerHTML = EMOJI_IC[b.icon] ? symbol(b.icon) : esc(b.icon); el.querySelector('.pl')!.textContent = b.label;
+    el.querySelector('.mi')!.textContent = b.icon; el.querySelector('.pl')!.textContent = b.label;
     (el as HTMLElement).onclick = () => { SFX.click(); b.fn(); };
     el.classList.remove('hidden');
   }
@@ -537,7 +537,7 @@ export class UI {
   tasbih() {
     const g = this.g, N = 33;
     let n = 0;
-    const { el, close } = this.modal(`<div class="tasbih"><h2>${tile('beads', C.green)} ${tr('Tasbih', 'Tasbih')}</h2>
+    const { el, close } = this.modal(`<div class="tasbih"><h2>📿 ${tr('Tasbih', 'Tasbih')}</h2>
       <p class="ar" lang="ar" dir="rtl">سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ</p><p class="lat">Subhanallahi wa bihamdihi</p>
       <button class="tsb" id="tsTap"><b id="tsN">0</b><small>/ ${N}</small></button>
       <div class="beads" id="tsBeads">${Array.from({ length: N }, () => '<i></i>').join('')}</div>
@@ -561,7 +561,7 @@ export class UI {
     const g = this.g;
     let i = 0, count = 0;
     const drops = Array.from({ length: 9 }, (_, k) => `<i style="--x:${8 + ((k * 37) % 84)}%;--d:${(k * 0.23) % 1.6}s;--s:${0.7 + ((k * 13) % 5) / 10}"></i>`).join('');
-    const { el, close } = this.modal(`<div class="wudu w2"><h2><span class="hIc">${ic('drop')}</span> ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
+    const { el, close } = this.modal(`<div class="wudu w2"><h2>💧 ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
       <div class="wBody"><div class="wStage" id="wStage"><div class="wCaustic"></div><div class="wRain">${drops}</div>
         <div class="pgFrames wMo" id="wPic"></div><div class="wPool"></div><div class="wSplash" id="wSplash"></div></div>
       <div class="wSide"><div class="pgN" id="wN"></div><h3 id="wName"></h3><p id="wSay"></p>
@@ -569,7 +569,7 @@ export class UI {
         <div class="wCnt" id="wCnt"></div></div></div>
       <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}" aria-label="${esc(t2(w.name))}"><span>${w.icon}</span>${g.settings.english !== false && BODY_WORDS[k] ? `<em class="wen">${BODY_WORDS[k]!.en}</em>` : ''}</button>`).join('')}</div>
       <p id="wMsg">${tr('Ketuk tombol air untuk membasuh 💧', 'Tap the water button to wash 💧')}</p>
-      <div class="row"><button class="btn ghost small" id="wGuide">${ic('play')} ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
+      <div class="row"><button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
     const btns = el.querySelectorAll<HTMLElement>('.ws');
     const pic = this.frames($('#wPic', el));
     const stage = $('#wStage', el), splashBox = $('#wSplash', el);
@@ -641,7 +641,7 @@ export class UI {
   /** the picture guide: Baby Mo shows each step of wudu or sholat, one at a time */
   poseGuide(kind: 'wudu' | 'sholat') {
     const steps: GuideStep[] = kind === 'wudu' ? WUDU_GUIDE : SHOLAT_GUIDE;
-    const title = kind === 'wudu' ? `<span class="hIc">${ic('drop')}</span> ${tr('Cara berwudhu', 'How to make wudu')}` : `<span class="hIc green">${ic('mosque')}</span> ${tr('Cara sholat', 'How to pray')}`;
+    const title = kind === 'wudu' ? `💧 ${tr('Cara berwudhu', 'How to make wudu')}` : `🕌 ${tr('Cara sholat', 'How to pray')}`;
     let i = 0, playing = true, stepT = 0;
     const { el, close } = this.modal(`<div class="poseGuide"><h2>${title}</h2>
       <div class="pgBody"><div class="pgStage"><div class="pgHalo"></div><div class="pgSpark"><i></i><i></i><i></i><i></i></div><div class="pgFrames big" id="pgPic"></div><div class="pgFloor"></div></div><div class="pgInfo">
@@ -675,8 +675,8 @@ export class UI {
   private amalTab(body: HTMLElement) {
     const g = this.g, log = g.stats.amal, total = (id: string) => log?.total[id] || 0, today = (id: string) => (log && log.day === new Date().toDateString() ? log.today[id] || 0 : 0);
     const all = DEEDS.reduce((a, d) => a + total(d.id), 0), allToday = DEEDS.reduce((a, d) => a + today(d.id), 0);
-    body.innerHTML = `<div class="amalHead"><b>${tile('book', C.green)} ${tr('Buku Amal Kebaikan', 'My Good Deeds Book')}</b><small>${tr(`Hari ini <b>${allToday}</b> kebaikan · semuanya <b>${all}</b>`, `Today <b>${allToday}</b> good deeds · all together <b>${all}</b>`)}</small></div>
-      <div class="row amalBtns"><button class="btn small gold" id="amTasbih">${ic('beads')} ${tr('Tasbih', 'Tasbih')}</button><button class="btn small ghost" id="amWudu">${ic('drop')} ${tr('Cara wudhu', 'How to make wudu')}</button><button class="btn small ghost" id="amSholat">${ic('mosque')} ${tr('Cara sholat', 'How to pray')}</button></div>
+    body.innerHTML = `<div class="amalHead"><b>📖 ${tr('Buku Amal Kebaikan', 'My Good Deeds Book')}</b><small>${tr(`Hari ini <b>${allToday}</b> kebaikan · semuanya <b>${all}</b>`, `Today <b>${allToday}</b> good deeds · all together <b>${all}</b>`)}</small></div>
+      <div class="row amalBtns"><button class="btn small gold" id="amTasbih">📿 ${tr('Tasbih', 'Tasbih')}</button><button class="btn small ghost" id="amWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button><button class="btn small ghost" id="amSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button></div>
       ${g.projects ? g.projects.html() : ''}
       <div class="amalList">${DEEDS.map(d => { const n = total(d.id); return `<div class="amalRow ${n ? '' : 'off'}"><div class="ic">${n ? d.icon : '❔'}</div><div class="tx"><b>${esc(t2(d.name))}${d.times ? ` <span class="amx">×${d.times}</span>` : ''} <span class="amn">${n ? `${today(d.id)} ${tr('hari ini', 'today')} · ${n}` : tr('belum', 'not yet')}</span></b><small>“${esc(t2(d.hadith))}” <i>${esc(d.src)}</i></small></div></div>`; }).join('')}</div>
       <p class="tip">💡 ${tr('Kebaikan lain: wudhu di sumur desa, singkirkan batu di jalan, sedekah di kotak masjid, tersenyum pada Baby Mo, doa sebelum tidur, dan jujur saat berbelanja.', 'More good deeds: make wudu at the village well, clear stones from the path, give at the masjid’s charity box, smile at Baby Mo, say the du’a before sleeping, and be honest when shopping.')}</p>
@@ -1026,7 +1026,7 @@ export class UI {
     let look: Look | null = g.settings.look ? { ...g.settings.look } : null;
     let pick: keyof Look = 'shirt';
     const names: Record<keyof Look, [string, string]> = { hair: ['Rambut', 'Hair'], skin: ['Kulit', 'Skin'], shirt: ['Baju', 'Shirt'], pants: ['Celana', 'Trousers'] };
-    const { el, close } = this.modal(`<div class="photoLook"><h2>${tile('camera', C.purple)} ${tr('Tampilanku dari foto', 'My look from a photo')}</h2>
+    const { el, close } = this.modal(`<div class="photoLook"><h2>📷 ${tr('Tampilanku dari foto', 'My look from a photo')}</h2>
       <p class="plNote">🔒 ${tr('Fotonya tidak dikirim dan tidak disimpan. Hanya warnanya yang dipakai.', 'The photo is not sent anywhere and not saved. Only its colours are used.')}</p>
       <div class="plRow"><canvas id="plC" width="160" height="200"></canvas><div class="plSw">${(Object.keys(names) as (keyof Look)[]).map(k => `<button class="sw" data-k="${k}"><i></i>${tr(names[k][0], names[k][1])}</button>`).join('')}<small>${tr('Ketuk warna, lalu ketuk fotonya untuk mengganti.', 'Tap a colour, then tap the photo to change it.')}</small></div></div>
       <input type="file" id="plFile" accept="image/*" hidden>
@@ -1174,7 +1174,7 @@ export class UI {
       ? [['hijab', tr('🧕 Hijab', '🧕 Hijab'), i => i.slot === 'hijab'], ['hat', tr('🎩 Topi ajaib', '🎩 Power hats'), i => i.slot === 'hat' && (PERK_HATS.has(i.id) || i.id === 'none')], ['shirt', tr('👕 Baju', '👕 Shirts'), i => i.slot === 'shirt'], ['cape', tr('🦸 Jubah', '🦸 Capes'), i => i.slot === 'cape']]
       : [['hat', tr('🧢 Topi (yang ✨ punya kekuatan)', '🧢 Hats (✨ ones have powers)'), i => i.slot === 'hat'], ['shirt', tr('👕 Baju', '👕 Shirts'), i => i.slot === 'shirt'], ['cape', tr('🦸 Jubah', '🦸 Capes'), i => i.slot === 'cape']];
     body.innerHTML = `<p>${tr('Naik level untuk membuka baju baru! ⭐', 'Level up to unlock new outfits! ⭐')}</p>
-      <button class="btn small gold" id="wdPhoto">${ic('camera')} ${tr('Buat tampilanku dari foto', 'Make my look from a photo')}</button>${g.settings.look ? ` <button class="btn small ghost" id="wdPhotoOff">${tr('Kembali ke warna biasa', 'Back to normal colours')}</button>` : ''}`
+      <button class="btn small gold" id="wdPhoto">📷 ${tr('Buat tampilanku dari foto', 'Make my look from a photo')}</button>${g.settings.look ? ` <button class="btn small ghost" id="wdPhotoOff">${tr('Kembali ke warna biasa', 'Back to normal colours')}</button>` : ''}`
       + slots.map(([slot, label, f]) => `<h3>${label}</h3><div class="wardrobe">${OUTFITS.filter(f).map(i => {
       const on = (o as any)[slot] === i.id, open = g.fun.unlocked(i);
       return `<button class="wd ${on ? 'on' : ''} ${open ? '' : 'locked'} ${i.perk ? 'perk' : ''}" data-id="${i.id}" data-slot="${slot}"><span class="e">${open ? i.icon : '🔒'}</span><span>${esc(t2(i.name))}</span>${open ? (i.perk ? `<small class="perkTxt">✨ ${esc(t2(i.perk))}</small>` : '') : `<small>${i.unlock ? (i.level < 99 ? `Level ${i.level} · ` : '') + esc(t2(i.unlock.how)) : `Level ${i.level}`}</small>`}</button>`;
@@ -1226,18 +1226,18 @@ export class UI {
     const g = this.g;
     const zooms = [96, 200, 400];
     const fun = g.funPlaces();
-    body.innerHTML = `${fun.length ? `<h3>${tile('sparkles', C.orange)} ${tr('Tempat seru — langsung ke sana', 'Fun places — go there')}</h3><div class="row funGo">${fun.map(l => `<button class="btn small" data-go="${l.id}">${l.icon} ${esc(t2(l.name))}${g.full || !LOCKED.has(l.id) ? '' : ' 🔒'}</button>`).join('')}</div>` : ''}<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
+    body.innerHTML = `${fun.length ? `<h3>✨ ${tr('Tempat seru — langsung ke sana', 'Fun places — go there')}</h3><div class="row funGo">${fun.map(l => `<button class="btn small" data-go="${l.id}">${l.icon} ${esc(t2(l.name))}${g.full || !LOCKED.has(l.id) ? '' : ' 🔒'}</button>`).join('')}</div>` : ''}<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
       <div class="mapWrap"><canvas id="mapC" width="400" height="400"></canvas></div>
       <p style="margin-top:6px;font-size:12.5px">${tr('▲ = kamu · 🕌 = desa · ✨ = huruf belum ditemukan · ✓ = sudah ditemukan', '▲ = you · 🕌 = village · ✨ = letter not found yet · ✓ = found')}</p>
-      <h3>${tile('compass', C.teal)} ${tr('Jurnal Penjelajah', 'Explorer’s Journal')} <small>(${(g.stats.discovered || []).length}/${g.gen.landmarks.length})</small></h3>
+      <h3>🧭 ${tr('Jurnal Penjelajah', 'Explorer’s Journal')} <small>(${(g.stats.discovered || []).length}/${g.gen.landmarks.length})</small></h3>
       <div class="journal">${g.gen.landmarks.map(l => { const f = (g.stats.discovered || []).includes(l.id); return `<div class="jr ${f ? 'found' : ''}"><span class="ji">${f ? l.icon : '❔'}</span><div><b>${f ? esc(t2(l.name)) : tr('Belum ditemukan', 'Not found yet')}</b><small>${esc(t2(f ? l.fact : l.hint))}</small></div>${f ? '<span class="jok">✓</span>' : `<button class="btn small ${g.exploreTarget === l.id ? 'gold' : 'ghost'}" data-follow="${l.id}">🧭 ${g.exploreTarget === l.id ? tr('Diikuti', 'Following') : tr('Tunjukkan arah', 'Show the way')}</button>`}</div>`; }).join('')}</div>`;
     body.querySelectorAll<HTMLElement>('[data-go]').forEach(b => (b.onclick = () => { SFX.click(); this.closeBook(); setTimeout(() => g.goPlace(b.dataset.go!), 80); }));
     body.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => (b.onclick = () => { const id = b.dataset.follow!; g.exploreTarget = g.exploreTarget === id ? null : id; SFX.click(); this.renderBook(); }));
     // the treasure map: one quarter for each piece found
-    const tm = h(`<div class="tmap"><h3>${tile('map', C.brown)} ${tr('Peta Harta Karun', 'Treasure Map')} <small>(${g.treasure.pieces.length}/4)</small></h3>
+    const tm = h(`<div class="tmap"><h3>🗺️ ${tr('Peta Harta Karun', 'Treasure Map')} <small>(${g.treasure.pieces.length}/4)</small></h3>
       <canvas width="240" height="240"></canvas>
       <p>${g.stats.greatTreasure ? tr('Harta karun besar sudah kamu temukan! 👑', 'You found the great treasure! 👑') : g.treasure.complete ? tr('Peta lengkap! Pergi ke tanda ❌ dan gali ke bawah di tengahnya.', 'The map is whole! Go to the ❌ and dig straight down in the middle.') : tr('Potongan peta tersimpan di Mercusuar, Perkemahan Oasis, Rumah Salju dan Reruntuhan Perpustakaan.', 'Map pieces are kept at the Lighthouse, Oasis Camp, Igloo and Library Ruins.')}</p>
-      ${g.treasure.complete && !g.stats.greatTreasure ? `<button class="btn small ${g.exploreTarget === 'treasure' ? 'gold' : 'ghost'}" id="tmGo">${ic('compass')} ${tr('Tunjukkan arah ke ❌', 'Show the way to the ❌')}</button>` : ''}</div>`);
+      ${g.treasure.complete && !g.stats.greatTreasure ? `<button class="btn small ${g.exploreTarget === 'treasure' ? 'gold' : 'ghost'}" id="tmGo">🧭 ${tr('Tunjukkan arah ke ❌', 'Show the way to the ❌')}</button>` : ''}</div>`);
     body.prepend(tm);
     g.treasure.draw(tm.querySelector('canvas')!);
     const go = tm.querySelector<HTMLElement>('#tmGo'); if (go) go.onclick = () => { g.exploreTarget = g.exploreTarget === 'treasure' ? null : 'treasure'; SFX.click(); this.renderBook(); };
@@ -1304,7 +1304,7 @@ export class UI {
         const re = st.n > 1 ? Array.from({ length: doneN }, (_, k) => `<button data-l="${st.from + k}">${k + 1}${stars[st.from + k] ? '⭐'.repeat(stars[st.from + k]) : ''}</button>`).join('') : '';
         return `<div class="iqStage ${cls}"><span class="si">${st.icon}</span><div><b>Iqro ${st.n} · ${esc(t2(st.name))}</b> <small>${doneN}/${of}</small><div class="bar"><i style="width:${Math.round((doneN / of) * 100)}%"></i></div>${re ? `<div class="iqRe">${re}</div>` : ''}</div><span>${doneN >= of ? '✅' : cls === 'now' ? '📍' : '🔒'}</span></div>`;
       }).join('');
-      const box = h(`<div class="iqroPath"><h3>${tile('book', C.green)} ${tr('Perjalanan Iqro', 'The Iqro journey')}</h3><p>${open ? (n < all.length ? tr('Ikuti kompas emas ke buku pelajaran berikutnya 📖. Ketuk nomor pelajaran untuk berlatih lagi.', 'Follow the golden compass to the next lesson book 📖. Tap a lesson number to practise it again.') : tr('Kamu sudah tamat! Buku ulangan terus muncul — teruslah berlatih.', 'You finished! Review books keep appearing — keep practising.')) : tr('Temukan semua 28 huruf dulu, lalu perjalanan Iqro dimulai: harakat, tanwin, membaca kata, sampai surat pendek!', 'Find all 28 letters first, then the Iqro journey begins: vowel marks, tanwin, reading words, all the way to short surahs!')}</p><div class="iqPath">${rowsH}</div></div>`);
+      const box = h(`<div class="iqroPath"><h3>📖 ${tr('Perjalanan Iqro', 'The Iqro journey')}</h3><p>${open ? (n < all.length ? tr('Ikuti kompas emas ke buku pelajaran berikutnya 📖. Ketuk nomor pelajaran untuk berlatih lagi.', 'Follow the golden compass to the next lesson book 📖. Tap a lesson number to practise it again.') : tr('Kamu sudah tamat! Buku ulangan terus muncul — teruslah berlatih.', 'You finished! Review books keep appearing — keep practising.')) : tr('Temukan semua 28 huruf dulu, lalu perjalanan Iqro dimulai: harakat, tanwin, membaca kata, sampai surat pendek!', 'Find all 28 letters first, then the Iqro journey begins: vowel marks, tanwin, reading words, all the way to short surahs!')}</p><div class="iqPath">${rowsH}</div></div>`);
       body.appendChild(box);
       box.querySelectorAll<HTMLElement>('[data-l]').forEach(b => (b.onclick = () => { SFX.click(); g.iqro.open(true, +b.dataset.l!); }));
     }
@@ -1325,7 +1325,7 @@ export class UI {
     const g = this.g;
     const active = g.activeQuests();
     const dl = g.stats.daily;
-    const todayHtml = dl ? `<h3>${tile('calendar', C.red)} ${tr('Target hari ini', 'Today’s goals')} <small>(${dl.done.length}/3 · ${tr(`🪙 ${GOAL_COINS} tiap target, bonus ${ALL_BONUS}`, `🪙 ${GOAL_COINS} each, ${ALL_BONUS} bonus for all`)})</small></h3>${dl.goals.map(id => {
+    const todayHtml = dl ? `<h3>📅 ${tr('Target hari ini', 'Today’s goals')} <small>(${dl.done.length}/3 · ${tr(`🪙 ${GOAL_COINS} tiap target, bonus ${ALL_BONUS}`, `🪙 ${GOAL_COINS} each, ${ALL_BONUS} bonus for all`)})</small></h3>${dl.goals.map(id => {
       const gl = GOALS.find(x => x.id === id)!, a = progress(dl, g.stats, id), done = dl.done.includes(id);
       return `<div class="qcard ${done ? 'done' : ''}"><div class="ic">${gl.icon}</div><div class="tx"><b>${esc(t2(gl.name))} <span style="color:var(--green-d)">${done ? '✓' : a + '/' + gl.need}</span></b><div class="bar"><i style="width:${Math.round(a / gl.need * 100)}%"></i></div></div></div>`;
     }).join('')}` : '';
@@ -1383,7 +1383,7 @@ export class UI {
       <div class="set"><span>${tile('map', C.red)}${tr('Kota', 'City')}</span><select id="selCity"><option value="">${esc(g.loc.name)}</option>${CITIES.map((c, i) => `<option value="${i}">${c.i} ${c.n}</option>`).join('')}<option value="gps">${ic('map')} ${tr('Pakai lokasiku', 'Use my location')}</option></select></div>
       <div class="set"><span>${tile('clock', C.indigo)}${tr('Metode', 'Method')}</span><select id="selMethod">${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
-      <div class="row amalBtns"><button class="btn small gold" id="prGo">${ic('mosque')} ${tr('Ke masjid', 'Go to a masjid')}</button><button class="btn small ghost" id="prSholat">${ic('mosque')} ${tr('Cara sholat', 'How to pray')}</button><button class="btn small ghost" id="prWudu">${ic('drop')} ${tr('Cara wudhu', 'How to make wudu')}</button></div>
+      <div class="row amalBtns"><button class="btn small gold" id="prGo">🕌 ${tr('Ke masjid', 'Go to a masjid')}</button><button class="btn small ghost" id="prSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button><button class="btn small ghost" id="prWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
       <h3>${tr('Di dalam game', 'Inside the game')}</h3>
       <p>${tr('Matahari di dunia Baby Mo mengikuti jadwal di atas: fajar saat Subuh, terbenam saat Maghrib. Saat waktu sholat tiba di game, warga desa berjalan ke masjid — kamu boleh ikut!', 'The sun in Baby Mo’s world follows this schedule: dawn at Fajr, sunset at Maghrib. When it is prayer time in the game, villagers walk to the masjid — you can join them!')}</p>
       <p style="font-size:11.5px;margin-top:6px">${tr('Waktu dihitung otomatis di perangkat, dan bisa berbeda beberapa menit dari jadwal masjid setempat.', 'Times are calculated on the device and may differ a few minutes from your local masjid.')}</p>`;
@@ -1514,7 +1514,7 @@ export class UI {
     const lv = levelOf(st.stars || 0);
     const learned = st.letters.slice().sort((a, b) => a - b).map(i => LETTERS[i].g).join(' ');
     const { el, close } = this.modal(`<h2>${ic('family')} ${tr('Untuk orang tua', 'For parents')}</h2>
-      <h3>${tile('chart', C.blue)} ${tr('Laporan belajar', 'Learning report')}</h3>
+      <h3>📊 ${tr('Laporan belajar', 'Learning report')}</h3>
       <div class="report">
         <div><b>${st.letters.length}/28</b><small>${tr('huruf ditemukan', 'letters found')}</small></div>
         <div><b>${st.quiz || 0}</b><small>${tr('tebak huruf benar', 'quiz answers right')}</small></div>
@@ -1541,7 +1541,7 @@ export class UI {
       <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
       <h3>💾 ${tr('Simpanan', 'Saved game')}</h3>
       <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
-      <h3>${tile('lock', C.orange)} ${tr('Mo Craft Lengkap', 'Full Mo Craft')}</h3>
+      <h3>🏝️ ${tr('Mo Craft Lengkap', 'Full Mo Craft')}</h3>
       <div class="row">${g.full ? `<span class="chipOk">✓ ${tr('Sudah terbuka', 'Unlocked')}</span>` : `<button class="btn gold small" id="pFull">🔓 ${tr('Buka seluruh pulau', 'Open the whole island')}</button>`}${store.canBuy() ? `<button class="btn ghost small" id="pRestore">${tr('Pulihkan pembelian', 'Restore purchase')}</button>` : ''}</div>
       ${!store.canBuy() && !g.full ? `<div class="row famRow"><input id="pFam" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="${tr('Kode keluarga', 'Family code')}" aria-label="${tr('Kode keluarga', 'Family code')}"><button class="btn ghost small" id="pFamGo">${tr('Pakai kode', 'Use code')}</button></div>` : ''}
       <div class="row"><button class="btn ghost small" id="pExp">${ic('down')} ${tr('Simpan ke file', 'Save to a file')}</button><button class="btn ghost small" id="pImp">${ic('up')} ${tr('Buka file simpanan', 'Open a save file')}</button></div>
@@ -1598,7 +1598,7 @@ export class UI {
         <path d="M22 18 L25 92" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/></svg>
       <span>${tr('Ketuk kalau sudah minum', 'Tap when you’ve had a drink')}</span></button>`;
     const { el, close } = this.modal(`<div class="water"><div class="wrow"><img src="img/baby-mo-ok.webp" alt="" class="wmo">${glass}</div>
-      <h2 id="wTitle">${tile('drop', C.blue)} ${tr('Waktunya minum air!', 'Water break!')}</h2>
+      <h2 id="wTitle">💧 ${tr('Waktunya minum air!', 'Water break!')}</h2>
       <p id="wText">${tr('Baby Mo haus! Yuk ambil segelas air putih dan minum sampai habis. Kalau sudah, ketuk gelasnya.', 'Baby Mo is thirsty! Go get a glass of water and drink it all up. When you’re done, tap the glass.')}</p>
       <div class="row" id="wBtns">${fromRest ? '' : `<button class="btn ghost small" id="wLater">${tr('Ingatkan 5 menit lagi', 'Remind me in 5 minutes')}</button>`}</div></div>`,
       undefined, { now: fromRest, onShow: () => { SFX.pour(); if (g.settings.moVoice) Speech.talk(tr('Waktunya minum air! Ambil segelas air putih ya.', 'Water break! Go and get a glass of water.'), getLang(), false, 1); } });
@@ -1609,7 +1609,7 @@ export class UI {
       SFX.click();
       title.textContent = tr('🤔 Kamu yakin sudah minum?', '🤔 Are you sure you drank it?');
       text.textContent = tr('Jujur ya! Allah Maha Melihat 😊 Sudah minum segelas air sampai habis?', 'Be honest! 😊 Did you really drink a whole glass of water?');
-      btns.innerHTML = `<button class="btn gold" id="wYes">${ic('drop')} ${tr('Ya, sudah minum!', 'Yes, I drank it!')}</button><button class="btn ghost" id="wNo">${tr('Belum, aku ambil dulu', 'Not yet, I’ll go get it')}</button>`;
+      btns.innerHTML = `<button class="btn gold" id="wYes">💧 ${tr('Ya, sudah minum!', 'Yes, I drank it!')}</button><button class="btn ghost" id="wNo">${tr('Belum, aku ambil dulu', 'Not yet, I’ll go get it')}</button>`;
       if (g.settings.moVoice) Speech.talk(tr('Kamu yakin sudah minum?', 'Are you sure you drank it?'), getLang(), true, 1);
       $('#wYes', el).onclick = drink;
       $('#wNo', el).onclick = () => {
@@ -1644,7 +1644,7 @@ export class UI {
     const lock = document.createElement('div');
     lock.className = 'lockScr' + (night ? ' night' : '');
     lock.innerHTML = (night ? `<div class="lockBox"><div class="zzz" aria-hidden="true"><i>z</i><i>z</i><i>Z</i></div>
-      <h2>${tile('moon', C.indigo)} ${tr('Selamat tidur!', 'Goodnight!')}</h2>
+      <h2>🌙 ${tr('Selamat tidur!', 'Goodnight!')}</h2>
       <p>${early ? tr('Masya Allah, kamu tidur tepat waktu! ⭐ +20 koin.', 'Masha Allah, you went to bed on time! ⭐ +20 coins.') + '<br>' : ''}${tr(`Baby Mo sudah tidur nyenyak 😴 Kamu bermain <b>${mins} menit</b> hari ini. <b>Rumahmu dan semua bangunanmu sudah tersimpan</b> — besok kita lanjutkan membangun!`, `Baby Mo is fast asleep 😴 You played for <b>${mins} minutes</b> today. <b>Your house and everything you built is saved</b> — we’ll carry on building tomorrow!`)}</p>
       <div class="nightDua"><div class="ar" lang="ar" dir="rtl">بِاسْمِكَ اللّٰهُمَّ أَمُوْتُ وَأَحْيَا</div><small>Bismika Allahumma amutu wa ahya — ${tr('doa sebelum tidur', 'the du’a before sleeping')}</small></div>
       <p class="lockSaved">💾 ${tr('Permainanmu sudah tersimpan.', 'Your game is saved.')}</p>` : `<div class="lockBox"><img src="img/baby-mo-pose-01.webp" alt="">
@@ -1752,7 +1752,7 @@ export class UI {
         if (q >= order.length) { finish(Math.max(1, right)); return; }
         const want = order[q], opts = choices(pool, want, Math.random); miss = false;
         body.innerHTML = `<p class="iqQ">${tr('Dengarkan, lalu pilih yang benar', 'Listen, then pick the right one')} (${q + 1}/${order.length})</p>
-          <button class="btn gold iqHear" id="iqHear">${ic('speaker')} ${tr('Dengar', 'Listen')}</button>
+          <button class="btn gold iqHear" id="iqHear">🔊 ${tr('Dengar', 'Listen')}</button>
           <div class="iqOpts">${opts.map((o, k) => `<button class="iqO" data-k="${k}" data-ar="${esc(ar(o))}">${show(o)}</button>`).join('')}</div>`;
         $('#iqHear', el).onclick = () => play(want);
         setTimeout(() => play(want), 350);
@@ -1841,7 +1841,7 @@ export class UI {
     const ask = () => {
       if (q >= order.length) { finished = true; close(); done(right); return; }
       const want = order[q], opts = choices(pool, want, Math.random); miss = false;
-      body.innerHTML = `<p class="iqQ">${tr('Soal', 'Question')} ${q + 1}/${order.length}</p><button class="btn gold iqHear" id="iqHear">${ic('speaker')} ${tr('Dengar', 'Listen')}</button>
+      body.innerHTML = `<p class="iqQ">${tr('Soal', 'Question')} ${q + 1}/${order.length}</p><button class="btn gold iqHear" id="iqHear">🔊 ${tr('Dengar', 'Listen')}</button>
         <div class="iqOpts${wide ? ' col' : ''}">${opts.map((o, k) => `<button class="iqO" data-k="${k}" data-ar="${esc(o.ar)}">${show(o)}</button>`).join('')}</div>`;
       const play = () => Speech.say(want.ar, want.lat);
       $('#iqHear', el).onclick = play; setTimeout(play, 350);

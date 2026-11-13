@@ -629,3 +629,6 @@ h3 > .tile { width: 24px; height: 24px; border-radius: 7px; }
 h3 > .tile .ic { width: 15px; height: 15px; }
 .btn > .ic { margin-right: 4px; }
 .amalHead b > .tile { vertical-align: middle; margin: -3px 6px 0 0; }
+/* emoji drawn as Fluent Emoji 3D pictures (src/emoji3d.ts): the character stays, invisible, over its picture */
+.emo3d { display: inline-block; width: 1.18em; height: 1.18em; line-height: 1.18em; vertical-align: -0.2em; overflow: hidden; white-space: nowrap; text-align: center;
+  background: center / contain no-repeat; color: transparent !important; -webkit-text-fill-color: transparent; text-shadow: none !important; -webkit-text-stroke: 0 !important; }
