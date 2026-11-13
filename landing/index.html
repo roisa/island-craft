@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mo Craft — Learn Iqro, Islam & English by playing</title>
+<meta name="description" content="Mo Craft is a cozy island game where children learn the hijaiyah letters, Iqro, prayer, English and simple maths with their friend Baby Mo. No ads, no data collected.">
+<meta property="og:title" content="Mo Craft — Learn Iqro, Islam & English by playing">
+<meta property="og:description" content="A cozy island adventure with Baby Mo: hijaiyah letters, Iqro up to short surahs, wudu and prayer, English words and maths while playing.">
+<meta property="og:image" content="img/hero.webp">
+<meta name="theme-color" content="#8fd3ec">
+<link rel="icon" href="img/icon.png">
+<link rel="apple-touch-icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centred column of glass panels floating over the island sky; a bento grid for features,
+   a swipeable gallery, and a timeline of a day on the island. */
+:root{
+  --sky1:#bfeeff; --sky2:#8fd3ec; --leaf:#1fa972; --leaf-deep:#0d7a52;
+  --gold:#ffcf4a; --ink:#0f2a24; --ink-2:#3f5a53; --page:#eaf7f7;
+  --glass:rgba(255,255,255,.58); --glass-strong:rgba(255,255,255,.78); --glass-edge:rgba(255,255,255,.75);
+  --shadow:0 18px 50px -18px rgba(13,74,62,.35); --accent:#0a84ff;
+  --round:"ui-rounded","SF Pro Rounded","Nunito",system-ui,sans-serif;
+  --text:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;
+  --r-xl:32px; --r-lg:24px; --r-md:18px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --sky1:#0b1730; --sky2:#132a4a; --leaf:#3ad79a; --leaf-deep:#7ff0c4; --gold:#ffd86b; --ink:#eef7ff; --ink-2:#a9bdd3; --page:#08111f;
+  --glass:rgba(22,36,60,.55); --glass-strong:rgba(26,42,70,.82); --glass-edge:rgba(255,255,255,.14);
+  --shadow:0 18px 50px -18px rgba(0,0,0,.6); --accent:#4aa8ff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --sky1:#0b1730; --sky2:#132a4a; --leaf:#3ad79a; --leaf-deep:#7ff0c4; --gold:#ffd86b; --ink:#eef7ff; --ink-2:#a9bdd3; --page:#08111f;
+  --glass:rgba(22,36,60,.55); --glass-strong:rgba(26,42,70,.82); --glass-edge:rgba(255,255,255,.14);
+  --shadow:0 18px 50px -18px rgba(0,0,0,.6); --accent:#4aa8ff; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--ink);font:400 17px/1.55 var(--text);-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(1200px 700px at 85% -10%,var(--sky1),transparent 60%),radial-gradient(900px 600px at -10% 20%,var(--sky2),transparent 60%);
+  background-attachment:fixed;overflow-x:hidden}
+[data-lang="en"] [lang="id"],[data-lang="id"] [lang="en"]{display:none!important}
+img{max-width:100%;display:block}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--round);font-weight:900;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font-size:clamp(2rem,4.6vw,3.2rem);line-height:1.05}
+h3{font-size:1.35rem;line-height:1.2;font-weight:800}
+p{margin:0}
+.eyebrow{font:800 .78rem/1 var(--round);letter-spacing:.12em;text-transform:uppercase;color:var(--leaf-deep);margin-bottom:10px}
+.lead{font-size:1.15rem;color:var(--ink-2);max-width:62ch}
+section{padding-block:72px}
+.center{text-align:center}.center .lead{margin-inline:auto}
+
+/* liquid glass */
+.glass{background:var(--glass);border:1px solid var(--glass-edge);border-radius:var(--r-xl);box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.55);
+  -webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%)}
+
+/* nav */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--page)}
+.nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:20;margin-top:12px}
+.nav .bar{display:flex;align-items:center;gap:12px;padding:8px 8px 8px 12px;border-radius:999px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:900 1.1rem var(--round)}
+.brand img{width:34px;height:34px;border-radius:9px}
+.spacer{flex:1}
+.seg{display:flex;padding:3px;border-radius:999px;background:rgba(120,140,140,.16)}
+.seg button{border:0;background:transparent;color:var(--ink);font:700 .85rem var(--text);padding:6px 12px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--glass-strong);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:12px 22px;font:800 1rem var(--round);text-decoration:none;cursor:pointer;transition:transform .2s;text-align:center}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(180deg,#2fc78a,var(--leaf));color:#fff;box-shadow:0 10px 24px -10px rgba(31,169,114,.8),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn.ghost{background:var(--glass-strong);color:var(--ink);border:1px solid var(--glass-edge);cursor:default}
+.btn.ghost:hover{transform:none}
+.btn.small{padding:8px 16px;font-size:.92rem}
+.btn:focus-visible,.seg button:focus-visible,summary:focus-visible,.railNav button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media (max-width:560px){.nav .play{display:none}}
+
+/* hero */
+.hero{padding-block:32px 40px}
+.stage{position:relative;border-radius:40px;overflow:hidden;min-height:540px;display:grid;align-items:end;box-shadow:var(--shadow)}
+.stage>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(5,30,25,.35));pointer-events:none}
+.heroCard{position:relative;z-index:1;margin:20px;padding:28px;max-width:600px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.appRow{display:flex;align-items:center;gap:14px}
+.appRow img{width:72px;height:72px;border-radius:18px;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.appRow b{font:900 1.5rem var(--round);display:block}
+.appRow small{color:var(--ink-2);font-weight:600}
+.hero h1{font-size:clamp(2.2rem,5.4vw,3.9rem);line-height:1.02}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--leaf),#0aa4d8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ctas{display:flex;flex-wrap:wrap;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--glass-strong);border:1px solid var(--glass-edge);font:700 .85rem var(--text)}
+@media (min-width:861px){.stage{background:linear-gradient(160deg,var(--sky2),var(--leaf))}.stage>img{left:auto;right:0;width:72%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 30%);mask-image:linear-gradient(90deg,transparent,#000 30%)}.heroCard{max-width:540px}}
+@media (max-width:560px){.stage{border-radius:30px;min-height:0;padding-top:180px}.heroCard{margin:10px;padding:20px}}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px;margin-top:16px}
+.stat{text-align:center;padding:8px}
+.stat b{display:block;font:900 clamp(2rem,4vw,2.8rem)/1 var(--round);color:var(--leaf-deep);font-variant-numeric:tabular-nums}
+.stat span{font-weight:600;color:var(--ink-2);font-size:.95rem}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* bento */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-top:36px}
+.tile{padding:0;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.tile .pic{aspect-ratio:4/3;overflow:hidden;max-width:100%}
+.tile .pic img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+.tile:hover .pic img{transform:scale(1.04)}
+.tile .txt{padding:20px 22px 24px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tile .txt p{color:var(--ink-2)}
+.tag{align-self:flex-start;font:800 .72rem/1 var(--round);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:rgba(31,169,114,.14);color:var(--leaf-deep)}
+.t-a{grid-column:span 3}.t-b{grid-column:span 3}.t-c{grid-column:span 2}.t-d{grid-column:span 2}.t-e{grid-column:span 2}.t-f{grid-column:span 6}
+.t-f{flex-direction:row}.t-f .pic{flex:1.3;aspect-ratio:auto;min-height:280px}.t-f .txt{flex:1;justify-content:center}
+@media (max-width:860px){.bento{grid-template-columns:1fr 1fr}.t-a,.t-b,.t-c,.t-d,.t-e{grid-column:span 1}.t-f{grid-column:span 2;flex-direction:column}.t-f .pic{min-height:0;aspect-ratio:16/9;flex:none}}
+@media (max-width:560px){.bento{grid-template-columns:minmax(0,1fr)}.t-f{grid-column:span 1}}
+
+/* day timeline */
+.day{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:36px}
+.slot{padding:22px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.slot .time{font:800 .82rem var(--round);color:var(--ink-2);letter-spacing:.04em}
+.slot .ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;background:var(--glass-strong);border:1px solid var(--glass-edge)}
+.slot p{color:var(--ink-2);font-size:.98rem}
+@media (max-width:860px){.day{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.day{grid-template-columns:minmax(0,1fr)}}
+
+/* gallery */
+.rail{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:28px 16px 24px;scroll-padding-inline:16px;scrollbar-width:none;max-width:100vw}
+@media (min-width:1152px){.rail{padding-inline:calc((100vw - 1120px)/2 + 16px)}}
+.rail::-webkit-scrollbar{display:none}
+.shot{flex:0 0 min(80vw,640px);scroll-snap-align:center;display:flex;flex-direction:column;gap:12px;margin:0}
+.device{border-radius:34px;padding:10px;background:#0c0f12;box-shadow:var(--shadow),inset 0 0 0 2px #2a3036;max-width:100%}
+.device img{border-radius:25px;aspect-ratio:2868/1320;object-fit:cover;width:100%}
+.shot figcaption{font:800 1rem var(--round);padding-left:8px}
+.railNav{display:flex;justify-content:center;gap:10px}
+.railNav button{width:44px;height:44px;border-radius:50%;border:1px solid var(--glass-edge);background:var(--glass-strong);color:var(--ink);font-size:1.2rem;cursor:pointer}
+@media (max-width:560px){.device{border-radius:22px;padding:6px}.device img{border-radius:17px}}
+
+/* parents */
+.trust{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:36px}
+.list{padding:10px;display:flex;flex-direction:column;min-width:0}
+.row{display:flex;gap:14px;align-items:flex-start;padding:14px}
+.row+.row{border-top:1px solid rgba(120,140,140,.18)}
+.row .ic{flex:0 0 38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:1.1rem}
+.row b{font:800 1.05rem var(--round);display:block}
+.row p{color:var(--ink-2);font-size:.96rem}
+.quote{padding:32px;display:flex;flex-direction:column;justify-content:center;gap:16px;min-width:0}
+.quote blockquote{margin:0;font:800 clamp(1.4rem,2.6vw,1.9rem)/1.25 var(--round)}
+.quote cite{font-style:normal;color:var(--ink-2);font-weight:600}
+.arab{font-family:"Amiri","Scheherazade New","Geeza Pro",serif;font-size:2.2rem;direction:rtl;color:var(--leaf-deep)}
+@media (max-width:860px){.trust{grid-template-columns:minmax(0,1fr)}}
+
+/* faq */
+.faq{max-width:780px;margin:36px auto 0;display:flex;flex-direction:column;gap:12px}
+details{padding:0 22px;border-radius:var(--r-lg)}
+summary{cursor:pointer;list-style:none;padding:18px 0;font:800 1.08rem var(--round);display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:1.4rem;line-height:1;color:var(--leaf-deep);transition:transform .25s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{padding-bottom:18px;color:var(--ink-2)}
+
+/* final */
+.final{padding:44px 28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px}
+.final img{width:96px;height:96px;border-radius:24px;box-shadow:0 12px 28px rgba(0,0,0,.25)}
+footer{padding-block:28px 48px;color:var(--ink-2);font-size:.92rem;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+footer nav{display:flex;gap:18px;flex-wrap:wrap}
+footer a{text-decoration:none;font-weight:600}
+footer a:hover{text-decoration:underline}
+
+@media (prefers-reduced-motion:no-preference){
+  .appRow img{animation:bob 4s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-4px) rotate(-2deg)}}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn,.tile .pic img{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap nav">
+  <div class="bar glass">
+    <a class="brand" href="#top"><img src="img/icon.png" alt="">Mo Craft</a>
+    <div class="spacer"></div>
+    <div class="seg" role="group" aria-label="Language">
+      <button id="l-en" data-set="en" aria-pressed="true">EN</button>
+      <button id="l-id" data-set="id" aria-pressed="false">ID</button>
+    </div>
+    <a class="btn primary small play" href="../"><span lang="en">Play free</span><span lang="id">Main gratis</span></a>
+  </div>
+</div>
+
+<main id="top">
+<section class="wrap hero">
+  <div class="stage">
+    <img src="img/hero.webp" alt="" fetchpriority="high">
+    <div class="heroCard glass">
+      <div class="appRow">
+        <img src="img/icon.png" alt="Mo Craft app icon">
+        <div><b>Mo Craft</b><small lang="en">Islamic learning island · for kids</small><small lang="id">Pulau belajar Islami · untuk anak</small></div>
+      </div>
+      <h1 lang="en">Learn <em>Iqro, Islam &amp; English</em> by playing.</h1>
+      <h1 lang="id">Belajar <em>Iqro, Islam &amp; Inggris</em> sambil bermain.</h1>
+      <p class="lead" lang="en">A cozy island adventure with Baby Mo. Children find the hijaiyah letters, read up to short surahs, pray with the village, and pick up English and maths along the way.</p>
+      <p class="lead" lang="id">Petualangan seru di pulau bersama Baby Mo. Anak menemukan huruf hijaiyah, belajar membaca sampai surat pendek, sholat berjamaah bersama warga desa, sekaligus belajar bahasa Inggris dan berhitung.</p>
+      <div class="ctas">
+        <a class="btn primary" href="../"><span lang="en">▶ Play free in your browser</span><span lang="id">▶ Main gratis di browser</span></a>
+        <span class="btn ghost" aria-disabled="true"><span lang="en">Coming soon on the App Store</span><span lang="id">Segera hadir di App Store</span></span>
+      </div>
+      <div class="chips">
+        <span class="chip">🚫 <span lang="en">No ads</span><span lang="id">Tanpa iklan</span></span>
+        <span class="chip">🔒 <span lang="en">No data collected</span><span lang="id">Tidak mengumpulkan data</span></span>
+        <span class="chip">👨‍👩‍👦 <span lang="en">Rated 4+</span><span lang="id">Usia 4+</span></span>
+        <span class="chip">🇮🇩 🇬🇧 <span lang="en">Indonesian &amp; English</span><span lang="id">Indonesia &amp; Inggris</span></span>
+      </div>
+    </div>
+  </div>
+  <div class="stats glass">
+    <div class="stat"><b>28</b><span lang="en">hijaiyah letters</span><span lang="id">huruf hijaiyah</span></div>
+    <div class="stat"><b>6</b><span lang="en">short surahs</span><span lang="id">surat pendek</span></div>
+    <div class="stat"><b>9</b><span lang="en">fun places to play</span><span lang="id">tempat bermain seru</span></div>
+    <div class="stat"><b>0</b><span lang="en">ads or purchases</span><span lang="id">iklan atau pembelian</span></div>
+  </div>
+</section>
+
+<section class="wrap" id="learn">
+  <p class="eyebrow" lang="en">What children learn</p><p class="eyebrow" lang="id">Yang dipelajari anak</p>
+  <h2 lang="en">Every game teaches something.</h2><h2 lang="id">Setiap permainan ada ilmunya.</h2>
+  <p class="lead" style="margin-top:12px" lang="en">No worksheets. Baby Mo turns the island into a classroom: letters hide in shrines, lessons wait in glowing books, and every race is a little maths lesson.</p>
+  <p class="lead" style="margin-top:12px" lang="id">Tanpa lembar kerja. Baby Mo menjadikan pulau sebagai kelas: huruf tersembunyi di tugu, pelajaran menunggu di buku bercahaya, dan setiap balapan adalah pelajaran berhitung kecil.</p>
+  <div class="bento">
+    <article class="tile glass t-a">
+      <div class="pic"><img data-shot="card-02-letters" src="img/en-card-02-letters.webp" alt="A hijaiyah letter card in the game" loading="lazy"></div>
+      <div class="txt"><span class="tag">Hijaiyah</span>
+        <h3 lang="en">Find all 28 letters</h3><h3 lang="id">Temukan 28 huruf</h3>
+        <p lang="en">A golden compass leads to glowing letter shrines. Hear each letter with fathah, kasrah and dhammah: ba, bi, bu.</p>
+        <p lang="id">Kompas emas menuntun ke tugu huruf yang bercahaya. Dengarkan setiap huruf dengan fathah, kasrah, dan dhammah: ba, bi, bu.</p></div>
+    </article>
+    <article class="tile glass t-b">
+      <div class="pic"><img data-shot="card-03-iqro" src="img/en-card-03-iqro.webp" alt="An Iqro lesson with a short surah" loading="lazy"></div>
+      <div class="txt"><span class="tag">Iqro</span>
+        <h3 lang="en">Read up to short surahs</h3><h3 lang="id">Membaca sampai surat pendek</h3>
+        <p lang="en">Vowel marks, tanwin, reading words syllable by syllable, then Al-Fatihah, Al-Ikhlas, Al-Falaq, An-Nas, Al-‘Asr and Al-Kautsar, with meaning and an ayat order game.</p>
+        <p lang="id">Harakat, tanwin, membaca kata per suku kata, lalu Al-Fatihah, Al-Ikhlas, Al-Falaq, An-Nas, Al-‘Asr, dan Al-Kautsar, lengkap dengan arti dan permainan menyusun ayat.</p></div>
+    </article>
+    <article class="tile glass t-c">
+      <div class="pic"><img data-shot="card-04-prayer" src="img/en-card-04-prayer.webp" alt="The picture guide for prayer" loading="lazy"></div>
+      <div class="txt"><span class="tag" lang="en">Wudu &amp; prayer</span><span class="tag" lang="id">Wudhu &amp; sholat</span>
+        <h3 lang="en">Pray together</h3><h3 lang="id">Sholat berjamaah</h3>
+        <p lang="en">Picture guides for wudu and prayer. At prayer time the bedug sounds and the village gathers at the masjid.</p>
+        <p lang="id">Panduan bergambar untuk wudhu dan sholat. Saat waktu sholat, bedug berbunyi dan warga berkumpul di masjid.</p></div>
+    </article>
+    <article class="tile glass t-d">
+      <div class="pic"><img data-shot="card-08-english" src="img/en-card-08-english.webp" alt="An English word card for mango in the orchard" loading="lazy"></div>
+      <div class="txt"><span class="tag">English</span>
+        <h3 lang="en">English all around</h3><h3 lang="id">Bahasa Inggris di mana-mana</h3>
+        <p lang="en">Fruits, animals, colours, numbers and actions, said out loud as children play.</p>
+        <p lang="id">Buah, hewan, warna, angka, dan kata kerja diucapkan saat anak bermain.</p></div>
+    </article>
+    <article class="tile glass t-e">
+      <div class="pic"><img data-shot="card-05-race" src="img/en-card-05-race.webp" alt="A kart race with coins being added up" loading="lazy"></div>
+      <div class="txt"><span class="tag" lang="en">Maths</span><span class="tag" lang="id">Berhitung</span>
+        <h3 lang="en">Maths that moves</h3><h3 lang="id">Berhitung sambil bergerak</h3>
+        <p lang="en">Collect coins in a kart race and Baby Mo adds them up: “2 + 3 makes 5!”</p>
+        <p lang="id">Kumpulkan koin saat balapan gokart dan Baby Mo menjumlahkannya: “2 + 3 = 5!”</p></div>
+    </article>
+    <article class="tile glass t-f">
+      <div class="pic"><img data-shot="card-07-horse" src="img/en-card-07-horse.webp" alt="Riding a horse over a jump" loading="lazy"></div>
+      <div class="txt"><span class="tag" lang="en">Play</span><span class="tag" lang="id">Bermain</span>
+        <h3 lang="en">A whole island to explore</h3><h3 lang="id">Satu pulau untuk dijelajahi</h3>
+        <p lang="en">Ride horses over jumps, skate on the ice rink, try archery, tennis, basketball and penalties, fly kites, fish, cook, and build houses and a masjid.</p>
+        <p lang="id">Berkuda melompati rintangan, seluncur di arena es, memanah, tenis, basket, adu penalti, main layangan, memancing, memasak, serta membangun rumah dan masjid.</p></div>
+    </article>
+  </div>
+</section>
+
+<section class="wrap" id="day">
+  <div class="center">
+    <p class="eyebrow" lang="en">A day on the island</p><p class="eyebrow" lang="id">Sehari di pulau</p>
+    <h2 lang="en">Learning that follows the day.</h2><h2 lang="id">Belajar mengikuti waktu sehari-hari.</h2>
+    <p class="lead" style="margin-top:12px" lang="en">The island has its own clock and real prayer times, so good habits come naturally.</p>
+    <p class="lead" style="margin-top:12px" lang="id">Pulau punya jam sendiri dan waktu sholat sungguhan, sehingga kebiasaan baik tumbuh dengan sendirinya.</p>
+  </div>
+  <div class="day">
+    <div class="slot glass"><span class="ico">🌅</span><span class="time" lang="en">MORNING</span><span class="time" lang="id">PAGI</span>
+      <h3 lang="en">Bismillah, let’s explore</h3><h3 lang="id">Bismillah, ayo menjelajah</h3>
+      <p lang="en">Follow the compass to a new letter or the next Iqro book.</p><p lang="id">Ikuti kompas menuju huruf baru atau buku Iqro berikutnya.</p></div>
+    <div class="slot glass"><span class="ico">🕌</span><span class="time" lang="en">MIDDAY</span><span class="time" lang="id">SIANG</span>
+      <h3 lang="en">The bedug calls</h3><h3 lang="id">Bedug memanggil</h3>
+      <p lang="en">Make wudu and join the row at the masjid with the villagers.</p><p lang="id">Berwudhu lalu masuk ke shaf di masjid bersama warga.</p></div>
+    <div class="slot glass"><span class="ico">🏁</span><span class="time" lang="en">AFTERNOON</span><span class="time" lang="id">SORE</span>
+      <h3 lang="en">The big race</h3><h3 lang="id">Balapan besar</h3>
+      <p lang="en">Villagers cheer from the stands. Count the coins on the way round.</p><p lang="id">Warga bersorak di tribun. Hitung koin sepanjang lintasan.</p></div>
+    <div class="slot glass"><span class="ico">🌙</span><span class="time" lang="en">BEDTIME</span><span class="time" lang="id">WAKTU TIDUR</span>
+      <h3 lang="en">Three Quls and goodnight</h3><h3 lang="id">Tiga Qul lalu tidur</h3>
+      <p lang="en">Baby Mo gets sleepy when play time ends and recites with your child.</p><p lang="id">Baby Mo mengantuk saat waktu main habis dan mengaji bersama anak.</p></div>
+  </div>
+</section>
+
+<section id="gallery" style="padding-bottom:40px">
+  <div class="wrap center">
+    <p class="eyebrow" lang="en">Take a look</p><p class="eyebrow" lang="id">Lihat-lihat</p>
+    <h2 lang="en">Swipe around the island.</h2><h2 lang="id">Geser untuk berkeliling.</h2>
+  </div>
+  <div class="rail" id="rail" tabindex="0" aria-label="Screenshots">
+    <figure class="shot"><div class="device"><img data-shot="wide-01-island" src="img/en-wide-01-island.webp" alt="" loading="lazy"></div><figcaption lang="en">The village and the masjid</figcaption><figcaption lang="id">Desa dan masjid</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-02-letters" src="img/en-wide-02-letters.webp" alt="" loading="lazy"></div><figcaption lang="en">Hijaiyah letter cards</figcaption><figcaption lang="id">Kartu huruf hijaiyah</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-03-iqro" src="img/en-wide-03-iqro.webp" alt="" loading="lazy"></div><figcaption lang="en">Iqro short surahs</figcaption><figcaption lang="id">Iqro surat pendek</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-04-prayer" src="img/en-wide-04-prayer.webp" alt="" loading="lazy"></div><figcaption lang="en">How to pray, step by step</figcaption><figcaption lang="id">Cara sholat langkah demi langkah</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-05-race" src="img/en-wide-05-race.webp" alt="" loading="lazy"></div><figcaption lang="en">Kart race with adding up</figcaption><figcaption lang="id">Balap gokart sambil berhitung</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-06-archery" src="img/en-wide-06-archery.webp" alt="" loading="lazy"></div><figcaption lang="en">Archery: 100 + 50 = 150</figcaption><figcaption lang="id">Memanah: 100 + 50 = 150</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-07-horse" src="img/en-wide-07-horse.webp" alt="" loading="lazy"></div><figcaption lang="en">Horse riding over the jumps</figcaption><figcaption lang="id">Berkuda melompati rintangan</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-08-english" src="img/en-wide-08-english.webp" alt="" loading="lazy"></div><figcaption lang="en">English word cards in the orchard</figcaption><figcaption lang="id">Kartu kata bahasa Inggris di kebun</figcaption></figure>
+    <figure class="shot"><div class="device"><img data-shot="wide-09-parents" src="img/en-wide-09-parents.webp" alt="" loading="lazy"></div><figcaption lang="en">The parent area</figcaption><figcaption lang="id">Area orang tua</figcaption></figure>
+  </div>
+  <div class="railNav"><button id="prev" aria-label="Previous screenshot">‹</button><button id="next" aria-label="Next screenshot">›</button></div>
+</section>
+
+<section class="wrap" id="parents">
+  <p class="eyebrow" lang="en">For parents</p><p class="eyebrow" lang="id">Untuk orang tua</p>
+  <h2 lang="en">Safe by design. Calm by default.</h2><h2 lang="id">Aman sejak awal. Tenang secara bawaan.</h2>
+  <div class="trust">
+    <div class="list glass">
+      <div class="row"><span class="ic" style="background:#ff6b5e">🚫</span><div><b lang="en">No ads, no purchases</b><b lang="id">Tanpa iklan, tanpa pembelian</b><p lang="en">Nothing to tap by accident and nothing to buy.</p><p lang="id">Tidak ada yang bisa terpencet tanpa sengaja, tidak ada yang dijual.</p></div></div>
+      <div class="row"><span class="ic" style="background:#5e8bff">🔒</span><div><b lang="en">No data collected</b><b lang="id">Tidak mengumpulkan data</b><p lang="en">No account, no chat, no tracking. Progress stays on the device.</p><p lang="id">Tanpa akun, tanpa chat, tanpa pelacakan. Progres tersimpan di perangkat.</p></div></div>
+      <div class="row"><span class="ic" style="background:#ffb340">⏳</span><div><b lang="en">Daily play-time limit</b><b lang="id">Batas waktu main harian</b><p lang="en">A gentle bedtime wind-down instead of a sudden stop.</p><p lang="id">Pengantar tidur yang lembut, bukan berhenti tiba-tiba.</p></div></div>
+      <div class="row"><span class="ic" style="background:#2fc78a">📊</span><div><b lang="en">Learning report</b><b lang="id">Laporan belajar</b><p lang="en">See letters found, Iqro lessons, surahs learned and prayers joined.</p><p lang="id">Lihat huruf yang ditemukan, pelajaran Iqro, surat yang dihafal, dan sholat yang diikuti.</p></div></div>
+      <div class="row"><span class="ic" style="background:#9b6bff">🔐</span><div><b lang="en">Grown-up check</b><b lang="id">Khusus orang tua</b><p lang="en">Settings sit behind a small sum only grown-ups can answer.</p><p lang="id">Pengaturan dilindungi soal hitungan yang hanya bisa dijawab orang dewasa.</p></div></div>
+    </div>
+    <div class="quote glass">
+      <span class="arab">رَبِّ زِدْنِي عِلْمًا</span>
+      <blockquote lang="en">“My Lord, increase me in knowledge.” We made Mo Craft so our children could love learning about their faith, one game at a time.</blockquote>
+      <blockquote lang="id">“Ya Tuhanku, tambahkanlah ilmu kepadaku.” Kami membuat Mo Craft agar anak-anak kita mencintai belajar agama, satu permainan demi satu permainan.</blockquote>
+      <cite lang="en">Taha 20:114 · From the family behind Baby Mo</cite><cite lang="id">Taha 20:114 · Dari keluarga di balik Baby Mo</cite>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="faq">
+  <div class="center"><p class="eyebrow">FAQ</p><h2 lang="en">Good questions.</h2><h2 lang="id">Pertanyaan yang sering diajukan.</h2></div>
+  <div class="faq">
+    <details class="glass"><summary><span lang="en">How much does it cost?</span><span lang="id">Berapa harganya?</span></summary>
+      <p lang="en">Mo Craft is free to play in your browser now, with no ads and no in-app purchases.</p><p lang="id">Mo Craft bisa dimainkan gratis di browser sekarang, tanpa iklan dan tanpa pembelian dalam aplikasi.</p></details>
+    <details class="glass"><summary><span lang="en">What ages is it for?</span><span lang="id">Untuk usia berapa?</span></summary>
+      <p lang="en">It is rated 4+ and made for young children who are starting to read the hijaiyah letters. Texts are short and everything is read aloud.</p><p lang="id">Untuk usia 4+ dan dibuat bagi anak yang mulai belajar huruf hijaiyah. Teksnya pendek dan semuanya dibacakan.</p></details>
+    <details class="glass"><summary><span lang="en">Does it need the internet?</span><span lang="id">Apakah perlu internet?</span></summary>
+      <p lang="en">The iPhone and iPad app works offline. In the browser you can add it to your Home Screen and play full screen.</p><p lang="id">Aplikasi iPhone dan iPad bisa dimainkan tanpa internet. Di browser, Anda bisa menambahkannya ke Layar Utama dan bermain layar penuh.</p></details>
+    <details class="glass"><summary><span lang="en">Which languages?</span><span lang="id">Bahasa apa saja?</span></summary>
+      <p lang="en">Indonesian and English, switchable at any time. Arabic letters, ayat and du’a are shown in Arabic with transliteration and meaning.</p><p lang="id">Bahasa Indonesia dan Inggris, bisa diganti kapan saja. Huruf Arab, ayat, dan doa ditampilkan dalam bahasa Arab dengan transliterasi dan arti.</p></details>
+    <details class="glass"><summary><span lang="en">What devices does it run on?</span><span lang="id">Bisa dimainkan di perangkat apa?</span></summary>
+      <p lang="en">iPhone and iPad (coming to the App Store), and any modern browser on a phone, tablet or computer.</p><p lang="id">iPhone dan iPad (segera di App Store), serta browser modern di ponsel, tablet, atau komputer.</p></details>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="final glass">
+    <img src="img/icon.png" alt="Mo Craft app icon">
+    <h2 lang="en">Ready to visit the island?</h2><h2 lang="id">Siap berkunjung ke pulau?</h2>
+    <p class="lead" lang="en">Assalamu’alaikum! Baby Mo is waiting.</p><p class="lead" lang="id">Assalamu’alaikum! Baby Mo sudah menunggu.</p>
+    <div class="ctas" style="justify-content:center">
+      <a class="btn primary" href="../"><span lang="en">▶ Play free now</span><span lang="id">▶ Main gratis sekarang</span></a>
+      <span class="btn ghost" aria-disabled="true"><span lang="en">Coming soon on the App Store</span><span lang="id">Segera hadir di App Store</span></span>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <span>© 2026 Mo Craft</span>
+  <nav><a href="../privacy.html"><span lang="en">Privacy</span><span lang="id">Privasi</span></a><a href="../support.html"><span lang="en">Support</span><span lang="id">Bantuan</span></a><a href="../"><span lang="en">Play</span><span lang="id">Main</span></a></nav>
+</footer>
+
+<script>
+(function(){
+  var root=document.documentElement, store=null;
+  try{store=localStorage.getItem('mocraft-lang')}catch(e){}
+  var lang=store||((navigator.language||'').toLowerCase().indexOf('id')===0?'id':'en');
+  function set(l){
+    lang=l; root.dataset.lang=l; root.lang=l;
+    document.querySelectorAll('.seg button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.set===l))});
+    document.querySelectorAll('img[data-shot]').forEach(function(i){i.src='img/'+l+'-'+i.dataset.shot+'.webp'});
+    try{localStorage.setItem('mocraft-lang',l)}catch(e){}
+  }
+  document.querySelectorAll('.seg button').forEach(function(b){b.addEventListener('click',function(){set(b.dataset.set)})});
+  set(lang);
+  var rail=document.getElementById('rail');
+  function step(d){var s=rail.querySelector('.shot');rail.scrollBy({left:d*(s?s.offsetWidth+18:400),behavior:'smooth'})}
+  document.getElementById('prev').addEventListener('click',function(){step(-1)});
+  document.getElementById('next').addEventListener('click',function(){step(1)});
+})();
+</script>
+</body>
+</html>

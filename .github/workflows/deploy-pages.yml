@@ -41,6 +41,7 @@ jobs:
       - name: Push the build to gh-pages
         run: |
           cp -r appstore dist/appstore   # App Store kit: website only, not in the iOS app
+          cp -r landing dist/mocraft     # marketing page: website only, not in the iOS app
           cd dist
           touch .nojekyll
           git init -q -b gh-pages

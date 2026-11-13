@@ -5,6 +5,25 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Mo Craft marketing page 📣
+
+Asked by a parent: a page that introduces the app in a fun, useful way,
+in the style of the latest iOS.
+
+- **`/mocraft/`** on the website: a hero with the app icon and the village
+  scene, what children learn (hijaiyah, Iqro to short surahs, wudu and
+  prayer, English, maths, a whole island to play in), a day on the island,
+  swipeable screenshots in device frames, what parents get (no ads, no data
+  collected, play-time limit, learning report, grown-up check), FAQ, and
+  links to play, privacy and support.
+- Translucent “liquid glass” panels, large rounded headings, a floating
+  menu bar, a night-sky dark mode, and an English/Indonesian switch that
+  also swaps the screenshots.
+- Like the App Store kit, it is copied in only when the website is
+  published, so it isn't in the iOS app.
+- Tested: desktop and phone widths in light and dark, no sideways
+  scrolling, every image loads, the play buttons lead to the game.
+
 ### A sharper “Mo Craft” icon, and more of a real iPhone app 📱
 
 Asked by a parent: a sharper App Store icon with “Craft” on it, and less risk
