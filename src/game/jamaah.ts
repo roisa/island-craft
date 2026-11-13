@@ -13,19 +13,19 @@ export interface Step { pose: PrayerPose; dur: number; name: T2; rakaat: number;
 /** every movement of the prayer, in order */
 export function jamaahPlan(prayer: Prayer): Step[] {
   const n = RAKAAT[prayer], out: Step[] = [];
-  out.push({ pose: 'qiyam', dur: 1.8, name: ['Allahu Akbar', 'Allahu Akbar'], rakaat: 1 });
+  out.push({ pose: 'qiyam', dur: 1.2, name: ['Allahu Akbar', 'Allahu Akbar'], rakaat: 1 });
   for (let r = 1; r <= n; r++) {
-    out.push({ pose: 'qiyam', dur: 3.2, name: ['Berdiri', 'Standing'], rakaat: r });
-    out.push({ pose: 'ruku', dur: 2.2, name: ['Rukuk', 'Bowing'], rakaat: r });
-    out.push({ pose: 'qiyam', dur: 1.4, name: ['I’tidal', 'Standing up'], rakaat: r });
-    out.push({ pose: 'sujud', dur: 2.2, name: ['Sujud', 'Prostrating'], rakaat: r });
-    out.push({ pose: 'julus', dur: 1.4, name: ['Duduk', 'Sitting'], rakaat: r });
-    out.push({ pose: 'sujud', dur: 2.2, name: ['Sujud', 'Prostrating'], rakaat: r });
-    if (r === 2 && n > 2) out.push({ pose: 'julus', dur: 2.6, name: ['Tasyahud awal', 'First tashahhud'], rakaat: r });
+    out.push({ pose: 'qiyam', dur: 1.6, name: ['Berdiri', 'Standing'], rakaat: r });
+    out.push({ pose: 'ruku', dur: 1.2, name: ['Rukuk', 'Bowing'], rakaat: r });
+    out.push({ pose: 'qiyam', dur: 0.8, name: ['I’tidal', 'Standing up'], rakaat: r });
+    out.push({ pose: 'sujud', dur: 1.2, name: ['Sujud', 'Prostrating'], rakaat: r });
+    out.push({ pose: 'julus', dur: 0.8, name: ['Duduk', 'Sitting'], rakaat: r });
+    out.push({ pose: 'sujud', dur: 1.2, name: ['Sujud', 'Prostrating'], rakaat: r });
+    if (r === 2 && n > 2) out.push({ pose: 'julus', dur: 1.5, name: ['Tasyahud awal', 'First tashahhud'], rakaat: r });
   }
-  out.push({ pose: 'julus', dur: 3.2, name: ['Tasyahud akhir', 'Final tashahhud'], rakaat: n });
-  out.push({ pose: 'julus', dur: 1.4, name: ['Salam', 'Salam'], rakaat: n, head: 0.9 });
-  out.push({ pose: 'julus', dur: 1.4, name: ['Salam', 'Salam'], rakaat: n, head: -0.9 });
+  out.push({ pose: 'julus', dur: 2, name: ['Tasyahud akhir', 'Final tashahhud'], rakaat: n });
+  out.push({ pose: 'julus', dur: 0.9, name: ['Salam', 'Salam'], rakaat: n, head: 0.9 });
+  out.push({ pose: 'julus', dur: 0.9, name: ['Salam', 'Salam'], rakaat: n, head: -0.9 });
   return out;
 }
 export const planLength = (p: Step[]) => p.reduce((a, s) => a + s.dur, 0);

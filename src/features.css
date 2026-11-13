@@ -402,3 +402,77 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
   .unlockCard .row { margin: 0; }
 }
 .famRow input { flex: 1; min-width: 0; max-width: 220px; padding: 8px 12px; border-radius: 12px; border: 2px solid #cfe3ea; font: 700 15px/1.2 inherit; letter-spacing: .06em; text-transform: uppercase; }
+
+/* ===== Wudu: Baby Mo in a little pool of water, drops falling, a splash on every tap ===== */
+.wudu.w2 { max-width: 640px; }
+.w2 h2 { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.hIc { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: #fff; background: linear-gradient(160deg, #5ac8fa, #0a84ff); box-shadow: 0 4px 10px rgba(10,132,255,.35), inset 0 1px 0 rgba(255,255,255,.5); }
+.hIc svg { width: 20px; height: 20px; }
+.w2 .wBody { display: flex; align-items: center; gap: 16px; justify-content: center; }
+.wStage { position: relative; flex: none; width: 210px; height: 210px; border-radius: 42%; overflow: hidden; cursor: pointer;
+  background: radial-gradient(120% 90% at 50% 18%, #f2fdff 0%, #bfeffc 38%, #6fd0ef 72%, #3fb3e3 100%);
+  box-shadow: inset 0 -10px 30px rgba(10,110,170,.35), inset 0 8px 20px rgba(255,255,255,.8), 0 10px 26px -10px rgba(10,110,170,.6); }
+.wCaustic { position: absolute; inset: -30%; opacity: .5; mix-blend-mode: soft-light;
+  background: radial-gradient(circle at 20% 30%, #fff 0 6%, transparent 7%), radial-gradient(circle at 70% 60%, #fff 0 5%, transparent 6%), radial-gradient(circle at 40% 80%, #fff 0 4%, transparent 5%), radial-gradient(circle at 85% 20%, #fff 0 4%, transparent 5%);
+  background-size: 120px 120px; animation: wCaus 6s linear infinite; }
+@keyframes wCaus { to { transform: translate(60px, 40px) rotate(8deg); } }
+.wRain i { position: absolute; top: -14px; left: var(--x); width: 9px; height: 13px; border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; transform: scale(var(--s));
+  background: linear-gradient(180deg, #ffffff, #8fe0fa); box-shadow: 0 0 6px rgba(255,255,255,.8); opacity: .9; animation: wFall 1.6s linear infinite; animation-delay: var(--d); }
+@keyframes wFall { 0% { transform: translateY(0) scale(var(--s)); opacity: 0; } 15% { opacity: .95; } 85% { opacity: .9; } 100% { transform: translateY(205px) scale(var(--s)); opacity: 0; } }
+.wStage .wMo { position: absolute; inset: 6% 6% 10%; width: auto; height: auto; margin: 0; background: none; border-radius: 0; overflow: visible; animation: moFloat 2.6s ease-in-out infinite; filter: drop-shadow(0 8px 10px rgba(0,60,100,.3)); }
+@keyframes moFloat { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-7px) rotate(1deg); } }
+.wPool { position: absolute; left: 12%; right: 12%; bottom: 7%; height: 16%; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(255,255,255,.75), rgba(255,255,255,0) 70%); animation: wPool 2.6s ease-in-out infinite; }
+@keyframes wPool { 50% { transform: scaleX(.86); opacity: .7; } }
+.wStage.bump .wMo { animation: moBump .45s ease-out, moFloat 2.6s ease-in-out .45s infinite; }
+@keyframes moBump { 0% { transform: scale(1); } 35% { transform: scale(1.08, .94) translateY(4px); } 70% { transform: scale(.97, 1.04) translateY(-6px); } 100% { transform: scale(1); } }
+.wSplash { position: absolute; left: 50%; top: 62%; width: 0; height: 0; pointer-events: none; }
+.wSplash i { position: absolute; width: 10px; height: 10px; margin: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #7fd8f6); box-shadow: 0 0 8px rgba(255,255,255,.9); animation: wBurst .75s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes wBurst { 0% { transform: rotate(var(--a)) translateX(0) scale(1.3); opacity: 1; } 100% { transform: rotate(var(--a)) translateX(var(--r)) translateY(40px) scale(.4); opacity: 0; } }
+.wSplash b { position: absolute; width: 40px; height: 14px; margin: -7px -20px; border-radius: 50%; border: 3px solid rgba(255,255,255,.95); top: 52px; animation: wRing .9s ease-out forwards; }
+@keyframes wRing { to { transform: scale(4.2); opacity: 0; } }
+.wSide { flex: 1; min-width: 0; max-width: 300px; text-align: left; }
+.wSide h3 { margin: 2px 0; font-size: 19px; }
+.wSide p { margin: 2px 0 10px; font-size: 14px; line-height: 1.35; min-height: 2.6em; }
+.wTap { position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px 12px 14px; border: 0; border-radius: 999px; color: #fff; font: 800 18px/1 inherit; cursor: pointer; touch-action: manipulation;
+  background: linear-gradient(180deg, #4fc3f7 0%, #0a84ff 100%); box-shadow: 0 8px 22px -6px rgba(10,132,255,.75), inset 0 1px 0 rgba(255,255,255,.55), inset 0 -3px 0 rgba(0,60,140,.25);
+  animation: wGlow 1.6s ease-in-out infinite; }
+.wTap .wIc { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; font-size: 24px; background: rgba(255,255,255,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.6); }
+.wTap:active { transform: scale(.95); }
+.wTap.fin { background: linear-gradient(180deg, #4cd97b, #1fa952); animation: none; }
+@keyframes wGlow { 0%, 100% { box-shadow: 0 8px 22px -6px rgba(10,132,255,.75), 0 0 0 0 rgba(90,200,250,.6), inset 0 1px 0 rgba(255,255,255,.55); } 50% { box-shadow: 0 8px 22px -6px rgba(10,132,255,.75), 0 0 0 10px rgba(90,200,250,0), inset 0 1px 0 rgba(255,255,255,.55); } }
+.wCnt { display: flex; gap: 6px; margin: 8px 4px 0; min-height: 12px; }
+.wCnt i { width: 12px; height: 16px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: #d5e9f3; transition: background .2s, transform .2s; }
+.wCnt i.on { background: linear-gradient(180deg, #8fe0fa, #0a84ff); transform: scale(1.15); }
+.w2 .wsteps { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 12px 0 6px; grid-template-columns: none; }
+.w2 .ws { position: relative; min-height: 0; width: 46px; height: 46px; padding: 0; border-radius: 15px; justify-content: center; background: rgba(120,150,170,.12); border: 2px solid transparent; }
+.w2 .ws span { font-size: 22px; }
+.w2 .ws .wen { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); font-size: 9px; padding: 1px 5px; border-radius: 6px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.15); white-space: nowrap; font-style: normal; }
+.w2 .ws.next { border-color: #5ac8fa; background: #e6f8ff; animation: pk 1s ease-in-out infinite alternate; }
+.w2 .ws.done { background: #d9f6e4; opacity: 1; }
+.w2 .ws.done::after { content: '✓'; position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: #34c759; color: #fff; font-size: 11px; font-weight: 900; display: grid; place-items: center; }
+@media (max-width: 560px) { .w2 .wBody { flex-direction: column; } .wSide { text-align: center; } .wCnt { justify-content: center; } .wStage { width: 180px; height: 180px; } }
+@media (max-height: 520px) { .wStage { width: 158px; height: 158px; } .w2 .ws { width: 38px; height: 38px; border-radius: 12px; } .w2 .ws span { font-size: 18px; } .wSide p { min-height: 0; margin-bottom: 6px; } .wTap { padding: 8px 16px 8px 10px; font-size: 16px; } .wTap .wIc { width: 34px; height: 34px; font-size: 20px; } .w2 .wsteps { margin: 8px 0 4px; } }
+@media (max-height: 520px) and (min-width: 600px) { .w2 .wBody { flex-direction: row; text-align: left; } .wBody .wPic { width: auto; } }
+
+/* ===== Prayer guide: Baby Mo floats free (no box), with a soft halo, twinkles and a shadow on the floor ===== */
+.pgStage { position: relative; display: grid; place-items: center; width: min(260px, 62vw, 40vh); height: min(260px, 62vw, 40vh); margin: 0 auto; flex: none; }
+.pgStage .pgFrames.big { position: relative; width: 100%; height: 100%; margin: 0; background: none; border-radius: 0; overflow: visible; z-index: 1; animation: moFloat 3s ease-in-out infinite; filter: drop-shadow(0 10px 12px rgba(20,60,90,.25)); }
+.pgHalo { position: absolute; inset: 8%; border-radius: 50%; background: radial-gradient(circle, rgba(255,236,160,.85) 0%, rgba(140,220,255,.45) 45%, rgba(140,220,255,0) 70%); animation: halo 3s ease-in-out infinite; }
+@keyframes halo { 50% { transform: scale(1.08); opacity: .8; } }
+.pgFloor { position: absolute; left: 22%; right: 22%; bottom: 4%; height: 9%; border-radius: 50%; background: radial-gradient(ellipse, rgba(20,60,90,.28), rgba(20,60,90,0) 70%); animation: floor 3s ease-in-out infinite; }
+@keyframes floor { 50% { transform: scaleX(.85); opacity: .7; } }
+.pgSpark i { position: absolute; width: 14px; height: 14px; z-index: 2; background: radial-gradient(circle, #fff 0 20%, transparent 22%), conic-gradient(from 45deg, transparent 0 20%, #ffe58a 20% 30%, transparent 30% 45%, #ffe58a 45% 55%, transparent 55% 70%, #ffe58a 70% 80%, transparent 80%); border-radius: 50%; animation: twinkle 2.4s ease-in-out infinite; }
+.pgSpark i:nth-child(1) { top: 12%; left: 14%; } .pgSpark i:nth-child(2) { top: 20%; right: 10%; animation-delay: .6s; } .pgSpark i:nth-child(3) { bottom: 30%; left: 6%; animation-delay: 1.2s; } .pgSpark i:nth-child(4) { bottom: 22%; right: 14%; animation-delay: 1.8s; }
+@keyframes twinkle { 0%, 100% { transform: scale(.3) rotate(0); opacity: 0; } 50% { transform: scale(1) rotate(45deg); opacity: 1; } }
+.pgFrames.jm { background: radial-gradient(circle, rgba(255,255,255,.85), rgba(255,255,255,0) 72%); }
+@media (max-height: 520px) { .pgStage { width: 160px; height: 160px; } }
+@media (max-height: 520px) and (min-width: 600px) { .pgBody .pgStage { width: 180px; height: 180px; margin: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .wCaustic, .wRain i, .wStage .wMo, .wPool, .wTap, .pgStage .pgFrames.big, .pgHalo, .pgFloor, .pgSpark i { animation: none !important; }
+  .wRain { display: none; }
+}
+.wStage { clip-path: inset(0 round 42%); isolation: isolate; }
+.pgStage .pgFrames.big img { transform: scale(1.5); transform-origin: 50% 62%; }
+.hIc.green { background: linear-gradient(160deg, #4cd97b, #1fa952); box-shadow: 0 4px 10px rgba(31,169,82,.35), inset 0 1px 0 rgba(255,255,255,.5); }
+.poseGuide h2 { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.pgHalo { inset: 16% 8% 0; }

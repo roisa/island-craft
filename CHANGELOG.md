@@ -5,6 +5,27 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Shorter prayer, a lively wudu, and Baby Mo free in the prayer guide 💧
+
+Asked by a parent: the prayer took too long; wudu should make a child want
+to tap; Baby Mo in the prayer guide should look more alive.
+
+- **Praying together is about half as long**: every movement is still
+  there (all rakaat, two sujud each, salam to both sides) but quicker:
+  Subuh ~19 s (was ~33), Maghrib ~27 s, Isya ~34 s (was ~61).
+- **Wudu**: Baby Mo's wudu pose stands in a little pool of water with drops
+  falling and light moving through the water. A big glowing water button
+  (or the pool, or the glowing step) does each step with a splash, a ripple
+  and Baby Mo bobbing; steps done 3 times take 3 splashes, counted as
+  drops. Step chips show ✓ when done; the English word is said on the first
+  splash. Still closes by itself before praying.
+- **Prayer guide**: no white box; Baby Mo floats with a soft halo,
+  twinkles and a shadow on the floor, bigger than before; a modern icon
+  tile in the heading. Motion is off for “reduce motion”.
+- Tested: unit tests (prayer under 35 s), smoke on desktop (wudu before
+  praying, the English wudu words, the Amal Book wudu), phone screenshots
+  in landscape and portrait.
+
 ### Free to try, one-time unlock: Full Mo Craft 🔓
 
 Asked by a parent: people should buy the app; chosen together: a free

@@ -552,35 +552,75 @@ export class UI {
     };
     $('#tsX', el).onclick = () => close();
   }
-  /** wudu, step by step: tap each step in order (before praying: it closes by itself when done, then the prayer starts) */
+  /**
+   * wudu, step by step: Baby Mo stands in a little pool of water with drops falling; the big water button
+   * (or the glowing step) does the step, with a splash each tap; steps done 3 times take 3 splashes.
+   * Before praying it closes by itself when done, then the prayer starts.
+   */
   wudu(forPrayer = false, then?: () => void) {
     const g = this.g;
-    let i = 0;
-    const { el, close } = this.modal(`<div class="wudu"><h2>💧 ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
-      <div class="wBody"><div class="wPic"><div class="pgFrames" id="wPic"></div><p id="wSay"></p></div>
-      <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}"><span>${w.icon}</span><small>${esc(t2(w.name))}${w.times > 1 ? ' ×' + w.times : ''}</small>${g.settings.english !== false && BODY_WORDS[k] ? `<em class="wen">${BODY_WORDS[k]!.en}</em>` : ''}</button>`).join('')}</div></div>
-      <p id="wMsg">${tr('Ketuk langkahnya satu per satu, mulai dari yang bersinar ✨', 'Tap the steps one by one, starting with the glowing one ✨')}</p>
+    let i = 0, count = 0;
+    const drops = Array.from({ length: 9 }, (_, k) => `<i style="--x:${8 + ((k * 37) % 84)}%;--d:${(k * 0.23) % 1.6}s;--s:${0.7 + ((k * 13) % 5) / 10}"></i>`).join('');
+    const { el, close } = this.modal(`<div class="wudu w2"><h2><span class="hIc">${ic('drop')}</span> ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
+      <div class="wBody"><div class="wStage" id="wStage"><div class="wCaustic"></div><div class="wRain">${drops}</div>
+        <div class="pgFrames wMo" id="wPic"></div><div class="wPool"></div><div class="wSplash" id="wSplash"></div></div>
+      <div class="wSide"><div class="pgN" id="wN"></div><h3 id="wName"></h3><p id="wSay"></p>
+        <button class="wTap" id="wTap" aria-label="${tr('Basuh', 'Wash')}"><span class="wIc" id="wIc"></span><b id="wTapL"></b></button>
+        <div class="wCnt" id="wCnt"></div></div></div>
+      <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}" aria-label="${esc(t2(w.name))}"><span>${w.icon}</span>${g.settings.english !== false && BODY_WORDS[k] ? `<em class="wen">${BODY_WORDS[k]!.en}</em>` : ''}</button>`).join('')}</div>
+      <p id="wMsg">${tr('Ketuk tombol air untuk membasuh 💧', 'Tap the water button to wash 💧')}</p>
       <div class="row"><button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
     const btns = el.querySelectorAll<HTMLElement>('.ws');
     const pic = this.frames($('#wPic', el));
+    const stage = $('#wStage', el), splashBox = $('#wSplash', el);
     const mark = () => {
       btns.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('next', k === i); });
       const st = WUDU_GUIDE[Math.min(i, WUDU_GUIDE.length - 1)];
       pic.set(st.frames); $('#wSay', el).textContent = t2(st.say);
+      const w = WUDU[Math.min(i, WUDU.length - 1)];
+      $('#wN', el).textContent = i < WUDU.length ? `${tr('Langkah', 'Step')} ${i + 1} / ${WUDU.length}` : tr('Selesai', 'Done');
+      $('#wName', el).textContent = i < WUDU.length ? t2(w.name) : t2(st.name);
+      $('#wIc', el).textContent = i < WUDU.length ? w.icon : '🤲';
+      $('#wTapL', el).textContent = i >= WUDU.length ? tr('Selesai!', 'Done!') : w.times > 1 ? tr(`Basuh ${w.times}×`, `Wash ${w.times}×`) : tr('Ketuk!', 'Tap!');
+      $('#wCnt', el).innerHTML = i < WUDU.length && w.times > 1 ? Array.from({ length: w.times }, (_, k) => `<i class="${k < count ? 'on' : ''}"></i>`).join('') : '';
+      el.querySelector('.wTap')!.classList.toggle('fin', i >= WUDU.length);
+    };
+    /** water bursts out from Baby Mo, a ring spreads on the pool, Mo bobs */
+    const splash = (big = false) => {
+      for (let k = 0; k < (big ? 18 : 11); k++) {
+        const d = document.createElement('i');
+        d.style.setProperty('--a', `${(k / (big ? 18 : 11)) * 360 + Math.random() * 20}deg`);
+        d.style.setProperty('--r', `${(big ? 90 : 60) + Math.random() * 40}px`);
+        splashBox.appendChild(d); setTimeout(() => d.remove(), 800);
+      }
+      const ring = document.createElement('b'); splashBox.appendChild(ring); setTimeout(() => ring.remove(), 900);
+      stage.classList.remove('bump'); void stage.offsetWidth; stage.classList.add('bump');
     };
     mark();
-    btns.forEach(b => (b.onclick = () => {
-      const k = +b.dataset.k!;
-      if (k !== i) { SFX.error(); $('#wMsg', el).textContent = tr('Urutannya dari yang bersinar ya ✨', 'Follow the order: the glowing one ✨'); return; }
-      g.english?.wuduStep(k);
-      i++; SFX.splash(); g.fx.sparkle(g.player.pos.x, g.player.pos.y + 1.2, g.player.pos.z, 4, 0x8fd3ec, 1); mark();
+    const tap = () => {
+      if (i >= WUDU.length) return;
+      const w = WUDU[i];
+      if (count === 0) g.english?.wuduStep(i);
+      count++; SFX.splash(); haptic(8); splash();
+      if (count >= w.times) {
+        i++; count = 0; SFX.pop(i); g.fx.sparkle(g.player.pos.x, g.player.pos.y + 1.2, g.player.pos.z, 4, 0x8fd3ec, 1);
+        $('#wMsg', el).textContent = i < WUDU.length ? tr('Bagus! Langkah berikutnya ✨', 'Well done! Next step ✨') : '';
+      }
+      mark();
       if (i === WUDU.length) {
-        g.stats.wudu = (g.stats.wudu || 0) + 1; SFX.chime(); this.confetti(30);
+        g.stats.wudu = (g.stats.wudu || 0) + 1; SFX.chime(); this.confetti(30); splash(true);
         g.wuduDone();
         if (forPrayer) setTimeout(() => { pic.stop(); close(); if (then) setTimeout(then, 250); }, 2600);
         $('#wMsg', el).innerHTML = tr('Wudhu selesai! Doa: <b>Asyhadu an laa ilaaha illallah…</b> Sekarang kamu siap sholat 🤲', 'Wudu done! Say: <b>Ash-hadu an laa ilaaha illallah…</b> Now you’re ready to pray 🤲');
         g.amal('wudu'); g.checkQuests();
       }
+    };
+    $('#wTap', el).onclick = tap;
+    stage.onclick = tap;
+    btns.forEach(b => (b.onclick = () => {
+      const k = +b.dataset.k!;
+      if (k !== i) { if (k > i) { SFX.error(); $('#wMsg', el).textContent = tr('Urutannya dari yang bersinar ya ✨', 'Follow the order: the glowing one ✨'); } return; }
+      tap();
     }));
     const notDone = () => { if (forPrayer && i < WUDU.length) g.wuduLater(); };
     $('#wX', el).onclick = () => { pic.stop(); close(); notDone(); };
@@ -601,10 +641,10 @@ export class UI {
   /** the picture guide: Baby Mo shows each step of wudu or sholat, one at a time */
   poseGuide(kind: 'wudu' | 'sholat') {
     const steps: GuideStep[] = kind === 'wudu' ? WUDU_GUIDE : SHOLAT_GUIDE;
-    const title = kind === 'wudu' ? `💧 ${tr('Cara berwudhu', 'How to make wudu')}` : `🕌 ${tr('Cara sholat', 'How to pray')}`;
+    const title = kind === 'wudu' ? `<span class="hIc">${ic('drop')}</span> ${tr('Cara berwudhu', 'How to make wudu')}` : `<span class="hIc green">${ic('mosque')}</span> ${tr('Cara sholat', 'How to pray')}`;
     let i = 0, playing = true, stepT = 0;
     const { el, close } = this.modal(`<div class="poseGuide"><h2>${title}</h2>
-      <div class="pgBody"><div class="pgFrames big" id="pgPic"></div><div class="pgInfo">
+      <div class="pgBody"><div class="pgStage"><div class="pgHalo"></div><div class="pgSpark"><i></i><i></i><i></i><i></i></div><div class="pgFrames big" id="pgPic"></div><div class="pgFloor"></div></div><div class="pgInfo">
       <div class="pgN" id="pgN"></div><h3 id="pgName"></h3><p id="pgSay"></p>
       <div class="pgDots">${steps.map((_, k) => `<button data-k="${k}" aria-label="${k + 1}"></button>`).join('')}</div>
       <div class="row"><button class="btn ghost small" id="pgPrev" aria-label="Back">◀</button><button class="btn small gold" id="pgPlay"></button><button class="btn ghost small" id="pgNext" aria-label="Next">▶</button><button class="btn ghost small" id="pgSpeak" aria-label="Listen">${ic('speaker')}</button></div>

@@ -309,7 +309,7 @@ async function run(name) {
       await g(() => { const G = __game; G.wuduValid = false; G.ui.closeAllModals(); G.player.pos.set(0.5, 46, -18.5); G.player.vel.set(0, 0, 0); });
       await p.waitForFunction(() => !!document.querySelector('.veil.on .wudu') || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 15000, polling: 200 });
       if (await g(() => !!__game.jamaah)) throw new Error('prayed without wudu');
-      for (let k = 0; k < 9; k++) await g(k => document.querySelector(`.veil.on .ws[data-k="${k}"]`).click(), k);
+      for (let k = 0; k < 30 && await g(() => !!document.querySelector('.veil.on .ws.next')); k++) await g(() => document.querySelector('.veil.on #wTap').click()); // splash until every step is done (3 splashes for the 3× steps)
       // wudu done: the pop-up closes by itself and the prayer starts
       await p.waitForFunction(() => !!__game.jamaah || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 20000, polling: 200 });
       const hud = await g(() => document.querySelector('#jmHud').innerText);
@@ -735,7 +735,7 @@ async function run(name) {
       const wudu0 = await g(() => __game.stats.amal?.total.wudu || 0); // (the prayer step already made wudu once)
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
       await popup('.wudu');
-      for (let k = 0; k < 9; k++) await g(k => document.querySelector(`.veil.on .ws[data-k="${k}"]`).click(), k);
+      for (let k = 0; k < 30 && await g(() => !!document.querySelector('.veil.on .ws.next')); k++) await g(() => document.querySelector('.veil.on #wTap').click()); // splash until every step is done (3 splashes for the 3× steps)
       if (!(await g(() => document.querySelector('.veil.on #wPic img.on')?.src || '')).includes('w10')) throw new Error('no du’a picture after wudu');
       // the picture guide for sholat: ten steps, each with a picture
       await g(() => { __game.ui.closeAllModals(); __game.ui.poseGuide('sholat'); });

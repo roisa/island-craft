@@ -264,7 +264,7 @@ describe('praying together', () => {
       expect(plan.filter(s => s.pose === 'ruku').length).toBe(RAKAAT[p]);
       expect(plan.filter(s => s.pose === 'sujud').length).toBe(RAKAAT[p] * 2);
       expect(plan.slice(-2).map(s => s.head)).toEqual([0.9, -0.9]);
-      expect(planLength(plan)).toBeLessThan(70); // short enough for a child to follow to the end
+      expect(planLength(plan)).toBeLessThan(35); // short enough for a child to follow to the end (about half a minute)
     }
     expect(RAKAAT.fajr).toBe(2); expect(RAKAAT.maghrib).toBe(3); expect(RAKAAT.isha).toBe(4);
   });
