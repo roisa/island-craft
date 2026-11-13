@@ -5,6 +5,36 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Free to try, one-time unlock: Full Mo Craft 🔓
+
+Asked by a parent: people should buy the app; chosen together: a free
+download with one in-app purchase, and the website as the same free part.
+
+- **Free**: the island, Baby Mo, the first 7 hijaiyah letters, wudu and
+  prayer, the masjids, kart races, fishing, the orchard and the camp,
+  building, cooking and pets. Worship basics are never locked.
+- **Full Mo Craft** (one purchase, non-consumable
+  `com.babymo.islandcraft.full`): letters 8–28, the Iqro journey and Dad's
+  exams, tennis, archery, basketball & penalties, horse riding and ice
+  skating. Letters already found are kept.
+- **Unlock card** when a child reaches a locked part (🔒 on those buttons
+  and in the map's fun places), with what it opens, the App Store price,
+  **Grown-ups: unlock** behind the grown-up check, **Restore purchase**, and
+  Ask to Buy handled (the island opens once a parent approves). Also in
+  the parent area. On the website the card says Full Mo Craft is in the
+  app.
+- **Our own StoreKit 2 plugin** (`ios/App/App/StoreKitPlugin.swift`,
+  registered by `MainViewController.swift`): no outside service, so the
+  app still collects no data. The answer is remembered for offline starts.
+- Marketing page: “Try it free”, a Free vs Full Mo Craft section and an
+  updated FAQ; privacy and support pages, the store description, the
+  reviewer notes, the kit (in-app purchase fields and review screenshot)
+  and docs/IOS.md (App Store Connect setup and TestFlight testing).
+- Tested: 239 unit tests (3 new for the rules), build, smoke on all five
+  device profiles with a new step for the free part (letter 8, Iqro and
+  archery show the card; the free places stay open). The native purchase
+  itself can only be tried on a device (TestFlight).
+
 ### Mo Craft marketing page 📣
 
 Asked by a parent: a page that introduces the app in a fun, useful way,

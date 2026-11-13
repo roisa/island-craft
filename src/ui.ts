@@ -27,6 +27,8 @@ import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
 import { guessLook, toCss, type Look } from './game/photo';
 import { shareFile } from './native';
+import { store } from './store';
+import { LOCKED } from './game/unlock';
 import { isNativeApp, isInstalled, isIOS, canPrompt, promptInstall, canFullscreen, toggleFullscreen, hintDismissed, dismissHint, onInstallChange } from './install';
 import type { T2 } from './i18n';
 import { ic, tile, COLORS as C } from './icons';
@@ -135,7 +137,7 @@ export class UI {
     $('#bRace').onclick = () => { SFX.click(); this.g.race?.start(); };
     $('#raceX').onclick = () => { SFX.click(); this.g.race?.quit(); };
     $('#wordSay').onclick = () => { const w = this.wordNow; if (w) Speech.talk(w.say ?? w.en, 'en', true, 0); };
-    $('#bTennis').onclick = () => { SFX.click(); this.g.tennis?.menu(); };
+    $('#bTennis').onclick = () => { SFX.click(); if (this.g.can('tennis')) this.g.tennis?.menu(); };
     $('#tennisX').onclick = () => { SFX.click(); this.g.tennis?.quit(); };
     $('#bedNow').onclick = () => this.dialog({
       face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
@@ -1184,7 +1186,7 @@ export class UI {
     const g = this.g;
     const zooms = [96, 200, 400];
     const fun = g.funPlaces();
-    body.innerHTML = `${fun.length ? `<h3>✨ ${tr('Tempat seru — langsung ke sana', 'Fun places — go there')}</h3><div class="row funGo">${fun.map(l => `<button class="btn small" data-go="${l.id}">${l.icon} ${esc(t2(l.name))}</button>`).join('')}</div>` : ''}<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
+    body.innerHTML = `${fun.length ? `<h3>✨ ${tr('Tempat seru — langsung ke sana', 'Fun places — go there')}</h3><div class="row funGo">${fun.map(l => `<button class="btn small" data-go="${l.id}">${l.icon} ${esc(t2(l.name))}${g.full || !LOCKED.has(l.id) ? '' : ' 🔒'}</button>`).join('')}</div>` : ''}<div class="row" style="margin-bottom:8px">${zooms.map((z, i) => `<button class="btn ghost small ${i === this.mapZoom ? 'gold' : ''}" data-z="${i}">${z * 2} m</button>`).join('')}</div>
       <div class="mapWrap"><canvas id="mapC" width="400" height="400"></canvas></div>
       <p style="margin-top:6px;font-size:12.5px">${tr('▲ = kamu · 🕌 = desa · ✨ = huruf belum ditemukan · ✓ = sudah ditemukan', '▲ = you · 🕌 = village · ✨ = letter not found yet · ✓ = found')}</p>
       <h3>🧭 ${tr('Jurnal Penjelajah', 'Explorer’s Journal')} <small>(${(g.stats.discovered || []).length}/${g.gen.landmarks.length})</small></h3>
@@ -1399,6 +1401,49 @@ export class UI {
    * typed in, with no answers to pick from. Shown on top of everything,
    * including the play-time lock.
    */
+  /**
+   * Full Mo Craft: what it opens and, in the app, a purchase behind the grown-up check (with Restore).
+   * On the website: the full game is in the iPhone/iPad app.
+   */
+  unlock(what = '') {
+    const g = this.g, app = store.canBuy();
+    const why: Record<string, [string, string]> = {
+      letter: ['Huruf ke-8 sampai ke-28 ada di Mo Craft Lengkap.', 'Letters 8 to 28 are in Full Mo Craft.'],
+      iqro: ['Perjalanan Iqro ada di Mo Craft Lengkap.', 'The Iqro journey is in Full Mo Craft.'],
+      exam: ['Ujian Iqro dari Ayah ada di Mo Craft Lengkap.', 'Dad’s Iqro exams are in Full Mo Craft.'],
+    };
+    const [wid, wen] = why[what] ?? ['Tempat ini ada di Mo Craft Lengkap.', 'This place is in Full Mo Craft.'];
+    const price = store.price ? ` · ${esc(store.price)}` : '';
+    const { el, close } = this.modal(`<div class="unlockCard"><div class="ulHero">🏝️🔓</div>
+      <h2>${tr('Buka seluruh pulau!', 'Open the whole island!')}</h2>
+      <p class="ulWhy">${tr(wid, wen)} ${tr('Minta izin ayah atau ibu ya 😊', 'Ask a grown-up 😊')}</p>
+      <ul class="ulList">
+        <li>🔤 ${tr('Semua 28 huruf hijaiyah', 'All 28 hijaiyah letters')}</li>
+        <li>📖 ${tr('Perjalanan Iqro sampai surat pendek, ujian dan sertifikat', 'The Iqro journey up to short surahs, exams and certificates')}</li>
+        <li>🎾 🏹 🏀 🐴 ⛸️ ${tr('Tenis, memanah, basket & penalti, berkuda, seluncur es', 'Tennis, archery, basketball & penalties, horse riding, ice skating')}</li>
+      </ul>
+      <p class="ulNote">${tr('Sekali bayar · tanpa iklan · tanpa langganan', 'One payment · no ads · no subscription')}</p>
+      ${app ? `<div class="row"><button class="btn gold" id="ulBuy">🔓 ${tr('Untuk orang tua: buka', 'Grown-ups: unlock')}${price}</button></div>
+        <div class="row"><button class="btn ghost small" id="ulRestore">${tr('Pulihkan pembelian', 'Restore purchase')}</button><button class="btn ghost small" id="ulX">${tr('Nanti saja', 'Not now')}</button></div>`
+      : `<p class="ulNote">${tr('Mo Craft Lengkap ada di aplikasi iPhone & iPad (segera di App Store).', 'Full Mo Craft is in the iPhone & iPad app (coming soon on the App Store).')}</p>
+        <div class="row"><button class="btn gold" id="ulX">${tr('Oke', 'OK')}</button></div>`}
+      <p class="ulMsg" id="ulMsg"></p></div>`);
+    const msg = el.querySelector<HTMLElement>('#ulMsg')!;
+    el.querySelector<HTMLElement>('#ulX')!.onclick = () => { SFX.click(); close(); };
+    const done = () => { close(); SFX.fanfare(); this.confetti(60); this.say(tr('Alhamdulillah! Seluruh pulau sudah terbuka. Ayo jelajahi! 🏝️', 'Alhamdulillah! The whole island is open now. Let’s explore! 🏝️'), 'alright', 6000); };
+    el.querySelector<HTMLElement>('#ulBuy')?.addEventListener('click', () => this.parentGate(async () => {
+      msg.textContent = tr('Menghubungi App Store…', 'Talking to the App Store…');
+      const r = await store.buy();
+      if (r === 'owned') done();
+      else msg.textContent = r === 'pending' ? tr('Menunggu persetujuan orang tua (Ask to Buy). Pulau terbuka begitu disetujui.', 'Waiting for a parent’s approval (Ask to Buy). The island opens as soon as it’s approved.')
+        : r === 'cancelled' ? '' : tr('Belum bisa terhubung ke App Store. Coba lagi nanti ya.', 'Couldn’t reach the App Store. Please try again later.');
+    }));
+    el.querySelector<HTMLElement>('#ulRestore')?.addEventListener('click', async () => {
+      msg.textContent = tr('Memeriksa pembelian…', 'Checking purchases…');
+      if (await store.restore()) done(); else msg.textContent = tr('Belum ada pembelian Mo Craft Lengkap di akun ini.', 'No Full Mo Craft purchase found on this account.');
+    });
+    void g;
+  }
   parentGate(ok: () => void, onCancel?: () => void) {
     const { a, b, ans } = adultSum();
     const wrap = document.createElement('div');
@@ -1456,6 +1501,8 @@ export class UI {
       <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
       <h3>💾 ${tr('Simpanan', 'Saved game')}</h3>
       <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
+      <h3>🏝️ ${tr('Mo Craft Lengkap', 'Full Mo Craft')}</h3>
+      <div class="row">${g.full ? `<span class="chipOk">✓ ${tr('Sudah terbuka', 'Unlocked')}</span>` : `<button class="btn gold small" id="pFull">🔓 ${tr('Buka seluruh pulau', 'Open the whole island')}</button>`}${store.canBuy() ? `<button class="btn ghost small" id="pRestore">${tr('Pulihkan pembelian', 'Restore purchase')}</button>` : ''}</div>
       <div class="row"><button class="btn ghost small" id="pExp">${ic('down')} ${tr('Simpan ke file', 'Save to a file')}</button><button class="btn ghost small" id="pImp">${ic('up')} ${tr('Buka file simpanan', 'Open a save file')}</button></div>
       <button class="btn ghost small hidden" id="pPrev">${ic('undo')} ${tr('Kembalikan dunia sebelumnya', 'Bring back the previous world')}</button>
       <input type="file" id="pFile" accept=".json,application/json" hidden>
@@ -1470,6 +1517,8 @@ export class UI {
     $('#pAdhanTry', el).onclick = () => adhan();
     $<HTMLSelectElement>('#pWater', el).onchange = e => { s.water = +(e.target as HTMLSelectElement).value; g.applySettings(); };
     $('#pOk', el).onclick = () => close();
+    el.querySelector<HTMLElement>('#pFull')?.addEventListener('click', () => { close(); this.unlock(); });
+    el.querySelector<HTMLElement>('#pRestore')?.addEventListener('click', async () => { const ok = await store.restore(); this.toast(ok ? tr('✓ Mo Craft Lengkap dipulihkan', '✓ Full Mo Craft restored') : tr('Belum ada pembelian di akun ini', 'No purchase found on this account')); if (ok) { close(); this.parentsPanel(); } });
     $('#pExp', el).onclick = async () => {
       const ok = await shareFile(`baby-mo-island-craft-${new Date().toISOString().slice(0, 10)}.json`, await g.exportSave(), 'application/json');
       if (ok) this.toast(tr('💾 File simpanan dibuat', '💾 Save file created'));

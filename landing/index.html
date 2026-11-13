@@ -149,6 +149,14 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .arab{font-family:"Amiri","Scheherazade New","Geeza Pro",serif;font-size:2.2rem;direction:rtl;color:var(--leaf-deep)}
 @media (max-width:860px){.trust{grid-template-columns:minmax(0,1fr)}}
 
+/* plans */
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;margin:36px auto 0}
+.plan{padding:28px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.plan ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-weight:600}
+.plan .pp{color:var(--ink-2)}
+.plan.best{border:2px solid var(--leaf);box-shadow:var(--shadow),0 0 0 6px rgba(31,169,114,.12)}
+@media (max-width:760px){.plans{grid-template-columns:minmax(0,1fr)}}
+
 /* faq */
 .faq{max-width:780px;margin:36px auto 0;display:flex;flex-direction:column;gap:12px}
 details{padding:0 22px;border-radius:var(--r-lg)}
@@ -201,7 +209,7 @@ footer a:hover{text-decoration:underline}
       <p class="lead" lang="en">A cozy island adventure with Baby Mo. Children find the hijaiyah letters, read up to short surahs, pray with the village, and pick up English and maths along the way.</p>
       <p class="lead" lang="id">Petualangan seru di pulau bersama Baby Mo. Anak menemukan huruf hijaiyah, belajar membaca sampai surat pendek, sholat berjamaah bersama warga desa, sekaligus belajar bahasa Inggris dan berhitung.</p>
       <div class="ctas">
-        <a class="btn primary" href="../"><span lang="en">▶ Play free in your browser</span><span lang="id">▶ Main gratis di browser</span></a>
+        <a class="btn primary" href="../"><span lang="en">▶ Try it free in your browser</span><span lang="id">▶ Coba gratis di browser</span></a>
         <span class="btn ghost" aria-disabled="true"><span lang="en">Coming soon on the App Store</span><span lang="id">Segera hadir di App Store</span></span>
       </div>
       <div class="chips">
@@ -216,7 +224,7 @@ footer a:hover{text-decoration:underline}
     <div class="stat"><b>28</b><span lang="en">hijaiyah letters</span><span lang="id">huruf hijaiyah</span></div>
     <div class="stat"><b>6</b><span lang="en">short surahs</span><span lang="id">surat pendek</span></div>
     <div class="stat"><b>9</b><span lang="en">fun places to play</span><span lang="id">tempat bermain seru</span></div>
-    <div class="stat"><b>0</b><span lang="en">ads or purchases</span><span lang="id">iklan atau pembelian</span></div>
+    <div class="stat"><b>0</b><span lang="en">ads or subscriptions</span><span lang="id">iklan atau langganan</span></div>
   </div>
 </section>
 
@@ -318,7 +326,7 @@ footer a:hover{text-decoration:underline}
   <h2 lang="en">Safe by design. Calm by default.</h2><h2 lang="id">Aman sejak awal. Tenang secara bawaan.</h2>
   <div class="trust">
     <div class="list glass">
-      <div class="row"><span class="ic" style="background:#ff6b5e">🚫</span><div><b lang="en">No ads, no purchases</b><b lang="id">Tanpa iklan, tanpa pembelian</b><p lang="en">Nothing to tap by accident and nothing to buy.</p><p lang="id">Tidak ada yang bisa terpencet tanpa sengaja, tidak ada yang dijual.</p></div></div>
+      <div class="row"><span class="ic" style="background:#ff6b5e">🚫</span><div><b lang="en">No ads, no subscriptions</b><b lang="id">Tanpa iklan, tanpa langganan</b><p lang="en">Free to try. One payment opens everything, and only a grown-up can make it.</p><p lang="id">Gratis untuk dicoba. Sekali bayar membuka semuanya, dan hanya orang tua yang bisa melakukannya.</p></div></div>
       <div class="row"><span class="ic" style="background:#5e8bff">🔒</span><div><b lang="en">No data collected</b><b lang="id">Tidak mengumpulkan data</b><p lang="en">No account, no chat, no tracking. Progress stays on the device.</p><p lang="id">Tanpa akun, tanpa chat, tanpa pelacakan. Progres tersimpan di perangkat.</p></div></div>
       <div class="row"><span class="ic" style="background:#ffb340">⏳</span><div><b lang="en">Daily play-time limit</b><b lang="id">Batas waktu main harian</b><p lang="en">A gentle bedtime wind-down instead of a sudden stop.</p><p lang="id">Pengantar tidur yang lembut, bukan berhenti tiba-tiba.</p></div></div>
       <div class="row"><span class="ic" style="background:#2fc78a">📊</span><div><b lang="en">Learning report</b><b lang="id">Laporan belajar</b><p lang="en">See letters found, Iqro lessons, surahs learned and prayers joined.</p><p lang="id">Lihat huruf yang ditemukan, pelajaran Iqro, surat yang dihafal, dan sholat yang diikuti.</p></div></div>
@@ -333,11 +341,44 @@ footer a:hover{text-decoration:underline}
   </div>
 </section>
 
+<section class="wrap" id="plans">
+  <div class="center">
+    <p class="eyebrow" lang="en">Free to try</p><p class="eyebrow" lang="id">Gratis untuk dicoba</p>
+    <h2 lang="en">Start free. Open the whole island once.</h2><h2 lang="id">Mulai gratis. Buka seluruh pulau sekali saja.</h2>
+  </div>
+  <div class="plans">
+    <div class="plan glass">
+      <h3 lang="en">Free</h3><h3 lang="id">Gratis</h3>
+      <p class="pp" lang="en">To try, for everyone</p><p class="pp" lang="id">Untuk dicoba semua orang</p>
+      <ul>
+        <li lang="en">🏝️ The island, the village and Baby Mo</li><li lang="id">🏝️ Pulau, desa, dan Baby Mo</li>
+        <li lang="en">🔤 The first 7 hijaiyah letters</li><li lang="id">🔤 7 huruf hijaiyah pertama</li>
+        <li lang="en">🕌 Wudu and prayer guides, praying at the masjid</li><li lang="id">🕌 Panduan wudhu dan sholat, sholat di masjid</li>
+        <li lang="en">🏁 Kart races, 🎣 fishing, 🍎 the fruit orchard, ⛺ the camp</li><li lang="id">🏁 Balap gokart, 🎣 memancing, 🍎 kebun buah, ⛺ perkemahan</li>
+        <li lang="en">🧱 Building, cooking, pets and animals</li><li lang="id">🧱 Membangun, memasak, hewan peliharaan</li>
+      </ul>
+    </div>
+    <div class="plan glass best">
+      <span class="tag" lang="en">One-time</span><span class="tag" lang="id">Sekali bayar</span>
+      <h3 lang="en">Full Mo Craft</h3><h3 lang="id">Mo Craft Lengkap</h3>
+      <p class="pp" lang="en">Everything in Free, plus</p><p class="pp" lang="id">Semua yang gratis, ditambah</p>
+      <ul>
+        <li lang="en">🔤 All 28 hijaiyah letters</li><li lang="id">🔤 Semua 28 huruf hijaiyah</li>
+        <li lang="en">📖 The Iqro journey up to six short surahs</li><li lang="id">📖 Perjalanan Iqro sampai enam surat pendek</li>
+        <li lang="en">📝 Dad’s exams and certificates</li><li lang="id">📝 Ujian dari Ayah dan sertifikat</li>
+        <li lang="en">🎾 🏹 🏀 ⚽ Tennis, archery, basketball, penalties</li><li lang="id">🎾 🏹 🏀 ⚽ Tenis, memanah, basket, penalti</li>
+        <li lang="en">🐴 ⛸️ Horse riding and ice skating</li><li lang="id">🐴 ⛸️ Berkuda dan seluncur es</li>
+      </ul>
+      <p class="pp" lang="en">One payment in the iPhone & iPad app, made by a grown-up. No subscription.</p><p class="pp" lang="id">Sekali bayar di aplikasi iPhone & iPad, oleh orang tua. Tanpa langganan.</p>
+    </div>
+  </div>
+</section>
+
 <section class="wrap" id="faq">
   <div class="center"><p class="eyebrow">FAQ</p><h2 lang="en">Good questions.</h2><h2 lang="id">Pertanyaan yang sering diajukan.</h2></div>
   <div class="faq">
     <details class="glass"><summary><span lang="en">How much does it cost?</span><span lang="id">Berapa harganya?</span></summary>
-      <p lang="en">Mo Craft is free to play in your browser now, with no ads and no in-app purchases.</p><p lang="id">Mo Craft bisa dimainkan gratis di browser sekarang, tanpa iklan dan tanpa pembelian dalam aplikasi.</p></details>
+      <p lang="en">Mo Craft is free to try, in the app and in your browser. Full Mo Craft opens the whole island with one in-app purchase in the iPhone and iPad app. There are no ads and no subscriptions.</p><p lang="id">Mo Craft gratis untuk dicoba, di aplikasi maupun di browser. Mo Craft Lengkap membuka seluruh pulau dengan sekali pembelian di aplikasi iPhone dan iPad. Tanpa iklan dan tanpa langganan.</p></details>
     <details class="glass"><summary><span lang="en">What ages is it for?</span><span lang="id">Untuk usia berapa?</span></summary>
       <p lang="en">It is rated 4+ and made for young children who are starting to read the hijaiyah letters. Texts are short and everything is read aloud.</p><p lang="id">Untuk usia 4+ dan dibuat bagi anak yang mulai belajar huruf hijaiyah. Teksnya pendek dan semuanya dibacakan.</p></details>
     <details class="glass"><summary><span lang="en">Does it need the internet?</span><span lang="id">Apakah perlu internet?</span></summary>
@@ -355,7 +396,7 @@ footer a:hover{text-decoration:underline}
     <h2 lang="en">Ready to visit the island?</h2><h2 lang="id">Siap berkunjung ke pulau?</h2>
     <p class="lead" lang="en">Assalamu’alaikum! Baby Mo is waiting.</p><p class="lead" lang="id">Assalamu’alaikum! Baby Mo sudah menunggu.</p>
     <div class="ctas" style="justify-content:center">
-      <a class="btn primary" href="../"><span lang="en">▶ Play free now</span><span lang="id">▶ Main gratis sekarang</span></a>
+      <a class="btn primary" href="../"><span lang="en">▶ Try it free now</span><span lang="id">▶ Coba gratis sekarang</span></a>
       <span class="btn ghost" aria-disabled="true"><span lang="en">Coming soon on the App Store</span><span lang="id">Segera hadir di App Store</span></span>
     </div>
   </div>

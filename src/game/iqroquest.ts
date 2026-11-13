@@ -98,6 +98,7 @@ export class IqroQuest {
   /** open the lesson of the book you found */
   open(review = false, at?: number) {
     const g = this.g, st = this.st;
+    if (!g.can('iqro')) return; // the Iqro journey: Full Mo Craft
     const step = at ?? st.n, { lesson, index, review: loop } = lessonAt(step);
     this.opened = true;
     SFX.letter();

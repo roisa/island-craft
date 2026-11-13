@@ -71,6 +71,8 @@ import { Jamaah, rowPose } from './game/jamaah';
 import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './game/amal';
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
 import { shareFile } from './native';
+import { store } from './store';
+import { allowed } from './game/unlock';
 
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
@@ -200,6 +202,18 @@ export class Game {
   iqro!: IqroQuest;
   /** the activity going on now, if any */
   get playing() { return this.activities.find(a => a.active) ?? null; }
+  /** Full Mo Craft (the one-time unlock in the app); `devFull` lets tests and screenshots see everything */
+  devFull = false;
+  get full() { return store.full || this.devFull; }
+  setFull(v: boolean) { this.devFull = v; }
+  /** may this be used now? If not, the unlock card shows (at most every few seconds for things you walk into) */
+  private lockAt = -1e9;
+  can(what: string, quiet = false) {
+    if (allowed(this.full, what, this.stats.letters.length)) return true;
+    const now = performance.now();
+    if (!quiet || now - this.lockAt > 12000) { this.lockAt = now; this.ui.unlock(what); }
+    return false;
+  }
   private dzAt = -1e9; private dzLast: Record<string, number> = {};
   /**
    * A good word for the moment, the way a Muslim family says it: Alhamdulillah when something good
@@ -314,6 +328,7 @@ export class Game {
 
   private async start(meta: any) {
     SFX.warm();
+    void store.init(); // the app: is Full Mo Craft unlocked? (the website stays the free part)
     this.ui.loading(0);
     await new Promise(r => setTimeout(r, 30));
     if (!meta) { await Save.del('meta'); await Save.del('edits'); }
@@ -936,7 +951,7 @@ export class Game {
     // the button of the place you're at (archery, basketball, horses, ice rink)
     const free = !this.playing && !this.fun.riding && !this.race?.active && !this.tennis?.active;
     const here = free ? this.activities.find(a => a.near(p.pos)) : undefined;
-    if (here) { const [icon, label] = here.button(); this.ui.showPlay({ icon, label, fn: () => here.open() }); } else this.ui.showPlay(null);
+    if (here) { const [icon, label] = here.button(); this.ui.showPlay({ icon, label: (this.full || allowed(false, here.id) ? '' : '🔒 ') + label, fn: () => { if (this.can(here.id)) here.open(); } }); } else this.ui.showPlay(null);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
   }
   private fishTick(dt: number, t: number) {
@@ -1767,6 +1782,7 @@ export class Game {
 
   private collectLetter(i: number, x: number, y: number, z: number) {
     if (this.stats.letters.includes(i)) return;
+    if (!this.can('letter', true)) return; // letters 8-28: Full Mo Craft
     this.stats.letters.push(i);
     this.anim.play('celebrate', 1.6);
     this.world.set(x, y, z, B.AIR);
@@ -1812,6 +1828,7 @@ export class Game {
   iqroQuls() { return learnedSurahs(this.stats.iqro?.stars).filter(x => ['ikhlas', 'falaq', 'nas'].includes(x.id)); }
   /** Dad's Iqro exams: for each finished stage not passed yet, an exam and a certificate */
   iqroExam(stage: number) {
+    if (!this.can('exam')) return;
     this.ui.iqroExam(stage, examPool(stage), right => {
       if (right < 0) return;
       if (right >= EXAM_PASS) {

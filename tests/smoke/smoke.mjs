@@ -52,6 +52,30 @@ async function run(name) {
       await p.waitForTimeout(1500);
       return await g(() => ({ chunks: __game.world.chunks.size, animals: __game.ents.animals.length, npcs: __game.ents.npcs?.length }));
     });
+    await step('free part: letter 8, Iqro and archery show the Full Mo Craft card; free places stay open; then everything is opened for the tests', async () => {
+      const r = await g(() => {
+        const G = __game, out = {};
+        G.ui.closeAllModals(); G.setFull(false);
+        const keep = G.stats.letters.slice();
+        G.stats.letters = [0, 1, 2, 3, 4, 5, 6];
+        const sh = G.gen.shrines.find(s => !G.stats.letters.includes(s.letter));
+        G['collectLetter'](sh.letter, sh.x, sh.y, sh.z);
+        out.letters = G.stats.letters.length;
+        out.card = !!document.querySelector('.veil.on .unlockCard');
+        G.ui.closeAllModals();
+        out.iqro = (G.iqro.open(), !!document.querySelector('.veil.on .unlockCard') && !G.iqro.opened);
+        G.ui.closeAllModals();
+        out.archery = G.can('archery');
+        out.archeryCard = !!document.querySelector('.veil.on .unlockCard');
+        G.ui.closeAllModals();
+        out.free = ['race_track', 'fish_pond', 'orchard', 'camp'].every(id => G.can(id, true));
+        out.web = !document.querySelector('#ulBuy');
+        G.stats.letters = keep; G.setFull(true); out.full = G.full && G.can('archery') && G.can('letter');
+        return out;
+      });
+      if (r.letters !== 7 || !r.card || !r.iqro || r.archery || !r.archeryCard || !r.free || !r.full) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('touch controls shown only on touch devices', async () => {
       const vis = await p.isVisible('#stick');
       if (vis !== touch) throw new Error(`stick visible=${vis}, touch=${touch}`);
@@ -794,6 +818,7 @@ async function run(name) {
       await p.waitForSelector('#sPlay');
       touch ? await p.tap('#sPlay') : await p.click('#sPlay');
       await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+      await g(() => __game.setFull(true));
       const after = await g(() => { const G = __game; return { seed: G.seed, crystal: G.inv.count(213), letters: G.stats.letters.length, block: G.world.get(21, 60, 21) }; });
       if (after.seed !== before.seed || after.crystal !== before.crystal || after.letters !== before.letters || after.block !== 25) throw new Error(JSON.stringify({ before, after }));
       return after;

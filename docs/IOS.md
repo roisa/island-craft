@@ -58,6 +58,38 @@ no personal data is enough, if that stays true), the age rating, and the
 category (**Games → Family / Educational**; you can also choose the
 **Kids** category: the game already has a grown-up gate for the settings).
 
+## 4. The “Full Mo Craft” in-app purchase
+
+The app is free to download; one in-app purchase opens the rest of the
+island (letters 8–28, the Iqro journey and exams, tennis, archery, the
+sports park, the horse farm and the ice rink). The code is ready: the app
+asks Apple with its own small StoreKit plugin
+(`ios/App/App/StoreKitPlugin.swift`), so no outside service and no data
+collection. You set up the product once in App Store Connect:
+
+1. **Business → Agreements**: accept the **Paid Apps** agreement and add your
+   bank and tax details (needed for any paid item, even in a free app).
+2. **Your app → Monetization → In-App Purchases → +**:
+   - Type: **Non-Consumable**
+   - Reference name: `Full Mo Craft`
+   - Product ID: **`com.babymo.islandcraft.full`** (exactly this; it is in
+     `src/game/unlock.ts`)
+   - Price: e.g. US$2.99 (Apple sets the price in each country).
+   - Display name / description in English and Indonesian (the kit page has
+     them ready to paste), and a review screenshot of the unlock card.
+3. In Xcode, **Signing & Capabilities → + Capability → In-App Purchase**.
+4. On the version page, add the in-app purchase under **In-App Purchases and
+   Subscriptions** so it is reviewed together with the app.
+
+**Testing before release**: install the app with **TestFlight** and buy it with
+your own Apple ID: TestFlight purchases are free and nothing is charged. Then
+delete the app, install it again and tap **Restore purchase** in the parent
+area: the island should open again.
+
+The website stays the free part. Grown-ups find the unlock card when the
+child reaches a locked place, and in **Menu → Settings → For parents**
+(with **Restore purchase**).
+
 ## What is already set up
 
 - App name on the Home Screen: **Baby Mo**; the icon and a sky-blue launch

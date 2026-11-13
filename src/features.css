@@ -382,3 +382,22 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 .cert .cName { font-size: 28px; font-weight: 900; color: #1f7a4d; margin: 4px 0; }
 .cert .ar { font-family: var(--ar); font-size: 28px; margin: 6px 0 0; }
 .cert .cSign { font-style: italic; margin: 10px 0; opacity: .8; }
+
+/* Full Mo Craft: the unlock card and the parent-area status */
+.unlockCard { text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.unlockCard .ulHero { font-size: 46px; line-height: 1; }
+.unlockCard .ulWhy { font-weight: 700; }
+.unlockCard .ulList { list-style: none; margin: 4px 0; padding: 12px 14px; text-align: left; background: rgba(255,255,255,.55); border-radius: 16px; display: flex; flex-direction: column; gap: 8px; font-weight: 700; }
+.unlockCard .ulNote { font-size: 13.5px; opacity: .8; }
+.unlockCard .ulMsg { font-size: 13.5px; min-height: 1.2em; font-weight: 700; }
+.unlockCard .row { justify-content: center; }
+.chipOk { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #d8f5e4; color: #146b3f; font-weight: 800; }
+@media (max-height: 500px) {
+  .unlockCard { gap: 5px; }
+  .unlockCard .ulHero { font-size: 26px; }
+  .unlockCard h2 { font-size: 20px; margin: 0; }
+  .unlockCard .ulWhy { font-size: 14px; }
+  .unlockCard .ulList { padding: 7px 12px; gap: 3px; font-size: 13.5px; margin: 0; }
+  .unlockCard .ulNote { font-size: 12px; }
+  .unlockCard .row { margin: 0; }
+}
