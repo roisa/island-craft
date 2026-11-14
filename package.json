@@ -1,0 +1,37 @@
+{
+  "name": "babymo-island-craft",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "BabyMo Craft — a cozy Ramadhan voxel adventure for kids (web, later iOS/Android via Capacitor).",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "node tests/smoke/smoke.mjs",
+    "qa": "node tests/smoke/qa.mjs",
+    "ios": "npm run build && npx cap sync ios",
+    "ios:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/share": "^8.0.3",
+    "@fontsource/nunito": "^5.2.7",
+    "@fontsource/scheherazade-new": "^5.2.5",
+    "adhan": "4.4.3",
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "@types/three": "0.170.0",
+    "playwright": "^1.63.0",
+    "typescript": "5.6.3",
+    "vite": "6.0.7",
+    "vitest": "^3.0.5"
+  }
+}

@@ -1,0 +1,132 @@
+import { describe, it, expect } from 'vitest';
+import { Generator, H } from '../../src/world/gen';
+import { landmarkIds } from '../../src/world/landmarks';
+import { B } from '../../src/world/blocks';
+
+const SEEDS = [1, 42, 777, 123456789, 99999];
+
+describe('landmarks', () => {
+  it('every world gets all its landmarks, the same ones for the same seed', () => {
+    for (const seed of SEEDS) {
+      const a = new Generator(seed).landmarks, b = new Generator(seed).landmarks;
+      expect(a.map(l => l.id).sort(), `seed ${seed}`).toEqual(landmarkIds().slice().sort());
+      expect(a).toEqual(b);
+    }
+  });
+  it('they stay out of the village and away from letter shrines and each other', () => {
+    for (const seed of SEEDS) {
+      const g = new Generator(seed);
+      for (const l of g.landmarks) {
+        // (the fishing pond is meant to be close, just past the village’s edge behind the masjid)
+        expect(Math.hypot(l.x, l.z), `${seed} ${l.id}`).toBeGreaterThan(l.id === 'fish_pond' ? 40 : 55);
+        for (const s of g.shrines) expect(Math.hypot(s.x - l.x, s.z - l.z), `${seed} ${l.id} vs letter ${s.letter}`).toBeGreaterThan(14);
+        // (the camp is built right in front of the waterfall on purpose)
+        const besides = (o: { id: string }) => (l.id === 'camp' && o.id === 'waterfall') || (l.id === 'waterfall' && o.id === 'camp');
+        for (const o of g.landmarks) if (o !== l && !besides(o)) expect(Math.hypot(o.x - l.x, o.z - l.z), `${l.id} vs ${o.id}`).toBeGreaterThan(20);
+        expect(l.y).toBeGreaterThan(1); expect(l.y).toBeLessThan(H);
+      }
+    }
+  });
+  it('each landmark hides a treasure chest nearby', () => {
+    const g = new Generator(42);
+    const chests: [number, number, number][] = [];
+    for (const list of g.stamps.values()) for (const [x, y, z, id] of list) if (id === B.CHEST) chests.push([x, y, z]);
+    for (const l of g.landmarks) expect(chests.some(([x, , z]) => Math.hypot(x - l.x, z - l.z) < 14), l.id).toBe(true);
+  });
+  it('has a hint and a fun fact in both languages', () => {
+    for (const l of new Generator(5).landmarks) { expect(l.hint[0] && l.hint[1] && l.fact[0] && l.fact[1] && l.name[0] && l.name[1]).toBeTruthy(); }
+  });
+});
+
+import positions from './fixtures/landmark-positions.json';
+describe('old worlds keep their places', () => {
+  it('adding new landmarks never moves the ones a saved world already has', () => {
+    for (const [seed, list] of Object.entries(positions as Record<string, [string, number, number, number][]>)) {
+      const now = new Generator(+seed).landmarks;
+      for (const [id, x, y, z] of list) {
+        const l = now.find(l => l.id === id);
+        expect(l && [l.x + 0, l.y + 0, l.z + 0], `seed ${seed} ${id}`).toEqual([x, y, z]);
+      }
+    }
+  });
+});
+
+describe('the fishing pond', () => {
+  it('is close to the village, mostly on the masjid side, clear of the village’s buildings', () => {
+    let north = 0;
+    for (const seed of SEEDS) {
+      const l = new Generator(seed).landmarks.find(l => l.id === 'fish_pond')!;
+      expect(l, `seed ${seed}`).toBeTruthy();
+      const d = Math.hypot(l.x, l.z);
+      expect(d, `seed ${seed}`).toBeGreaterThan(40);
+      expect(d, `seed ${seed}`).toBeLessThan(110);
+      if (l.z < 0) north++;
+      for (const k of ['spot', 'f1', 'f2', 'f3', 'pond']) expect(l.at?.[k], k).toBeTruthy();
+    }
+    expect(north).toBeGreaterThanOrEqual(3);
+  });
+  it('you stand on the pier with water right in front of you', () => {
+    const g = new Generator(42), l = g.landmarks.find(l => l.id === 'fish_pond')!;
+    const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+    const [sx, sy, sz] = l.at!.spot.map(Math.floor);
+    expect(m.get(`${sx},${sy - 1},${sz}`)).toBe(B.PLANKS);
+    for (let k = 1; k <= 3; k++) expect(m.get(`${sx},${sy - 1},${sz - k}`), `water ${k} ahead`).toBe(B.WATER);
+  });
+});
+
+describe('the waterfall camp', () => {
+  it('stands in front of the waterfall when there is one, with a campfire and a stream from its pool', () => {
+    let nearFall = 0;
+    for (const seed of SEEDS) {
+      const g = new Generator(seed), c = g.landmarks.find(l => l.id === 'camp')!, w = g.landmarks.find(l => l.id === 'waterfall');
+      expect(c, `seed ${seed}`).toBeTruthy();
+      if (w && Math.hypot(c.x - w.x, c.z - w.z) < 30) nearFall++;
+      const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+      const [fx, fy, fz] = c.at!.fire.map(Math.floor);
+      expect(m.get(`${fx},${fy},${fz}`), `campfire seed ${seed}`).toBe(B.CAMPFIRE);
+      const [sx, sy, sz] = c.at!.stream.map(Math.floor);
+      expect(m.get(`${sx},${sy},${sz}`), `stream seed ${seed}`).toBe(B.WATER);
+    }
+    expect(nearFall).toBeGreaterThanOrEqual(3);
+  });
+});
+
+import { FRUIT_WORDS, FRUIT_BLOCK, treeWord } from '../../src/game/english';
+describe('the fruit orchard', () => {
+  it('has eight named trees, each with its own fruit to pick, and a word for each', () => {
+    for (const seed of SEEDS) {
+      const g = new Generator(seed), o = g.landmarks.find(l => l.id === 'orchard')!;
+      expect(o, `seed ${seed}`).toBeTruthy();
+      expect(Math.hypot(o.x, o.z)).toBeLessThan(160);
+      const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+      for (const key of Object.keys(FRUIT_WORDS)) {
+        const t = o.at!['tree_' + key]; expect(t, key).toBeTruthy();
+        const [tx, ty, tz] = t.map(Math.floor);
+        let fruit = 0;
+        for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = 0; dy <= 5; dy++) if (FRUIT_BLOCK[m.get(`${tx + dx},${ty + dy},${tz + dz}`) ?? -1] === key) fruit++;
+        expect(fruit, `seed ${seed} ${key}`).toBeGreaterThanOrEqual(4);
+      }
+    }
+  });
+  it('says the tree’s name in a little English sentence', () => {
+    expect(treeWord('mango').say).toBe('This is a mango tree. Mango!');
+    expect(treeWord('apple').say).toBe('This is an apple tree. Apple!');
+    expect(treeWord('apple').id).toBe('Apel');
+  });
+});
+
+import { TRACK, pointAt, BOOSTS } from '../../src/game/track';
+describe('the big race circuit', () => {
+  it('is in every world, with the track, a boost pad and room around it', () => {
+    for (const seed of SEEDS) {
+      const g = new Generator(seed), r = g.landmarks.find(l => l.id === 'race_track')!;
+      expect(r, `seed ${seed}`).toBeTruthy();
+      const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+      const y = r.at!.centre[1] - 1;
+      for (const s of [5, 40, 90, 140]) { const p = pointAt(s); expect(m.get(`${Math.floor(r.x + p.x)},${y},${Math.floor(r.z + p.z)}`), `seed ${seed} s ${s}`).toBe(B.BASALT); }
+      const b = pointAt(BOOSTS[0].s + 2); expect(m.get(`${Math.floor(r.x + b.x)},${y},${Math.floor(r.z + b.z)}`)).toBe(B.GOLD_TILE);
+      // no other place inside the circuit
+      for (const o of g.landmarks) if (o !== r) expect(Math.abs(o.x - r.x) < TRACK.half + TRACK.R + 8 && Math.abs(o.z - r.z) < TRACK.R + 8, `${o.id} inside the circuit, seed ${seed}`).toBe(false);
+    }
+  });
+});
