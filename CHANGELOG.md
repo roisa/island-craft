@@ -5,6 +5,17 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### iOS privacy manifest 🔒
+
+- Added `ios/App/App/PrivacyInfo.xcprivacy`, included in the app bundle. It
+  declares no tracking, no tracking domains and no collected data. The app's
+  own native code uses none of the APIs Apple asks apps to give a reason for,
+  and Capacitor brings its own manifest. This matches the "Data Not Collected"
+  privacy label and the Kids Category answers for App Review.
+- Tested: the manifest parses as a property list; the Xcode project lists it
+  under Resources, and the project file's brackets still balance. It can only be
+  built in Xcode on a Mac.
+
 ### Baby Mo leans out from behind the text boxes 👦
 
 Asked by a parent: Baby Mo's pictures should feel more alive, upper body only
