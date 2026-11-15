@@ -495,3 +495,8 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 #actChoices button.on { box-shadow: 0 0 0 4px #ffd23f, 0 10px 26px -10px rgba(0,0,0,.5) !important; }
 @media (max-height: 500px) { #actChoices { bottom: calc(66px + var(--safe-b)); } #actChoices button { min-height: 54px; min-width: 84px; font-size: 14px; } #actChoices button b { font-size: 24px; } }
 body.acting #crosshair, body.acting #target, body.acting #mineRing { display: none !important; }
+/* wudu: the water button bounces and glows when nothing is tapped for a while; the splash count */
+.wudu .wTap.nudge { animation: wNudge 1s ease-in-out infinite; box-shadow: 0 0 0 6px rgba(255,210,63,.75), 0 10px 26px -10px rgba(0,0,0,.4) !important; }
+@keyframes wNudge { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.12) translateY(-4px); } 60% { transform: scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .wudu .wTap.nudge { animation: none; } }
+.wudu .wTot { display: block; margin-top: 4px; font-size: 13px; font-weight: 900; color: #2f8fd0; }

@@ -5,6 +5,29 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Fix: getting stuck at wudu before the prayer 💧
+
+Reported by a parent: the prayer felt stuck because it wasn't clear how to
+finish wudu.
+- **The "Done!" button now works.** After the last step the water button turns
+  into "Done!", but tapping it did nothing: outside prayer time the card
+  stayed open until the small "Close" button, and before a prayer it only
+  closed by itself after a pause. Now "Done!" closes the card at once and the
+  prayer starts.
+- **A nudge when nothing happens:** after 4 seconds without a tap the big
+  water button bounces and glows, and the card says "Tap the big water
+  button! 👆" (or "Tap Done! to carry on").
+- **Progress you can see:** 💧 7 / 21, since most steps are done 3 times.
+- **"✓ I still have wudu"** before a prayer: if your wudu hasn't been broken
+  (no sleep, no toilet…), you can pray with it, as in real life. It counts as
+  wudu and the prayer starts. Hidden once the steps are finished.
+- Tested:
+  - In the prayer smoke step, "Done!" closes the card at once and the prayer
+    starts.
+  - At the well, "Done!" closes the card.
+  - "I still have wudu" counts as wudu and continues to the prayer.
+  - Screenshots of the nudge and the finished card.
+
 ### Hero suits: the reward for all 28 letters 🦸
 
 Asked by a parent: a costume choice when all hijaiyah letters are found, 10

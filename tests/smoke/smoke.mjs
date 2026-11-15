@@ -337,7 +337,10 @@ async function run(name) {
       await p.waitForFunction(() => !!document.querySelector('.veil.on .wudu') || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 15000, polling: 200 });
       if (await g(() => !!__game.jamaah)) throw new Error('prayed without wudu');
       for (let k = 0; k < 30 && await g(() => !!document.querySelector('.veil.on .ws.next')); k++) await g(() => document.querySelector('.veil.on #wTap').click()); // splash until every step is done (3 splashes for the 3× steps)
-      // wudu done: the pop-up closes by itself and the prayer starts
+      // the "Done!" button closes the wudu card at once (a child taps it — it used to do nothing)
+      const doneBtn = await g(() => { const b = document.querySelector('.veil.on .wudu #wTap'); const txt = b?.innerText || ''; b?.click(); return { txt, open: !!document.querySelector('.veil.on .wudu') }; });
+      if (doneBtn.open) throw new Error('the Done! button did not close the wudu card: ' + JSON.stringify(doneBtn));
+      // wudu done: the prayer starts
       await p.waitForFunction(() => !!__game.jamaah || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 20000, polling: 200 });
       const hud = await g(() => document.querySelector('#jmHud').innerText);
       // the row's movement is shown as a Baby Mo picture
@@ -851,6 +854,11 @@ async function run(name) {
       await popup('.wudu');
       for (let k = 0; k < 30 && await g(() => !!document.querySelector('.veil.on .ws.next')); k++) await g(() => document.querySelector('.veil.on #wTap').click()); // splash until every step is done (3 splashes for the 3× steps)
       if (!(await g(() => document.querySelector('.veil.on #wPic img.on')?.src || '')).includes('w10')) throw new Error('no du’a picture after wudu');
+      const closed = await g(() => { document.querySelector('.veil.on .wudu #wTap').click(); return !document.querySelector('.veil.on .wudu'); });
+      if (!closed) throw new Error('Done! did not close the wudu card at the well');
+      // before a prayer, "I still have wudu" is a way through (and counts as wudu)
+      const still = await g(async () => { const G = __game; G.wuduValid = false; let went = false; G.ui.wudu(true, () => { went = true; }); await new Promise(r => setTimeout(r, 200)); document.querySelector('.veil.on #wStill').click(); await new Promise(r => setTimeout(r, 500)); return { went, valid: G.wuduValid, open: !!document.querySelector('.veil.on .wudu') }; });
+      if (!still.went || !still.valid || still.open) throw new Error('I still have wudu: ' + JSON.stringify(still));
       // the picture guide for sholat: ten steps, each with a picture
       await g(() => { __game.ui.closeAllModals(); __game.ui.poseGuide('sholat'); });
       await p.waitForSelector('.veil.on .poseGuide #pgPic img.on');

@@ -606,7 +606,8 @@ export class UI {
    */
   wudu(forPrayer = false, then?: () => void) {
     const g = this.g;
-    let i = 0, count = 0;
+    let i = 0, count = 0, splashes = 0, idle = 0, finished = false;
+    const TOTAL = WUDU.reduce((a, w) => a + w.times, 0);
     const drops = Array.from({ length: 9 }, (_, k) => `<i style="--x:${8 + ((k * 37) % 84)}%;--d:${(k * 0.23) % 1.6}s;--s:${0.7 + ((k * 13) % 5) / 10}"></i>`).join('');
     const { el, close } = this.modal(`<div class="wudu w2"><h2>💧 ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
       <div class="wBody"><div class="wStage" id="wStage"><div class="wCaustic"></div><div class="wRain">${drops}</div>
@@ -616,7 +617,7 @@ export class UI {
         <div class="wCnt" id="wCnt"></div></div></div>
       <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}" aria-label="${esc(t2(w.name))}"><span>${w.icon}</span>${g.settings.english !== false && BODY_WORDS[k] ? `<em class="wen">${BODY_WORDS[k]!.en}</em>` : ''}</button>`).join('')}</div>
       <p id="wMsg">${tr('Ketuk tombol air untuk membasuh 💧', 'Tap the water button to wash 💧')}</p>
-      <div class="row"><button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
+      <div class="row">${forPrayer ? `<button class="btn ghost small" id="wStill">✓ ${tr('Aku masih punya wudhu', 'I still have wudu')}</button>` : ''}<button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
     const btns = el.querySelectorAll<HTMLElement>('.ws');
     const pic = this.frames($('#wPic', el));
     const stage = $('#wStage', el), splashBox = $('#wSplash', el);
@@ -629,8 +630,9 @@ export class UI {
       $('#wName', el).textContent = i < WUDU.length ? t2(w.name) : t2(st.name);
       $('#wIc', el).textContent = i < WUDU.length ? w.icon : '🤲';
       $('#wTapL', el).textContent = i >= WUDU.length ? tr('Selesai!', 'Done!') : w.times > 1 ? tr(`Basuh ${w.times}×`, `Wash ${w.times}×`) : tr('Ketuk!', 'Tap!');
-      $('#wCnt', el).innerHTML = i < WUDU.length && w.times > 1 ? Array.from({ length: w.times }, (_, k) => `<i class="${k < count ? 'on' : ''}"></i>`).join('') : '';
+      $('#wCnt', el).innerHTML = (i < WUDU.length && w.times > 1 ? Array.from({ length: w.times }, (_, k) => `<i class="${k < count ? 'on' : ''}"></i>`).join('') : '') + `<small class="wTot">💧 ${Math.min(TOTAL, splashes)} / ${TOTAL}</small>`;
       el.querySelector('.wTap')!.classList.toggle('fin', i >= WUDU.length);
+      el.querySelector<HTMLElement>('#wStill')?.classList.toggle('hidden', i >= WUDU.length); // (done: no need for it now)
     };
     /** water bursts out from Baby Mo, a ring spreads on the pool, Mo bobs */
     const splash = (big = false) => {
@@ -644,11 +646,14 @@ export class UI {
       stage.classList.remove('bump'); void stage.offsetWidth; stage.classList.add('bump');
     };
     mark();
+    /** the end: close and (before a prayer) start it — from the "Done!" button, or by itself after a moment */
+    const finish = () => { if (finished) return; finished = true; clearInterval(nudge); pic.stop(); close(); if (then) setTimeout(then, 250); };
     const tap = () => {
-      if (i >= WUDU.length) return;
+      idle = 0; el.querySelector('.wTap')!.classList.remove('nudge');
+      if (i >= WUDU.length) { finish(); return; } // ("Done!")
       const w = WUDU[i];
       if (count === 0) g.english?.wuduStep(i);
-      count++; SFX.splash(); haptic(8); splash();
+      count++; splashes++; SFX.splash(); haptic(8); splash();
       if (count >= w.times) {
         i++; count = 0; SFX.pop(i); g.fx.sparkle(g.player.pos.x, g.player.pos.y + 1.2, g.player.pos.z, 4, 0x8fd3ec, 1);
         $('#wMsg', el).textContent = i < WUDU.length ? tr('Bagus! Langkah berikutnya ✨', 'Well done! Next step ✨') : '';
@@ -657,7 +662,7 @@ export class UI {
       if (i === WUDU.length) {
         g.stats.wudu = (g.stats.wudu || 0) + 1; SFX.chime(); this.confetti(30); splash(true);
         g.wuduDone();
-        if (forPrayer) setTimeout(() => { pic.stop(); close(); if (then) setTimeout(then, 250); }, 2600);
+        if (forPrayer) setTimeout(finish, 2600);
         $('#wMsg', el).innerHTML = tr('Wudhu selesai! Doa: <b>Asyhadu an laa ilaaha illallah…</b> Sekarang kamu siap sholat 🤲', 'Wudu done! Say: <b>Ash-hadu an laa ilaaha illallah…</b> Now you’re ready to pray 🤲');
         g.amal('wudu'); g.checkQuests();
       }
@@ -670,8 +675,22 @@ export class UI {
       tap();
     }));
     const notDone = () => { if (forPrayer && i < WUDU.length) g.wuduLater(); };
-    $('#wX', el).onclick = () => { pic.stop(); close(); notDone(); };
-    $('#wGuide', el).onclick = () => { pic.stop(); close(); notDone(); setTimeout(() => this.poseGuide('wudu'), 30); };
+    // a little nudge when nothing is tapped for a while: the water button bounces and the card says what to do
+    const nudge = window.setInterval(() => {
+      if (!el.isConnected) { clearInterval(nudge); return; }
+      if (++idle < 4) return;
+      el.querySelector('.wTap')!.classList.add('nudge');
+      $('#wMsg', el).textContent = i < WUDU.length ? tr('Ketuk tombol air yang besar! 👆', 'Tap the big water button! 👆') : tr('Ketuk “Selesai!” untuk lanjut 👆', 'Tap “Done!” to carry on 👆');
+      if (idle === 4 || idle % 12 === 0) SFX.pop(3);
+    }, 1000);
+    // before a prayer: if your wudu hasn't been broken since the last time, you can pray with it
+    el.querySelector<HTMLElement>('#wStill')?.addEventListener('click', () => {
+      g.wuduDone();
+      this.toast(tr('✓ Kalau wudhumu belum batal (belum tidur, ke toilet, dll.), kamu boleh sholat dengan wudhu itu 🤲', '✓ If your wudu hasn’t been broken (no sleep, no toilet…), you can pray with it 🤲'), 5000);
+      finish();
+    });
+    $('#wX', el).onclick = () => { clearInterval(nudge); pic.stop(); close(); notDone(); };
+    $('#wGuide', el).onclick = () => { clearInterval(nudge); pic.stop(); close(); notDone(); setTimeout(() => this.poseGuide('wudu'), 30); };
   }
   /** a picture that flips through its frames like a little cartoon, with a soft crossfade */
   private frames(box: HTMLElement, ms = 900) {
