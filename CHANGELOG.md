@@ -5,6 +5,14 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The unlock card lists everything in Full BabyMo Craft
+
+- The "Open the whole island!" card now also lists the Mini Stadium, racing on
+  the Snow & Desert tracks, and the 10 hero suits. Before, it only listed the
+  letters, Iqro and the older sports.
+- Tested: screenshots on an upright and a sideways phone (the card still fits);
+  269 unit tests; smoke on desktop and iPhone.
+
 ### Test fix: the big-race notice check
 
 - The online test run failed once on Android: the "big race" step checks that
