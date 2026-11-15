@@ -61,8 +61,9 @@ category (**Games → Family / Educational**; you can also choose the
 ## 4. The “Full BabyMo Craft” in-app purchase
 
 The app is free to download; one in-app purchase opens the rest of the
-island (letters 8–28, the Iqro journey and exams, tennis, archery, the
-sports park, the horse farm and the ice rink). The code is ready: the app
+island (letters 8–28, the Iqro journey and exams, the hero suits, tennis,
+archery, the sports park, the Mini Stadium, the Snow and Desert race tracks,
+the horse farm and the ice rink). The code is ready: the app
 asks Apple with its own small StoreKit plugin
 (`ios/App/App/StoreKitPlugin.swift`), so no outside service and no data
 collection. You set up the product once in App Store Connect:
