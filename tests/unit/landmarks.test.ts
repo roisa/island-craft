@@ -130,3 +130,22 @@ describe('the big race circuit', () => {
     }
   });
 });
+
+import { TRACKS } from '../../src/game/track';
+describe('the Snow and Desert tracks', () => {
+  it('are in every world, with their road, the ice or sand patches, a boost pad and nothing built on them', () => {
+    for (const seed of SEEDS) {
+      const g = new Generator(seed);
+      const m = new Map<string, number>(); for (const list of g.stamps.values()) for (const [x, y, z, id] of list) m.set(`${x},${y},${z}`, id);
+      for (const [id, tk, road, patch] of [['snow_track', TRACKS.snow, B.SNOW, B.ICE], ['desert_track', TRACKS.desert, B.BASALT, B.SAND]] as const) {
+        const r = g.landmarks.find(l => l.id === id)!;
+        expect(r, `${id} seed ${seed}`).toBeTruthy();
+        const y = r.at!.centre[1] - 1, at = (s: number, lane = 0) => { const p = tk.pointAt(s, lane); return m.get(`${Math.floor(r.x + p.x)},${y},${Math.floor(r.z + p.z)}`); };
+        expect(at(2.5, 0), `${id} road seed ${seed}`).toBe(road);
+        const pt = tk.patches[0]; expect(at(pt.s + pt.len / 2, (pt.lane0 + pt.lane1) / 2), `${id} patch seed ${seed}`).toBe(patch);
+        expect(at(tk.boosts[0].s + 2), `${id} boost seed ${seed}`).toBe(B.GOLD_TILE);
+        for (const o of g.landmarks) if (o !== r) expect(Math.abs(o.x - r.x) < tk.half + tk.R + 6 && Math.abs(o.z - r.z) < tk.R + 6, `${o.id} inside ${id}, seed ${seed}`).toBe(false);
+      }
+    }
+  });
+});

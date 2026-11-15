@@ -49,7 +49,7 @@ export class Generator {
     const ghosts: { x: number; z: number }[] = [];
     this.landmarks = placeLandmarks(builder, this.seed, this.shrines, ghosts);
     // (old spots of places that moved still count, so the treasure stays where it was; the big race circuit needs more room)
-    this.treasure = placeTreasure(builder, this.seed, [...this.shrines.map(s => ({ x: s.x, z: s.z, r: 6 })), ...this.landmarks.map(l => ({ x: l.x, z: l.z, r: l.id === 'race_track' ? 50 : 18 })), ...ghosts.map(g => ({ ...g, r: 18 }))], this.landmarks.filter(l => l.path).map(l => l.path!));
+    this.treasure = placeTreasure(builder, this.seed, [...this.shrines.map(s => ({ x: s.x, z: s.z, r: 6 })), ...this.landmarks.map(l => ({ x: l.x, z: l.z, r: l.id === 'race_track' || l.id === 'desert_track' ? 50 : l.id === 'snow_track' ? 44 : 18 })), ...ghosts.map(g => ({ ...g, r: 18 }))], this.landmarks.filter(l => l.path).map(l => l.path!));
   }
 
   column(x: number, z: number): Column {

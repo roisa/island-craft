@@ -5,6 +5,51 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Racing upgrade: 3 laps, Snow and Desert tracks, mystery boxes 🏎️❄️🌵
+
+Asked by a parent: longer races, snow and desert racing, and mystery boxes,
+boosters and more to make racing exciting.
+- **Longer races:** 3 laps instead of 2 on every track. The big circuit keeps
+  its shape, so saved worlds stay the same.
+- **Two new tracks** in every world, added at the end of the list so no
+  existing place moves:
+  - **Snow Track ❄️:** a round circuit with **icy bends where the kart
+    slides**, ice arches, pine trees and snowmen.
+  - **Desert Track 🌵:** long straights, **soft sand on the bends that slows
+    you down**, **tumbleweeds rolling across the road**, cacti, palms and a
+    little pyramid.
+  - Both are in Full BabyMo Craft. The big circuit stays free.
+- **Mystery boxes ❓** in rows of three, three rows a lap. Drive through one,
+  it spins, and out comes a power-up. Tap the big round button (or Space / F)
+  to use it:
+  - 🚀 **Rocket boost:** a burst of speed with flames.
+  - ⭐ **Star power:** faster, rainbow colours, nothing slows you, and racers
+    you touch do a little spin.
+  - 🫧 **Bubble shield:** ice, sand, tumbleweeds and walls don't slow you.
+  - 🧲 **Coin magnet:** pulls in the coins near you.
+  - 🍌 **Banana peel:** drop it behind you; a racer who drives over it spins
+    round. It's a harmless cartoon spin, and the other racers never throw
+    anything at you.
+  - Drivers further back get rockets and stars more often, so a child who
+    falls behind can catch up. The other racers pick up little turbos from the
+    boxes too.
+- **Jump ramp** on each track (after a boost pad: zoom, then fly), and more
+  boost pads on the new tracks.
+- **"LAP 2" and "FINAL LAP!"** banners, and a cheer when you move up a place.
+- The finish card names the track and counts wins per track.
+- Fixed: closing the finish card any other way than its buttons (e.g. Escape)
+  now ends the race properly. Baby Mo's 👋 Hi! button is hidden while racing.
+- Tested: 253 unit tests:
+  - new: all three track shapes; boxes and ramps never sit on a hazard or a
+    boost pad; the mystery-box odds favour drivers at the back;
+  - both new tracks are in every test world with their road, patches and boost
+    pads.
+
+  New smoke step on the Snow and Desert tracks: a box gives a power-up, a
+  banana spins a racer, the hazard is there, and three laps reach the finish.
+  Smoke passes on desktop, iPhone, iPad and Android, and `npm run qa` on all
+  five profiles.
+
 ### iOS privacy manifest 🔒
 
 - Added `ios/App/App/PrivacyInfo.xcprivacy`, included in the app bundle. It

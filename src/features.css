@@ -476,3 +476,13 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 .hIc.green { background: linear-gradient(160deg, #4cd97b, #1fa952); box-shadow: 0 4px 10px rgba(31,169,82,.35), inset 0 1px 0 rgba(255,255,255,.5); }
 .poseGuide h2 { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .pgHalo { inset: 16% 8% 0; }
+/* the power-up from a mystery box: a big round button above the action buttons */
+#raceItem { position: fixed; right: calc(20px + var(--safe-r)); bottom: calc(250px + var(--safe-b)); z-index: 9; width: 92px; height: 92px; border-radius: 50% !important; display: grid; place-items: center; align-content: center; gap: 0; pointer-events: auto; }
+#raceItem .ri { font-size: 46px; line-height: 1; }
+#raceItem small { font-size: 11px; font-weight: 900; letter-spacing: .06em; color: #0A84FF; }
+#raceItem.rolling small { visibility: hidden; }
+#raceItem.ready { animation: riPulse 1s ease-in-out infinite; box-shadow: 0 0 0 4px rgba(255,210,63,.85), 0 10px 26px -10px rgba(0,0,0,.5) !important; }
+@keyframes riPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@media (max-height: 500px) { #raceItem { width: 76px; height: 76px; bottom: calc(150px + var(--safe-b)); right: calc(150px + var(--safe-r)); } #raceItem .ri { font-size: 36px; } }
+@media (hover: hover) and (pointer: fine) { #raceItem { bottom: calc(120px + var(--safe-b)); } #raceItem small::after { content: ' · SPACE'; } }
+@media (prefers-reduced-motion: reduce) { #raceItem.ready { animation: none; } }

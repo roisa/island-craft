@@ -77,6 +77,7 @@ export class UI {
   <div id="jmHud" class="pill hidden"></div>
   <div id="raceHud" class="pill hidden"><span id="raceT"></span><button class="btn small ghost" id="raceX">${tr('Keluar', 'Exit')}</button></div>
   <div id="raceCount" class="hidden"></div>
+  <button id="raceItem" class="pill hidden" aria-label="Use power-up"><span class="ri"></span><small>${tr('PAKAI', 'USE')}</small></button>
   <div id="raceMath" class="hidden"></div>
   <div id="phraseCard" class="pill moHost hidden"><img class="moPeek" src="img/baby-mo-idea-up.webp" alt=""><div><small class="pt"></small><b class="pe"></b><small class="pid"></small></div><button class="say" id="phSay" aria-label="Listen">${ic('speaker')}</button><button class="btn small gold" id="phSaid">⭐ <span></span></button><button class="phx" id="phX" aria-label="Close">✕</button></div>
   <div id="wordCard" class="pill hidden"><span class="wi"></span><div><b class="we"></b><small class="wid"></small></div><button class="say" id="wordSay" aria-label="Listen">${ic('speaker')}</button></div>
@@ -136,6 +137,7 @@ export class UI {
     $('#bMasjid').onclick = () => this.masjidPicker();
     $('#bRace').onclick = () => { SFX.click(); this.g.race?.start(); };
     $('#raceX').onclick = () => { SFX.click(); this.g.race?.quit(); };
+    $('#raceItem').onclick = () => this.g.race?.useItem();
     $('#wordSay').onclick = () => { const w = this.wordNow; if (w) Speech.talk(w.say ?? w.en, 'en', true, 0); };
     $('#bTennis').onclick = () => { SFX.click(); if (this.g.can('tennis')) this.g.tennis?.menu(); };
     $('#tennisX').onclick = () => { SFX.click(); this.g.tennis?.quit(); };
@@ -265,7 +267,7 @@ export class UI {
   }
   updateMoHi() {
     const g = this.g, el = $('#moHi'), mo = g.ents?.mo;
-    let show = !!mo && !g.stats.talked.mo && !this.modals.length && !g.paused;
+    let show = !!mo && !g.stats.talked.mo && !this.modals.length && !g.paused && !g.race?.active; // (not while racing)
     if (show) {
       const v = this.hiV.set(mo.pos.x, mo.pos.y + mo.rig.height + 0.55, mo.pos.z);
       show = v.distanceTo(g.player.pos) < 14;
@@ -452,6 +454,22 @@ export class UI {
     const txt = `🏁 ${tr('Putaran', 'Lap')} ${r.lap}/${r.laps} · <b>${nth}</b> / ${r.of} · 🪙 ${r.coins ?? 0} · ⏱️ ${r.time.toFixed(1)}`;
     if (txt !== this.raceShown) { this.raceShown = txt; $('#raceT').innerHTML = txt; }
     el.classList.remove('hidden');
+  }
+  /** the power-up you hold in a race: an emoji to tap, 'roll' while the mystery box spins, null hides it */
+  private rollT = 0;
+  raceItem(icon: string | null) {
+    const el = $('#raceItem'), ri = el.querySelector('.ri')!;
+    clearInterval(this.rollT);
+    if (!icon) { el.classList.add('hidden'); el.classList.remove('ready', 'rolling'); return; }
+    el.classList.remove('hidden');
+    if (icon === 'roll') {
+      // the box spins through its surprises before it stops on one
+      const all = ['🚀', '⭐', '🫧', '🧲', '🍌']; let i = 0;
+      el.classList.add('rolling'); el.classList.remove('ready');
+      ri.textContent = all[0]; this.rollT = window.setInterval(() => { ri.textContent = all[++i % all.length]; }, 90);
+      return;
+    }
+    ri.textContent = icon; el.classList.remove('rolling'); el.classList.add('ready');
   }
   /** the big 3 · 2 · 1 · GO! */
   raceCount(t: string | null) {
@@ -1734,11 +1752,11 @@ export class UI {
   closeModal() { this.modals[this.modals.length - 1]?.close(); }
   closeAllModals() { this.modalQueue.length = 0; while (this.modals.length) this.modals[this.modals.length - 1].close(); }
 
-  dialog(o: { face: string; who: string; text: string; buttons?: Btn[]; img?: boolean; speak?: boolean }) {
+  dialog(o: { face: string; who: string; text: string; buttons?: Btn[]; img?: boolean; speak?: boolean; onClose?: () => void }) {
     const btns = o.buttons ?? [{ label: tr('Oke!', 'Okay!') }];
     // Baby Mo talking: he leans over the top of the sheet (waist up) instead of sitting in a small square
     const mo = o.img && /baby-mo-[a-z0-9-]+\.webp$/.test(o.face) ? o.face.replace(/\.webp$/, '-up.webp') : null;
-    const { el, close } = this.modal(`<div class="dialog">${mo ? '' : o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div style="flex:1"><div class="who">${esc(o.who)}</div><div class="say" id="dTxt">${o.text}</div></div><button class="say" id="dSpeak" aria-label="Listen">🔊</button></div><div id="dbtns"></div>`, () => Speech.stop(1), { onShow: () => { if (o.speak !== false && this.g.settings.moVoice) setTimeout(() => Speech.talk(plain(), getLang(), false, 1), 150); } });
+    const { el, close } = this.modal(`<div class="dialog">${mo ? '' : o.img ? `<img class="face" src="${o.face}" alt="">` : `<div class="face">${o.face}</div>`}<div style="flex:1"><div class="who">${esc(o.who)}</div><div class="say" id="dTxt">${o.text}</div></div><button class="say" id="dSpeak" aria-label="Listen">🔊</button></div><div id="dbtns"></div>`, () => { Speech.stop(1); o.onClose?.(); }, { onShow: () => { if (o.speak !== false && this.g.settings.moVoice) setTimeout(() => Speech.talk(plain(), getLang(), false, 1), 150); } });
     if (mo) {
       const stage = h(`<div class="moStage"><img class="moPeek" src="${mo}" alt=""></div>`);
       el.parentNode!.insertBefore(stage, el); stage.appendChild(el);

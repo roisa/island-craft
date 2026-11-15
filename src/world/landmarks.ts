@@ -3,7 +3,7 @@
 // away from the village and the letter shrines. Each one has a treasure chest
 // and a "discovery" with a short fun fact when you first get close.
 import { B, I } from './blocks';
-import { cellKind, laneOf, onBoost, progressOf, TRACK } from '../game/track';
+import { cellKind, laneOf, onBoost, progressOf, TRACK, TRACKS, type Track } from '../game/track';
 import { COURT, courtCell } from '../game/court';
 import { Biome, H, SEA, type Column } from './gen';
 import { mulberry32, hash3 } from './noise';
@@ -1124,7 +1124,102 @@ const SPECS = (): Spec[] => specs ??= [
       return { y: y + 1, at: { rink: [x + 0.5, y + 1, z - 0.5], booth: [x + 0.5, y + 1, z + 7.3], entry: [x + 0.5, y + 1, z + 7.5] } };
     },
   },
+  {
+    // the Snow track: a round circuit in the snow with icy bends, ice arches, pine trees and snowmen
+    id: 'snow_track', icon: '❄️', name: ['Sirkuit Salju', 'The Snow Track'], biomes: [Biome.SNOWY], relaxed: [Biome.SNOWY, Biome.MOUNTAIN, Biome.FOREST, Biome.MEADOW], dist: [100, 340], r: 26, loose: true, clear: 34,
+    ok: c => c.h > SEA + 1 && c.h < SEA + 18,
+    hint: ['Di tempat bersalju ada sirkuit balap es! Tikungannya licin — siap meluncur?', 'In the snow there’s an icy race track! The bends are slippery — ready to slide?'],
+    fact: ['Di Sirkuit Salju, es di tikungan membuat gokart meluncur: belok lebih awal ya! Ambil kotak ❓ untuk kejutan: roket 🚀, bintang ⭐, gelembung 🫧, magnet 🧲 atau kulit pisang 🍌. Subhanallah, salju adalah air yang membeku menjadi kristal yang indah.', 'On the Snow Track the ice on the bends makes your kart slide: turn a little early! Grab the ❓ boxes for a surprise: a rocket 🚀, a star ⭐, a bubble 🫧, a magnet 🧲 or a banana peel 🍌. Subhanallah, snow is water frozen into beautiful crystals.'],
+    loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 2], [I.APPLE, 3]],
+    build(b, x, y, z) { return buildCircuit(b, x, y, z, TRACKS.snow); },
+  },
+  {
+    // the Desert track: long straights through the dunes, soft sand on the bends, cacti, palms and a little pyramid
+    id: 'desert_track', icon: '🌵', name: ['Sirkuit Gurun', 'The Desert Track'], biomes: [Biome.DESERT], relaxed: [Biome.DESERT, Biome.BEACH, Biome.MEADOW], dist: [100, 340], r: 30, loose: true, clear: 38,
+    ok: c => c.h > SEA + 1 && c.h < SEA + 16,
+    hint: ['Di gurun ada sirkuit balap dengan lintasan lurus yang panjang dan piramida kecil. Awas pasir di tikungan!', 'In the desert there’s a race track with long straights and a little pyramid. Watch out for the sand on the bends!'],
+    fact: ['Di Sirkuit Gurun, pasir di tikungan membuat gokart melambat, dan bola rumput kering menggelinding melintasi jalan. Gelembung 🫧 dan bintang ⭐ melindungimu! Unta bisa berjalan berhari-hari di gurun tanpa minum — Allah menciptakannya dengan sangat hebat.', 'On the Desert Track the sand on the bends slows your kart, and tumbleweeds roll across the road. A bubble 🫧 or a star ⭐ keeps you safe! Camels can walk for days in the desert without drinking — Allah made them wonderfully.'],
+    loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 2], [I.APPLE, 3]],
+    build(b, x, y, z) { return buildCircuit(b, x, y, z, TRACKS.desert); },
+  },
 ];
+
+/**
+ * A themed race circuit (the Snow or the Desert track) on a stadium oval: the track with its
+ * hazards (ice or sand) and boost pads, kerbs and a tyre wall, a start gantry, arches over the
+ * north straight, a small grandstand and a decorated infield with a chest.
+ */
+function buildCircuit(b: Builder, x: number, y: number, z: number, tk: Track) {
+  y = Math.max(y, SEA + 1);
+  const snow = tk.kind === 'snow', { half: HALF, R, W } = tk, OUT = Math.ceil(R + W / 2 + 2);
+  const X0 = x - HALF - OUT - 3, X1 = x + HALF + OUT + 3, Z0 = z - OUT - 7, Z1 = z + OUT + 3;
+  foundation(b, X0, Z0, X1, Z1, y, B.DIRT);
+  b.box(X0, y, Z0, X1, y, Z1, snow ? B.SNOW_GRASS : B.SAND);
+  b.box(X0, y + 1, Z0, X1, y + 14, Z1, B.AIR);
+  const road = snow ? B.SNOW : B.BASALT, patchBlock = snow ? B.ICE : B.SAND;
+  const [kA, kB] = snow ? [B.WOOL_BLUE, B.WOOL_WHITE] : [B.WOOL_RED, B.WOOL_YELLOW];
+  b.box(X0, y, Z0, X1, y, Z1, (X, _Y, Z) => {
+    const dx = X + 0.5 - x, dz = Z + 0.5 - z, k = tk.cellKind(dx, dz);
+    if (k === 'track') {
+      if ((X === x || X === x + 1) && Z > z) return (X + Z) % 2 === 0 ? B.WOOL_WHITE : B.BASALT; // the chequered start line
+      const lane = tk.laneOf(dx, dz), s = tk.progressOf(dx, dz);
+      if (tk.onBoost(s, lane)) return B.GOLD_TILE;
+      if (tk.patchAt(s, lane)) return patchBlock;
+      return road;
+    }
+    if (k === 'kerb') return Math.floor((X + Z) / 2) % 2 === 0 ? kA : kB;
+    return null;
+  });
+  // the wall round the outside, with a gap by the grandstand to walk in
+  b.box(X0, y + 1, Z0, X1, y + 1, Z1, (X, _Y, Z) => (tk.cellKind(X + 0.5 - x, Z + 0.5 - z) === 'wall' && !(Z < z && Math.abs(X - x) <= 2) ? ((X + Z) % 2 === 0 ? kA : (snow ? B.WOOL_WHITE : B.SANDSTONE)) : null));
+  // the start gantry
+  const post = snow ? B.PINE_LOG : B.SANDSTONE;
+  const zi = z + R - W / 2 - 1.5, zo = z + R + W / 2 + 1.5;
+  for (const pz of [Math.floor(zi), Math.ceil(zo)]) b.box(x, y + 1, pz, x, y + 6, pz, post);
+  b.box(x, y + 7, Math.floor(zi), x, y + 7, Math.ceil(zo), (_X, _Y, Z) => ((Z % 2) === 0 ? B.WOOL_WHITE : B.BASALT));
+  for (let pz = Math.floor(zi) + 2; pz <= Math.ceil(zo) - 2; pz += 2) b.stamp(x, y + 6, pz, B.LANTERN);
+  // arches over the north straight: ice arches in the snow, sandstone arches in the desert
+  const ni = z - R + W / 2 + 1, no = z - R - W / 2 - 1, n = snow ? 3 : 4;
+  for (let i = 0; i < n; i++) {
+    const ax = Math.round(x - HALF + 6 + i * ((2 * HALF - 12) / Math.max(1, n - 1)));
+    const c = snow ? B.ICE : [B.SANDSTONE, B.WOOL_RED, B.SANDSTONE, B.WOOL_YELLOW][i % 4];
+    for (const pz of [Math.ceil(ni), Math.floor(no)]) b.box(ax, y + 1, pz, ax, y + 5, pz, snow ? B.ICE : B.SANDSTONE);
+    b.box(ax, y + 6, Math.floor(no), ax, y + 6, Math.ceil(ni), c);
+  }
+  // a small grandstand behind the north wall
+  const gz = z - OUT - 2;
+  for (let k = 0; k < 3; k++) b.box(x - 12, y + 1, gz - k, x + 12, y + 1 + k, gz - k, (_X, Y) => (Y === y + 1 + k ? (snow ? B.WOOL_BLUE : B.WOOL_RED) : B.PLANKS));
+  for (const lx of [x - 13, x + 13]) { b.stamp(lx, y + 1, gz, post); b.stamp(lx, y + 2, gz, B.LANTERN); }
+  // the infield: a pit box with a chest, and the track's own scenery
+  b.box(x - 4, y, z - 2, x + 4, y, z + 2, B.COBBLE);
+  b.stamp(x + 4, y + 1, z + 2, B.CHEST);
+  const inner = R - W / 2 - 3; // room inside the bends
+  if (snow) {
+    // pine trees and snowmen in the infield and round the outside
+    const pine = (px: number, pz: number, h: number) => {
+      for (let i = 1; i <= h; i++) b.stamp(px, y + i, pz, B.PINE_LOG);
+      for (let l = 0; l < 3; l++) { const r = 2 - Math.floor(l * 0.7), yy = y + h - 1 + l; for (let ddx = -r; ddx <= r; ddx++) for (let ddz = -r; ddz <= r; ddz++) if (Math.abs(ddx) + Math.abs(ddz) <= r + 0 && !(ddx === 0 && ddz === 0 && l < 2)) b.stamp(px + ddx, yy, pz + ddz, B.PINE_LEAVES); }
+      b.stamp(px, y + h + 2, pz, B.PINE_LEAVES);
+    };
+    const snowman = (px: number, pz: number) => { b.stamp(px, y + 1, pz, B.SNOW); b.stamp(px, y + 2, pz, B.SNOW); b.stamp(px, y + 3, pz, B.WOOL_RED); };
+    for (const px of [x - HALF - inner / 2, x + HALF + inner / 2]) pine(Math.round(px), z, 4);
+    for (let fx = x - HALF + 2; fx <= x + HALF - 2; fx += 6) snowman(fx, z + (fx % 12 === 0 ? -5 : 5));
+    for (const [px, pz] of [[X0 + 2, Z1 - 2], [X1 - 2, Z1 - 2], [X0 + 2, Z0 + 3], [X1 - 2, Z0 + 3]]) pine(px, pz, 5);
+  } else {
+    // a little stepped pyramid, cacti and palms
+    for (let k = 0; k < 4; k++) b.box(x - 10 + k, y + 1 + k, z - 3 + k, x - 4 - k, y + 1 + k, z + 3 - k, B.SANDSTONE);
+    b.stamp(x - 7, y + 5, z, B.GOLD_TILE);
+    const cactus = (px: number, pz: number, h: number) => { for (let i = 1; i <= h; i++) b.stamp(px, y + i, pz, B.CACTUS); };
+    for (let fx = x + 6; fx <= x + HALF - 2; fx += 5) { cactus(fx, z - 4, 2 + (fx & 1)); cactus(fx + 2, z + 4, 3 - (fx & 1)); }
+    for (const px of [x - HALF - inner / 2, x + HALF + inner / 2]) palm(b, Math.round(px), y, z, 5);
+    for (const [px, pz] of [[X0 + 2, Z1 - 2], [X1 - 2, Z1 - 2]]) palm(b, px, y, pz, 5);
+    for (const [px, pz] of [[X0 + 2, Z0 + 3], [X1 - 2, Z0 + 3]]) cactus(px, pz, 3);
+  }
+  return {
+    y: y + 1,
+    at: { centre: [x + 0.5, y + 1, z + 0.5], start: [x + 0.5, y + 1, z + R + 0.5], stand: [x + 0.5, y + 1, gz + 0.5], entry: [x + 2.5, y + 1, z + 5.5] } as Record<string, [number, number, number]>,
+  };
+}
 
 export const landmarkIds = () => SPECS().filter(s => !s.ghost).map(s => s.id);
 

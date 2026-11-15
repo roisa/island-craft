@@ -80,3 +80,43 @@ describe('the big races at set times', () => {
   });
   it('has prizes for six racers', () => { expect(PRIZE.length).toBeGreaterThanOrEqual(6); });
 });
+
+import { TRACKS, rollPower } from '../../src/game/track';
+describe('the three tracks (big circuit, Snow, Desert)', () => {
+  for (const tk of Object.values(TRACKS)) {
+    it(`${tk.kind}: the centre line and lanes are on the track, and progress matches`, () => {
+      for (let s = 0.5; s < tk.LAP - 0.5; s += 1.1) {
+        const p = tk.pointAt(s); expect(tk.cellKind(p.x, p.z), `${tk.kind} s ${s.toFixed(1)}`).toBe('track');
+        expect(tk.progressOf(p.x, p.z)).toBeCloseTo(s, 4);
+        for (const lane of [-2.8, 2.8]) { const q = tk.pointAt(s, lane); expect(tk.cellKind(q.x, q.z)).toBe('track'); }
+      }
+    });
+    it(`${tk.kind}: boxes, ramp and boosts lie on the lap, the ramp on a straight, hazards leave a way round`, () => {
+      for (const s of tk.boxRows) { expect(s).toBeGreaterThan(0); expect(s).toBeLessThan(tk.LAP); }
+      for (const r of tk.ramps) { const a = tk.pointAt(r.s), b = tk.pointAt(r.s + r.len); expect(Math.abs(a.yaw - b.yaw)).toBeLessThan(1e-9); expect(tk.onRamp(r.s + 0.5, 0)).toBe(true); }
+      for (const b of tk.boosts) expect(tk.onBoost(b.s + 1, 0)).toBe(true);
+      // a mystery box is never on a hazard, a ramp or a boost pad
+      for (const s of tk.boxRows) for (const lane of [-2.8, 0, 2.8]) { expect(tk.patchAt(s, lane)).toBeNull(); expect(tk.onRamp(s, lane)).toBe(false); }
+      // the ramp is not on a boost pad or a hazard
+      for (const r of tk.ramps) for (let d = 0; d <= r.len; d += 0.5) { expect(tk.onBoost(r.s + d, 0)).toBe(false); expect(tk.patchAt(r.s + d, 0)).toBeNull(); }
+      // wherever there is a patch, part of the track's width is clear of it
+      for (const p of tk.patches) expect(p.lane1 - p.lane0).toBeLessThan(tk.W);
+      expect(tk.patches.length > 0).toBe(tk.kind !== 'main');
+    });
+  }
+  it('the big circuit keeps its old shape (saved worlds)', () => {
+    expect([TRACKS.main.half, TRACKS.main.R, TRACKS.main.W]).toEqual([26, 14, 9]);
+  });
+});
+
+describe('mystery boxes', () => {
+  const count = (place: number) => { const c: Record<string, number> = {}; for (let i = 0; i < 1000; i++) { const p = rollPower(place, 6, (i + 0.5) / 1000); c[p] = (c[p] || 0) + 1; } return c; };
+  it('every power-up can come out', () => {
+    expect(Object.keys(count(6)).sort()).toEqual(['banana', 'magnet', 'rocket', 'shield', 'star']);
+  });
+  it('the one at the back gets more rockets and stars, the leader more bananas', () => {
+    const first = count(1), last = count(6);
+    expect((last.rocket || 0) + (last.star || 0)).toBeGreaterThan((first.rocket || 0) + (first.star || 0) + 200);
+    expect(first.banana || 0).toBeGreaterThan(last.banana || 0);
+  });
+});

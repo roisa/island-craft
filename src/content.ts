@@ -72,6 +72,8 @@ export interface Stats {
   hydr?: import('./game/thirst').Hydration;
   /** go-kart races started and won, and the best time (seconds) */
   races?: number; raceWins?: number; raceBest?: number;
+  /** saw the mystery-box tip; wins on each track (main / snow / desert) */
+  raceBoxes?: number; raceCups?: Record<string, number>;
   /** tennis matches with Baby Mo: played, won, and the longest rally */
   tennis?: number; tennisWins?: number; tennisRally?: number;
   /** fruit picked in the orchard, growing back: [x, y, z, block, when] */

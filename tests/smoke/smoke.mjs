@@ -506,6 +506,44 @@ async function run(name) {
       if (!r.active || r.parked !== 0 || r.karts !== 6) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('Snow and Desert tracks: a mystery box gives a power-up, a banana spins a racer, ice and sand, three laps to the finish', async () => {
+      const out = {};
+      for (const kind of ['snow', 'desert']) {
+        await g(k => { const G = __game, r = G.races.find(r => r.kind === k); G.ui.closeAllModals(); G.player.pos.set(r.cx + 2, r.y + 1, r.cz + 4); G.player.vel.set(0, 0, 0); }, kind);
+        for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+        await g(k => { const G = __game; G.ui.closeAllModals(); G.races.find(r => r.kind === k).start(); }, kind);
+        await p.waitForFunction(k => __game.races.find(r => r.kind === k).phase === 'go' || (__game.ui.closeAllModals(), false), kind, { timeout: 30000, polling: 200 });
+        const r = await p.evaluate(async k => {
+          const G = __game, R = G.races.find(r => r.kind === k), wait = ms => new Promise(res => setTimeout(res, ms)), me = R.karts[0];
+          const res = { race: G.race === R, laps: 3 };
+          // drive into the first mystery box: a power-up comes out after its little spin
+          const box = R.boxes[1]; me.x = box.mesh.position.x; me.z = box.mesh.position.z;
+          for (let i = 0; i < 50 && !R.item; i++) await wait(100); // (the box spins a moment first)
+          res.item = R.item; res.btn = !document.querySelector('#raceItem').classList.contains('hidden');
+          // a banana dropped right in front of a racer makes it spin
+          R.item = 'banana'; R.useItem();
+          const other = R.karts[2], peel = R.peels[0]; peel.x = other.x; peel.z = other.z; peel.mesh.position.set(other.x, peel.mesh.position.y, other.z);
+          await wait(400);
+          res.spun = (other.spin ?? 0) > 0;
+          // the track's own hazard is under the wheels here
+          const pt = R.tk.patches[0], q = R.tk.pointAt(pt.s + pt.len / 2, (pt.lane0 + pt.lane1) / 2);
+          res.patch = !!R.tk.patchAt(R.tk.progressOf(q.x, q.z), R.tk.laneOf(q.x, q.z));
+          // nearly at the end of lap 3: the finish
+          R.total = 3 * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 0.6;
+          for (let i = 0; i < 40 && R.phase !== 'done'; i++) await wait(100);
+          res.done = R.phase === 'done';
+          res.dialog = (document.querySelector('.veil.on .who')?.textContent || '').slice(0, 40);
+          return res;
+        }, kind);
+        await g(() => { const G = __game; G.ui.closeAllModals(); });
+        const after = await g(k => { const R = __game.races.find(r => r.kind === k); return { active: R.active, boxes: R.boxes.length, item: R.item }; }, kind);
+        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes) throw new Error(JSON.stringify({ kind, r, after }));
+        out[kind] = { ...r, ...after };
+      }
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return out;
+    });
     await step('tennis: real court; menu; a drill shot, a serve into the box, and a game that can be left', async () => {
       const ok = await g(() => !!__game.gen.landmarks.find(l => l.id === 'tennis'));
       if (!ok) throw new Error('no tennis court in this world');

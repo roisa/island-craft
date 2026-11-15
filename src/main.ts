@@ -56,7 +56,7 @@ import { Deeds } from './game/deeds';
 import { Thirst, thirstSpeed } from './game/thirst';
 import { FishCoach } from './game/fishcoach';
 import { Fishers } from './game/fishers';
-import { Race } from './game/race';
+import { Race, TRACK_ID } from './game/race';
 import { Tennis } from './game/tennis';
 import { Archery } from './game/archery';
 import { Basketball, Soccer } from './game/sports';
@@ -199,7 +199,13 @@ export class Game {
   /** the villagers at the fishing pond (and where it is) */
   fishers: Fishers | null = null;
   /** go-kart races at the race track */
-  race: Race | null = null;
+  /** the race tracks: the big circuit, and the Snow and Desert tracks */
+  races: Race[] = [];
+  /** the race you're in, else the track you're at, else the big circuit */
+  get race(): Race | null {
+    const p = this.player?.pos;
+    return this.races.find(r => r.active) ?? (p ? this.races.find(r => r.near(p)) : undefined) ?? this.races[0] ?? null;
+  }
   /** tennis with Baby Mo at the tennis court */
   tennis: Tennis | null = null;
   /** places to play at: archery, basketball & football, the horse course, the ice rink */
@@ -446,8 +452,10 @@ export class Game {
     this.beacons = new Beacons(this.scene, this.sites);
     const fp = this.gen.landmarks.find(l => l.id === 'fish_pond');
     if (fp?.at?.spot) this.fishers = new Fishers(this, fp);
-    const rt = this.gen.landmarks.find(l => l.id === 'race_track');
-    if (rt?.at?.centre) this.race = new Race(this, rt);
+    for (const kind of ['main', 'snow', 'desert'] as const) {
+      const rt = this.gen.landmarks.find(l => l.id === TRACK_ID[kind]);
+      if (rt?.at?.centre) this.races.push(new Race(this, rt, kind));
+    }
     const tc = this.gen.landmarks.find(l => l.id === 'tennis');
     if (tc?.at?.centre) this.tennis = new Tennis(this, tc);
     const ar = this.gen.landmarks.find(l => l.id === 'archery');
@@ -730,7 +738,7 @@ export class Game {
     if (Math.random() < 0.15) this.fx.sparkle(f.x, f.y + 1.2, f.z, 1, 0x9a9a9a, 0.5);
   }
   /** the fun places you can go to straight away from the map (the ones that exist in this world) */
-  funPlaces() { return ['fish_pond', 'race_track', 'camp', 'tennis', 'orchard', 'archery', 'sports', 'horse_farm', 'ice_rink'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
+  funPlaces() { return ['fish_pond', 'race_track', 'snow_track', 'desert_track', 'camp', 'tennis', 'orchard', 'archery', 'sports', 'horse_farm', 'ice_rink'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
   /** quick travel to a place's entry point, with Baby Mo */
   goPlace(id: string) {
     if (id === 'fish_pond') return this.goToPond();
@@ -967,7 +975,7 @@ export class Game {
     this.ui.showFishHelp(rod || nearWater);
     this.ui.showBoat(nearWater && !this.fun.riding);
     this.ui.showRace(!!this.race?.near(p.pos) && !this.race.active && !this.fun.riding);
-    this.race?.idle(p.pos);
+    for (const r of this.races) r.idle(p.pos);
     this.ui.showTennis(!!this.tennis?.near(p.pos) && !this.tennis.active && !this.fun.riding && !this.race?.active);
     // the button of the place you're at (archery, basketball, horses, ice rink)
     const free = !this.playing && !this.fun.riding && !this.race?.active && !this.tennis?.active;
@@ -1081,6 +1089,8 @@ export class Game {
     if (code === 'Escape') { if (this.ui.isOpen()) { this.ui.closeModal(); this.ui.closeBook(); } return; }
     if (this.paused) { if (code === 'KeyE') this.ui.closeBook(); return; }
     if (code.startsWith('Digit')) { const n = +code.slice(5); if (n >= 1 && n <= 9) { this.inv.sel = n - 1; this.ui.refreshHotbar(); this.ui.flashHeld(); } }
+    // in a race, Space or F uses the power-up from a mystery box
+    if ((code === 'Space' || code === 'KeyF') && this.race?.active) { this.race.useItem(); return; }
     if (code === 'KeyE' || code === 'KeyI') this.ui.openBook('bag');
     if (code === 'KeyL' || code === 'KeyB') this.ui.openBook('letters');
     if (code === 'KeyQ') this.ui.openBook('quests');
@@ -1136,7 +1146,7 @@ export class Game {
     this.fishCoach?.update(dt);
     this.fishers?.update(dt, t);
     this.english?.update(dt);
-    this.race?.tick(dt, this.hour);
+    for (const r of this.races) r.tick(dt, this.hour);
     for (const a of this.activities) a.idle?.(dt, t);
     this.iqro?.update(dt);
     this.campfireTick(dt);
