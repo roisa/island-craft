@@ -81,6 +81,7 @@ export class UI {
   <div id="raceMath" class="hidden"></div>
   <div id="phraseCard" class="pill moHost hidden"><img class="moPeek" src="img/baby-mo-idea-up.webp" alt=""><div><small class="pt"></small><b class="pe"></b><small class="pid"></small></div><button class="say" id="phSay" aria-label="Listen">${ic('speaker')}</button><button class="btn small gold" id="phSaid">⭐ <span></span></button><button class="phx" id="phX" aria-label="Close">✕</button></div>
   <div id="wordCard" class="pill hidden"><span class="wi"></span><div><b class="we"></b><small class="wid"></small></div><button class="say" id="wordSay" aria-label="Listen">${ic('speaker')}</button></div>
+  <div id="actChoices" class="hidden"></div>
   <div id="actHud" class="pill hidden"><span id="actT"></span><button class="btn small ghost" id="actX">${tr('Keluar', 'Exit')}</button></div>
   <div id="meter" class="hidden"><div class="mz"></div><div class="mk"></div><small id="meterL"></small></div>
   <div id="dzikir" class="pill hidden"><b class="dar" lang="ar" dir="rtl"></b><div><b class="dsay"></b><small class="dmean"></small></div></div>
@@ -267,7 +268,7 @@ export class UI {
   }
   updateMoHi() {
     const g = this.g, el = $('#moHi'), mo = g.ents?.mo;
-    let show = !!mo && !g.stats.talked.mo && !this.modals.length && !g.paused && !g.race?.active; // (not while racing)
+    let show = !!mo && !g.stats.talked.mo && !this.modals.length && !g.paused && !g.race?.active && !g.playing; // (not while racing or playing a game)
     if (show) {
       const v = this.hiV.set(mo.pos.x, mo.pos.y + mo.rig.height + 0.55, mo.pos.z);
       show = v.distanceTo(g.player.pos) < 14;
@@ -406,6 +407,21 @@ export class UI {
     if (!txt) { el.classList.add('hidden'); this.actShown = ''; return; }
     if (txt !== this.actShown) { this.actShown = txt; $('#actT').innerHTML = txt; }
     if (exit) ($('#actX') as HTMLElement).onclick = () => { SFX.click(); exit(); };
+    el.classList.remove('hidden');
+  }
+  /** big buttons along the bottom while playing (dive left / stay / dive right…); null hides them */
+  private choiceKey = '';
+  actChoices(items: { label: string; fn: () => void; on?: boolean }[] | null) {
+    const el = $('#actChoices');
+    if (!items) { if (this.choiceKey) { el.classList.add('hidden'); el.innerHTML = ''; this.choiceKey = ''; } return; }
+    const key = items.map(i => i.label + (i.on ? '*' : '')).join('|');
+    if (key === this.choiceKey) return;
+    this.choiceKey = key; el.innerHTML = '';
+    for (const it of items) {
+      const b = document.createElement('button'); b.className = 'pill' + (it.on ? ' on' : ''); b.innerHTML = it.label;
+      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); SFX.click(); it.fn(); };
+      el.appendChild(b);
+    }
     el.classList.remove('hidden');
   }
   /** a timing bar: the marker moves; tap when it's in the green part. null hides it */

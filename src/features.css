@@ -488,3 +488,10 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 @media (prefers-reduced-motion: reduce) { #raceItem.ready { animation: none; } }
 /* hijaiyah letters inside text (the race finish card) */
 .arTxt { font-family: "Scheherazade New", "Noto Naskh Arabic", serif; font-size: 1.5em; line-height: 1; font-weight: 700; color: #138a4c; }
+/* big choice buttons along the bottom while playing (the stadium: dive left / stay / dive right) */
+#actChoices { position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translateX(-50%); z-index: 9; display: flex; gap: 12px; pointer-events: auto; }
+#actChoices button { min-width: 96px; min-height: 64px; padding: 8px 14px; border-radius: 22px !important; font-size: 17px; font-weight: 900; color: #1c2a3a; display: grid; place-items: center; line-height: 1.1; }
+#actChoices button b { font-size: 30px; display: block; }
+#actChoices button.on { box-shadow: 0 0 0 4px #ffd23f, 0 10px 26px -10px rgba(0,0,0,.5) !important; }
+@media (max-height: 500px) { #actChoices { bottom: calc(66px + var(--safe-b)); } #actChoices button { min-height: 54px; min-width: 84px; font-size: 14px; } #actChoices button b { font-size: 24px; } }
+body.acting #crosshair, body.acting #target, body.acting #mineRing { display: none !important; }

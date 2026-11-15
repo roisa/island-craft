@@ -57,6 +57,7 @@ import { Thirst, thirstSpeed } from './game/thirst';
 import { FishCoach } from './game/fishcoach';
 import { Fishers } from './game/fishers';
 import { Race, TRACK_ID } from './game/race';
+import { Stadium } from './game/stadium';
 import { Tennis } from './game/tennis';
 import { Archery } from './game/archery';
 import { Basketball, Soccer } from './game/sports';
@@ -466,6 +467,8 @@ export class Game {
     if (hf?.at?.track) this.activities.push(new HorseFarm(this, hf));
     const ir = this.gen.landmarks.find(l => l.id === 'ice_rink');
     if (ir?.at?.rink) this.activities.push(new IceRink(this, ir));
+    const sd = this.gen.landmarks.find(l => l.id === 'stadium');
+    if (sd?.at?.goal) this.activities.push(new Stadium(this, sd));
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -738,7 +741,7 @@ export class Game {
     if (Math.random() < 0.15) this.fx.sparkle(f.x, f.y + 1.2, f.z, 1, 0x9a9a9a, 0.5);
   }
   /** the fun places you can go to straight away from the map (the ones that exist in this world) */
-  funPlaces() { return ['fish_pond', 'race_track', 'snow_track', 'desert_track', 'camp', 'tennis', 'orchard', 'archery', 'sports', 'horse_farm', 'ice_rink'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
+  funPlaces() { return ['fish_pond', 'race_track', 'snow_track', 'desert_track', 'camp', 'tennis', 'orchard', 'archery', 'sports', 'horse_farm', 'ice_rink', 'stadium'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
   /** quick travel to a place's entry point, with Baby Mo */
   goPlace(id: string) {
     if (id === 'fish_pond') return this.goToPond();
@@ -979,6 +982,8 @@ export class Game {
     this.ui.showTennis(!!this.tennis?.near(p.pos) && !this.tennis.active && !this.fun.riding && !this.race?.active);
     // the button of the place you're at (archery, basketball, horses, ice rink)
     const free = !this.playing && !this.fun.riding && !this.race?.active && !this.tennis?.active;
+    // while playing a game (the stadium, a race…) the crosshair and the name of the block under it are hidden
+    document.body.classList.toggle('acting', !!this.playing || !!this.race?.active || !!this.tennis?.active);
     const here = free ? this.activities.find(a => a.near(p.pos)) : undefined;
     if (here) { const [icon, label] = here.button(); this.ui.showPlay({ icon, label: (this.full || allowed(false, here.id) ? '' : '🔒 ') + label, fn: () => { if (this.can(here.id)) here.open(); } }); } else this.ui.showPlay(null);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();

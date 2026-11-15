@@ -670,6 +670,48 @@ async function run(name) {
       if (!/10:00/.test(r.btn) || r.open || r.watching < 8) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('Mini Stadium: the ⚽ button; a penalty (aim, power, kick); in goal (dive); penalty school; keepy-uppy', async () => {
+      await g(() => { const G = __game, S = G.activities.find(a => a.id === 'stadium'); G.ui.closeAllModals(); G.player.pos.set(S.centre.x + 3, S.centre.y + 1, S.centre.z + 2); G.player.vel.set(0, 0, 0); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => document.querySelector('#bPlay .mi')?.textContent === '⚽' || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      const r = await p.evaluate(async () => {
+        const G = __game, S = G.activities.find(a => a.id === 'stadium'), wait = ms => new Promise(res => setTimeout(res, ms));
+        // (game time runs slower than real time on a slow machine: wait up to 20 s)
+        const until = async (f, ms = 20000) => { for (let i = 0; i < ms / 100 && !f(); i++) { if (G.ui.modals.length && S.phase !== 'done') G.ui.closeAllModals(); await wait(100); } return f(); };
+        const out = {};
+        // you kick: aim, power in the green, the run-up and the kick, then the result
+        S.start('shoot'); G.ui.closeAllModals();
+        await wait(300); S.tap(); await wait(100);
+        S.pt = 0.5 / 1.05; S.tap(); // (the power bar right in the middle)
+        out.kicked = await until(() => S.myKicks.length === 1);
+        out.board = !!S.boardMesh;
+        S.quit();
+        // you in goal: Baby Mo runs up, you dive, the result
+        S.start('keep'); G.ui.closeAllModals();
+        await until(() => S.phase === 'moRun');
+        S.dive(Math.abs(S.moShot.x) < 0.3 ? 0 : S.moShot.x > 0 ? 1 : -1); // (the right way — or stay for one down the middle)
+        out.kept = await until(() => S.moKicks.length === 1); out.moShot = +S.moShot.x.toFixed(2);
+        out.saves = S.saves; out.choices = !document.querySelector('#actChoices').classList.contains('hidden');
+        S.quit();
+        out.choicesGone = document.querySelector('#actChoices').classList.contains('hidden');
+        // penalty school: skip through the lesson to the practice kicks
+        S.start('school'); G.ui.closeAllModals();
+        for (let i = 0; i < 40 && S.phase === 'script'; i++) { S.tap(); await wait(120); }
+        out.school = S.phase === 'aim' && S.mode === 'school'; out.schoolDone = G.stats.stadiumSchool;
+        S.quit();
+        // keepy-uppy: tap when the ball comes down to the foot
+        S.start('juggle'); G.ui.closeAllModals();
+        for (let i = 0; i < 3; i++) { await until(() => S.juggleBall.v < 0 && S.juggleBall.y < 0.8 && S.juggleBall.y > 0.2, 6000); S.tap(); await wait(150); }
+        out.juggles = S.juggles;
+        S.quit(); G.ui.closeAllModals();
+        out.after = { active: S.active, ball: S.ball.visible, mo: !!G.ents.mo.stand };
+        return out;
+      });
+      if (!r.kicked || !r.kept || r.saves !== 1 || !r.choices || !r.choicesGone || !r.school || r.juggles < 1 || r.after.active || r.after.ball || r.after.mo) throw new Error(JSON.stringify(r));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
     await step('sports park: a basket is added up, and a penalty kick at Baby Mo in goal', async () => {
       await goTo('sports');
       await g(() => { __game.ui.closeAllModals(); __game.activities.find(a => a.id === 'basketball').start(); });

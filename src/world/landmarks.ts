@@ -1142,6 +1142,66 @@ const SPECS = (): Spec[] => specs ??= [
     loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 2], [I.APPLE, 3]],
     build(b, x, y, z) { return buildCircuit(b, x, y, z, TRACKS.desert); },
   },
+  {
+    // a mini football stadium: a striped pitch with all its lines, two goals, stands on both sides,
+    // floodlights and a scoreboard (the nets, the ball and the score are drawn by the game)
+    id: 'stadium', icon: '🏟️', name: ['Stadion Mini', 'The Mini Stadium'], biomes: [Biome.MEADOW, Biome.BEACH, Biome.FOREST], relaxed: [Biome.MEADOW, Biome.BEACH, Biome.FOREST, Biome.DESERT, Biome.SNOWY], dist: [70, 260], r: 24, loose: true, clear: 24,
+    ok: c => c.h > SEA + 1 && c.h < SEA + 16,
+    hint: ['Ada stadion sepak bola mini dengan tribun dan lampu sorot. Ayo adu penalti dengan Baby Mo — jadi penendang atau kiper!', 'There’s a mini football stadium with stands and floodlights. Let’s have a penalty shootout with Baby Mo — be the kicker or the goalkeeper!'],
+    fact: ['Di Stadion Mini kamu bisa belajar penalti dari Baby Mo, menendang, menjadi kiper, adu penalti, dan menonton Baby Mo menggiring bola. Satu tim sepak bola punya 11 pemain di lapangan. Ucapkan Bismillah sebelum bermain dan Alhamdulillah sesudahnya!', 'At the Mini Stadium you can learn penalties from Baby Mo, take kicks, be the goalkeeper, play a shootout, and watch Baby Mo dribble. A football team has 11 players on the pitch. Say Bismillah before you play and Alhamdulillah after!'],
+    loot: [[I.GOLD_INGOT, 1], [B.LANTERN, 2], [I.APPLE, 3]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      const HX = 12, HZ = 18; // half the pitch: 24 wide, 36 long (the goals at the north and south ends)
+      foundation(b, x - HX - 7, z - HZ - 5, x + HX + 7, z + HZ + 5, y, B.DIRT);
+      b.box(x - HX - 7, y, z - HZ - 5, x + HX + 7, y, z + HZ + 5, B.GRASS);
+      b.box(x - HX - 7, y + 1, z - HZ - 5, x + HX + 7, y + 12, z + HZ + 5, B.AIR);
+      // the pitch: mown stripes and white lines
+      b.box(x - HX, y, z - HZ, x + HX, y, z + HZ, (X, _Y, Z) => {
+        const dx = X - x, dz = Z - z, ax = Math.abs(dx), az = Math.abs(dz);
+        const line =
+          ax === HX || az === HZ || dz === 0 ||                                   // touchlines, goal lines, halfway line
+          Math.abs(Math.hypot(dx, dz) - 4) < 0.5 ||                               // centre circle
+          (az >= HZ - 9 && ax === 7) || (az === HZ - 9 && ax <= 7) ||             // penalty boxes
+          (az >= HZ - 3 && ax === 4) || (az === HZ - 3 && ax <= 4) ||             // goal boxes
+          (ax === 0 && (az === HZ - 7 || az === 0));                              // penalty spots and the centre spot
+        if (line) return B.WOOL_WHITE;
+        return Math.floor((dz + HZ) / 3) % 2 === 0 ? B.WOOL_GREEN : B.GRASS;
+      });
+      // the goals: white posts and crossbar on each goal line (5 wide, 3 high inside)
+      for (const gz of [z - HZ, z + HZ]) {
+        for (const px of [x - 3, x + 3]) b.box(px, y + 1, gz, px, y + 3, gz, B.WOOL_WHITE);
+        b.box(x - 3, y + 4, gz, x + 3, y + 4, gz, B.WOOL_WHITE);
+      }
+      // stands on both long sides: four steps of red and blue seats (gaps in the middle to walk in)
+      for (const side of [-1, 1]) for (let k = 0; k < 4; k++) {
+        const X = x + side * (HX + 2 + k), seat = side < 0 ? B.WOOL_RED : B.WOOL_BLUE;
+        b.box(X, y + 1, z - HZ + 2, X, y + 1 + k, z - 2, (_X, Y) => (Y === y + 1 + k ? seat : B.PLANKS));
+        b.box(X, y + 1, z + 2, X, y + 1 + k, z + HZ - 2, (_X, Y) => (Y === y + 1 + k ? seat : B.PLANKS));
+      }
+      // floodlights at the four corners
+      for (const [lx, lz] of [[x - HX - 4, z - HZ - 3], [x + HX + 4, z - HZ - 3], [x - HX - 4, z + HZ + 3], [x + HX + 4, z + HZ + 3]]) {
+        b.box(lx, y + 1, lz, lx, y + 8, lz, B.BASALT);
+        b.box(lx - 1, y + 9, lz, lx + 1, y + 9, lz, B.LANTERN);
+      }
+      // the scoreboard wall behind the south goal, corner flags, and a chest by the dugout
+      b.box(x - 5, y + 2, z + HZ + 4, x + 5, y + 5, z + HZ + 4, B.BASALT);
+      b.box(x - 5, y + 1, z + HZ + 4, x + 5, y + 1, z + HZ + 4, B.PLANKS);
+      for (const [fx, fz] of [[x - HX, z - HZ], [x + HX, z - HZ], [x - HX, z + HZ], [x + HX, z + HZ]]) { b.stamp(fx, y + 1, fz, B.OAK_LOG); b.stamp(fx, y + 2, fz, B.WOOL_YELLOW); }
+      b.stamp(x - HX - 1, y + 1, z, B.CHEST);
+      b.box(x - HX - 1, y + 1, z + 3, x - HX - 1, y + 1, z + 6, B.PLANKS);
+      return {
+        y: y + 1,
+        at: {
+          centre: [x + 0.5, y + 1, z + 0.5],
+          goal: [x + 0.5, y + 1, z - HZ + 0.5], spot: [x + 0.5, y + 1, z - HZ + 7.5],
+          board: [x + 0.5, y + 3.5, z + HZ + 3.45],
+          stands: [x + 0.5, y + 1, z + 0.5],
+          entry: [x + 0.5, y + 1, z + 1.5],
+        },
+      };
+    },
+  },
 ];
 
 /**

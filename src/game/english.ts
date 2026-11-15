@@ -191,7 +191,7 @@ export class English {
   private scanT = 0; private bornAt = performance.now(); private wasGround = true;
   constructor(private g: Game) { }
   private get on() { return this.g.settings.english !== false; }
-  private busy() { const g = this.g; return g.ui.isOpen() || !!g.race?.active || !!g.tennis?.active || !!g.jamaah || g.kid.tutorialActive(); }
+  private busy() { const g = this.g; return g.ui.isOpen() || !!g.race?.active || !!g.tennis?.active || !!g.playing || !!g.jamaah || g.kid.tutorialActive(); }
 
   /** show the word card and say it in English; it goes into "My English Words" */
   show(w: Word, force = false) {

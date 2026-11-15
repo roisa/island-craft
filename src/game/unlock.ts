@@ -10,7 +10,7 @@ export const FULL_ID = 'com.babymo.islandcraft.full';
 /** how many letters can be found without Full BabyMo Craft */
 export const FREE_LETTERS = 7;
 /** the places and games that need Full BabyMo Craft (activity ids and landmark ids) */
-export const LOCKED = new Set(['tennis', 'archery', 'basketball', 'soccer', 'horses', 'skating', 'sports', 'horse_farm', 'ice_rink', 'snow_track', 'desert_track']);
+export const LOCKED = new Set(['tennis', 'archery', 'basketball', 'soccer', 'horses', 'skating', 'sports', 'horse_farm', 'ice_rink', 'snow_track', 'desert_track', 'stadium']);
 
 export type Feature = 'letter' | 'iqro' | 'exam' | string;
 

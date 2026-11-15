@@ -5,6 +5,74 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The Mini Stadium ⚽🏟️
+
+Asked by a parent: a mini football stadium where Ibra can be the goalkeeper or
+the kicker in a penalty game. It should be as fun as possible and teach
+something, with Baby Mo showing cool dribbling and a live penalty tutorial,
+and motion that works well.
+- **The stadium**, a new place in every world (added at the end, so nothing
+  else moves):
+  - a striped pitch with all its lines (centre circle, boxes, penalty spots);
+  - two goals with **nets that billow** when the ball goes in;
+  - red and blue **stands with a crowd** that jumps and cheers;
+  - floodlights;
+  - a **live scoreboard** that shows the score and ● ○ for each shootout kick.
+- **🎓 Penalty school:** a little film with Baby Mo in 7 steps, with set
+  camera shots and slow motion:
+  1. Ball on the spot (11 m on a big pitch).
+  2. Pick a corner: bottom corners are hardest to save.
+  3. Step back, stay calm, Bismillah.
+  4. Run up and plant your foot beside the ball.
+  5. Kick with the inside of your foot and follow through (GOAL!).
+  6. How a goalkeeper gets ready and dives.
+  7. Your turn: 3 practice kicks.
+
+  Tapping skips ahead.
+- **⚽ Take penalties:**
+  1. A yellow aim moves round the goal in a figure of eight, or the joystick
+     steers it. Tap to pick the spot.
+  2. Tap the power bar in the green. Too hard flies over the bar; too soft is
+     slow and easy to save.
+  3. Ibra runs up and kicks. Baby Mo dives. The last part goes into slow
+     motion with the camera following the ball.
+
+  Results: goal (net billows, crowd, confetti, camera shake), saved, off the
+  post, wide or over.
+- **🧤 Be the goalkeeper:**
+  - Baby Mo walks back and runs up, and **his body leans the way he'll
+    shoot**: a real keeper's tip.
+  - In the first games an arrow over his head shows the lean.
+  - Dive with the big ⬅️ / 🧤 / ➡️ buttons (or the joystick, or A/D). The
+    ball comes in slow motion.
+- **🏆 Shootout against Baby Mo:** 5 kicks each, kick then keep. It ends early
+  when one side can't catch up, with sudden death if it's level.
+- **✨ Skills show:** Baby Mo dribbles through cones with small touches, does
+  a step-over, and does 10 keepy-uppies counted out loud. Then Ibra tries
+  **keepy-uppy**: tap when the ring turns green as the ball comes down, and
+  each touch is counted (in Indonesian, with the English word too). Best score
+  is saved.
+- **Learning:**
+  - football facts between kicks and on the result card (11 players, only
+    the keeper uses hands, 2 × 45 minutes, inside of the foot, fair play,
+    Bismillah and Alhamdulillah, drink water, …);
+  - counting the keepy-uppies;
+  - fair play when Baby Mo wins ("let's shake hands").
+- **Coins:** 10 a goal or a save, 50 extra for winning a shootout, 2 per
+  keepy-uppy.
+- The stadium is in Full BabyMo Craft, like the sports park.
+- While playing a game, the crosshair, the block name, the 👋 Hi! button and
+  the English sentence card stay out of the way.
+- Tested:
+  - 266 unit tests. New: where a penalty goes (aim, power, over, wide, post),
+    when Baby Mo or you save it, when a shootout is decided, and the facts in
+    both languages. The stadium is in every test world.
+  - New smoke step: the ⚽ button; a full penalty; Baby Mo's kick saved by
+    diving the right way; the school played through to the practice kicks;
+    3 keepy-uppies; everything cleaned up after.
+  - Screenshots of every mode, with the camera shots fixed where something
+    was in the way.
+
 ### Fix: pick-ups and bananas on slow phones 🍌
 
 - The online test run failed once on the Snow track: a racer drove right past
