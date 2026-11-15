@@ -74,6 +74,8 @@ export interface Stats {
   races?: number; raceWins?: number; raceBest?: number;
   /** saw the mystery-box tip; wins on each track (main / snow / desert) */
   raceBoxes?: number; raceCups?: Record<string, number>;
+  /** how many races finished: which four hijaiyah letters the next race brings */
+  raceAbc?: number;
   /** tennis matches with Baby Mo: played, won, and the longest rally */
   tennis?: number; tennisWins?: number; tennisRally?: number;
   /** fruit picked in the orchard, growing back: [x, y, z, block, when] */

@@ -12,9 +12,13 @@ import { buildBlocky, type BlockyOpts } from './blocky';
 import { applyPrayerPose, type Rig } from './models';
 import { SFX, Speech } from './audio';
 import { getLang } from '../i18n';
-import { TRACKS, ranking, rollPower, POWER_ICON, POWER_NAME, type Track, type TrackKind, type PowerUp } from './track';
+import { TRACKS, LAPS_FOR, letterSet, letterSpots, ranking, rollPower, POWER_ICON, POWER_NAME, type Track, type TrackKind, type PowerUp } from './track';
+import { LETTERS } from '../world/blocks';
+import { playLetter } from './audio';
+import { FREE_LETTERS } from './unlock';
 
-export const LAPS = 3;
+/** laps on the big circuit (the Snow track has 5) */
+export const LAPS = LAPS_FOR.main;
 export const PRIZE = [100, 60, 40, 30, 25, 20];
 /** the big races of the day, by the game clock: a notice comes a little before, and villagers come to watch */
 export const RACE_TIMES = [10, 16];
@@ -213,7 +217,58 @@ export class Race {
     Speech.talk(getLang() === 'en' ? line.say[1] : line.say[0], getLang(), true, 1);
   }
   /** where you are on the track: laps done and metres into this one */
-  get lap() { return Math.min(LAPS, Math.floor(Math.max(0, this.total) / this.tk.LAP) + 1); }
+  get lap() { return Math.min(this.laps, Math.floor(Math.max(0, this.total) / this.tk.LAP) + 1); }
+  /** how many laps this track's races have (about a minute of racing) */
+  get laps() { return LAPS_FOR[this.kind]; }
+
+  // ---------- hijaiyah letters on the track ----------
+  /** this race's four letters (indices into LETTERS): ا ب ت ث first, then ج ح خ د … round and round */
+  set: number[] = [0, 1, 2, 3];
+  /** letters picked up this race, and how many of each */
+  read = 0; private readEach: number[] = [0, 0, 0, 0];
+  private letters: { s: number; lane: number; slot: number; mesh: THREE.Object3D; taken: boolean }[] = [];
+  private static letterMats = new Map<number, THREE.MeshLambertMaterial>();
+  /** a green letter tile like the ones at the letter shrines, with the letter in white */
+  private letterMat(i: number) {
+    let m = Race.letterMats.get(i);
+    if (m) return m;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d')!;
+    const gr = x.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#3ccf7e'); gr.addColorStop(1, '#138a4c');
+    x.fillStyle = gr; x.beginPath(); x.roundRect(4, 4, 120, 120, 22); x.fill();
+    x.strokeStyle = '#ffd23f'; x.lineWidth = 8; x.stroke();
+    // the letter, centred by its real ink box (dots included)
+    const g = LETTERS[i].g, FONT = '"Scheherazade New","Noto Naskh Arabic","Amiri",serif';
+    x.direction = 'rtl'; x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.font = `700 84px ${FONT}`;
+    const mt = x.measureText(g), iw = mt.actualBoundingBoxLeft + mt.actualBoundingBoxRight, ih = mt.actualBoundingBoxAscent + mt.actualBoundingBoxDescent;
+    x.fillStyle = '#fff'; x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 6;
+    x.fillText(g, (128 - iw) / 2 + mt.actualBoundingBoxLeft, (128 - ih) / 2 + mt.actualBoundingBoxAscent);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    m = new THREE.MeshLambertMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35 });
+    Race.letterMats.set(i, m);
+    return m;
+  }
+  private layLetters() {
+    this.clearLetters();
+    const geo = new THREE.BoxGeometry(1.7, 1.7, 0.24); // (big enough to read at speed)
+    for (const sp of letterSpots(this.tk, Math.round(this.tk.LAP / 17), Math.random)) {
+      const mesh = new THREE.Mesh(geo, this.letterMat(this.set[sp.slot])), p = this.tk.pointAt(sp.s, sp.lane);
+      mesh.position.set(this.cx + p.x, this.y + 1.4, this.cz + p.z); mesh.rotation.y = p.yaw + Math.PI; // (it faces you as you come)
+      this.g.scene.add(mesh); this.letters.push({ ...sp, mesh, taken: false });
+    }
+  }
+  private clearLetters() { for (const l of this.letters) this.g.scene.remove(l.mesh); this.letters = []; }
+  /** you drove through a letter: say it, show it big, and a green turbo! */
+  private readLetter(slot: number, at: THREE.Vector3) {
+    const g = this.g, i = this.set[slot], L = LETTERS[i];
+    this.read++; this.readEach[slot]++;
+    this.boostT = Math.max(this.boostT, 1.6); this.letterZoom = 1.6;
+    g.fx.sparkle(at.x, at.y, at.z, 16, 0x3ccf7e, 2.4);
+    playLetter(i, L.ar, L.name);
+    if (this.sum) this.flushSum();
+    g.ui.raceMath(`${L.g}  ${L.name}`);
+  }
+  private letterZoom = 0;
 
   // ---------- mystery boxes, power-ups, the ramp and the track's own surprises ----------
   /** the power-up you're holding (tap 🚀 / Space to use it), and the one being rolled in the box */
@@ -320,6 +375,12 @@ export class Race {
     this.got = 0; this.sum = null; this.boostT = 0; this.layCoins(1);
     this.rocketT = this.starT = this.shieldT = this.magnetT = this.hopT = this.hop = 0; this.bannerT = 0; this.lastPlace = 0; this.calloutAt = -9;
     this.layTrack();
+    this.set = letterSet(g.stats.raceAbc ?? 0, g.full ? LETTERS.length : FREE_LETTERS);
+    this.read = 0; this.readEach = [0, 0, 0, 0];
+    // (the Arabic font may still be loading the very first time: draw the tiles again once it's there)
+    const FONT = '700 84px "Scheherazade New"';
+    if (document.fonts && !document.fonts.check(FONT)) void document.fonts.load(FONT).then(() => { Race.letterMats.clear(); if (this.active) this.layLetters(); });
+    this.layLetters();
     this.karts = grid.map(([s, lane], i) => {
       const d = i >= 2 ? DRIVERS[i - 2] : null;
       const color = KART_COLORS[i];
@@ -335,11 +396,14 @@ export class Race {
     g.ents.mo.seat = { pos: new THREE.Vector3(), yaw: 0 };
     this.place();
     SFX.click();
+    const abc = this.set.map(i => LETTERS[i].name).join(', '), abcAr = this.set.map(i => LETTERS[i].g).join(' ');
+    setTimeout(() => { if (this.active) g.ui.raceMath(abcAr); }, 400);
     const first = !g.stats.raceBoxes;
     const where = this.kind === 'snow' ? tr(' Hati-hati, es di tikungan licin! ❄️', ' Careful, the ice on the bends is slippery! ❄️') : this.kind === 'desert' ? tr(' Hindari pasir di tikungan dan bola rumput yang menggelinding! 🌵', ' Keep off the sand on the bends, and watch the rolling tumbleweeds! 🌵') : '';
-    g.ui.say(first ? tr('Setelah GO, gokartmu jalan sendiri — kamu tinggal belok. Lewati kotak ❓ untuk dapat kejutan, lalu ketuk tombolnya untuk memakainya! 3 putaran. Bismillah!', 'After GO your kart drives by itself — you just steer. Drive through the ❓ boxes for a surprise, then tap its button to use it! 3 laps. Bismillah!') + where
+    const letterLine = tr(` Huruf hari ini: ${abc}! Tabrak hurufnya untuk melesat 🟩`, ` Today’s letters: ${abc}! Drive through them to zoom 🟩`);
+    g.ui.say((first ? tr('Setelah GO, gokartmu jalan sendiri — kamu tinggal belok. Lewati kotak ❓ untuk dapat kejutan, lalu ketuk tombolnya untuk memakainya! Bismillah!', 'After GO your kart drives by itself — you just steer. Drive through the ❓ boxes for a surprise, then tap its button to use it! Bismillah!') + where
       : this.grand ? tr('Balapan besar! Warga desa menonton dari tribun. Hadiahnya dua kali lipat! Bismillah!', 'The big race! The villagers are watching from the grandstand. Double prizes! Bismillah!')
-        : tr(`Balapan di ${this.name}! 3 putaran, ambil kotak ❓ dan koin. Bismillah!`, `Racing on ${this.name}! 3 laps — grab the ❓ boxes and the coins. Bismillah!`) + where, 'idea', 7000);
+        : tr(`Balapan di ${this.name}! ${this.laps} putaran, ambil kotak ❓ dan koin. Bismillah!`, `Racing on ${this.name}! ${this.laps} laps — grab the ❓ boxes and the coins. Bismillah!`) + where) + letterLine, 'idea', 8000);
     g.stats.races = (g.stats.races || 0) + 1;
   }
 
@@ -408,10 +472,10 @@ export class Race {
     this.total += d; this.prevS = s;
     if (this.lap > lapBefore && this.total >= 0) {
       this.bannerT = 1.6; SFX.quest();
-      g.ui.raceCount(this.lap === LAPS ? tr('PUTARAN TERAKHIR!', 'FINAL LAP!') : `${tr('PUTARAN', 'LAP')} ${this.lap}`);
+      g.ui.raceCount(this.lap === this.laps ? tr('PUTARAN TERAKHIR!', 'FINAL LAP!') : `${tr('PUTARAN', 'LAP')} ${this.lap}`);
     }
     // the coins: pick them up (the 🧲 pulls them in), and add them up group by group
-    if (this.lap !== this.coinLap && this.total >= 0) { this.flushSum(); this.layCoins(this.lap); }
+    if (this.lap !== this.coinLap && this.total >= 0) { this.flushSum(); this.layCoins(this.lap); this.layLetters(); }
     for (const c of this.coins) {
       if (c.taken) continue;
       c.mesh.rotation.y += dt * 3;
@@ -426,6 +490,13 @@ export class Race {
       }
     }
     if (this.sum && this.t - this.sum.at > 0.9) this.flushSum();
+    // the hijaiyah letters: turning to face you; drive through one to hear it and zoom
+    for (const l of this.letters) {
+      if (l.taken) continue;
+      l.mesh.position.y = this.y + 1.4 + Math.sin(this.t * 3 + l.s) * 0.12;
+      if (Math.hypot(l.mesh.position.x - me.x, l.mesh.position.z - me.z) < 1.8 && this.hop < 1.4) { l.taken = true; l.mesh.visible = false; this.readLetter(l.slot, l.mesh.position); }
+    }
+    if (this.letterZoom > 0) { this.letterZoom -= dt; if (Math.random() < 0.6) g.fx.sparkle(me.x - Math.sin(me.yaw) * 1.1, this.y + 0.5 + this.hop, me.z - Math.cos(me.yaw) * 1.1, 2, 0x3ccf7e, 1.2); }
     // the mystery boxes: drive through one for a surprise (one power-up at a time); they come back after a while
     const order0 = this.order(), myPlace = order0.indexOf(0) + 1;
     for (const b of this.boxes) {
@@ -467,7 +538,7 @@ export class Race {
       if ((k.spin ?? 0) > 0) { k.spin! -= dt; pace = 3; }
       k.v += (pace - k.v) * Math.min(1, dt * 1.2);
       k.s += k.v * dt;
-      if (k.s >= LAPS * tk.LAP) k.done = this.t;
+      if (k.s >= this.laps * tk.LAP) k.done = this.t;
     }
     for (const k of this.karts.slice(1)) { const p = tk.pointAt(k.s, k.lane); k.x = this.cx + p.x; k.z = this.cz + p.z; k.yaw = p.yaw; }
     // bananas you dropped, and bumping racers with ⭐
@@ -478,8 +549,8 @@ export class Race {
     const order = this.order(), place = order.indexOf(0) + 1;
     // moving up a place: a cheer (not while a sum is being shown)
     if (place !== this.lastPlace) { if (this.lastPlace && place < this.lastPlace && !this.sum && this.t - this.calloutAt > 2.5 && this.t > 3) { this.calloutAt = this.t; SFX.pop(6); g.ui.raceMath(`⬆️ ${nthPlace(place)}!`); } this.lastPlace = place; this.placeAt = this.t; }
-    g.ui.raceHud({ lap: this.lap, laps: LAPS, place, of: this.karts.length, time: this.t, coins: this.got });
-    if (this.total >= LAPS * tk.LAP) this.finish(false);
+    g.ui.raceHud({ lap: this.lap, laps: this.laps, place, of: this.karts.length, time: this.t, coins: this.got, letters: this.read });
+    if (this.total >= this.laps * tk.LAP) this.finish(false);
     return true;
   }
 
@@ -511,7 +582,7 @@ export class Race {
     let ended = false;
     const end = () => {
       if (ended) return; ended = true;
-      this.clearCoins(); this.clearTrack();
+      this.clearCoins(); this.clearTrack(); this.clearLetters();
       for (const k of this.karts) g.scene.remove(k.obj);
       this.karts = []; this.active = false;
       g.ents.mo.seat = null;
@@ -520,6 +591,10 @@ export class Race {
       g.ents.mo.pos.set(this.cx + 3, this.y, this.cz + 4);
     };
     if (quit) { end(); g.ui.toast(tr('🏁 Keluar dari balapan', '🏁 Left the race'), 2500); return; }
+    // the next race brings the next four letters (round and round the alphabet)
+    st0.raceAbc = (st0.raceAbc ?? 0) + 1;
+    const letterLine = this.read ? `<br>🔤 ${this.set.map((i, k) => `<b class="arTxt">${LETTERS[i].g}</b>×${this.readEach[k]}`).join(' · ')} — ${tr(`kamu membaca <b>${this.read}</b> huruf!`, `you read <b>${this.read}</b> letters!`)}` : '';
+    const nextAbc = letterSet(st0.raceAbc, g.full ? LETTERS.length : FREE_LETTERS).map(i => LETTERS[i].g).join(' ');
     const got = this.got, coins = (PRIZE[place - 1] ?? 20) * (this.grand ? 2 : 1) + got;
     if (this.grand) st0.grandRaces = (st0.grandRaces || 0) + 1;
     const st = g.stats; st.raceBest = Math.min(st.raceBest ?? Infinity, time); if (place === 1) st.raceWins = (st.raceWins || 0) + 1;
@@ -533,7 +608,9 @@ export class Race {
       face: place === 1 ? cup : '🏁', who: `${tr('Garis finis', 'Finish line')} · ${this.name}`,
       text: (place === 1 ? tr(`<b>Kamu ${nth}!</b> Alhamdulillah! 🎉`, `<b>You came ${nth}!</b> Alhamdulillah! 🎉`) : tr(`<b>Kamu ${nth}!</b> Hebat, tetap semangat! Ayo beri selamat ke pemenangnya 🤝`, `<b>You came ${nth}!</b> Well driven! Let’s congratulate the winner 🤝`))
         + `<br>🪙 ${tr(`Kamu mengumpulkan <b>${got}</b> koin di lintasan!`, `You collected <b>${got}</b> coins on the track!`)}`
-        + `<br>⏱️ ${secs} ${tr('detik', 'seconds')} · ${tr('rekor', 'best')} ${st.raceBest!.toFixed(1)} · 🪙 +${coins}`,
+        + letterLine
+        + `<br>⏱️ ${secs} ${tr('detik', 'seconds')} · ${tr('rekor', 'best')} ${st.raceBest!.toFixed(1)} · 🪙 +${coins}`
+        + `<br>${tr('Balapan berikutnya', 'Next race')}: <b class="arTxt">${nextAbc}</b>`,
       buttons: [{ label: '🏁 ' + tr('Balapan lagi', 'Race again'), cls: 'gold', fn: () => { end(); setTimeout(() => this.start(), 300); } }, { label: tr('Selesai', 'Done'), fn: end }],
       onClose: end, // (closed any other way, e.g. Escape: the race still ends properly)
     });

@@ -145,3 +145,33 @@ export function rollPower(place: number, of: number, r: number): PowerUp {
   for (const [p, x] of w) { if ((t -= x) < 0) return p; }
   return w[w.length - 1][0];
 }
+
+// ---------- hijaiyah letters on the track ----------
+/** laps for each track: about a minute of racing on each */
+export const LAPS_FOR: Record<TrackKind, number> = { main: 4, snow: 5, desert: 4 };
+/**
+ * The four letters for race number k: race 0 is ا ب ت ث, race 1 is ج ح خ د … and after ي it starts
+ * again from ا. `n` is how many letters are open (28 with Full BabyMo Craft, 7 in the free part).
+ */
+export function letterSet(k: number, n = 28): number[] {
+  return [0, 1, 2, 3].map(j => (((k * 4 + j) % n) + n) % n);
+}
+/**
+ * Where the letters lie on one lap: `count` spots spread round the lap (a little randomness
+ * so they're never in the same places twice), each one of the four letters in turn, and never
+ * on the start line, a row of mystery boxes or the jump ramp. `rnd` gives numbers 0…1.
+ */
+export function letterSpots(tk: Track, count: number, rnd: () => number): { s: number; lane: number; slot: number }[] {
+  const out: { s: number; lane: number; slot: number }[] = [];
+  const clear = (s: number) => s > 6 && s < tk.LAP - 4 && !tk.boxRows.some(b => Math.abs(b - s) < 3.5) && !tk.ramps.some(r => s > r.s - 3 && s < r.s + r.len + 3);
+  const step = tk.LAP / count;
+  for (let i = 0; i < count; i++) {
+    for (let tries = 0; tries < 12; tries++) {
+      const s = i * step + (0.15 + rnd() * 0.7) * step;
+      if (!clear(s)) continue;
+      out.push({ s, lane: Math.round((rnd() * 6 - 3) * 10) / 10, slot: out.length % 4 });
+      break;
+    }
+  }
+  return out;
+}

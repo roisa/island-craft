@@ -120,3 +120,37 @@ describe('mystery boxes', () => {
     expect(first.banana || 0).toBeGreaterThan(last.banana || 0);
   });
 });
+
+import { letterSet, letterSpots, LAPS_FOR } from '../../src/game/track';
+describe('hijaiyah letters on the track', () => {
+  it('goes through the alphabet four letters a race, then starts again from alif', () => {
+    expect(letterSet(0)).toEqual([0, 1, 2, 3]);   // ا ب ت ث
+    expect(letterSet(1)).toEqual([4, 5, 6, 7]);   // ج ح خ د
+    expect(letterSet(6)).toEqual([24, 25, 26, 27]); // … ي
+    expect(letterSet(7)).toEqual([0, 1, 2, 3]);   // round again
+    // every letter comes once in the seven races of a round
+    expect(new Set([0, 1, 2, 3, 4, 5, 6].flatMap(k => letterSet(k))).size).toBe(28);
+  });
+  it('in the free part it loops through the first seven letters', () => {
+    const seen = [0, 1, 2, 3, 4, 5, 6].flatMap(k => letterSet(k, 7));
+    expect(Math.max(...seen)).toBe(6);
+    expect(letterSet(1, 7)).toEqual([4, 5, 6, 0]);
+  });
+  it('many letters a lap, all four of them, on the track and off the boxes, ramp and start line', () => {
+    let seed = 1; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (const tk of Object.values(TRACKS)) for (let lap = 0; lap < 5; lap++) {
+      const spots = letterSpots(tk, Math.round(tk.LAP / 17), rnd);
+      expect(spots.length, tk.kind).toBeGreaterThanOrEqual(8);
+      expect(new Set(spots.map(p => p.slot)).size).toBe(4);
+      for (const p of spots) {
+        const q = tk.pointAt(p.s, p.lane); expect(tk.cellKind(q.x, q.z)).toBe('track');
+        expect(tk.boxRows.every(b => Math.abs(b - p.s) >= 3.5)).toBe(true);
+        expect(tk.onRamp(p.s, 0)).toBe(false);
+        expect(p.s).toBeGreaterThan(6);
+      }
+    }
+  });
+  it('races last about a minute: more laps on the shorter track', () => {
+    for (const tk of Object.values(TRACKS)) { const metres = LAPS_FOR[tk.kind] * tk.LAP; expect(metres, tk.kind).toBeGreaterThan(700); expect(metres, tk.kind).toBeLessThan(900); }
+  });
+});

@@ -447,11 +447,11 @@ export class UI {
     clearTimeout(this.mathT); this.mathT = window.setTimeout(() => el.classList.add('hidden'), 2600);
   }
   private mathT = 0;
-  raceHud(r: { lap: number; laps: number; place: number; of: number; time: number; coins?: number } | null) {
+  raceHud(r: { lap: number; laps: number; place: number; of: number; time: number; coins?: number; letters?: number } | null) {
     const el = $('#raceHud');
     if (!r) { el.classList.add('hidden'); $('#raceMath').classList.add('hidden'); this.raceShown = ''; return; }
     const nth = getLang() === 'id' ? `ke-${r.place}` : ['1st', '2nd', '3rd', '4th', '5th', '6th'][r.place - 1];
-    const txt = `🏁 ${tr('Putaran', 'Lap')} ${r.lap}/${r.laps} · <b>${nth}</b> / ${r.of} · 🪙 ${r.coins ?? 0} · ⏱️ ${r.time.toFixed(1)}`;
+    const txt = `🏁 ${tr('Putaran', 'Lap')} ${r.lap}/${r.laps} · <b>${nth}</b> / ${r.of} · 🪙 ${r.coins ?? 0}${r.letters !== undefined ? ` · 🔤 ${r.letters}` : ''} · ⏱️ ${r.time.toFixed(1)}`;
     if (txt !== this.raceShown) { this.raceShown = txt; $('#raceT').innerHTML = txt; }
     el.classList.remove('hidden');
   }

@@ -108,6 +108,8 @@ export class Kid {
     if (after > before) setTimeout(() => this.levelUp(after), 900);
   }
   private levelUp(lv: number) {
+    // not in the middle of a race or a game: the card waits until it's over
+    if (this.g.race?.active || this.g.tennis?.active || this.g.playing) { setTimeout(() => this.levelUp(lv), 1500); return; }
     SFX.fanfare(); haptic([20, 40, 20, 40, 40]);
     const p = this.g.player.pos;
     this.g.fx.fireworks(p.x, p.y + 2, p.z);

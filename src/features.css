@@ -486,3 +486,5 @@ body.coach-on #bBoat, body.coach-on #bFishHelp { display: none !important; }
 @media (max-height: 500px) { #raceItem { width: 76px; height: 76px; bottom: calc(150px + var(--safe-b)); right: calc(150px + var(--safe-r)); } #raceItem .ri { font-size: 36px; } }
 @media (hover: hover) and (pointer: fine) { #raceItem { bottom: calc(120px + var(--safe-b)); } #raceItem small::after { content: ' · SPACE'; } }
 @media (prefers-reduced-motion: reduce) { #raceItem.ready { animation: none; } }
+/* hijaiyah letters inside text (the race finish card) */
+.arTxt { font-family: "Scheherazade New", "Noto Naskh Arabic", serif; font-size: 1.5em; line-height: 1; font-weight: 700; color: #138a4c; }

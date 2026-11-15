@@ -506,7 +506,7 @@ async function run(name) {
       if (!r.active || r.parked !== 0 || r.karts !== 6) throw new Error(JSON.stringify(r));
       return r;
     });
-    await step('Snow and Desert tracks: a mystery box gives a power-up, a banana spins a racer, ice and sand, three laps to the finish', async () => {
+    await step('Snow and Desert tracks: a mystery box gives a power-up, a banana spins a racer, a hijaiyah letter is read and zooms you, ice and sand, all the laps to the finish', async () => {
       const out = {};
       for (const kind of ['snow', 'desert']) {
         await g(k => { const G = __game, r = G.races.find(r => r.kind === k); G.ui.closeAllModals(); G.player.pos.set(r.cx + 2, r.y + 1, r.cz + 4); G.player.vel.set(0, 0, 0); }, kind);
@@ -515,7 +515,7 @@ async function run(name) {
         await p.waitForFunction(k => __game.races.find(r => r.kind === k).phase === 'go' || (__game.ui.closeAllModals(), false), kind, { timeout: 30000, polling: 200 });
         const r = await p.evaluate(async k => {
           const G = __game, R = G.races.find(r => r.kind === k), wait = ms => new Promise(res => setTimeout(res, ms)), me = R.karts[0];
-          const res = { race: G.race === R, laps: 3 };
+          const res = { race: G.race === R, laps: R.laps };
           // drive into the first mystery box: a power-up comes out after its little spin
           const box = R.boxes[1]; me.x = box.mesh.position.x; me.z = box.mesh.position.z;
           for (let i = 0; i < 50 && !R.item; i++) await wait(100); // (the box spins a moment first)
@@ -529,7 +529,11 @@ async function run(name) {
           const pt = R.tk.patches[0], q = R.tk.pointAt(pt.s + pt.len / 2, (pt.lane0 + pt.lane1) / 2);
           res.patch = !!R.tk.patchAt(R.tk.progressOf(q.x, q.z), R.tk.laneOf(q.x, q.z));
           // nearly at the end of lap 3: the finish
-          R.total = 3 * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 0.6;
+          // a letter tile: drive through it, hear it, and zoom
+          const L = R.letters[0], b0 = R.read; me.x = L.mesh.position.x; me.z = L.mesh.position.z;
+          for (let i = 0; i < 20 && R.read === b0; i++) await wait(100);
+          res.read = R.read; res.set = R.set.slice(); res.said = window.__said; res.letters = R.letters.length;
+          R.total = R.laps * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 0.6;
           for (let i = 0; i < 40 && R.phase !== 'done'; i++) await wait(100);
           res.done = R.phase === 'done';
           res.dialog = (document.querySelector('.veil.on .who')?.textContent || '').slice(0, 40);
@@ -537,9 +541,11 @@ async function run(name) {
         }, kind);
         await g(() => { const G = __game; G.ui.closeAllModals(); });
         const after = await g(k => { const R = __game.races.find(r => r.kind === k); return { active: R.active, boxes: R.boxes.length, item: R.item }; }, kind);
-        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes) throw new Error(JSON.stringify({ kind, r, after }));
+        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes || r.read < 1 || r.letters < 8 || r.set.length !== 4) throw new Error(JSON.stringify({ kind, r, after }));
         out[kind] = { ...r, ...after };
       }
+      // the next race brings the next four letters
+      if ((out.snow.set[0] + 4) % 28 !== out.desert.set[0]) throw new Error('letters did not move on: ' + JSON.stringify([out.snow.set, out.desert.set]));
       await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       return out;

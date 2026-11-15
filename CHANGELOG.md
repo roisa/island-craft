@@ -5,6 +5,34 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Hijaiyah letters on the race tracks 🔤🏎️
+
+Asked by a parent: hijaiyah letters with their sound on the race track, going
+round the alphabet race by race, with a boost when you get one, and longer
+races.
+- **Letters on every track:** each race has four letters, ا ب ت ث in the first
+  race. There are about 9–12 big green letter tiles a lap, at different spots
+  every lap. Each of the four comes up again and again.
+- **Drive through a letter:** Baby Mo says it (a recording if one is added,
+  otherwise the device voice, as on the letter cards). The letter shows big
+  ("ب Ba") and the kart gets a **green turbo**.
+- **Round the alphabet:** the next race brings the next four (ج ح خ د, then
+  ذ ر ز س …), and after ي it starts again from ا. This carries on across all
+  three tracks and is saved. In the free part it loops through the first seven
+  letters.
+- Baby Mo names the race's letters at the start, and they show on screen.
+- The HUD counts letters read (🔤). The finish card shows how many of each,
+  and the next race's letters.
+- **Longer races, about a minute each:** 4 laps on the big circuit, 5 on the
+  Snow track, 4 on the Desert track.
+- A level-up card no longer pops up in the middle of a race (or a game); it
+  waits until it's over.
+- Tested: 257 unit tests (new: the alphabet loop, round again after ي, the
+  free part's seven letters, letter spots on the track and off the
+  boxes/ramp/start line, race length). The race smoke step now also drives
+  through a letter and checks the next race moves on to the next four. Smoke
+  passes on desktop, iPhone, iPad and Android.
+
 ### Racing upgrade: 3 laps, Snow and Desert tracks, mystery boxes 🏎️❄️🌵
 
 Asked by a parent: longer races, snow and desert racing, and mystery boxes,
