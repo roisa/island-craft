@@ -915,6 +915,24 @@ async function run(name) {
       touch ? await p.tap('#lOk') : await p.click('#lOk');
       return { letters: await g(() => __game.stats.letters.length) };
     });
+    await step('hero suits: locked until all 28 letters, then ten to try on (with a chest symbol and a mask)', async () => {
+      const r = await g(async () => {
+        const G = __game, wait = ms => new Promise(res => setTimeout(res, ms)), before = G.stats.letters.slice(), shown = G.stats.suitsShown;
+        G.ui.closeAllModals(); G.ui.openBook('wardrobe'); await wait(200);
+        const locked = document.querySelectorAll('#book .wd.locked[data-slot="suit"]').length;
+        G.stats.letters = Array.from({ length: 28 }, (_, i) => i); G.ui.openBook('wardrobe'); await wait(200);
+        const open = document.querySelectorAll('#book .wd[data-slot="suit"]:not(.locked)').length;
+        document.querySelector('#book .wd[data-id="su_night"]').click(); await wait(200);
+        const worn = { suit: G.settings.outfit.suit, emblem: !!G.avatar.body.getObjectByName('emblem'), mask: !!G.avatar.head.getObjectByName('mask'), cape: !!G.avatar.body.getObjectByName('cape') };
+        G.ui.openBook('wardrobe'); await wait(150); document.querySelector('#book .wd[data-id="su_none"]').click(); await wait(150);
+        const off = { suit: G.settings.outfit.suit ?? null, emblem: !!G.avatar.body.getObjectByName('emblem') };
+        G.ui.closeBook(); G.ui.closeAllModals();
+        G.stats.letters = before; G.stats.suitsShown = shown;
+        return { locked, open, worn, off, girl: G.settings.avatar === 'girl' };
+      });
+      if (r.locked !== 10 || r.open !== 11 || r.worn.suit !== 'su_night' || !r.worn.emblem || (!r.worn.mask && !r.girl) || !r.worn.cape || r.off.suit || r.off.emblem) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('open every book tab', async () => {
       const tabs = ['bag', 'craft', 'build', 'wardrobe', 'map', 'letters', 'quests', 'ramadhan', 'prayer', 'settings'];
       const out = {};

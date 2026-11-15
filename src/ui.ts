@@ -1221,10 +1221,13 @@ export class UI {
     const slots: [string, string, (i: typeof OUTFITS[number]) => boolean][] = girl
       ? [['hijab', tr('🧕 Hijab', '🧕 Hijab'), i => i.slot === 'hijab'], ['hat', tr('🎩 Topi ajaib', '🎩 Power hats'), i => i.slot === 'hat' && (PERK_HATS.has(i.id) || i.id === 'none')], ['shirt', tr('👕 Baju', '👕 Shirts'), i => i.slot === 'shirt'], ['cape', tr('🦸 Jubah', '🦸 Capes'), i => i.slot === 'cape']]
       : [['hat', tr('🧢 Topi (yang ✨ punya kekuatan)', '🧢 Hats (✨ ones have powers)'), i => i.slot === 'hat'], ['shirt', tr('👕 Baju', '👕 Shirts'), i => i.slot === 'shirt'], ['cape', tr('🦸 Jubah', '🦸 Capes'), i => i.slot === 'cape']];
+    // the hero suits: all ten open once every hijaiyah letter is found
+    const found = Math.min(28, g.stats.letters.length);
+    slots.unshift(['suit', found >= 28 ? tr('🦸 Kostum pahlawan — hadiah 28 huruf!', '🦸 Hero suits — your 28-letter reward!') : tr(`🦸 Kostum pahlawan · 🔤 ${found}/28 huruf`, `🦸 Hero suits · 🔤 ${found}/28 letters`), i => i.slot === 'suit']);
     body.innerHTML = `<p>${tr('Naik level untuk membuka baju baru! ⭐', 'Level up to unlock new outfits! ⭐')}</p>
       <button class="btn small gold" id="wdPhoto">📷 ${tr('Buat tampilanku dari foto', 'Make my look from a photo')}</button>${g.settings.look ? ` <button class="btn small ghost" id="wdPhotoOff">${tr('Kembali ke warna biasa', 'Back to normal colours')}</button>` : ''}`
       + slots.map(([slot, label, f]) => `<h3>${label}</h3><div class="wardrobe">${OUTFITS.filter(f).map(i => {
-      const on = (o as any)[slot] === i.id, open = g.fun.unlocked(i);
+      const on = ((o as any)[slot] ?? (slot === 'suit' ? 'su_none' : '')) === i.id, open = g.fun.unlocked(i);
       return `<button class="wd ${on ? 'on' : ''} ${open ? '' : 'locked'} ${i.perk ? 'perk' : ''}" data-id="${i.id}" data-slot="${slot}"><span class="e">${open ? i.icon : '🔒'}</span><span>${esc(t2(i.name))}</span>${open ? (i.perk ? `<small class="perkTxt">✨ ${esc(t2(i.perk))}</small>` : '') : `<small>${i.unlock ? (i.level < 99 ? `Level ${i.level} · ` : '') + esc(t2(i.unlock.how)) : `Level ${i.level}`}</small>`}</button>`;
     }).join('')}</div>`).join('');
     $('#wdPhoto', body).onclick = () => this.photoLook();
@@ -1232,7 +1235,9 @@ export class UI {
     body.querySelectorAll<HTMLElement>('.wd').forEach(b => (b.onclick = () => {
       const item = OUTFITS.find(i => i.id === b.dataset.id)!;
       if (!g.fun.unlocked(item)) { SFX.error(); this.toast(item.unlock && item.level >= 99 ? '🔒 ' + t2(item.unlock.how) : item.unlock ? tr(`Terbuka di Level ${item.level} ⭐ atau: ${t2(item.unlock.how)}`, `Unlocks at level ${item.level} ⭐ or: ${t2(item.unlock.how)}`) : tr(`Terbuka di Level ${item.level} ⭐`, `Unlocks at level ${item.level} ⭐`)); return; }
-      (o as any)[b.dataset.slot!] = item.id; SFX.pickup(); g.buildAvatar(); g.saveSoon(); this.renderBook();
+      if (item.slot === 'suit') { o.suit = item.id === 'su_none' ? undefined : item.id; if (o.suit) { SFX.fanfare(); this.confetti(30); g.fx.sparkle(g.player.pos.x, g.player.pos.y + 1, g.player.pos.z, 24, 0xffd23f, 2.4); } }
+      else (o as any)[b.dataset.slot!] = item.id;
+      SFX.pickup(); g.buildAvatar(); g.saveSoon(); this.renderBook();
       if (item.slot === 'hat') g.wearHat(item.id);
     }));
   }

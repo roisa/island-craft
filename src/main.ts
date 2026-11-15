@@ -42,6 +42,7 @@ import { QUESTS, Stats, newStats, DUAS, CALENDAR, letterReward } from './content
 import { UI } from './ui';
 import { Kid } from './game/kid';
 import { Fun, Outfit, defaultOutfit, outfitItem, dressUp, HAT_GIFTS } from './game/fun';
+const shadeHex = (c: number, k: number) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
 import { Festive, PICNIC } from './game/festive';
 import { Places } from './game/places';
 import { Eid, type EidMode } from './game/eid';
@@ -495,6 +496,8 @@ export class Game {
     this.lastHour = this.hour;
     Music.setEnabled(this.settings.music);
     this.kid.start(!meta);
+    // players who found all 28 letters before the hero suits came: show them once
+    if (this.stats.letters.length >= 28 && !this.stats.suitsShown) setTimeout(() => { if (this.running) this.suitsUnlocked(); }, 6000);
     if (meta && !this.kid.tutorialActive()) setTimeout(() => this.festive.dailyGift(), 2500);
     if (!meta) {
       setTimeout(() => this.ui.say(tr('Assalamu’alaikum! Aku Baby Mo. Ayo main bersamaku! 🌙', 'Assalamu’alaikum! I’m Baby Mo. Come and play with me! 🌙'), 'pose-05'), 700);
@@ -540,6 +543,13 @@ export class Game {
     if (lk) {
       opts.skin = '#' + lk.skin.toString(16).padStart(6, '0'); opts.hair = lk.hair; opts.shirt = lk.shirt; opts.pants = lk.pants;
       opts.shirtDark = undefined; opts.pantsBand = undefined;
+    }
+    // a hero suit colours the whole outfit (it wins over the photo colours too)
+    const su = o.suit ? outfitItem(o.suit)?.suit : undefined;
+    if (su) {
+      const top = outfitItem(o.suit!)!.color!;
+      Object.assign(opts, { shirt: top, shirtDark: shadeHex(top, 0.82), pants: su.pants, pantsBand: su.belt, shoes: su.boots, sole: su.boots, shoeStripe: su.belt, cuff: su.gloves, collar: su.belt, belt: su.belt, emblem: null, hoodie: false, backpack: null });
+      if (girl) { opts.hijab = su.hijab; opts.pantsBand = su.belt; }
     }
     this.avatar = buildBlocky(opts);
     dressUp(this.avatar, o, girl, 0.66);
@@ -1840,10 +1850,22 @@ export class Game {
     }
     if (this.stats.letters.length === 28) {
       SFX.fanfare(); this.fx.fireworks(this.player.pos.x, this.player.pos.y + 3, this.player.pos.z);
-      setTimeout(() => this.ui.say(tr('Subhanallah! Kamu menemukan SEMUA 28 huruf hijaiyah! 🏆 Sekarang perjalanan Iqro dimulai: ikuti kompas emas ke buku pelajaran pertama 📖', 'Subhanallah! You found ALL 28 hijaiyah letters! 🏆 Now the Iqro journey begins: follow the golden compass to the first lesson book 📖'), 'alright', 9000), 800);
+      setTimeout(() => this.ui.say(tr('Subhanallah! Kamu menemukan SEMUA 28 huruf hijaiyah! 🏆 Sekarang perjalanan Iqro dimulai: ikuti kompas emas ke buku pelajaran pertama 📖', 'Subhanallah! You found ALL 28 hijaiyah letters! 🏆 Now the Iqro journey begins: follow the golden compass to the first lesson book 📖'), 'alright', 9000), 800);      this.suitsUnlocked();
     }
     this.checkQuests();
     this.save();
+  }
+
+  /** all 28 letters: the 10 hero suits open (a card after the letter card, with a button to try one on) */
+  suitsUnlocked() {
+    if (this.stats.suitsShown) return;
+    this.stats.suitsShown = 1;
+    this.ui.dialog({
+      face: '🦸', who: tr('Hadiah 28 huruf!', 'Your 28-letter reward!'),
+      text: tr('Masya Allah! Karena kamu menemukan semua huruf hijaiyah, <b>10 kostum pahlawan</b> terbuka: Bintang Penolong ⭐, Penjaga Malam 🌙, Pelari Kilat ⚡, Penjaga Hutan 🍃, Penjelajah Ombak 🌊, Penjaga Langit ☁️, Si Hijau Perkasa 💪, Zirah Emas 🛡️, Bayangan Ungu 🔮 dan Pahlawan Salju ❄️. Pahlawan sejati suka menolong! 🤝',
+        'Masha Allah! For finding every hijaiyah letter, <b>10 hero suits</b> are yours: Helper Star ⭐, Night Watcher 🌙, Lightning Runner ⚡, Forest Guardian 🍃, Wave Rider 🌊, Sky Guardian ☁️, Mighty Green 💪, Golden Armour 🛡️, Purple Shadow 🔮 and Snow Hero ❄️. A real hero loves to help others! 🤝'),
+      buttons: [{ label: '🦸 ' + tr('Coba kostumnya!', 'Try them on!'), cls: 'gold', fn: () => this.ui.openBook('wardrobe') }, { label: tr('Nanti', 'Later'), cls: 'ghost' }],
+    });
   }
 
   /**

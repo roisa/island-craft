@@ -76,6 +76,8 @@ export interface Stats {
   raceBoxes?: number; raceCups?: Record<string, number>;
   /** how many races finished: which four hijaiyah letters the next race brings */
   raceAbc?: number;
+  /** the hero-suits card was shown (all 28 letters found) */
+  suitsShown?: number;
   /** the Mini Stadium: games, penalty school done, goals, saves, shootout wins, the next fact, best keepy-uppies */
   stadiumGames?: number; stadiumSchool?: number; stadiumGoals?: number; stadiumSaves?: number; stadiumWins?: number; stadiumFact?: number; keepyBest?: number;
   /** tennis matches with Baby Mo: played, won, and the longest rally */

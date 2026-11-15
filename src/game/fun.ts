@@ -14,12 +14,9 @@ import type { AnimalKind } from './models';
 import type { Stats } from '../content';
 
 // ======================= outfits =======================
-export type OutfitSlot = 'hat' | 'hijab' | 'cape' | 'shirt';
-export interface OutfitItem {
-  id: string; slot: OutfitSlot; name: T2; icon: string; level: number; color?: number; perk?: T2;
-  /** another way to open it before that level, and how to say it */
-  unlock?: { test: (s: Stats) => boolean; how: T2 };
-}
+export type { OutfitSlot, OutfitItem, SuitDef, SuitEmblem } from './suits';
+import { SUITS, EMBLEMS, type OutfitItem, type SuitDef } from './suits';
+export { SUITS };
 /** hats with a power: anyone can wear them, even over a hijab */
 export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'hat_diver', 'crown', 'explorer']);
 /** the matching item you get the first time you put one on */
@@ -55,8 +52,10 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'c_none', slot: 'cape', name: ['Tanpa Jubah', 'No Cape'], icon: '➖', level: 1 },
   { id: 'c_hero', slot: 'cape', name: ['Jubah Pahlawan', 'Hero Cape'], icon: '🦸', level: 4, color: 0xe4423a },
   { id: 'c_star', slot: 'cape', name: ['Jubah Bintang', 'Star Cape'], icon: '🌟', level: 7, color: 0x6b4fc8 },
+  { id: 'su_none', slot: 'suit', name: ['Tanpa Kostum', 'No Suit'], icon: '🙂', level: 1 },
+  ...SUITS,
 ];
-export interface Outfit { hat: string; hijab: string; cape: string; shirt: string }
+export interface Outfit { hat: string; hijab: string; cape: string; shirt: string; suit?: string }
 export const defaultOutfit = (girl: boolean): Outfit => ({ hat: 'none', hijab: 'h_pink', cape: 'c_none', shirt: girl ? 's_pink' : 's_blue' });
 export const outfitItem = (id: string) => OUTFITS.find(o => o.id === id);
 
@@ -108,14 +107,43 @@ export function dressUp(rig: { head: THREE.Object3D; body: THREE.Group; neck?: n
     const g = mat(0x3fa34d), w = mat(0xf4f4f0);
     for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.BoxGeometry(hs + 0.1 - i * 0.12, 0.1, hs + 0.1 - i * 0.12), i % 2 ? w : g); r.position.y = hs + 0.03 + i * 0.09; head.add(r); }
   }
-  const cape = outfitItem(o.cape);
-  if (cape?.color !== undefined) {
+  const su = o.suit ? outfitItem(o.suit)?.suit : undefined;
+  if (su) suitExtras(rig, su, girl);
+  const capeColor = su?.cape ?? outfitItem(o.cape)?.color;
+  const cape = su?.cape !== undefined ? { id: 'suit', color: su.cape } : outfitItem(o.cape);
+  if (cape?.color !== undefined && capeColor !== undefined) {
     const c = new THREE.Group(); c.position.set(0, (rig.neck ?? 1.18) - 0.02, -0.3);
     const geo = new THREE.BoxGeometry(0.5, 0.78, 0.04); geo.translate(0, -0.39, 0);
-    c.add(new THREE.Mesh(geo, mat(cape.color)));
+    c.add(new THREE.Mesh(geo, mat(capeColor)));
     if (cape.id === 'c_star') for (const [x, y] of [[-0.12, -0.25], [0.1, -0.5], [-0.05, -0.65]]) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.02), mat(0xffd874)); s.position.set(x, y, -0.03); c.add(s); }
     c.name = 'cape';
     rig.body.add(c);
+  }
+}
+
+/** a hero suit's extras on the avatar: the chest symbol, and an eye mask (not with a hijab) */
+export function suitExtras(rig: { head: THREE.Object3D; body: THREE.Group; neck?: number }, su: SuitDef, girl: boolean) {
+  // (with a hijab its drape covers the top of the chest: the symbol sits a little lower and smaller)
+  const neck = rig.neck ?? 1.0, px = girl ? 0.027 : 0.034, front = 0.27 / 2 + 0.012;
+  const g = new THREE.Group(); g.name = 'emblem'; g.position.set(0, neck - (girl ? 0.33 : 0.2), front);
+  const fill = mat(su.emblemColor), back = su.emblemBack !== undefined ? mat(su.emblemBack) : null;
+  if (back) { const disc = new THREE.Mesh(new THREE.BoxGeometry(px * 6.4, px * 6.4, 0.012), back); disc.position.z = -0.002; g.add(disc); }
+  EMBLEMS[su.emblem].forEach((row, r) => [...row].forEach((c, i) => {
+    if (c !== '1') return;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(px, px, 0.016), fill); b.position.set((i - 2) * px, (2 - r) * px, 0.004); g.add(b);
+  }));
+  rig.body.add(g);
+  if (su.mask !== undefined && !girl) {
+    // a domino mask round the eyes (in front of the fringe): strips above and below them, the sides and a
+    // bridge over the nose, leaving the eyes open
+    const H = 0.56, y = H * 0.47, z = H / 2 + 0.04, m = mat(su.mask), mk = new THREE.Group(); mk.name = 'mask';
+    const piece = (x0: number, x1: number, y0: number, y1: number) => { const b = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, 0.02), m); b.position.set((x0 + x1) / 2, (y0 + y1) / 2, z); mk.add(b); };
+    const e0 = 0.04, e1 = 0.155, eh = 0.052; // each eye's hole: from 4 cm to 15.5 cm out from the middle, ±5 cm up and down
+    piece(-H / 2 - 0.01, H / 2 + 0.01, y + eh, y + eh + 0.04);   // above the eyes
+    piece(-H / 2 + 0.02, H / 2 - 0.02, y - eh - 0.03, y - eh);   // below the eyes
+    piece(-e0, e0, y - eh, y + eh);                              // the bridge
+    for (const sx of [-1, 1]) piece(sx > 0 ? e1 : -H / 2 - 0.01, sx > 0 ? H / 2 + 0.01 : -e1, y - eh, y + eh); // the sides
+    rig.head.add(mk);
   }
 }
 

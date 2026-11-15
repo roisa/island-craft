@@ -5,6 +5,47 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Hero suits: the reward for all 28 letters 🦸
+
+Asked by a parent: a costume choice when all hijaiyah letters are found, 10
+outfits in colours like superheroes, without breaking any trademark.
+- **10 hero suits**, opened by finding all 28 hijaiyah letters:
+  - Helper Star ⭐ (blue, red, gold star, red cape)
+  - Night Watcher 🌙 (charcoal, gold crescent, dark cape, mask)
+  - Lightning Runner ⚡ (red and gold, bolt, mask)
+  - Forest Guardian 🍃 (green and black, leaf)
+  - Wave Rider 🌊 (orange and green, water drop)
+  - Sky Guardian ☁️ (blue and silver, cloud, red cape)
+  - Mighty Green 💪 (green and purple, heart)
+  - Golden Armour 🛡️ (red and gold, gem, mask)
+  - Purple Shadow 🔮 (black and purple, purple cape, mask)
+  - Snow Hero ❄️ (white and ice blue, snowflake, cape)
+- **Each suit** colours the whole outfit (top, trousers, belt, boots, cuffs)
+  and adds a small pixel-art chest symbol. Most also add a cape and a domino
+  eye mask that leaves the eyes open.
+  - With Baby Ais the hijab takes the suit's colour, the symbol sits below the
+    drape, and there's no mask.
+- **Trademarks:** every name is our own, and every chest symbol is a plain
+  shape (star, crescent, bolt, leaf, drop, cloud, gem, heart, snowflake),
+  never a studio's logo. A unit test checks that no suit name uses well-known
+  hero brand words (and "Brave Star" became "Helper Star" because of an old
+  cartoon).
+- **In the wardrobe:** a new "🦸 Hero suits" section shows the progress
+  (🔤 n/28 letters) until they open. Putting a suit on gives confetti and
+  sparkles, and "No suit" goes back to normal clothes.
+- **The reward:** when the 28th letter is found, a card names all ten suits
+  ("A real hero loves to help others!") with a "Try them on!" button.
+  Players who had already found all 28 get the card once when they next play.
+- Fixed before release: the white circle behind some chest symbols was made in
+  a way that would have crashed the game when choosing those suits; caught by
+  the screenshot check.
+- Tested:
+  - 269 unit tests. New: ten suits with their own names, opened at 28 letters
+    and not by level, no brand words, each chest symbol a 5×5 picture.
+  - New smoke step: locked before 28, open after; wearing one gives the
+    symbol, mask and cape; "No suit" takes them off.
+  - Screenshots of all ten on Adam and on Baby Ais.
+
 ### The Mini Stadium ⚽🏟️
 
 Asked by a parent: a mini football stadium where Ibra can be the goalkeeper or
