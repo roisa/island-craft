@@ -666,7 +666,9 @@ async function run(name) {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.hour = 9.7; G.lastHour = 9.7; });
       // the game clock stops while a pop-up is open, so close any that come up and help the clock past 9:45
       await p.waitForFunction(() => { const G = __game; if (!document.querySelector('#bRaceSoon').classList.contains('hidden')) return true; G.ui.closeAllModals(); G.hour = Math.min(G.hour + 0.01, 9.9); return false; }, null, { timeout: 30000, polling: 100 });
-      const r = await g(() => ({ btn: document.querySelector('#bRaceSoon').textContent, open: __game.ui.isOpen(), watching: __game.race.watching }));
+      // (the race notice must not open a card; another card can come up by itself right then —
+      // a level-up or a discovery that waited for the last game to end — so look for the race's own one)
+      const r = await g(() => ({ btn: document.querySelector('#bRaceSoon').textContent, open: [...document.querySelectorAll('.veil.on')].some(v => /10:00|balapan besar|big race/i.test(v.innerText)), others: [...document.querySelectorAll('.veil.on')].map(v => v.innerText.slice(0, 30)), watching: __game.race.watching }));
       // it goes away by itself once the race time has passed
       await g(() => { const G = __game; G.hour = 11.5; });
       await p.waitForFunction(() => document.querySelector('#bRaceSoon').classList.contains('hidden'), null, { timeout: 10000, polling: 100 });

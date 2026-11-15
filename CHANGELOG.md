@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Test fix: the big-race notice check
+
+- The online test run failed once on Android: the "big race" step checks that
+  the race notice doesn't open a card, but it treated **any** open card as
+  failure.
+  - Since a level-up card now waits until a game ends, a card earned in the
+    archery step just before can come up right then.
+  - Reproduced locally: an unrelated card (a discovery) was open at that
+    moment.
+- The step now checks for the race's own card and lists any others it sees.
+  The game itself is unchanged.
+- Tested: the reproduction fails the old check and passes the new one; smoke
+  on Android and desktop passes.
+
 ### Fix: getting stuck at wudu before the prayer 💧
 
 Reported by a parent: the prayer felt stuck because it wasn't clear how to
