@@ -474,6 +474,8 @@ export class Race {
       this.bannerT = 1.6; SFX.quest();
       g.ui.raceCount(this.lap === this.laps ? tr('PUTARAN TERAKHIR!', 'FINAL LAP!') : `${tr('PUTARAN', 'LAP')} ${this.lap}`);
     }
+    /** how far you drove this frame: added to every pick-up's reach, so nothing is skipped on a slow phone */
+    const reach = Math.abs(me.v) * dt;
     // the coins: pick them up (the 🧲 pulls them in), and add them up group by group
     if (this.lap !== this.coinLap && this.total >= 0) { this.flushSum(); this.layCoins(this.lap); this.layLetters(); }
     for (const c of this.coins) {
@@ -481,7 +483,7 @@ export class Race {
       c.mesh.rotation.y += dt * 3;
       const cd = Math.hypot(c.mesh.position.x - me.x, c.mesh.position.z - me.z);
       if (this.magnetT > 0 && cd < 8) { const k = Math.min(1, dt * 6); c.mesh.position.x += (me.x - c.mesh.position.x) * k; c.mesh.position.z += (me.z - c.mesh.position.z) * k; }
-      if (cd < 1.6) {
+      if (cd < 1.6 + reach) {
         c.taken = true; c.mesh.visible = false; this.got++;
         SFX.pop(Math.min(8, this.got % 9)); g.fx.sparkle(c.mesh.position.x, c.mesh.position.y, c.mesh.position.z, 6, 0xffc83d, 1.2);
         if (this.sum && this.sum.group !== c.group) this.flushSum();
@@ -494,7 +496,7 @@ export class Race {
     for (const l of this.letters) {
       if (l.taken) continue;
       l.mesh.position.y = this.y + 1.4 + Math.sin(this.t * 3 + l.s) * 0.12;
-      if (Math.hypot(l.mesh.position.x - me.x, l.mesh.position.z - me.z) < 1.8 && this.hop < 1.4) { l.taken = true; l.mesh.visible = false; this.readLetter(l.slot, l.mesh.position); }
+      if (Math.hypot(l.mesh.position.x - me.x, l.mesh.position.z - me.z) < 1.8 + reach && this.hop < 1.4) { l.taken = true; l.mesh.visible = false; this.readLetter(l.slot, l.mesh.position); }
     }
     if (this.letterZoom > 0) { this.letterZoom -= dt; if (Math.random() < 0.6) g.fx.sparkle(me.x - Math.sin(me.yaw) * 1.1, this.y + 0.5 + this.hop, me.z - Math.cos(me.yaw) * 1.1, 2, 0x3ccf7e, 1.2); }
     // the mystery boxes: drive through one for a surprise (one power-up at a time); they come back after a while
@@ -502,7 +504,7 @@ export class Race {
     for (const b of this.boxes) {
       if (b.back > 0) { if ((b.back -= dt) <= 0) { b.mesh.visible = true; b.mesh.scale.setScalar(0.2); } continue; }
       if (b.mesh.scale.x < 1) b.mesh.scale.setScalar(Math.min(1, b.mesh.scale.x + dt * 3));
-      if (Math.hypot(b.mesh.position.x - me.x, b.mesh.position.z - me.z) < 1.5 && this.hop < 1) {
+      if (Math.hypot(b.mesh.position.x - me.x, b.mesh.position.z - me.z) < 1.5 + reach && this.hop < 1) {
         b.mesh.visible = false; b.back = 3.5;
         g.fx.sparkle(b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, 14, [0xff5f6d, 0xffc371, 0x5ee7df, 0xb490ca][Math.floor(Math.random() * 4)], 2.2);
         if (!this.item && this.rolling <= 0) { this.rolled = rollPower(myPlace, this.karts.length, Math.random()); this.rolling = 0.9; SFX.pop(5); g.ui.raceItem('roll'); }
@@ -542,7 +544,8 @@ export class Race {
     }
     for (const k of this.karts.slice(1)) { const p = tk.pointAt(k.s, k.lane); k.x = this.cx + p.x; k.z = this.cz + p.z; k.yaw = p.yaw; }
     // bananas you dropped, and bumping racers with ⭐
-    for (const b of this.peels) for (const k of this.karts.slice(1)) if (b.mesh.visible && Math.hypot(b.x - k.x, b.z - k.z) < 1.3) { b.mesh.visible = false; this.spin(k, 'banana'); }
+    // (the reach grows with the distance driven this frame, so a fast kart on a slow phone can't hop over one)
+    for (const b of this.peels) for (const k of this.karts.slice(1)) if (b.mesh.visible && Math.hypot(b.x - k.x, b.z - k.z) < 1.3 + k.v * dt) { b.mesh.visible = false; this.spin(k, 'banana'); }
     this.peels = this.peels.filter(b => b.mesh.visible || (this.g.scene.remove(b.mesh), false));
     if (this.starT > 0) for (const k of this.karts.slice(1)) if (Math.hypot(k.x - me.x, k.z - me.z) < 1.8) this.spin(k, 'star');
     this.place();

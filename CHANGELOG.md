@@ -5,6 +5,23 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Fix: pick-ups and bananas on slow phones 🍌
+
+- The online test run failed once on the Snow track: a racer drove right past
+  a banana without spinning.
+  - **Cause:** on a slow device the game moves in bigger steps, and a racer
+    could jump over the banana between two frames.
+  - The same could happen to coins, letters and mystery boxes when going fast
+    on a slow phone.
+- **Fix:** every pick-up and the banana check now reach as far as the kart
+  drove that frame, so nothing is skipped.
+- **Tested:** with the browser slowed down 8× (3–5 frames a second):
+  - the old code missed the banana 2 out of 4 times;
+  - the fixed code hit it 12 out of 12.
+- **Test change:** the smoke step now drops the banana just ahead of the racer
+  and closes any card that pops up while it waits. The full desktop smoke run
+  passes twice, and the 257 unit tests pass.
+
 ### Hijaiyah letters on the race tracks 🔤🏎️
 
 Asked by a parent: hijaiyah letters with their sound on the race track, going

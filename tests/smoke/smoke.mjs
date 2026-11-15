@@ -522,8 +522,9 @@ async function run(name) {
           res.item = R.item; res.btn = !document.querySelector('#raceItem').classList.contains('hidden');
           // a banana dropped right in front of a racer makes it spin
           R.item = 'banana'; R.useItem();
-          const other = R.karts[2], peel = R.peels[0]; peel.x = other.x; peel.z = other.z; peel.mesh.position.set(other.x, peel.mesh.position.y, other.z);
-          await wait(400);
+          // (just ahead of that racer on its line, so it drives into it)
+          const other = R.karts[2], peel = R.peels[0], q0 = R.tk.pointAt(other.s + 1.5, other.lane); peel.x = R.cx + q0.x; peel.z = R.cz + q0.z; peel.mesh.position.set(peel.x, peel.mesh.position.y, peel.z);
+          for (let i = 0; i < 20 && !((other.spin ?? 0) > 0); i++) { if (G.ui.isOpen()) G.ui.closeAllModals(); await wait(100); } // (a card popping up would pause the race)
           res.spun = (other.spin ?? 0) > 0;
           // the track's own hazard is under the wheels here
           const pt = R.tk.patches[0], q = R.tk.pointAt(pt.s + pt.len / 2, (pt.lane0 + pt.lane1) / 2);
