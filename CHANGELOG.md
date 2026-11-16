@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### App Store kit: new screenshots
+
+- **10 screenshots per device** (Apple's most), English and Indonesian, for
+  iPhone, iPhone Duo and iPad: the island, letters, Iqro, prayer, a **snow kart
+  race** with letters and mystery boxes, the **football stadium** (Baby Mo
+  diving for a corner shot), the **hero suits**, horse jumping, English words
+  and the parent area. The old archery picture is gone (archery is still in the
+  text).
+- **Text:** the promotional text and description now mention the snow and
+  desert tracks, the stadium and the hero suits. Lengths re-checked (promo
+  152/140 of 170).
+- Tested: the shots were rendered from the real game, checked by eye, and the
+  zips hold 30 files each.
+
 ### The unlock card never waits for ever
 
 Reported by a parent on TestFlight: "Talking to the App Store…" and then
