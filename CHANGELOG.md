@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Race letters: balloon boxes that fly away
+
+- **No more dark spots:** the letter tiles' rounded corners were see-through
+  in the picture but drawn as black on the tile's edges. The letter face is
+  now painted edge to edge (a gold frame round a green square).
+- **Letter boxes on balloons:** each letter is a green box with the letter on
+  all four sides, hanging from a balloon (red, blue, yellow or purple, one
+  colour per letter of the race). It bobs and sways in the wind.
+- **Hit one and it flies away:** the box floats up into the sky, spinning
+  faster and faster, then the balloon pops in a puff of colour. You still
+  hear the letter and get the green turbo.
+- Tested: unit tests (270); the desktop smoke test now also checks that a
+  letter you hit rises and then pops; checked by eye in game renders.
+
 ### App Store kit: new screenshots
 
 - **10 screenshots per device** (Apple's most), English and Indonesian, for

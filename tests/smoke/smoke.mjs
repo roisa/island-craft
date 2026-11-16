@@ -536,6 +536,9 @@ async function run(name) {
           // a letter tile: drive through it, hear it, and zoom
           const L = R.letters[0], b0 = R.read; me.x = L.mesh.position.x; me.z = L.mesh.position.z;
           for (let i = 0; i < 20 && R.read === b0; i++) await wait(100);
+          // its balloon carries it up, up and away … and pops
+          const y0 = R.y + 1.3; for (let i = 0; i < 30 && L.fly >= 0; i++) { if (L.fly > 0.3 && !res.flew) res.flew = L.mesh.position.y > y0 + 0.6; await wait(100); }
+          res.popped = L.fly === -1 && !L.mesh.visible;
           res.read = R.read; res.set = R.set.slice(); res.said = window.__said; res.letters = R.letters.length;
           R.total = R.laps * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 0.6;
           for (let i = 0; i < 40 && R.phase !== 'done'; i++) await wait(100);
@@ -545,7 +548,7 @@ async function run(name) {
         }, kind);
         await g(() => { const G = __game; G.ui.closeAllModals(); });
         const after = await g(k => { const R = __game.races.find(r => r.kind === k); return { active: R.active, boxes: R.boxes.length, item: R.item }; }, kind);
-        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes || r.read < 1 || r.letters < 8 || r.set.length !== 4) throw new Error(JSON.stringify({ kind, r, after }));
+        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes || r.read < 1 || !r.flew || !r.popped || r.letters < 8 || r.set.length !== 4) throw new Error(JSON.stringify({ kind, r, after }));
         out[kind] = { ...r, ...after };
       }
       // the next race brings the next four letters

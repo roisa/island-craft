@@ -226,38 +226,80 @@ export class Race {
   set: number[] = [0, 1, 2, 3];
   /** letters picked up this race, and how many of each */
   read = 0; private readEach: number[] = [0, 0, 0, 0];
-  private letters: { s: number; lane: number; slot: number; mesh: THREE.Object3D; taken: boolean }[] = [];
+  private letters: { s: number; lane: number; slot: number; mesh: THREE.Group; taken: boolean; fly: number; ph: number }[] = [];
   private static letterMats = new Map<number, THREE.MeshLambertMaterial>();
-  /** a green letter tile like the ones at the letter shrines, with the letter in white */
+  private static letterKit: { box: THREE.BoxGeometry; side: THREE.MeshLambertMaterial; balloon: THREE.SphereGeometry; knot: THREE.ConeGeometry; string: THREE.CylinderGeometry; strMat: THREE.MeshBasicMaterial; colours: THREE.MeshStandardMaterial[] } | null = null;
+  /** a letter face like the tiles at the letter shrines: green, a gold frame, the letter in white (the whole square painted, so no dark corners) */
   private letterMat(i: number) {
     let m = Race.letterMats.get(i);
     if (m) return m;
     const c = document.createElement('canvas'); c.width = c.height = 128;
     const x = c.getContext('2d')!;
+    x.fillStyle = '#ffd23f'; x.fillRect(0, 0, 128, 128);                       // the gold frame, edge to edge
     const gr = x.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#3ccf7e'); gr.addColorStop(1, '#138a4c');
-    x.fillStyle = gr; x.beginPath(); x.roundRect(4, 4, 120, 120, 22); x.fill();
-    x.strokeStyle = '#ffd23f'; x.lineWidth = 8; x.stroke();
+    x.fillStyle = gr; x.beginPath(); x.roundRect(9, 9, 110, 110, 16); x.fill();
+    x.fillStyle = 'rgba(255,255,255,.18)'; x.beginPath(); x.roundRect(15, 13, 98, 30, 12); x.fill(); // a little shine
     // the letter, centred by its real ink box (dots included)
     const g = LETTERS[i].g, FONT = '"Scheherazade New","Noto Naskh Arabic","Amiri",serif';
-    x.direction = 'rtl'; x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.font = `700 84px ${FONT}`;
+    x.direction = 'rtl'; x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.font = `700 80px ${FONT}`;
     const mt = x.measureText(g), iw = mt.actualBoundingBoxLeft + mt.actualBoundingBoxRight, ih = mt.actualBoundingBoxAscent + mt.actualBoundingBoxDescent;
     x.fillStyle = '#fff'; x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 6;
     x.fillText(g, (128 - iw) / 2 + mt.actualBoundingBoxLeft, (128 - ih) / 2 + mt.actualBoundingBoxAscent);
-    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-    m = new THREE.MeshLambertMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35 });
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    m = new THREE.MeshLambertMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.3 });
     Race.letterMats.set(i, m);
     return m;
   }
+  /** the shared shapes: the letter box, its plain sides, a balloon, its knot and string, and the four balloon colours */
+  private static kit() {
+    if (this.letterKit) return this.letterKit;
+    const colours = [0xff5f6d, 0x4aa8ff, 0xffc93c, 0xb57bff].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.25, metalness: 0.05, emissive: c, emissiveIntensity: 0.15 }));
+    this.letterKit = {
+      box: new THREE.BoxGeometry(1.3, 1.3, 1.3),
+      side: new THREE.MeshLambertMaterial({ color: 0x22a862, emissive: 0x0b5a30, emissiveIntensity: 0.25 }),
+      balloon: new THREE.SphereGeometry(0.66, 20, 14), knot: new THREE.ConeGeometry(0.1, 0.16, 8),
+      string: new THREE.CylinderGeometry(0.014, 0.014, 0.9, 4), strMat: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      colours,
+    };
+    return this.letterKit;
+  }
+  /**
+   * A letter box hanging from a balloon: the letter on all four sides (so it reads from any angle as the
+   * box turns), plain green on top and bottom. Drive into it and it floats away up into the sky, then pops.
+   */
+  private letterBox(i: number, slot: number) {
+    const K = Race.kit(), face = this.letterMat(i), grp = new THREE.Group();
+    const box = new THREE.Mesh(K.box, [face, face, K.side, K.side, face, face]); // (+x −x +y −y +z −z)
+    box.name = 'box'; grp.add(box);
+    const top = new THREE.Group(); top.name = 'balloon'; top.position.y = 0.65; grp.add(top);
+    const str = new THREE.Mesh(K.string, K.strMat); str.position.y = 0.45; top.add(str);
+    const knot = new THREE.Mesh(K.knot, K.colours[slot]); knot.position.y = 0.95; knot.rotation.x = Math.PI; top.add(knot);
+    const ball = new THREE.Mesh(K.balloon, K.colours[slot]); ball.scale.set(1, 1.18, 1); ball.position.y = 1.7; top.add(ball);
+    return grp;
+  }
   private layLetters() {
     this.clearLetters();
-    const geo = new THREE.BoxGeometry(1.7, 1.7, 0.24); // (big enough to read at speed)
     for (const sp of letterSpots(this.tk, Math.round(this.tk.LAP / 17), Math.random)) {
-      const mesh = new THREE.Mesh(geo, this.letterMat(this.set[sp.slot])), p = this.tk.pointAt(sp.s, sp.lane);
-      mesh.position.set(this.cx + p.x, this.y + 1.4, this.cz + p.z); mesh.rotation.y = p.yaw + Math.PI; // (it faces you as you come)
-      this.g.scene.add(mesh); this.letters.push({ ...sp, mesh, taken: false });
+      const mesh = this.letterBox(this.set[sp.slot], sp.slot), p = this.tk.pointAt(sp.s, sp.lane);
+      mesh.position.set(this.cx + p.x, this.y + 1.3, this.cz + p.z); mesh.rotation.y = p.yaw + Math.PI; // (a face towards you as you come)
+      this.g.scene.add(mesh); this.letters.push({ ...sp, mesh, taken: false, fly: 0, ph: Math.random() * 6 });
     }
   }
   private clearLetters() { for (const l of this.letters) this.g.scene.remove(l.mesh); this.letters = []; }
+  /** a letter that was hit: up, up and away, spinning, then the balloon pops in a puff of colour */
+  private flyLetter(l: { mesh: THREE.Group; fly: number; slot: number }, dt: number) {
+    l.fly += dt;
+    const m = l.mesh, k = l.fly;
+    m.position.y += dt * (3 + k * 9);                 // faster and faster
+    m.rotation.y += dt * (4 + k * 6);
+    m.rotation.z = Math.sin(k * 9) * 0.25;
+    m.scale.setScalar(1 + k * 0.35);
+    if (k > 1.15) {
+      const b = m.getObjectByName('balloon')!, at = new THREE.Vector3(); b.getWorldPosition(at);
+      this.g.fx.sparkle(at.x, at.y + 1.7, at.z, 18, [0xff5f6d, 0x4aa8ff, 0xffc93c, 0xb57bff][l.slot], 3);
+      SFX.pop(4); m.visible = false; l.fly = -1;
+    }
+  }
   /** you drove through a letter: say it, show it big, and a green turbo! */
   private readLetter(slot: number, at: THREE.Vector3) {
     const g = this.g, i = this.set[slot], L = LETTERS[i];
@@ -494,9 +536,11 @@ export class Race {
     if (this.sum && this.t - this.sum.at > 0.9) this.flushSum();
     // the hijaiyah letters: turning to face you; drive through one to hear it and zoom
     for (const l of this.letters) {
-      if (l.taken) continue;
-      l.mesh.position.y = this.y + 1.4 + Math.sin(this.t * 3 + l.s) * 0.12;
-      if (Math.hypot(l.mesh.position.x - me.x, l.mesh.position.z - me.z) < 1.8 + reach && this.hop < 1.4) { l.taken = true; l.mesh.visible = false; this.readLetter(l.slot, l.mesh.position); }
+      if (l.taken) { if (l.fly >= 0) this.flyLetter(l, dt); continue; }
+      // bobbing on its balloon, swaying a little in the wind
+      l.mesh.position.y = this.y + 1.3 + Math.sin(this.t * 2.4 + l.ph) * 0.15;
+      l.mesh.rotation.z = Math.sin(this.t * 1.7 + l.ph) * 0.06;
+      if (Math.hypot(l.mesh.position.x - me.x, l.mesh.position.z - me.z) < 1.8 + reach && this.hop < 1.4) { l.taken = true; this.readLetter(l.slot, l.mesh.position); }
     }
     if (this.letterZoom > 0) { this.letterZoom -= dt; if (Math.random() < 0.6) g.fx.sparkle(me.x - Math.sin(me.yaw) * 1.1, this.y + 0.5 + this.hop, me.z - Math.cos(me.yaw) * 1.1, 2, 0x3ccf7e, 1.2); }
     // the mystery boxes: drive through one for a surprise (one power-up at a time); they come back after a while
