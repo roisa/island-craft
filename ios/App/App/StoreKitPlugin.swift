@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Capacitor
 import StoreKit
 
@@ -57,7 +58,7 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         Task {
             do {
                 guard let p = try await Product.products(for: [id]).first else { call.reject("Product not found"); return }
-                switch try await p.purchase() {
+                switch try await self.purchase(p) {
                 case .success(let verification):
                     if case .verified(let t) = verification { await t.finish(); call.resolve(["owned": true]) }
                     else { call.resolve(["owned": false, "unverified": true]) } // Apple could not verify it: say so
@@ -67,6 +68,15 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             } catch { call.reject(error.localizedDescription) }
         }
+    }
+
+    /// newer iOS wants the purchase sheet tied to the app's window scene
+    private func purchase(_ p: Product) async throws -> Product.PurchaseResult {
+        if #available(iOS 17.0, *) {
+            let scene = await MainActor.run { self.bridge?.viewController?.view.window?.windowScene }
+            if let scene { return try await p.purchase(confirmIn: scene) }
+        }
+        return try await p.purchase()
     }
 
     @objc func restore(_ call: CAPPluginCall) {

@@ -24,3 +24,13 @@ describe('store on the website', () => {
     expect(ls.get('mocraft-family')).toBeUndefined();
   });
 });
+
+describe('waiting for the App Store', () => {
+  it('gives up after the time limit instead of waiting for ever', async () => {
+    const { withTimeout } = await import('../../src/store');
+    const never = new Promise<number>(() => {});
+    const r = await withTimeout(never, 20);
+    expect(typeof r).toBe('symbol');
+    expect(await withTimeout(Promise.resolve(7), 1000)).toBe(7);
+  });
+});

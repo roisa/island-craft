@@ -1554,8 +1554,11 @@ export class UI {
       msg.textContent = tr('Menghubungi App Store…', 'Talking to the App Store…');
       const r = await store.buy();
       if (r === 'owned') done();
-      else msg.textContent = r === 'pending' ? tr('Menunggu persetujuan orang tua (Ask to Buy). Pulau terbuka begitu disetujui.', 'Waiting for a parent’s approval (Ask to Buy). The island opens as soon as it’s approved.')
-        : r === 'cancelled' ? '' : tr('Belum bisa terhubung ke App Store. Coba lagi nanti ya.', 'Couldn’t reach the App Store. Please try again later.');
+      else msg.innerHTML = r === 'pending' ? tr('Menunggu persetujuan orang tua (Ask to Buy). Pulau terbuka begitu disetujui.', 'Waiting for a parent’s approval (Ask to Buy). The island opens as soon as it’s approved.')
+        : r === 'cancelled' ? ''
+          // no answer, or Apple doesn't know the product yet: say what a grown-up can check
+          : tr('App Store belum menjawab. Pastikan internet menyala, lalu coba lagi.', 'The App Store didn’t answer. Check the internet is on, then try again.')
+            + (store.price ? '' : `<br><small>${tr('Untuk pengembang: pembelian belum tersedia — cek perjanjian Paid Apps (Active) dan status In-App Purchase di App Store Connect.', 'For the developer: the purchase isn’t available yet — check the Paid Apps agreement (Active) and the in-app purchase’s status in App Store Connect.')}${store.lastError ? ` (${esc(store.lastError)})` : ''}</small>`);
     }));
     el.querySelector<HTMLElement>('#ulRestore')?.addEventListener('click', async () => {
       msg.textContent = tr('Memeriksa pembelian…', 'Checking purchases…');

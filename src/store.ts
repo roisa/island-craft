@@ -16,6 +16,11 @@ interface StoreKitPlugin {
   addListener(ev: 'owned', fn: (d: { id: string; owned: boolean }) => void): Promise<unknown>;
 }
 let plugin: Promise<StoreKitPlugin> | null = null;
+const TIMEOUT = Symbol('timeout');
+/** the answer, or TIMEOUT if it doesn't come in time */
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | typeof TIMEOUT> {
+  return Promise.race([p, new Promise<typeof TIMEOUT>(res => setTimeout(() => res(TIMEOUT), ms))]);
+}
 const kit = () => (plugin ??= import('@capacitor/core').then(({ registerPlugin }) => registerPlugin<StoreKitPlugin>('StoreKit')));
 
 export const store = {
@@ -50,13 +55,19 @@ export const store = {
     } catch { /* offline or not set up yet: keep the remembered answer */ }
   },
   /** 'owned' | 'pending' (Ask to Buy) | 'cancelled' | 'error' */
-  async buy(): Promise<'owned' | 'pending' | 'cancelled' | 'error'> {
+  /** what went wrong last time (for the grown-up: e.g. "Product not found") */
+  lastError: '' as string,
+  async buy(): Promise<'owned' | 'pending' | 'cancelled' | 'error' | 'timeout'> {
     if (!native()) return 'error';
+    this.lastError = '';
     try {
-      const r = await (await kit()).buy({ id: FULL_ID });
+      // the App Store sometimes never answers (no internet, or the purchase isn't ready in App Store Connect yet):
+      // don't leave the card saying "Talking to the App Store…" for ever
+      const r = await withTimeout((async () => (await kit()).buy({ id: FULL_ID }))(), 45000);
+      if (r === TIMEOUT) return 'timeout';
       if (r.owned) { this.set(true); return 'owned'; }
       return r.pending ? 'pending' : r.unverified ? 'error' : 'cancelled';
-    } catch { return 'error'; }
+    } catch (e) { this.lastError = (e as Error)?.message || String(e); return 'error'; }
   },
   /** the website only: the family code opens Full BabyMo Craft in this browser */
   async redeem(code: string): Promise<boolean> {
@@ -67,6 +78,10 @@ export const store = {
   },
   async restore(): Promise<boolean> {
     if (!native()) return false;
-    try { const r = await (await kit()).restore({ id: FULL_ID }); this.set(r.owned); return r.owned; } catch { return false; }
+    try {
+      const r = await withTimeout((async () => (await kit()).restore({ id: FULL_ID }))(), 30000);
+      if (r === TIMEOUT) { this.lastError = 'timeout'; return false; }
+      this.set(r.owned); return r.owned;
+    } catch (e) { this.lastError = (e as Error)?.message || String(e); return false; }
   },
 };

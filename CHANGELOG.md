@@ -5,6 +5,23 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The unlock card never waits for ever
+
+Reported by a parent on TestFlight: "Talking to the App Store…" and then
+nothing happened.
+- **The cause is on Apple's side:** the card's button showed no price, so the
+  App Store didn't know the in-app purchase yet. Usually the Paid Apps
+  agreement isn't Active yet, or the purchase isn't ready in App Store Connect.
+- **The card no longer waits for ever:** buying gives up after 45 seconds and
+  restoring after 30. It then says "The App Store didn't answer. Check the
+  internet is on, then try again". When Apple doesn't know the product, a small
+  note tells the developer what to check, with Apple's own error text.
+- **iOS 17 and newer:** the purchase sheet is tied to the app's window scene
+  (`purchase(confirmIn:)`), as Apple asks for apps with scenes.
+- Tested: 270 unit tests (new: waiting gives up after the time limit); smoke on
+  desktop. The Swift change is compiled by Xcode on the Mac (there's no Swift
+  compiler here).
+
 ### The unlock card lists everything in Full BabyMo Craft
 
 - The "Open the whole island!" card now also lists the Mini Stadium, racing on
