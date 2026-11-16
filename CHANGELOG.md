@@ -5,6 +5,15 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The ⛵ button only where a boat can go in
+
+- **Bug (found by CI on iPhone):** the ⛵ Sail button showed next to any
+  water, even a one-block puddle or a thin stream, but a boat needs open water.
+  Tapping it there only said "There isn't enough water near here" (and the
+  boat test timed out). The button now uses the same check as launching, so
+  when you see ⛵, the boat goes in.
+- Tested: unit tests (270), iPhone and desktop smoke.
+
 ### Guide arrow: the compass's navigation arrow
 
 - The glass guide arrow now has the same shape as the arrow in the golden

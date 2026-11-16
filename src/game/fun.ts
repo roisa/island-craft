@@ -441,9 +441,9 @@ export class Fun {
     return grp;
   }
   /** launch your boat on the nearest water (the ⛵ button by the shore) */
-  launchBoat(): boolean {
+  /** where a boat could go in from here: open water (not a puddle or a thin stream) within a few steps, or null */
+  boatSpot(): THREE.Vector3 | null {
     const g = this.g, p = g.player.pos;
-    if (this.riding || g.inv.count(I.BOAT) < 1) return false;
     let best: THREE.Vector3 | null = null, bd = Infinity;
     for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) {
       const x = Math.floor(p.x) + dx + 0.5, z = Math.floor(p.z) + dz + 0.5;
@@ -454,6 +454,12 @@ export class Fun {
       const d = Math.hypot(dx, dz) - open * 0.4;
       if (open >= 2 && d < bd) { bd = d; best = new THREE.Vector3(x, sy, z); }
     }
+    return best;
+  }
+  launchBoat(): boolean {
+    const g = this.g, p = g.player.pos;
+    if (this.riding || g.inv.count(I.BOAT) < 1) return false;
+    const best = this.boatSpot();
     if (!best) { g.ui.toast(tr('⛵ Tidak ada air yang cukup di dekat sini', '⛵ There isn’t enough water near here')); return false; }
     const boat = this.boatModel(); boat.position.set(best.x, best.y - 0.25, best.z); boat.rotation.y = Math.atan2(best.x - p.x, best.z - p.z);
     g.scene.add(boat);

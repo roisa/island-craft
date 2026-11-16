@@ -986,7 +986,7 @@ export class Game {
     const p = this.player, rod = this.inv.held()?.id === I.FISHING_ROD;
     const nearWater = this.nearFishingWater();
     this.ui.showFishHelp(rod || nearWater);
-    this.ui.showBoat(nearWater && !this.fun.riding);
+    this.ui.showBoat(nearWater && !this.fun.riding && !!this.fun.boatSpot()); // (only where a boat can really go in)
     this.ui.showRace(!!this.race?.near(p.pos) && !this.race.active && !this.fun.riding);
     for (const r of this.races) r.idle(p.pos);
     this.ui.showTennis(!!this.tennis?.near(p.pos) && !this.tennis.active && !this.fun.riding && !this.race?.active);
