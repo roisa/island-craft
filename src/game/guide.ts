@@ -4,12 +4,16 @@
 // or pray, and when it's switched off in Settings.
 import * as THREE from 'three';
 
-/** the arrow's outline, pointing along +Y (1.1 long, 0.9 wide) */
+/**
+ * The arrow's outline, pointing along +Y: the same navigation arrowhead as the golden compass in the
+ * corner (a pointed head with a notch in its back), 1.15 long and 0.95 wide.
+ */
 function arrowShape() {
+  // the compass icon's points (24-unit icon: tip 12,3.2 · corners 19,20 and 5,20 · notch 12,16.2), centred and scaled
+  const k = 1.15 / 16.8, cy = 11.6, P = (x: number, y: number) => [(x - 12) * k, (cy - y) * k] as const;
   const s = new THREE.Shape();
-  s.moveTo(0, 0.62);
-  s.lineTo(0.45, 0.12); s.lineTo(0.17, 0.12); s.lineTo(0.17, -0.48);
-  s.lineTo(-0.17, -0.48); s.lineTo(-0.17, 0.12); s.lineTo(-0.45, 0.12);
+  s.moveTo(...P(12, 3.2));
+  s.lineTo(...P(19, 20)); s.lineTo(...P(12, 16.2)); s.lineTo(...P(5, 20));
   s.closePath();
   return s;
 }

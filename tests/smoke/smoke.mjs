@@ -537,7 +537,7 @@ async function run(name) {
           const L = R.letters[0], b0 = R.read; me.x = L.mesh.position.x; me.z = L.mesh.position.z;
           for (let i = 0; i < 20 && R.read === b0; i++) await wait(100);
           // its balloon carries it up, up and away … and pops
-          const y0 = R.y + 1.3; for (let i = 0; i < 30 && L.fly >= 0; i++) { if (L.fly > 0.3 && !res.flew) res.flew = L.mesh.position.y > y0 + 0.6; await wait(100); }
+          const y0 = R.y + 1.3; for (let i = 0; i < 60 && L.fly >= 0; i++) { if (G.ui.isOpen()) G.ui.closeAllModals(); if (L.mesh.position.y > y0 + 0.6) res.flew = true; await wait(100); } // (a card popping up would pause the race)
           res.popped = L.fly === -1 && !L.mesh.visible;
           res.read = R.read; res.set = R.set.slice(); res.said = window.__said; res.letters = R.letters.length;
           R.total = R.laps * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 0.6;

@@ -5,6 +5,15 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Guide arrow: the compass's navigation arrow
+
+- The glass guide arrow now has the same shape as the arrow in the golden
+  compass (top left): a pointed arrowhead with a notch in its back. Same
+  frosted grey glass and white edge as before, nothing around it.
+- The race smoke step closes any card while a hit letter flies away (a card
+  pauses the race, and with it the balloon).
+- Tested: unit tests (270), desktop smoke twice in a row, checked by eye.
+
 ### Race letters: balloon boxes that fly away
 
 - **No more dark spots:** the letter tiles' rounded corners were see-through
