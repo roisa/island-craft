@@ -2,7 +2,7 @@
 // for now): Iqro syllables with tanwin and long vowels, the Iqro words, the ayat and the du'a.
 //   npx vite-node tools/voice/missing.mjs > tools/voice/missing.tsv
 // tools/voice/cloudshell.sh makes the clips (same voice as the Baby Mo app) into public/voice/game-*.mp3
-// and src/game/voice-manifest.game.json. Qur'an ayat are listed but never generated: murottal only.
+// and src/game/voice-manifest.game.json (the ayat too, until a reciter's recording replaces them).
 import { voiceKey, spellings } from '../../src/game/voicekey';
 import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';

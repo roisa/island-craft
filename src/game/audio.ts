@@ -327,8 +327,9 @@ export function adhan(): number {
 // tools/voice/import.mjs brings them in: public/voice/*.mp3 and voice-manifest.json.
 import CLIPS from './voice-manifest.json';
 import GAME_CLIPS from './voice-manifest.game.json'; // (clips made for the game itself: tools/voice/cloudshell.sh)
+import REC_CLIPS from './voice-manifest.rec.json'; // (real-voice recordings from the recording page, rekam/: they win)
 import { voiceKey, trKey, spellings } from './voicekey';
-const CLIP = { ...(GAME_CLIPS as Record<string, string>), ...(CLIPS as Record<string, string>) };
+const CLIP = { ...(GAME_CLIPS as Record<string, string>), ...(CLIPS as Record<string, string>), ...(REC_CLIPS as Record<string, string>) };
 /** the clip for a line said in `lang` (Arabic text finds the Arabic clip), or for an Arabic word's Latin name */
 export function clipFor(text: string, lang: string, latin?: string): string | null {
   let f: string | undefined;

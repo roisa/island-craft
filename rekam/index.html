@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<script>
+/* Web-only developer tool (voice clips). In the iOS / Android app (Capacitor) it never runs: the microphone is
+   never requested and the page only says "Hanya di web / Web only". (tools/build-app.js does not copy tools/ into
+   the app either.) */
+(function(){try{
+  var C=window.Capacitor,app=window.MC_APP_BUILD||(C?(typeof C.isNativePlatform!=='function'||!!C.isNativePlatform()):/^(capacitor|ionic):$/.test(location.protocol));
+  if(!app)return;
+  window.MC_WEB_ONLY=true;
+  try{var md=navigator.mediaDevices;if(md)Object.defineProperty(md,'getUserMedia',{value:function(){return Promise.reject(new Error('web only'));},configurable:true});}catch(e){}
+  /* swallow the rest of the page as inert text: none of its scripts run */
+  document.write('<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><plaintext hidden>');
+  var show=function(){
+    document.body.innerHTML='<div style="display:flex!important;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:24px;text-align:center;font:800 20px/1.3 Nunito,system-ui,sans-serif">'+
+      '<div style="font-size:44px">🌐</div><div>Hanya di web</div><div style="font-size:16px;opacity:.7">Web only</div></div>';};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',show);else show();
+}catch(e){}})();
+</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#F2F6FC">
+<title>Rekam Suara · Mo Craft</title>
+<link rel="icon" href="../img/icon-192.png" type="image/png">
+<link rel="stylesheet" href="fonts/fonts.css">
+<script>/* theme before first paint: ?theme= → this page's choice → the game's setting (mocraft_none) → the phone's */
+(function(){try{var q=new URLSearchParams(location.search).get('theme'),r=JSON.parse(localStorage.getItem('mocraft_rekam_theme')||'null'),g=(JSON.parse(localStorage.getItem('mocraft_none')||'{}').theme)||'auto',m=q||r||g;
+document.documentElement.setAttribute('data-theme',m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');}catch(e){}})();</script>
+<style>
+:root{
+  --ink:#152230; --ink-2:#5A6878; --ink-3:#6B7787;
+  --tint:#12A15A; --tint-d:#0B8A4A; --tint-l:rgba(18,161,90,.12); --teal:#0A9488;
+  --red:#FF3B30; --gold:#F5B700; --blue:#0A84FF; --blue-l:rgba(10,132,255,.12);
+  --glass:rgba(255,255,255,.62); --glass-2:rgba(255,255,255,.42); --hair:rgba(21,34,48,.08); --solid:#fff;
+  --rim:inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(21,34,48,.04);
+  --shadow:0 18px 36px -22px rgba(30,50,100,.45);
+  --go:linear-gradient(120deg,#10A765 0%,#0A9488 52%,#0A7FB0 100%);
+  --ar:'Scheherazade New','Amiri','Noto Naskh Arabic',serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#F2F6FC;
+  --blobs:radial-gradient(ellipse 70% 45% at 0% 0%,rgba(120,200,255,.45),transparent 70%),radial-gradient(ellipse 60% 40% at 100% 8%,rgba(255,180,210,.40),transparent 70%),
+    radial-gradient(ellipse 70% 45% at 100% 85%,rgba(190,170,255,.38),transparent 70%),radial-gradient(ellipse 70% 45% at 0% 100%,rgba(130,230,180,.38),transparent 70%);
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --ink:#F2F5FA; --ink-2:#AEB8C7; --ink-3:#8794A6;
+  --tint:#22C06E; --tint-d:#7EE2A8; --tint-l:rgba(34,192,110,.18); --blue:#64B5FF; --blue-l:rgba(100,181,255,.16);
+  --glass:rgba(30,36,72,.58); --glass-2:rgba(36,42,82,.46); --hair:rgba(255,255,255,.08); --solid:#161C2F;
+  --rim:inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.2);
+  --shadow:0 18px 36px -22px rgba(0,0,0,.75);
+  --bg:#0B1020;
+  --blobs:radial-gradient(ellipse 70% 45% at 0% 0%,rgba(56,120,255,.30),transparent 70%),radial-gradient(ellipse 60% 40% at 100% 8%,rgba(190,90,220,.24),transparent 70%),
+    radial-gradient(ellipse 70% 45% at 100% 85%,rgba(110,80,255,.24),transparent 70%),radial-gradient(ellipse 70% 45% at 0% 100%,rgba(20,184,166,.22),transparent 70%);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
+body{font-family:'Nunito',system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--blobs)}
+button,input,select{font-family:inherit;color:inherit}
+button{cursor:pointer}
+.app{max-width:1200px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);border:1px solid var(--hair);box-shadow:var(--rim),var(--shadow)}
+.spring{transition:transform .26s cubic-bezier(.34,1.56,.64,1),opacity .2s,background .2s}
+.spring:active{transform:scale(.94)}
+svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* top bar */
+.topbar{display:flex;align-items:center;gap:10px;min-height:48px}
+.back{display:inline-flex;align-items:center;gap:4px;height:44px;padding:0 14px 0 10px;border-radius:22px;font:800 15px/1 'Nunito',sans-serif;text-decoration:none;color:var(--ink)}
+.topbar .t{flex:1;text-align:center;font:600 17px/1 'Fredoka','Nunito',sans-serif;letter-spacing:-.01em}
+.lang{height:44px;min-width:44px;padding:0 12px;border-radius:22px;font:900 13px/1 'Nunito',sans-serif;border:1px solid var(--hair)}
+.tbtn{display:flex;gap:6px}
+.brand{display:inline-flex;align-items:center;gap:8px;font:800 13px/1 'Nunito',sans-serif;color:var(--ink-3);margin:12px 2px 0}
+.brand img{width:28px;height:28px;border-radius:8px}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 14px}
+.links a{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:18px;font:800 13px/1 'Nunito',sans-serif;color:var(--ink);text-decoration:none;border:1px solid var(--hair);background:var(--glass-2);box-shadow:var(--rim)}
+h1{font:600 30px/1.1 'Fredoka','Nunito',sans-serif;letter-spacing:-.02em;margin:6px 2px 4px;background:var(--go);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--ink-2);font-size:15px;line-height:1.45;margin:0 2px 12px;max-width:900px}
+
+/* overall progress */
+.prog{display:flex;align-items:center;gap:10px;margin:0 2px 12px;font:800 13px/1 'Nunito',sans-serif;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.bar{flex:1;height:6px;border-radius:6px;background:rgba(118,118,128,.18);overflow:hidden;display:flex}
+.bar i{display:block;height:100%;width:0;background:var(--go);transition:width .45s cubic-bezier(.3,1,.4,1)}
+.bar i.t{background:rgba(245,183,0,.75)}
+.err{display:none;margin:12px 0;padding:12px 14px;border-radius:16px;background:rgba(255,59,48,.12);color:#C4261D;font-weight:800;font-size:14px;line-height:1.4}
+:root[data-theme="dark"] .err{color:#FF8A80}
+
+/* section chips */
+.secs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+.secs::-webkit-scrollbar{display:none}
+.sc{flex:none;min-width:118px;text-align:left;border:1px solid var(--hair);background:var(--glass-2);border-radius:18px;padding:9px 12px 9px;box-shadow:var(--rim)}
+.sc b{display:block;font:800 14px/1.2 'Nunito',sans-serif;white-space:nowrap}
+.sc small{display:block;font:800 11.5px/1.2 'Nunito',sans-serif;color:var(--ink-3);margin:3px 0 6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sc .bar{height:4px}
+.sc.on{background:var(--solid);border-color:rgba(10,148,136,.4);box-shadow:0 0 0 2px rgba(10,148,136,.28),var(--rim)}
+
+/* filters */
+.filt{display:flex;gap:8px;margin:2px 0 14px;flex-wrap:wrap}
+.search{flex:1 1 220px;display:flex;align-items:center;gap:8px;height:44px;border-radius:22px;padding:0 14px;border:1px solid var(--hair);background:var(--glass-2);box-shadow:var(--rim)}
+.search input{flex:1;min-width:0;border:0;background:none;outline:none;font:700 15px/1 'Nunito',sans-serif}
+.search input::placeholder{color:var(--ink-3)}
+.seg{display:flex;padding:3px;border-radius:22px;background:rgba(118,118,128,.14);flex:1 1 auto;overflow-x:auto;scrollbar-width:none}
+:root[data-theme="dark"] .seg{background:rgba(118,118,128,.26)}
+.seg button{flex:1 0 auto;border:0;background:none;height:38px;padding:0 12px;border-radius:19px;font:800 13px/1 'Nunito',sans-serif;color:var(--ink-2);white-space:nowrap}
+.seg button.on{background:var(--solid);color:var(--ink);box-shadow:0 3px 10px -2px rgba(0,0,0,.14)}
+
+/* two columns on wide screens */
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+.main,.side,.more,.list{min-width:0}
+.list{position:relative;max-height:62vh;overflow:auto;overscroll-behavior:contain}
+@media (min-width:980px){ .cols{grid-template-columns:minmax(0,1fr) 420px} .main{grid-column:1;grid-row:1} .more{grid-column:1;grid-row:2}
+  .side{grid-column:2;grid-row:1 / span 2;position:sticky;top:12px;max-height:calc(100vh - 24px);display:flex;flex-direction:column} .list{flex:1;min-height:0;max-height:none} }
+
+/* main card */
+.card{border-radius:30px;padding:16px 16px 18px;text-align:center;position:relative;overflow:hidden}
+.ctop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--tint-l);color:var(--tint-d);font:800 12px/1 'Nunito',sans-serif;padding:7px 12px;border-radius:99px;max-width:100%}
+.pill.n{background:rgba(118,118,128,.12);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.stage{min-height:150px;display:flex;align-items:center;justify-content:center;margin:6px 0 2px;padding:0 4px}
+.txt{word-wrap:break-word;overflow-wrap:anywhere;max-width:100%;color:var(--ink)}
+.txt.ar{font-family:var(--ar);direction:rtl}
+.txt.ar.big{font-size:104px;line-height:1.55}
+.txt.ar.mid{font-size:58px;line-height:1.7}
+.txt.ar.long{font-size:33px;line-height:2.05}
+.txt.lat{font:700 30px/1.3 'Fredoka','Nunito',sans-serif;letter-spacing:-.01em}
+.txt.lat.long{font:700 21px/1.45 'Nunito',sans-serif}
+.lflag{display:inline-block;font:900 11px/1 'Nunito',sans-serif;padding:5px 8px;border-radius:8px;background:var(--blue-l);color:var(--blue);vertical-align:middle}
+.hint{color:var(--ink-2);font:800 16px/1.35 'Nunito',sans-serif;margin:0 6px 10px;min-height:22px}
+.file{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:2px 0 4px}
+.file code{font:600 12.5px/1.2 var(--mono);color:var(--ink-2);background:rgba(118,118,128,.10);border-radius:9px;padding:6px 9px;overflow-wrap:anywhere}
+.badge{display:inline-flex;align-items:center;gap:5px;font:800 12px/1 'Nunito',sans-serif;padding:6px 10px;border-radius:99px;background:rgba(118,118,128,.12);color:var(--ink-2)}
+.badge.hu{background:var(--tint-l);color:var(--tint-d)}
+.badge.no{background:rgba(255,59,48,.10);color:var(--red)}
+.ref{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--hair);background:var(--glass-2);font:800 13px/1 'Nunito',sans-serif;box-shadow:var(--rim)}
+.ref svg.i{width:15px;height:15px}
+.ref:disabled{opacity:.4}
+
+/* meter */
+.meter{position:relative;height:10px;border-radius:6px;background:rgba(118,118,128,.16);overflow:hidden;margin:16px auto 0;max-width:420px}
+.meter i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:6px;background:linear-gradient(90deg,#34C77B 0%,#34C77B 70%,var(--gold) 85%,var(--red) 100%);background-size:420px 100%;transition:width .05s linear}
+.meter b{position:absolute;top:0;bottom:0;width:2px;left:0;background:var(--ink-2);opacity:.6}
+.meter.clip{box-shadow:0 0 0 2px var(--red)}
+.mlbl{display:flex;justify-content:space-between;max-width:420px;margin:5px auto 0;font:800 11px/1 'Nunito',sans-serif;color:var(--ink-3)}
+
+/* record control — Voice Memos style */
+.ctrl{display:flex;align-items:center;justify-content:center;gap:26px;margin:14px 0 4px}
+.nav{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
+.nav:disabled{opacity:.35}
+.rec{width:96px;height:96px;border-radius:50%;border:4px solid rgba(118,118,128,.28);background:transparent;display:grid;place-items:center;position:relative;padding:0}
+:root:not([data-theme="dark"]) .rec{background:#fff;box-shadow:0 14px 28px -16px rgba(255,59,48,.55)}
+.rec .core{width:70px;height:70px;border-radius:50%;background:var(--red);transition:all .32s cubic-bezier(.34,1.56,.64,1);box-shadow:inset 0 10px 12px -10px rgba(255,255,255,.6)}
+.rec.on .core{width:34px;height:34px;border-radius:9px}
+.rec.on::before{content:'';position:absolute;inset:-12px;border-radius:50%;border:3px solid rgba(255,59,48,.35);transform:scale(var(--lvl,1));transition:transform .08s linear}
+.rec:disabled{opacity:.5}
+.recLbl{font:800 13px/1 'Nunito',sans-serif;color:var(--ink-3);margin-top:4px}
+.recLbl.on{color:var(--red)}
+.timer{font:600 15px/1 'Fredoka',sans-serif;color:var(--red);font-variant-numeric:tabular-nums;min-height:16px;margin-top:6px;opacity:0;transition:opacity .2s}
+.timer.on{opacity:1}
+.status{font:800 14px/1.35 'Nunito',sans-serif;min-height:20px;margin-top:8px;color:var(--ink-3)}
+.status.ok{color:var(--tint-d)} .status.bad{color:var(--red)}
+
+/* take */
+.take{margin:12px auto 0;max-width:520px;border-radius:20px;padding:10px 12px;background:rgba(118,118,128,.08);display:none}
+.take.on{display:block}
+.take canvas{display:block;width:100%;height:46px}
+.take .st{display:flex;justify-content:space-between;gap:8px;font:800 12px/1.2 'Nunito',sans-serif;color:var(--ink-3);margin-top:6px;font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.acts{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.act{display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 16px;border-radius:22px;border:1px solid var(--hair);background:var(--glass-2);font:800 14px/1 'Nunito',sans-serif;color:var(--ink);box-shadow:var(--rim)}
+.act svg.i{width:18px;height:18px}
+.act:disabled{opacity:.38}
+.act.danger{color:var(--red)}
+.act.ok{background:var(--go);color:#fff;border-color:transparent}
+.act.ok.done{background:var(--tint-l);color:var(--tint-d);border-color:rgba(18,161,90,.3)}
+.keys{margin-top:12px;font:700 12px/1.6 'Nunito',sans-serif;color:var(--ink-3)}
+.keys kbd{font:800 11px/1 var(--mono);padding:3px 6px;border-radius:6px;border:1px solid var(--hair);background:var(--glass-2)}
+@media (pointer:coarse){ .keys{display:none} }
+
+/* iOS switch rows */
+.rows{margin:14px 4px 0;border-top:1px solid var(--hair)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 0;text-align:left}
+.row span{font:800 15px/1.3 'Nunito',sans-serif}
+.row small{display:block;color:var(--ink-3);font-weight:700;font-size:12.5px}
+.sw{position:relative;width:51px;height:31px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.sw i{position:absolute;inset:0;border-radius:16px;background:rgba(120,120,128,.32);transition:background .25s}
+.sw i::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .3s cubic-bezier(.34,1.4,.64,1)}
+.sw input:checked + i{background:#34C759}
+.sw input:checked + i::after{transform:translateX(20px)}
+
+/* list */
+.side{gap:0}
+.lhead{font:800 13px/1 'Nunito',sans-serif;color:var(--ink-3);margin:4px 6px 10px;display:flex;justify-content:space-between}
+.list{border-radius:24px;padding:6px}
+.gh{position:sticky;top:-6px;z-index:1;font:800 12px/1.2 'Nunito',sans-serif;color:var(--ink-3);padding:10px 10px 6px;display:flex;justify-content:space-between;gap:8px;background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:12px}
+.it{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;padding:8px 10px;border-radius:14px;min-height:48px}
+.it:hover{background:rgba(118,118,128,.08)}
+.it.cur{background:var(--tint-l);box-shadow:inset 0 0 0 2px rgba(245,183,0,.75)}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;border:2px solid rgba(118,118,128,.45)}
+.it.tk .dot{border-color:var(--gold);background:rgba(245,183,0,.35)}
+.it.ap .dot{border-color:var(--tint);background:var(--tint)}
+.it .m{flex:1;min-width:0}
+.it .a{display:block;font:400 24px/1.5 var(--ar);direction:rtl;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .l{display:block;font:800 14px/1.3 'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .h{display:block;font:700 12px/1.25 'Nunito',sans-serif;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .hb{flex:none;font:900 10px/1 'Nunito',sans-serif;padding:4px 6px;border-radius:7px;background:var(--tint-l);color:var(--tint-d)}
+.empty{padding:22px 12px;text-align:center;color:var(--ink-3);font-weight:800;font-size:14px}
+
+/* export */
+.export{border-radius:24px;padding:16px}
+.export h3,.tips h3{font:600 18px/1.2 'Fredoka',sans-serif;display:flex;align-items:center;gap:8px}
+.export p{color:var(--ink-2);font-size:14px;line-height:1.45;margin:6px 0 12px}
+.export code{font:600 12.5px/1.4 var(--mono);background:rgba(118,118,128,.12);padding:2px 6px;border-radius:6px;overflow-wrap:anywhere}
+.cta{width:100%;height:54px;border:0;border-radius:27px;background:var(--go);color:#fff;font:900 17px/1 'Nunito',sans-serif;display:flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:inset 0 18px 16px -14px rgba(255,255,255,.45),inset 0 1px 0 rgba(255,255,255,.6),0 14px 26px -14px rgba(10,127,176,.8)}
+.cta:disabled{opacity:.45}
+.zipInfo{display:block;text-align:center;color:var(--ink-3);font:800 13px/1.3 'Nunito',sans-serif;margin-top:10px}
+.zipInfo:empty{display:none}
+.tips{border-radius:22px;padding:14px 16px;margin-top:14px}
+.tips h3{font-size:16px;margin-bottom:8px}
+.tips li{list-style:none;display:flex;gap:10px;color:var(--ink-2);font-size:14px;line-height:1.45;font-weight:700;margin:6px 0}
+@media (max-width:420px){ h1{font-size:26px;margin-top:8px} .lead{font-size:14px} .stage{min-height:120px} .txt.ar.big{font-size:88px} .txt.ar.mid{font-size:48px} .txt.ar.long{font-size:28px} .txt.lat{font-size:25px} .ctrl{gap:20px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.src{color:var(--ink-3);font:700 13.5px/1.4 'Nunito',sans-serif;margin:-4px 8px 10px}
+.src bdi{font-family:var(--ar);font-size:19px}
+.err a{color:inherit}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+  <symbol id="i-robot" viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/></symbol>
+</svg>
+<div class="app">
+  <div class="topbar">
+    <a class="back glass spring" href="../"><svg class="i"><use href="#i-back"/></svg><span data-t="home"></span></a>
+    <div class="t" data-t="title"></div>
+    <div class="tbtn"><button class="lang glass spring" id="theme" aria-label="Theme">☾</button><button class="lang glass spring" id="lang" aria-label="Language">EN</button></div>
+  </div>
+  <div class="brand"><img src="../img/icon-180.png" alt="">Mo Craft</div>
+  <h1 data-t="h1"></h1>
+  <p class="lead" data-t="lead"></p>
+  <div class="links"><a href="dengar.html" id="toDengar"><svg class="i"><use href="#i-play"/></svg><span data-t="toListen"></span></a></div>
+  <div class="prog"><span id="totTxt"></span><div class="bar"><i id="barA"></i><i class="t" id="barT"></i></div></div>
+  <div class="err" id="err"></div>
+
+  <div class="secs" id="secs"></div>
+  <div class="filt">
+    <label class="search"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg><input id="q" type="search" autocomplete="off" spellcheck="false"></label>
+    <div class="seg" id="fseg"></div>
+  </div>
+
+  <div class="cols">
+    <div class="main">
+      <div class="card glass" id="card">
+        <div class="ctop"><span class="pill" id="grp"></span><span class="pill n" id="pos"></span></div>
+        <div class="stage"><div class="txt" id="txt"></div></div>
+        <div class="hint" id="hint"></div>
+        <div class="src" id="src"></div>
+        <div class="file"><code id="file"></code><span class="badge" id="inapp"></span>
+          <button class="ref spring" id="ref"><svg class="i"><use href="#i-play"/></svg><span data-t="ref"></span></button></div>
+        <div class="meter" id="meter"><i id="mlvl"></i><b id="mpk"></b></div>
+        <div class="mlbl"><span>−60 dB</span><span id="mtxt"></span><span>0 dB</span></div>
+        <div class="ctrl">
+          <button class="nav glass spring" id="prev"><svg class="i"><use href="#i-back"/></svg></button>
+          <button class="rec spring" id="rec"><span class="core"></span></button>
+          <button class="nav glass spring" id="next"><svg class="i"><use href="#i-next"/></svg></button>
+        </div>
+        <div class="recLbl" id="recTxt"></div>
+        <div class="timer" id="timer">0:00</div>
+        <div class="status" id="status"></div>
+        <div class="take" id="take"><canvas id="wave" width="1000" height="92"></canvas><div class="st"><span id="tkA"></span><span id="tkB"></span></div></div>
+        <div class="acts">
+          <button class="act spring" id="play" disabled><svg class="i"><use href="#i-play"/></svg><span data-t="play"></span></button>
+          <button class="act ok spring" id="ok" disabled><svg class="i"><use href="#i-check"/></svg><span id="okTxt"></span></button>
+          <button class="act spring danger" id="del" disabled><svg class="i"><use href="#i-trash"/></svg><span data-t="del"></span></button>
+        </div>
+        <div class="keys" data-t="keys"></div>
+        <div class="rows">
+          <label class="row"><span><span data-t="autoplay"></span><small data-t="autoplayS"></small></span><span class="sw"><input type="checkbox" id="autoPlay" checked><i></i></span></label>
+          <label class="row"><span><span data-t="autonext"></span><small data-t="autonextS"></small></span><span class="sw"><input type="checkbox" id="autoNext" checked><i></i></span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="lhead"><span id="listTitle"></span><span id="listCount"></span></div>
+      <div class="list glass" id="list"></div>
+    </div>
+
+    <div class="more">
+      <div class="export glass">
+        <h3><svg class="i"><use href="#i-box"/></svg><span data-t="expH"></span></h3>
+        <p data-t="expP"></p>
+        <button class="cta spring" id="zip"><svg class="i"><use href="#i-box"/></svg><span id="zipTxt"></span></button>
+        <span class="zipInfo" id="zipInfo"></span>
+      </div>
+      <div class="tips glass">
+        <h3 data-t="tipsH"></h3>
+        <ul id="tips"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="rekam-data.js"></script>
+<script>
+/* Mo Craft — recording page for a real voice (ported from Pulau Hijaiyah's tools/rekam, itself from Baby Mo's
+   www/tools/rekam-suara.html). The line list (rekam-data.js, made by tools/voice/build-rekam-data.mjs) is every clip
+   the game can play plus the Arabic lines with no clip yet: letters & harakat, Iqro syllables & words, du'a, the
+   Qur'an ayat (for a reciter) and Mo's Indonesian / English lines. An approved take, converted by
+   tools/voice/import-recordings.sh, becomes public/voice/rec-<id>-<n>.mp3 and wins over every other clip.
+   Takes live in IndexedDB (mocraft-rekam / clips, keyed by clip id) as trimmed + loudness-normalised 24 kHz mono
+   WAV (+ the raw recording); the ZIP holds the approved ones. */
+'use strict';
+const ITEMS = window.REKAM || [], SECS = window.REKAM_SECTIONS || [];
+const BY = new Map(ITEMS.map(x=>[x.id,x]));
+const TARGET_LUFS = -19, CEIL_DB = -1, OUT_SR = 24000;   // the TTS clips measure about −19…−23 LUFS, peaks −1…−6 dBFS
+const $ = id => document.getElementById(id);
+const store = { get(k,d){ try{ const v=localStorage.getItem('mocraft_rekam_'+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+                set(k,v){ try{ localStorage.setItem('mocraft_rekam_'+k, JSON.stringify(v)); }catch(e){} } };
+
+/* ---------- language (ID / EN) ---------- */
+let EN = false;
+try{ EN = (new URLSearchParams(location.search).get('lang') || store.get('lang', null) || (JSON.parse(localStorage.getItem('mocraft_none')||'{}').lang)) === 'en'; }catch(e){}
+const T = {
+  home:['Game','Game'], title:['Rekam Suara','Record Voice'], h1:['Suara asli untuk Mo','A real voice for Mo'],
+  lead:['Semua suara Mo Craft ada di sini: huruf & harakat, suku kata & kata Iqro, doa, ayat Al-Qur\'an (untuk qari), dan kalimat Mo (Indonesia & Inggris). Ketuk tombol merah, bacakan, ketuk lagi, dengarkan, lalu setujui. Hening dipotong dan volume disamakan otomatis; rekaman tersimpan di perangkat ini. Rekaman asli selalu menggantikan suara buatan.',
+        'Every Mo Craft voice line is here: letters & vowel marks, Iqro syllables & words, du\'a, the Qur\'an ayat (for a reciter) and Mo\'s lines (Indonesian & English). Tap the red button, read, tap again, listen, then approve. Silence is trimmed and loudness matched automatically; takes stay on this device. A real recording always replaces a generated voice.'],
+  toListen:['Dengar semua clip','Listen to every clip'], onScreen:['Di layar: ','On screen: '],
+  ref:['Clip sekarang','Current clip'], play:['Dengar','Play'], del:['Hapus','Delete'], approve:['Setujui','Approve'], approved:['Disetujui','Approved'],
+  rec:['Rekam','Record'], stop:['Ketuk untuk berhenti','Tap to stop'], again:['Rekam ulang','Re-record'],
+  keys:['<kbd>Spasi</kbd> rekam/berhenti · <kbd>←</kbd> <kbd>→</kbd> sebelum/berikut · <kbd>Enter</kbd> setujui · <kbd>P</kbd> dengar rekaman · <kbd>R</kbd> clip sekarang',
+        '<kbd>Space</kbd> record/stop · <kbd>←</kbd> <kbd>→</kbd> prev/next · <kbd>Enter</kbd> approve · <kbd>P</kbd> play take · <kbd>R</kbd> current clip'],
+  autoplay:['Putar setelah merekam','Play after recording'], autoplayS:['Langsung dengar hasilnya','Hear the take right away'],
+  autonext:['Lanjut otomatis','Auto-advance'], autonextS:['Ke tulisan berikutnya setelah disetujui','Next clip after approving'],
+  expH:['Kirim rekaman','Export recordings'],
+  expP:['Buat ZIP berisi rekaman yang sudah disetujui (WAV, nama file sama persis dengan clip di game). Lalu di komputer, di repo island-craft: <code>bash tools/voice/import-recordings.sh mocraft-rekaman-….zip</code>, atau unggah ZIP ke Google Drive dan beri tahu Claude nama file-nya.',
+        'Make a ZIP of the approved takes (WAV, file names exactly as the game\'s clips). Then on a computer, in the island-craft repo: <code>bash tools/voice/import-recordings.sh mocraft-rekaman-….zip</code>, or upload the ZIP to Google Drive and tell Claude its name.'],
+  tipsH:['Tips merekam','Recording tips'],
+  all:['Semua','All'], fAll:['Semua','All'], fTodo:['Belum direkam','Not recorded'], fTake:['Belum disetujui','Not approved'], fOk:['Disetujui','Approved'], fHuman:['Suara asli di game','Real voice in game'],
+  search:['Cari tulisan, arti, atau nama file…','Search text, hint or file name…'],
+  inAI:['Di game: TTS · ','In game: TTS · '], inHu:['Di game: suara asli · ','In game: real voice · '], inNo:['Belum ada clip (suara HP)','No clip yet (phone voice)'],
+  st0:['',''], stRec:['🔴 Merekam… bacakan sekarang','🔴 Recording… read it now'], stProc:['Memproses…','Processing…'],
+  stSaved:['✓ Tersimpan — dengarkan, lalu setujui','✓ Saved — listen, then approve'], stHave:['Ada rekaman, belum disetujui','Take recorded, not approved yet'],
+  stOk:['✓ Disetujui','✓ Approved'], stShort:['Terlalu pendek atau tidak ada suara — coba lagi ya.','Too short or no voice detected — try again.'],
+  stClip:['⚠ Terlalu keras (pecah). Jauhkan sedikit HP-nya dan rekam ulang.','⚠ Too loud (clipping). Move back a little and re-record.'],
+  stDone:['🎉 Semua di daftar ini sudah direkam!','🎉 Everything in this list is recorded!'],
+  delQ:['Hapus rekaman ini?','Delete this take?'],
+  zip:['Unduh ZIP','Download ZIP'], zipNone:['Belum ada rekaman yang disetujui.','No approved takes yet.'], zipPrep:['Menyiapkan…','Preparing…'],
+  takes:['rekaman','takes'], appr:['disetujui','approved'], of:['dari','of'], list:['Daftar','List'], none:['Tidak ada yang cocok.','Nothing matches.'],
+  errMic:['Mikrofon tidak bisa dipakai. Izinkan akses mikrofon untuk halaman ini di pengaturan browser, lalu muat ulang.','The microphone is not available. Allow microphone access for this page in the browser settings, then reload.'],
+  errRec:['Browser ini belum bisa merekam. Pakai Safari terbaru (iPhone) atau Chrome (laptop).','This browser cannot record. Use a recent Safari (iPhone) or Chrome (laptop).'],
+  errDb:['Penyimpanan di browser ini tidak tersedia (mode privat?). Rekaman tidak akan tersimpan.','Storage is not available in this browser (private mode?). Takes will not be saved.'],
+  errProc:['Rekaman tidak bisa diproses di browser ini; disimpan apa adanya.','The take could not be processed in this browser; it was saved as-is.'],
+};
+const L = k => (T[k] || [k,k])[EN?1:0];
+const TIPS = [
+  ['🤫','Ruangan sepi, HP sekitar 20 cm dari mulut. Jangan terlalu dekat.','A quiet room, phone about 20 cm from your mouth. Not too close.'],
+  ['🎙️','Pakai satu suara dan satu tempat yang sama untuk semua rekaman.','Use the same voice and the same spot for every take.'],
+  ['🔤','<bdi dir="rtl" style="font-family:var(--ar);font-size:20px;white-space:nowrap">بَ بِ بُ</bdi> cukup bunyi pendek: “ba”, bukan “baa”. Nama huruf dibaca lengkap: “alif”, “baa’”.','<bdi dir="rtl" style="font-family:var(--ar);font-size:20px;white-space:nowrap">بَ بِ بُ</bdi> are short sounds: “ba”, not “baa”. Letter names in full: “alif”, “baa’”.'],
+  ['📖','Kata Arab dibaca jelas dan pelan, persis harakatnya (tanpa waqaf kecuali ditulis sukun).','Read Arabic words clearly and slowly, exactly as their harakat (no stopping unless there is a sukun).'],
+  ['💬','Kalimat Mo: ceria dan jelas, seperti bicara ke anak kecil. Bila “Di layar” ada huruf Arab, boleh sebutkan hurufnya.','Mo\'s lines: bright and clear, like talking to a small child. If “On screen” shows Arabic letters, you may say them.'],
+];
+function applyLang(){
+  document.documentElement.lang = EN?'en':'id';
+  document.title = L('title')+' · Mo Craft';
+  document.querySelectorAll('[data-t]').forEach(el=>{ const v=L(el.dataset.t); if(/<(kbd|code|bdi)/.test(v)) el.innerHTML=v; else el.textContent=v; });
+  $('lang').textContent = EN?'ID':'EN';
+  $('q').placeholder = L('search');
+  $('prev').setAttribute('aria-label', EN?'Previous':'Sebelumnya'); $('next').setAttribute('aria-label', EN?'Next':'Berikutnya');
+  $('tips').innerHTML = TIPS.map(t=>'<li><span>'+t[0]+'</span><span>'+t[EN?2:1]+'</span></li>').join('');
+  buildFilters(); buildSecs(); buildList(); render();
+}
+$('lang').onclick = ()=>{ EN=!EN; store.set('lang', EN?'en':'id'); applyLang(); };
+/* theme: the game's setting (mocraft_none) / the phone's, toggled here with ☾ / ☀ */
+function paintTheme(){ const d=document.documentElement.getAttribute('data-theme')==='dark'; $('theme').textContent=d?'☀':'☾'; $('theme').setAttribute('aria-label', d?(EN?'Light':'Terang'):(EN?'Dark':'Gelap')); }
+$('theme').onclick = ()=>{ const d=document.documentElement.getAttribute('data-theme')!=='dark'; document.documentElement.setAttribute('data-theme', d?'dark':'light'); store.set('theme', d?'dark':'light'); paintTheme(); render(); };
+paintTheme();
+
+/* ---------- current clips in the game (the manifests) ---------- */
+const MAN = { V:['MC_CLIPS',''] };
+function clipOf(x){
+  const m=MAN[x.m||'V']; if(!m) return null;
+  const M=window[m[0]]||{}, f=(x.ks||[x.key]).map(k=>M[k]).find(Boolean); if(!f) return null;
+  const tag=(f.match(/[?&]v=([^&#]*)/)||[])[1]||'';
+  return { url:'../voice/'+f, tag, human:/^rec/i.test(tag) };
+}
+ITEMS.forEach(x=>{ x.clip=clipOf(x); });
+
+/* ---------- storage (IndexedDB) ---------- */
+let dbp=null;
+function db(){ return dbp || (dbp = new Promise((ok,no)=>{ const r=indexedDB.open('mocraft-rekam',1); r.onupgradeneeded=()=>r.result.createObjectStore('clips',{keyPath:'id'}); r.onsuccess=()=>ok(r.result); r.onerror=()=>no(r.error); })); }
+async function tx(mode, fn){ const d=await db(); return new Promise((ok,no)=>{ const t=d.transaction('clips',mode); const r=fn(t.objectStore('clips')); t.oncomplete=()=>ok(r&&r.result); t.onerror=()=>no(t.error); t.onabort=()=>no(t.error); }); }
+const dbPut = v => tx('readwrite', s=>s.put(v));
+const dbGet = id => tx('readonly', s=>s.get(id));
+const dbDel = id => tx('readwrite', s=>s.delete(id));
+const dbAll = () => tx('readonly', s=>s.getAll());
+/* in memory: id -> {approved, dur, lufs, peak} (no blobs) */
+const META = new Map();
+const metaOf = r => ({ approved:!!r.approved, dur:r.dur||0, lufs:r.lufs, peak:r.peak, clipped:!!r.clipped, wav:!!r.wav });
+
+/* ---------- state ---------- */
+let sec = store.get('sec','huruf'), filt = store.get('filt','all'), q = '', vis = [], cur = null;
+let busy=false, recOn=false, player=null;
+if(sec!=='all' && !SECS.some(s=>s.s===sec)) sec='huruf';
+$('autoPlay').checked = store.get('autoPlay', true); $('autoNext').checked = store.get('autoNext', true);
+$('autoPlay').onchange = e=>store.set('autoPlay', e.target.checked); $('autoNext').onchange = e=>store.set('autoNext', e.target.checked);
+const stateOf = id => { const m=META.get(id); return !m ? 'none' : m.approved ? 'ok' : 'take'; };
+const secName = s => { const o=SECS.find(x=>x.s===s); return o ? o.ic+' '+(EN?o.en:o.id) : ''; };
+
+/* ---------- filters + sections ---------- */
+const FILTERS = [['all','fAll'],['todo','fTodo'],['take','fTake'],['ok','fOk'],['human','fHuman']];
+function buildFilters(){
+  const s=$('fseg'); s.innerHTML='';
+  FILTERS.forEach(([k,t])=>{ const b=document.createElement('button'); b.textContent=L(t); b.dataset.f=k; b.className=k===filt?'on':''; b.onclick=()=>{ filt=k; store.set('filt',k); buildFilters(); buildList(true); }; s.appendChild(b); });
+}
+function buildSecs(){
+  const box=$('secs'); box.innerHTML='';
+  [{s:'all',ic:'📚',id:'Semua',en:'All'}].concat(SECS).forEach(o=>{
+    const b=document.createElement('button'); b.className='sc spring'+(o.s===sec?' on':''); b.dataset.s=o.s;
+    b.innerHTML='<b></b><small></small><div class="bar"><i></i><i class="t"></i></div>'; b.querySelector('b').textContent=o.ic+' '+(EN?o.en:o.id);
+    b.onclick=()=>{ if(recOn||busy) return; sec=o.s; store.set('sec',sec); buildSecs(); buildList(true); };
+    box.appendChild(b);
+  });
+  counts();
+}
+function counts(){
+  const tot = s => ITEMS.filter(x=>s==='all'||x.s===s);
+  document.querySelectorAll('.sc').forEach(b=>{
+    const L_=tot(b.dataset.s), a=L_.filter(x=>stateOf(x.id)==='ok').length, t=L_.filter(x=>stateOf(x.id)==='take').length;
+    b.querySelector('small').textContent = a+' ✓ · '+t+' ● · '+L_.length;
+    const is=b.querySelectorAll('i'); is[0].style.width=(a/L_.length*100)+'%'; is[1].style.width=(t/L_.length*100)+'%';
+    b.title = a+' '+L('appr')+', '+t+' '+L('takes')+' '+L('fTake').toLowerCase()+', '+L_.length+' total';
+  });
+  const a=ITEMS.filter(x=>stateOf(x.id)==='ok').length, t=ITEMS.filter(x=>stateOf(x.id)==='take').length;
+  $('totTxt').textContent = a+' '+L('appr')+' · '+t+' '+L('takes')+' · '+ITEMS.length;
+  $('barA').style.width=(a/ITEMS.length*100)+'%'; $('barT').style.width=(t/ITEMS.length*100)+'%';
+  $('zipTxt').textContent = L('zip')+' ('+a+' '+L('appr')+')'; $('zip').disabled = !a;
+}
+function matches(x){
+  if(sec!=='all' && x.s!==sec) return false;
+  const st=stateOf(x.id);
+  if(filt==='todo' && st!=='none') return false;
+  if(filt==='take' && st!=='take') return false;
+  if(filt==='ok' && st!=='ok') return false;
+  if(filt==='human' && !(x.clip&&x.clip.human)) return false;
+  if(q){ const h=(x.t+' '+x.h+' '+x.g+' '+x.id+' '+x.f).toLowerCase(); if(!q.split(/\s+/).every(w=>h.includes(w))) return false; }
+  return true;
+}
+let rowEls = new Map();
+function buildList(resetCur){
+  vis = ITEMS.filter(matches);
+  const box=$('list'); box.innerHTML=''; rowEls=new Map();
+  $('listTitle').textContent = sec==='all' ? L('list') : secName(sec);
+  $('listCount').textContent = vis.length+' / '+ITEMS.filter(x=>sec==='all'||x.s===sec).length;
+  if(!vis.length){ const p=document.createElement('div'); p.className='empty'; p.textContent=L('none'); box.appendChild(p); }
+  const frag=document.createDocumentFragment(); let g=null;
+  vis.forEach(x=>{
+    const gk=x.s+'|'+x.g;
+    if(gk!==g){ g=gk; const h=document.createElement('div'); h.className='gh'; const n=vis.filter(y=>y.s===x.s&&y.g===x.g);
+      h.innerHTML='<span></span><span></span>'; h.firstChild.textContent=(sec==='all'?secName(x.s)+' · ':'')+(x.g||''); h.lastChild.textContent=n.length; frag.appendChild(h); }
+    const b=document.createElement('button'); b.className='it'; b.dataset.id=x.id;
+    b.innerHTML='<span class="dot"></span><span class="m"><span class="'+(x.l==='ar'?'a':'l')+'"></span><span class="h"></span></span>';
+    b.querySelector('.m').firstChild.textContent=x.t; b.querySelector('.h').textContent=(x.l!=='ar'?x.l.toUpperCase()+' · ':'')+(x.h||'')+' · '+x.id;
+    if(x.clip&&x.clip.human){ const s=document.createElement('span'); s.className='hb'; s.textContent=EN?'REAL':'ASLI'; b.appendChild(s); }
+    b.onclick=()=>{ if(recOn||busy) return; select(x.id, false); };
+    rowEls.set(x.id,b); paintRow(x.id); frag.appendChild(b);
+  });
+  box.appendChild(frag);
+  if(resetCur || !cur || !vis.includes(BY.get(cur))){
+    const prefer = !resetCur && cur && BY.get(cur) && matches(BY.get(cur)) ? cur : null;
+    const f = prefer || (vis.find(x=>stateOf(x.id)==='none')||vis[0]||{}).id || null;
+    cur=f;
+  }
+  render(); scrollCur();
+}
+function paintRow(id){ const b=rowEls.get(id); if(!b) return; const st=stateOf(id); b.classList.toggle('tk',st==='take'); b.classList.toggle('ap',st==='ok'); b.classList.toggle('cur',id===cur); }
+function scrollCur(){   /* inside the list only (never scrolls the page) */
+  const b=rowEls.get(cur), box=$('list'); if(!b) return;
+  const top=b.offsetTop, bot=top+b.offsetHeight;
+  if(top < box.scrollTop+40) box.scrollTop=Math.max(0,top-44); else if(bot > box.scrollTop+box.clientHeight) box.scrollTop=bot-box.clientHeight+8;
+}
+let qT=0; $('q').oninput = e=>{ clearTimeout(qT); qT=setTimeout(()=>{ q=e.target.value.trim().toLowerCase(); buildList(true); },160); };
+
+/* ---------- the card ---------- */
+function select(id, scroll=true){
+  const old=cur; cur=id; store.set('cur',id); paintRow(old); paintRow(id); render(); if(scroll) scrollCur();
+  if(matchMedia('(max-width:979px)').matches && !scroll) $('card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function render(){
+  const x = BY.get(cur);
+  const has = !!x;
+  ['rec','ref','play','ok','del'].forEach(k=>{ if(!has) $(k).disabled=true; });
+  if(!has){ $('txt').textContent=''; $('hint').textContent=''; $('src').textContent=''; $('file').textContent=''; $('grp').textContent=''; $('pos').textContent=''; $('inapp').textContent=''; $('take').classList.remove('on'); counts(); return; }
+  $('rec').disabled = busy;
+  $('grp').textContent = secName(x.s)+(x.g?' · '+x.g:'');
+  const i = vis.indexOf(x); $('pos').textContent = (i>=0 ? (i+1)+' / '+vis.length : '–')+' · '+x.id;
+  const t=$('txt'); t.textContent=x.t;
+  if(x.l==='ar'){ const n=x.t.replace(/[ً-ْٰ\s]/g,'').length; t.className='txt ar '+(n<=2?'big':n<=14?'mid':'long'); }
+  else { t.className='txt lat'+(x.t.length>60?' long':''); const f=document.createElement('span'); f.className='lflag'; f.textContent=x.l.toUpperCase(); t.prepend(f,' '); }
+  $('hint').textContent = x.h||'';
+  const sr=$('src'); sr.textContent=''; if(x.src){ sr.append(L('onScreen')); const b=document.createElement('bdi'); b.textContent=x.src; b.style.fontFamily='inherit'; b.style.fontSize='inherit'; sr.append(b); }
+  $('file').textContent = x.f;
+  const c=x.clip, ia=$('inapp');
+  ia.className='badge'+(c?(c.human?' hu':''):' no'); ia.textContent = c ? (c.human?L('inHu'):L('inAI'))+(c.human?c.tag:(c.tag==='algenib'?'Algenib':c.tag||'?')) : L('inNo');
+  $('ref').disabled = !c;
+  const m=META.get(x.id), st=stateOf(x.id);
+  $('play').disabled = !m || busy; $('del').disabled = !m || busy; $('ok').disabled = !m || busy;
+  $('ok').classList.toggle('done', st==='ok'); $('okTxt').textContent = st==='ok'?L('approved'):L('approve');
+  $('recTxt').textContent = recOn ? L('stop') : m ? L('again') : L('rec');
+  $('prev').disabled = i<=0; $('next').disabled = i<0 || i>=vis.length-1;
+  if(!recOn && !busy){ setStatus(st==='ok'?L('stOk'):st==='take'?L('stHave'):'', st==='ok'?'ok':''); }
+  if(m && m.clipped && !recOn && !busy) setStatus(L('stClip'),'bad');
+  showTake(x.id);
+  counts();
+}
+function setStatus(s, cls){ const e=$('status'); e.textContent=s; e.className='status'+(cls?' '+cls:''); }
+function move(d){
+  if(recOn||busy) return; const i=vis.indexOf(BY.get(cur)); const j=i+d; if(j<0||j>=vis.length) return; select(vis[j].id);
+}
+function nextTodo(){
+  const i=vis.indexOf(BY.get(cur));
+  for(let k=1;k<=vis.length;k++){ const x=vis[(i+k)%vis.length]; if(x && stateOf(x.id)!=='ok' && x.id!==cur){ select(x.id); return true; } }
+  return false;
+}
+$('prev').onclick=()=>move(-1); $('next').onclick=()=>move(1);
+
+/* take preview: waveform + stats */
+let showSeq=0;
+async function showTake(id){
+  const my=++showSeq, m=META.get(id), box=$('take');
+  if(!m){ box.classList.remove('on'); return; }
+  box.classList.add('on');
+  $('tkA').textContent = m.dur ? m.dur.toFixed(2)+' s' : '';
+  $('tkB').textContent = m.lufs!=null ? (Math.round(m.lufs*10)/10)+' LUFS · '+(EN?'peak ':'puncak ')+(Math.round(m.peak*10)/10)+' dB' : (EN?'not processed':'belum diproses');
+  const r = await dbGet(id).catch(()=>null); if(my!==showSeq || !r) return;
+  const cv=$('wave'), g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height);
+  const col=getComputedStyle(document.documentElement).getPropertyValue('--tint').trim()||'#12A150';
+  if(!r.peaks){ return; }
+  const P=r.peaks, w=cv.width/P.length, h=cv.height/2;
+  g.fillStyle=col; for(let k=0;k<P.length;k++){ const v=Math.max(1.5,P[k]*h); g.fillRect(k*w, h-v, Math.max(1,w-1.5), v*2); }
+}
+
+/* ---------- playback ---------- */
+let playUrl=null;
+function stopPlay(){ if(player){ try{ player.pause(); }catch(e){} player=null; } if(playUrl){ URL.revokeObjectURL(playUrl); playUrl=null; } }
+function playSrc(src, after){ stopPlay(); try{ player=new Audio(src); player.setAttribute('playsinline',''); player.onended=()=>after&&after(); player.play().catch(()=>after&&after()); }catch(e){ after&&after(); } }
+function playBlob(b, after){ const u=URL.createObjectURL(b); playSrc(u, after); playUrl=u; }
+$('ref').onclick = ()=>{ const x=BY.get(cur); if(x&&x.clip&&!recOn) playSrc(x.clip.url); };
+$('play').onclick = async()=>{ if(recOn) return; const r=await dbGet(cur).catch(()=>null); if(r) playBlob(r.wav||r.raw||r.blob); };
+
+/* ---------- approve / delete ---------- */
+async function approve(){
+  const id=cur, m=META.get(id); if(!m||busy||recOn) return;
+  const r=await dbGet(id); if(!r) return;
+  r.approved=!r.approved; r.approvedAt=r.approved?Date.now():null; await dbPut(r);
+  META.set(id, metaOf(r)); paintRow(id); render();
+  if(r.approved && $('autoNext').checked){ stopPlay(); if(!nextTodo()) setStatus(L('stDone'),'ok'); }
+}
+$('ok').onclick = approve;
+$('del').onclick = async()=>{ const id=cur; if(!META.has(id)||recOn||busy) return; if(!confirm(L('delQ'))) return; await dbDel(id); META.delete(id); paintRow(id); render(); };
+
+/* ---------- recording ---------- */
+let stream=null, actx=null, mrec=null, chunks=[], an=null, srcNode=null, raf=0, peakHold=-60, peakT=0, clipSeen=false;
+function pickMime(){ for(const m of ['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus']){ try{ if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; }catch(e){} } return ''; }
+function showErr(m){ const e=$('err'); e.textContent=m; e.style.display='block'; }
+function ctx(){ if(!actx){ const C=window.AudioContext||window.webkitAudioContext; actx=new C(); } if(actx.state==='suspended') actx.resume().catch(()=>{}); return actx; }
+async function ensureStream(){
+  if(stream && stream.getAudioTracks().some(t=>t.readyState==='live')) return stream;
+  stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false,channelCount:1}});
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  return stream;
+}
+function meterOn(on){
+  cancelAnimationFrame(raf);
+  if(!on){ $('rec').style.removeProperty('--lvl'); $('mlvl').style.width='0'; $('mpk').style.left='0'; $('meter').classList.remove('clip'); $('mtxt').textContent=''; if(srcNode){ try{srcNode.disconnect();}catch(e){} srcNode=null; } return; }
+  try{
+    const c=ctx(); an=c.createAnalyser(); an.fftSize=1024; srcNode=c.createMediaStreamSource(stream); srcNode.connect(an);
+    const a=new Float32Array(an.fftSize); peakHold=-60; clipSeen=false;
+    const tick=()=>{
+      if(an.getFloatTimeDomainData) an.getFloatTimeDomainData(a); else { const b=new Uint8Array(an.fftSize); an.getByteTimeDomainData(b); for(let i=0;i<b.length;i++) a[i]=(b[i]-128)/128; }
+      let pk=0, ss=0; for(let i=0;i<a.length;i++){ const v=Math.abs(a[i]); if(v>pk) pk=v; ss+=a[i]*a[i]; }
+      const rms=Math.sqrt(ss/a.length), rdb=Math.max(-60, 20*Math.log10(rms+1e-9)), pdb=Math.max(-60, 20*Math.log10(pk+1e-9));
+      const now=performance.now(); if(pdb>peakHold || now-peakT>1200){ peakHold=pdb; peakT=now; }
+      if(pk>=0.985) clipSeen=true;
+      $('mlvl').style.width=((rdb+60)/60*100)+'%'; $('mpk').style.left='calc('+((peakHold+60)/60*100)+'% - 2px)';
+      $('meter').classList.toggle('clip', clipSeen); $('mtxt').textContent=Math.round(pdb)+' dB';
+      $('rec').style.setProperty('--lvl', 1+Math.min(1,pk)*0.35);
+      raf=requestAnimationFrame(tick);
+    }; tick();
+  }catch(e){}
+}
+let tmr=0; function timerOn(on){ clearInterval(tmr); const el=$('timer'); el.classList.toggle('on',on); if(!on) return; const t0=Date.now(); const f=()=>{ const s=Math.floor((Date.now()-t0)/1000); el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }; f(); tmr=setInterval(f,250); }
+async function start(){
+  if(busy||recOn||!cur) return;
+  if(!window.MediaRecorder){ showErr(L('errRec')); return; }
+  stopPlay(); ctx();
+  try{ await ensureStream(); }catch(e){ showErr(L('errMic')); return; }
+  const mime=pickMime(); chunks=[];
+  try{ mrec = mime ? new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:128000}) : new MediaRecorder(stream); }catch(e){ showErr(L('errRec')); return; }
+  const id=cur;
+  mrec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+  mrec.onstop=()=>finish(id, mrec);
+  mrec.start(); recOn=true; $('rec').classList.add('on'); $('recTxt').classList.add('on'); timerOn(true); meterOn(true);
+  setStatus(L('stRec'),'bad'); render();
+}
+function stop(){ if(!recOn) return; recOn=false; busy=true; try{ if(mrec && mrec.state!=='inactive') mrec.stop(); }catch(e){} $('rec').classList.remove('on'); $('recTxt').classList.remove('on'); timerOn(false); setStatus(L('stProc'),''); render(); }
+async function finish(id, r){
+  const clippedLive=clipSeen; meterOn(false);
+  const type=(r && r.mimeType) || (chunks[0] && chunks[0].type) || 'audio/webm';
+  const raw=new Blob(chunks,{type});
+  try{
+    if(raw.size<800) throw new Error('short');
+    let rec;
+    try{ rec = await processTake(raw); }
+    catch(e){ if(e && e.message==='silent') throw e; rec={ wav:null, sr:0, dur:0, lufs:null, peak:null, peaks:null }; showErr(L('errProc')); }
+    const v={ id, v:2, t:BY.get(id).t, f:BY.get(id).f, mime:type, raw, wav:rec.wav, sr:rec.sr, dur:rec.dur, lufs:rec.lufs, peak:rec.peak, gain:rec.gain, peaks:rec.peaks,
+              clipped:clippedLive||rec.clipped, approved:false, approvedAt:null, at:Date.now() };
+    await dbPut(v); META.set(id, metaOf(v)); paintRow(id);
+    busy=false; render(); setStatus(v.clipped?L('stClip'):L('stSaved'), v.clipped?'bad':'ok');
+    if($('autoPlay').checked && cur===id) playBlob(v.wav||raw);
+  }catch(e){
+    busy=false; render(); setStatus(L('stShort'),'bad');
+  }
+}
+$('rec').onclick = ()=>{ recOn ? stop() : start(); };
+
+/* ---------- processing: mono → high-pass → trim silence → loudness (BS.1770) → 24 kHz 16-bit WAV ---------- */
+function decode(buf){ const c=ctx(); return new Promise((ok,no)=>{ try{ const p=c.decodeAudioData(buf, ok, no); if(p && p.then) p.then(ok,no); }catch(e){ no(e); } }); }
+function biquad(x, b0,b1,b2,a1,a2){ const y=new Float32Array(x.length); let x1=0,x2=0,y1=0,y2=0; for(let i=0;i<x.length;i++){ const v=x[i]; const o=b0*v+b1*x1+b2*x2-a1*y1-a2*y2; x2=x1; x1=v; y2=y1; y1=o; y[i]=o; } return y; }
+function kweight(x, fs){
+  let K=Math.tan(Math.PI*1681.974450955533/fs), Vh=Math.pow(10,3.999843853973347/20), Vb=Math.pow(Vh,0.4996667741545416), Q=0.7071752369554196, a0=1+K/Q+K*K;
+  const s1=biquad(x,(Vh+Vb*K/Q+K*K)/a0, 2*(K*K-Vh)/a0, (Vh-Vb*K/Q+K*K)/a0, 2*(K*K-1)/a0, (1-K/Q+K*K)/a0);
+  K=Math.tan(Math.PI*38.13547087602444/fs); Q=0.5003270373238773; a0=1+K/Q+K*K;
+  return biquad(s1, 1, -2, 1, 2*(K*K-1)/a0, (1-K/Q+K*K)/a0);
+}
+function loudness(x, fs){   /* integrated loudness, LUFS (mono), gated per ITU-R BS.1770-4 */
+  const y=kweight(x,fs), B=Math.round(0.4*fs), S=Math.round(0.1*fs), z=[];
+  if(y.length<=B){ let s=0; for(let i=0;i<y.length;i++) s+=y[i]*y[i]; z.push(s/Math.max(1,y.length)); }
+  else for(let st=0; st+B<=y.length; st+=S){ let s=0; for(let i=st;i<st+B;i++) s+=y[i]*y[i]; z.push(s/B); }
+  const lk=v=>-0.691+10*Math.log10(v+1e-12);
+  const g1=z.filter(v=>lk(v)>-70); if(!g1.length) return -70;
+  const rel=lk(g1.reduce((a,b)=>a+b,0)/g1.length)-10;
+  const g2=g1.filter(v=>lk(v)>rel); const zz=(g2.length?g2:g1);
+  return lk(zz.reduce((a,b)=>a+b,0)/zz.length);
+}
+async function resample(x, fs, to){
+  if(fs===to) return x;
+  try{
+    const OC=window.OfflineAudioContext||window.webkitOfflineAudioContext, n=Math.ceil(x.length*to/fs), oc=new OC(1,n,to);
+    const b=oc.createBuffer(1,x.length,fs); b.getChannelData(0).set(x); const s=oc.createBufferSource(); s.buffer=b; s.connect(oc.destination); s.start(0);
+    const out=await new Promise((ok,no)=>{ oc.oncomplete=e=>ok(e.renderedBuffer); const p=oc.startRendering(); if(p&&p.then) p.then(ok,no); });
+    return out.getChannelData(0).slice(0);
+  }catch(e){
+    const r=fs/to, n=Math.floor(x.length/r), y=new Float32Array(n);   // linear fallback
+    for(let i=0;i<n;i++){ const p=i*r, k=Math.floor(p), f=p-k; y[i]=x[k]*(1-f)+(x[k+1]||0)*f; } return y;
+  }
+}
+function trim(x, fs){
+  const F=Math.round(fs*0.01), n=Math.floor(x.length/F), db=new Float32Array(n);
+  for(let k=0;k<n;k++){ let s=0; for(let i=k*F;i<(k+1)*F;i++) s+=x[i]*x[i]; db[k]=10*Math.log10(s/F+1e-12); }
+  if(!n) return null;
+  const sorted=Array.from(db).sort((a,b)=>a-b), floor=sorted[Math.floor(n*0.1)], top=sorted[n-1];
+  if(top < -52 || top-floor < 12) return null;                 // nothing above the noise: no voice
+  const thr=Math.max(floor+10, top-40, -60);
+  const run=3; let s=-1, e=-1;
+  for(let k=0;k+run<=n;k++){ let all=true; for(let j=0;j<run;j++) if(db[k+j]<thr){ all=false; break; } if(all){ s=k; break; } }
+  for(let k=n-1;k-run+1>=0;k--){ let all=true; for(let j=0;j<run;j++) if(db[k-j]<thr){ all=false; break; } if(all){ e=k; break; } }
+  if(s<0||e<s) return null;
+  const a=Math.max(0,(s*F)-Math.round(0.07*fs)), b=Math.min(x.length,((e+1)*F)+Math.round(0.16*fs));
+  const y=x.slice(a,b), fi=Math.round(0.012*fs), fo=Math.round(0.05*fs);
+  for(let i=0;i<fi&&i<y.length;i++) y[i]*=i/fi;
+  for(let i=0;i<fo&&i<y.length;i++) y[y.length-1-i]*=i/fo;
+  return y;
+}
+function wav16(x, fs){
+  const n=x.length, buf=new ArrayBuffer(44+n*2), d=new DataView(buf), w=(o,s)=>{ for(let i=0;i<s.length;i++) d.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,'RIFF'); d.setUint32(4,36+n*2,true); w(8,'WAVE'); w(12,'fmt '); d.setUint32(16,16,true); d.setUint16(20,1,true); d.setUint16(22,1,true);
+  d.setUint32(24,fs,true); d.setUint32(28,fs*2,true); d.setUint16(32,2,true); d.setUint16(34,16,true); w(36,'data'); d.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){ const v=Math.max(-1,Math.min(1,x[i])); d.setInt16(44+i*2, v<0?v*32768:v*32767, true); }
+  return new Blob([buf],{type:'audio/wav'});
+}
+async function processTake(raw){
+  const ab=await decode(await raw.arrayBuffer());
+  const fs=ab.sampleRate, ch=ab.numberOfChannels, n=ab.length; let x=new Float32Array(n);
+  for(let c=0;c<ch;c++){ const d=ab.getChannelData(c); for(let i=0;i<n;i++) x[i]+=d[i]/ch; }
+  let rawPk=0; for(let i=0;i<n;i++){ const v=Math.abs(x[i]); if(v>rawPk) rawPk=v; }
+  let clipCount=0; for(let i=0;i<n;i++) if(Math.abs(x[i])>=0.985) clipCount++;
+  // DC + rumble: 1-pole high-pass at 70 Hz
+  const rc=1/(2*Math.PI*70), dt=1/fs, al=rc/(rc+dt); let px=0, py=0; for(let i=0;i<n;i++){ const v=x[i]; py=al*(py+v-px); px=v; x[i]=py; }
+  const y0=trim(x, fs); if(!y0 || y0.length < fs*0.12) throw new Error('silent');
+  let y=await resample(y0, fs, OUT_SR); const sr=(y===y0)?fs:OUT_SR;
+  const lu=loudness(y, sr); let pk=0; for(let i=0;i<y.length;i++){ const v=Math.abs(y[i]); if(v>pk) pk=v; }
+  let gdb=Math.max(-20, Math.min(30, TARGET_LUFS-lu));
+  const pkdb=20*Math.log10(pk+1e-12); if(pkdb+gdb>CEIL_DB) gdb=CEIL_DB-pkdb;          // never above −1 dBFS
+  const g=Math.pow(10,gdb/20); for(let i=0;i<y.length;i++) y[i]*=g;
+  const outLu=loudness(y, sr), outPk=pkdb+gdb;
+  const P=new Array(200).fill(0), per=y.length/200; for(let i=0;i<y.length;i++){ const k=Math.min(199,Math.floor(i/per)), v=Math.abs(y[i]); if(v>P[k]) P[k]=v; }
+  return { wav:wav16(y, sr), sr, dur:y.length/sr, lufs:outLu, peak:outPk, gain:gdb, peaks:P.map(v=>Math.round(v*1000)/1000), clipped: clipCount > fs*0.002 };
+}
+
+/* ---------- keyboard (desktop) ---------- */
+document.addEventListener('keydown', e=>{
+  const tg=e.target, typing = tg && (tg.tagName==='INPUT'||tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||tg.isContentEditable);
+  if(typing){ if(e.key==='Escape') tg.blur(); return; }
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) $('rec').click(); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); move(1); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); move(-1); }
+  else if(e.key==='Enter'){ e.preventDefault(); approve(); }
+  else if(e.key==='p'||e.key==='P'){ $('play').click(); }
+  else if(e.key==='r'||e.key==='R'){ $('ref').click(); }
+  else if(e.key==='/'){ e.preventDefault(); $('q').focus(); }
+});
+document.addEventListener('keyup', e=>{ if(e.code==='Space' && !(e.target&&e.target.tagName==='INPUT')) e.preventDefault(); });
+
+/* ---------- ZIP export (STORE, no compression; audio/<folder>/<id>.wav + rekam-manifest.json) ---------- */
+const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zip(files){
+  const enc=new TextEncoder(), parts=[], cen=[], d0=new Date(); let off=0;
+  const dt=((d0.getHours()<<11)|(d0.getMinutes()<<5)|(d0.getSeconds()>>1))&0xFFFF, dd=(((d0.getFullYear()-1980)<<9)|((d0.getMonth()+1)<<5)|d0.getDate())&0xFFFF;
+  for(const f of files){
+    const name=enc.encode(f.name), d=f.data, crc=crc32(d);
+    const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,dt,true); h.setUint16(12,dd,true);
+    h.setUint32(14,crc,true); h.setUint32(18,d.length,true); h.setUint32(22,d.length,true); h.setUint16(26,name.length,true);
+    parts.push(h.buffer,name,d);
+    const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(12,dt,true); c.setUint16(14,dd,true);
+    c.setUint32(16,crc,true); c.setUint32(20,d.length,true); c.setUint32(24,d.length,true); c.setUint16(28,name.length,true); c.setUint32(42,off,true);
+    cen.push(c.buffer,name); off+=30+name.length+d.length;
+  }
+  const csz=cen.reduce((a,b)=>a+(b.byteLength||b.length),0);
+  const e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csz,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...cen,e.buffer],{type:'application/zip'});
+}
+const extOf = m => /wav/.test(m) ? 'wav' : /mp4|aac|m4a/.test(m) ? 'm4a' : /ogg/.test(m) ? 'ogg' : 'webm';
+$('zip').onclick = async()=>{
+  if(recOn||busy) return;
+  const rows=(await dbAll()).filter(r=>r.approved && BY.has(r.id));
+  if(!rows.length){ $('zipInfo').textContent=L('zipNone'); return; }
+  $('zipInfo').textContent=L('zipPrep');
+  const files=[], man=[];
+  for(const r of rows){
+    const x=BY.get(r.id), b=r.wav||r.raw||r.blob, ext=r.wav?'wav':extOf(b.type||r.mime||''), name=x.f.replace(/\.mp3$/,'.'+ext);
+    files.push({name, data:new Uint8Array(await b.arrayBuffer())});
+    man.push({id:x.id, take:name, target:x.f, section:x.s, lang:x.l, text:x.t, hint:x.h, dur:r.dur?Math.round(r.dur*100)/100:null, lufs:r.lufs!=null?Math.round(r.lufs*10)/10:null, recorded:new Date(r.at).toISOString()});
+  }
+  files.push({name:'rekam-manifest.json', data:new TextEncoder().encode(JSON.stringify({made:new Date().toISOString(), count:man.length, takes:man},null,1))});
+  files.push({name:'README.txt', data:new TextEncoder().encode('Mo Craft recordings ('+man.length+' approved takes).\nIn the island-craft repo:  bash tools/voice/import-recordings.sh <this zip>\nIt converts each voice/<id>.wav to public/voice/rec-<id>-<n>.mp3 (24 kHz mono 64 kbps) and points the line at it in src/game/voice-manifest.rec.json (a recording wins over every other clip).\n')});
+  const d=new Date(), p2=n=>String(n).padStart(2,'0'), stamp=d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'-'+p2(d.getHours())+p2(d.getMinutes());
+  const name='mocraft-rekaman-'+stamp+'.zip', blob=zip(files);
+  $('zipInfo').textContent = man.length+' '+L('appr')+' · '+(blob.size/1048576).toFixed(1)+' MB · '+name;
+  if(matchMedia('(pointer:coarse)').matches){
+    try{ const file=new File([blob],name,{type:'application/zip'}); if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
+};
+
+/* ---------- boot ---------- */
+(async()=>{
+  let rows=[];
+  try{ rows=await dbAll(); }catch(e){ showErr(L('errDb')); }
+  rows.forEach(r=>{ if(BY.has(r.id)) META.set(r.id, metaOf(r)); });
+  cur = store.get('cur', null); if(cur && !BY.has(cur)) cur=null;
+  applyLang();
+  if(!window.MediaRecorder) showErr(L('errRec'));
+  // takes from the earlier recorder (raw blob only): trim + normalise them in the background
+  for(const r of rows.filter(r=>!r.wav && r.blob && BY.has(r.id))){
+    try{ const p=await processTake(r.blob); Object.assign(r,{v:2, raw:r.blob, wav:p.wav, sr:p.sr, dur:p.dur, lufs:p.lufs, peak:p.peak, gain:p.gain, peaks:p.peaks, clipped:p.clipped, approved:!!r.approved}); delete r.blob;
+      await dbPut(r); META.set(r.id, metaOf(r)); if(r.id===cur) render(); }catch(e){}
+  }
+})();
+</script>
+
+</body>
+</html>

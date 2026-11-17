@@ -69,7 +69,7 @@ console.log(`clips: ${files.size} files, ${(bytes / 1e6).toFixed(1)} MB · keys 
 if (DRY) { console.log([...keep.keys()].filter(k => /^(en|id)\|/.test(k)).slice(0, 40).join('\n')); process.exit(0); }
 
 fs.mkdirSync(OUT, { recursive: true });
-for (const f of fs.readdirSync(OUT)) if (!f.startsWith('game-')) fs.rmSync(path.join(OUT, f)); // (clips made for the game itself, game-*.mp3, stay)
+for (const f of fs.readdirSync(OUT)) if (!/^(game|rec)-/.test(f)) fs.rmSync(path.join(OUT, f)); // (clips made for the game, game-*.mp3, and recordings, rec-*.mp3, stay)
 const name = new Map(); // source -> file name in public/voice (folder prefix keeps names unique)
 for (const f of files) {
   const folder = path.basename(path.dirname(f)).replace('-voice', '').replace(/^voice$/, 'app');

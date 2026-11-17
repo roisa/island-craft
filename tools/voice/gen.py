@@ -5,7 +5,8 @@
 Input:  tools/voice/missing.tsv  (kind, arabic, latin, key; made by `npx vite-node tools/voice/missing.mjs`)
 Output: public/voice/game-<id>.mp3 and src/game/voice-manifest.game.json  {"ar|<text>": "game-<id>.mp3"}
         (re-importing the app's clips with import.mjs keeps these)
-Qur'an ayat are never made: verses are murottal only (a real reciter's recording).
+The Qur'an ayat are made too, for now; a reciter's recording made on the recording page (rekam/) replaces them
+(recordings always win over generated clips).
 
 Auth (any one):
   - Google Cloud Shell, or a signed-in gcloud (gcloud auth login; gcloud config set project <id>): nothing to set
@@ -113,14 +114,14 @@ def main():
         head = f.readline().rstrip("\n").split("\t")
         for line in f:
             r = dict(zip(head, line.rstrip("\n").split("\t")))
-            if r.get("arabic") and not r["kind"].startswith("ayah"): rows.append(r)  # ayat: murottal only
+            if r.get("arabic"): rows.append(r)
     try: manifest = json.load(open(MANIFEST, encoding="utf-8"))
     except Exception: manifest = {}
     os.makedirs(OUT, exist_ok=True)
     tag = a.voice.split("-")[-1].lower()
     name = lambda r: "game-" + hashlib.sha1((tag + "|" + r["key"]).encode()).hexdigest()[:8] + ".mp3"
     todo = [r for r in rows if a.force or not (manifest.get(r["key"]) and os.path.exists(os.path.join(OUT, manifest[r["key"]])))]
-    print(f"▶ {len(rows)} lines on the list (ayat skipped), {len(todo)} to make, voice {a.voice}")
+    print(f"▶ {len(rows)} lines on the list, {len(todo)} to make, voice {a.voice}")
     if a.dry_run:
         for r in todo: print(f"   + {r['kind']:<10} {r['arabic']}  ({r['latin']})")
         return

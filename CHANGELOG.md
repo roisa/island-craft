@@ -5,6 +5,24 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Mo Craft recording page, and the ayat in Cloud Shell
+
+- **Recording page** at `/island-craft/rekam/` (website only, not in the iOS
+  app), the same page as Pulau Hijaiyah's (from the Baby Mo app): 678 lines in
+  six sections (letters & harakat, Iqro, du'a, Qur'an ayat for a reciter, Mo's
+  Indonesian and English lines), record, hear, approve, download a ZIP. Takes
+  stay on that device. `rekam/dengar.html` plays every clip to check them.
+- `bash tools/voice/import-recordings.sh <zip>` turns the approved takes into
+  `public/voice/rec-<id>-<n>.mp3` and `voice-manifest.rec.json`: **a recording
+  always wins** over the app's and the generated clips, and re-importing or
+  regenerating never touches it. `build-rekam-data.mjs` refreshes the list.
+- **Cloud Shell:** `cloudshell.sh` now makes the 24 ayat too (50 lines in
+  all), until a reciter's recording replaces them.
+- Tested: unit tests (278), desktop smoke, the page in a browser (desktop and
+  phone size: no errors, lists, current clips play), and an import of a test
+  ZIP (a take becomes rec-…-1, the next one rec-…-2 replacing it; the ayah then
+  plays it). The test files were removed afterwards.
+
 ### Making the last clips in Cloud Shell
 
 - `tools/voice/cloudshell.sh` (with `gen.py`) makes the Arabic lines that
