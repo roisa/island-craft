@@ -31,3 +31,15 @@ export function voiceKey(text: string, lang: 'en' | 'id' | string): string {
   const l = AR.test(String(text || '')) ? 'ar' : lang;
   return l + '|' + normText(text, l);
 }
+
+/**
+ * Other spellings of the same sound, tried when a line has no clip of its own: fathatan written with
+ * the alif after it (بًا, as recordings usually spell it; the game writes بً), and an alif written
+ * with its hamza above or below (أٍ / إٍ "in": only for that one syllable; in words they can differ, أَنَّ / إِنَّ).
+ */
+export function spellings(text: string): string[] {
+  const out = [text];
+  if (/\u064B$/.test(text)) out.push(text + '\u0627');
+  if (/^[\u0623\u0625][\u064B-\u0650]$/.test(text)) for (const a of ['\u0623', '\u0625', '\u0627']) { const t = a + text.slice(1); if (!out.includes(t)) out.push(t); }
+  return out;
+}

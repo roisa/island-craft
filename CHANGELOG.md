@@ -5,6 +5,18 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### More of Baby Mo's voice: the Pulau Hijaiyah clips
+
+- The clips from Pulau Hijaiyah (`hijaiyah` repo: the same voice, Algenib) come
+  in too: 628 clips, 3.4 MB. `tools/voice/import.mjs` takes both checkouts.
+- Fathatan is looked up the way the recordings spell it (بًا for the game's
+  بً), and a lone alif with a vowel mark with its hamza above or below (أٍ /
+  إٍ). Only for that one syllable: in words they can differ.
+- **Now:** Iqro syllables 146 of 168 (were 88), Iqro words 10 of 12 (were 0).
+  Still without a clip (`tools/voice/missing.tsv`, 51 lines): 22 long-vowel
+  syllables, 2 words, 24 ayat (best from a reciter) and 3 du'a.
+- Tested: unit tests (278), smoke on desktop and iPhone.
+
 ### Baby Mo's recorded voice (from the Baby Mo app)
 
 - The game now uses the clips made for the Baby Mo app (one Google voice in

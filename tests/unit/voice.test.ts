@@ -1,7 +1,7 @@
 // Baby Mo's recorded voice: the clips from the Baby Mo app are found by their text, the same way as
 // in the app, and they cover the letters, the vowel marks and the Iqro journey.
 import { describe, it, expect } from 'vitest';
-import { voiceKey, normText, trKey } from '../../src/game/voicekey';
+import { voiceKey, normText, trKey, spellings } from '../../src/game/voicekey';
 import CLIPS from '../../src/game/voice-manifest.json';
 import { LETTERS } from '../../src/world/blocks';
 import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
@@ -9,7 +9,7 @@ import { DUAS } from '../../src/content';
 import fs from 'fs';
 
 const M = CLIPS as Record<string, string>;
-const has = (ar: string, latin?: string) => !!(M[voiceKey(ar, 'ar')] ?? (latin ? M[trKey(latin)] : undefined));
+const has = (ar: string, latin?: string) => !!(spellings(ar).map(t => M[voiceKey(t, 'ar')]).find(Boolean) ?? (latin ? M[trKey(latin)] : undefined));
 
 describe('finding a clip by its text (the same keys as the Baby Mo app)', () => {
   it('ignores emoji, curly quotes, spacing and case; keeps the harakat', () => {
@@ -18,6 +18,8 @@ describe('finding a clip by its text (the same keys as the Baby Mo app)', () => 
     expect(voiceKey('بَ', 'en')).toBe('ar|بَ');
     expect(voiceKey('بَ', 'en')).not.toBe(voiceKey('بِ', 'en'));
     expect(trKey('Bismillah!')).toBe('tr|bismillah');
+    expect(spellings('بً')).toContain('بًا'); // (fathatan, as the recordings spell it)
+    expect(spellings('إٍ')).toContain('أٍ');
   });
   it('every clip in the table is in public/voice', () => {
     for (const f of new Set(Object.values(M))) expect(fs.existsSync('public/voice/' + f), f).toBe(true);

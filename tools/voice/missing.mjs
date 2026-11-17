@@ -3,13 +3,13 @@
 //   npx vite-node tools/voice/missing.mjs > tools/voice/missing.tsv
 // Make the clips with the same voice as the Baby Mo app (ar-XA-Chirp3-HD-Algenib), add them to the
 // app's manifests, then run import.mjs again.
-import { voiceKey } from '../../src/game/voicekey';
+import { voiceKey, spellings } from '../../src/game/voicekey';
 import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
 import fs from 'fs';
 const M = JSON.parse(fs.readFileSync(new URL('../../src/game/voice-manifest.json', import.meta.url), 'utf8'));
 const rows = new Map();
-const want = (kind, ar, lat) => { if (!M[voiceKey(ar, 'ar')] && !rows.has(ar)) rows.set(ar, [kind, ar, lat]); };
+const want = (kind, ar, lat) => { if (!spellings(ar).some(t => M[voiceKey(t, 'ar')]) && !rows.has(ar)) rows.set(ar, [kind, ar, lat]); };
 for (const l of lessons()) if (l.kind === 'syll') for (const s of l.items) want('syllable', s.ar, s.lat);
 for (const w of WORDS) want('word', w.ar, w.lat.replace(/-/g, ''));
 for (const s of SURAHS) s.ayat.forEach((a, i) => want(`ayah ${s.name} ${i + 1}`, a.ar, a.lat));

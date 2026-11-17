@@ -326,11 +326,13 @@ export function adhan(): number {
 // way as the app does (voicekey.ts). A line with no clip is read by the device, as before.
 // tools/voice/import.mjs brings them in: public/voice/*.mp3 and voice-manifest.json.
 import CLIPS from './voice-manifest.json';
-import { voiceKey, trKey } from './voicekey';
+import { voiceKey, trKey, spellings } from './voicekey';
 const CLIP = CLIPS as Record<string, string>;
 /** the clip for a line said in `lang` (Arabic text finds the Arabic clip), or for an Arabic word's Latin name */
 export function clipFor(text: string, lang: string, latin?: string): string | null {
-  const f = CLIP[voiceKey(text, lang)] ?? (latin ? CLIP[trKey(latin)] : undefined);
+  let f: string | undefined;
+  for (const t of spellings(text)) if ((f = CLIP[voiceKey(t, lang)])) break;
+  f ??= latin ? CLIP[trKey(latin)] : undefined;
   return f ? 'voice/' + f : null;
 }
 let player: HTMLAudioElement | null = null;

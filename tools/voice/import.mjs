@@ -1,6 +1,6 @@
 // Bring Baby Mo's recorded voice (the same clips as the Baby Mo app: one Google voice in Arabic,
 // English and Indonesian) into the game.
-//   node --experimental-strip-types tools/voice/import.mjs <path to a babymo-ios checkout> [--dry]
+//   node --experimental-strip-types tools/voice/import.mjs <babymo-ios checkout> <hijaiyah checkout> [--dry]
 // Every Arabic clip comes along (letters, harakat, syllables, words, du'a, dhikr and the Latin
 // names like "Bismillah"); an English or Indonesian clip only when the game says that exact line.
 // Writes public/voice/<file>.mp3 and src/game/voice-manifest.json ({ "lang|text": "file.mp3" }, built into
@@ -11,21 +11,36 @@ import path from 'path';
 import vm from 'vm';
 import { voiceKey, normText, trKey } from '../../src/game/voicekey.ts';
 
-const SRC = path.resolve(process.argv[2] || '../babymo-ios');
+const SRCS = process.argv.slice(2).filter(a => !a.startsWith('--')).map(a => path.resolve(a));
 const DRY = process.argv.includes('--dry');
-const PUB = path.join(SRC, 'public');
 const OUT = path.resolve('public/voice');
 
-// the app's three manifests (plain scripts that set window.*)
-const win = {};
-for (const f of ['voice/manifest.js', 'hijaiyah-voice/voice.js', 'doa-voice/voice.js']) vm.runInNewContext(fs.readFileSync(path.join(PUB, f), 'utf8'), { window: win });
-const index = new Map(); // key -> source file (absolute)
-const add = (k, dir, file) => { const f = path.join(PUB, dir, file.split('?')[0]); if (fs.existsSync(f)) index.set(k, f); };
-for (const [t, f] of Object.entries(win.HIJ_VOICE || {})) add('ar|' + normText(t, 'ar'), 'hijaiyah-voice', f);
-for (const [t, f] of Object.entries(win.DOA_VOICE || {})) add('ar|' + normText(t, 'ar'), 'doa-voice', f);
-for (const [k, f] of Object.entries(win.BM_VOICE || {})) {
-  const bar = k.indexOf('|'), l = k.slice(0, bar), rest = k.slice(bar + 1);
-  add(l === 'tr' ? trKey(rest) : l + '|' + normText(rest, l), 'voice', f);
+// the manifests of each checkout (plain scripts that set window.*): which file, which variable, and
+// whether its keys are plain Arabic text or "lang|text"
+const LAYOUTS = [
+  // the Baby Mo app (babymo-ios)
+  { file: 'public/hijaiyah-voice/voice.js', v: 'HIJ_VOICE', arabic: true },
+  { file: 'public/doa-voice/voice.js', v: 'DOA_VOICE', arabic: true },
+  { file: 'public/voice/manifest.js', v: 'BM_VOICE' },
+  // Pulau Hijaiyah (hijaiyah)
+  { file: 'audio/huruf/voice.js', v: 'HIJ_VOICE', arabic: true },
+  { file: 'audio/extra/voice.js', v: 'HJ_VOICE_EXTRA', arabic: true },
+  { file: 'audio/lines/voice.js', v: 'HJ_LINES' },
+];
+const index = new Map(); // key -> source file (absolute); the first checkout given wins a clash
+for (const SRC of SRCS) for (const L of LAYOUTS) {
+  const mf = path.join(SRC, L.file);
+  if (!fs.existsSync(mf)) continue;
+  const win = {};
+  vm.runInNewContext(fs.readFileSync(mf, 'utf8'), { window: win });
+  const dir = path.dirname(mf);
+  for (const [k, f] of Object.entries(win[L.v] || {})) {
+    let key;
+    if (L.arabic) key = 'ar|' + normText(k, 'ar');
+    else { const bar = k.indexOf('|'), l = k.slice(0, bar), rest = k.slice(bar + 1); key = l === 'tr' ? trKey(rest) : l + '|' + normText(rest, l); }
+    const file = path.join(dir, String(f).split('?')[0]);
+    if (!index.has(key) && fs.existsSync(file)) index.set(key, file);
+  }
 }
 
 // every line the game might say: the string literals in src (both languages)
@@ -48,7 +63,12 @@ if (DRY) { console.log([...keep.keys()].filter(k => /^(en|id)\|/.test(k)).slice(
 
 fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
 const name = new Map(); // source -> file name in public/voice (folder prefix keeps names unique)
-for (const f of files) { const n = path.basename(path.dirname(f)).replace('-voice', '').replace('voice', 'app') + '-' + path.basename(f).replace(/^app-/, ''); name.set(f, n); fs.copyFileSync(f, path.join(OUT, n)); }
+for (const f of files) {
+  const folder = path.basename(path.dirname(f)).replace('-voice', '').replace(/^voice$/, 'app');
+  let n = folder + '-' + path.basename(f).replace(new RegExp('^' + folder + '-'), '').replace(/^app-/, '');
+  if ([...name.values()].includes(n)) n = path.basename(path.dirname(path.dirname(f))) + '-' + n; // (same name from the other checkout)
+  name.set(f, n); fs.copyFileSync(f, path.join(OUT, n));
+}
 const manifest = Object.fromEntries([...keep].sort(([a], [b]) => a.localeCompare(b)).map(([k, f]) => [k, name.get(f)]));
 fs.writeFileSync(path.resolve('src/game/voice-manifest.json'), JSON.stringify(manifest, null, 0));
 console.log('wrote', OUT);
