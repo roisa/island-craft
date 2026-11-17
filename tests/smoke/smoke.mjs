@@ -959,8 +959,10 @@ async function run(name) {
         // the stadium, then a race straight from it: the stadium stops first
         const S = G.activities.find(a => a.id === 'stadium'), R = G.races.find(x => x.kind === 'snow');
         S.start('shoot'); await wait(200);
+        for (let i = 0; i < 30 && !document.body.classList.contains('acting'); i++) await wait(100); // (the screen mode follows on the next frame)
         res.inStadium = { bag: shown('#hotbarWrap'), compass: shown('#compass'), use: shown('#bUse') };
         R.start(); await wait(300);
+        for (let i = 0; i < 30 && !document.body.classList.contains('racing'); i++) await wait(100);
         res.stadiumStopped = !S.active; res.race = R.active;
         res.inRace = { bag: shown('#hotbarWrap'), use: shown('#bUse'), jump: shown('#bJump'), item: !!document.querySelector('#raceItem') };
         // a race left and started again a few times: the scene doesn't keep growing
@@ -973,8 +975,9 @@ async function run(name) {
         res.geoGrew = orphans() - o0;
         // the stadium twice: its crowd is made once
         S.start('shoot'); await wait(150); S.quit(); const c1 = S.crowd.length; S.start('shoot'); await wait(150); S.quit(); res.crowdGrew = S.crowd.length - c1;
-        G.ui.closeAllModals(); await wait(300);
-        res.after = { bag: shown('#hotbarWrap'), use: shown('#bUse'), mode: document.body.className, playing: G.playing?.id ?? null, race: !!G.race?.active };
+        G.ui.closeAllModals();
+        for (let i = 0; i < 30 && document.body.classList.contains('acting'); i++) await wait(100); // (the screen mode follows on the next frame: slow under load)
+        res.after = { bag: shown('#hotbarWrap'), use: shown('#bUse'), mode: document.body.className, playing: G.playing?.id ?? null, race: !!G.race?.active, tennis: !!G.tennis?.active, anyRace: G.races.map(r => r.active), paused: G.paused };
         return res;
       });
       if (!r.before.bag || r.inStadium.bag || r.inStadium.compass || !r.inStadium.use || !r.stadiumStopped || !r.race || r.inRace.bag || r.inRace.use || r.inRace.jump

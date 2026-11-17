@@ -5,6 +5,18 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Every Arabic line in Baby Mo's voice
+
+- Merged the 50 clips made in Cloud Shell (`voice-clips-20261117-0855`,
+  Chirp3-HD Algenib): the long-vowel syllables, the last 2 Iqro words, 2 du'a
+  and the 24 ayat. Checked: all 50 have real sound (no silent clips).
+- **Now:** Iqro syllables 168/168, words 12/12, ayat 28/28, du'a 6/6;
+  `tools/voice/missing.tsv` is empty. A reciter's recording made on the
+  recording page still replaces any ayah.
+- Smoke: the clean-screen step waits for the next frame (the screen mode
+  follows a frame later; under load 200–300 ms wasn't always enough).
+- Tested: unit tests (278), desktop smoke three times in a row.
+
 ### Mo Craft recording page, and the ayat in Cloud Shell
 
 - **Recording page** at `/island-craft/rekam/` (website only, not in the iOS
