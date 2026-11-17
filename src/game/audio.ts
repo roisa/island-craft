@@ -320,6 +320,32 @@ export function adhan(): number {
 }
 
 // ---- speech ------------------------------------------------------------------
+// ---------- Baby Mo's recorded voice ----------
+// The clips made for the Baby Mo app (one voice in Arabic, English and Indonesian: letters, harakat,
+// syllables, words, du'a, and the lines the game shares with the app), found by their text the same
+// way as the app does (voicekey.ts). A line with no clip is read by the device, as before.
+// tools/voice/import.mjs brings them in: public/voice/*.mp3 and voice-manifest.json.
+import CLIPS from './voice-manifest.json';
+import { voiceKey, trKey } from './voicekey';
+const CLIP = CLIPS as Record<string, string>;
+/** the clip for a line said in `lang` (Arabic text finds the Arabic clip), or for an Arabic word's Latin name */
+export function clipFor(text: string, lang: string, latin?: string): string | null {
+  const f = CLIP[voiceKey(text, lang)] ?? (latin ? CLIP[trKey(latin)] : undefined);
+  return f ? 'voice/' + f : null;
+}
+let player: HTMLAudioElement | null = null;
+/** play a clip (one at a time); `fail` runs if it can't be played (then the device reads the line) */
+function playClip(url: string, fail: () => void) {
+  if (typeof Audio === 'undefined') { fail(); return; }
+  const a = player ??= new Audio();
+  let failed = false; const no = () => { if (!failed) { failed = true; fail(); } };
+  a.onerror = no;
+  a.src = url;
+  a.play().catch(no);
+}
+function stopClip() { if (player && !player.paused) { player.pause(); } }
+const clipPlaying = () => !!player && !player.paused && !player.ended;
+
 export const Speech = {
   voices: [] as SpeechSynthesisVoice[], ar: null as SpeechSynthesisVoice | null, id: null as SpeechSynthesisVoice | null,
   rate: 0.8, seq: 0,
@@ -334,16 +360,22 @@ export const Speech = {
   },
   /** priority of what is speaking now: 0 Baby Mo chatter, 1 dialogs & 🔊 buttons, 2 letters / du'a */
   prio: -1, until: 0,
-  busy(p: number) { return this.prio > p && performance.now() < this.until && ('speechSynthesis' in window) && speechSynthesis.speaking; },
+  busy(p: number) { return this.prio > p && performance.now() < this.until && (clipPlaying() || (('speechSynthesis' in window) && speechSynthesis.speaking)); },
   mark(p: number, text: string) { this.prio = p; this.until = performance.now() + 900 + text.length * 90; },
   /** stop speech; with a level, only stop what is at or below that level */
-  stop(level = 9) { if (this.prio > level && performance.now() < this.until) return; this.seq++; this.prio = -1; try { speechSynthesis.cancel(); } catch { /* ignore */ } },
+  stop(level = 9) { if (this.prio > level && performance.now() < this.until) return; this.seq++; this.prio = -1; stopClip(); try { speechSynthesis.cancel(); } catch { /* ignore */ } },
   /** Speak Arabic text if an Arabic voice exists, otherwise the Latin reading. */
   say(ar: string, latin: string) {
     (window as unknown as { __said?: string }).__said = ar; // (what was last read out: the automatic tests listen too)
-    if (!('speechSynthesis' in window)) return;
     this.stop();
     this.mark(2, latin);
+    // Baby Mo's recorded Arabic (correct on every device); the device's voice only when there's no clip
+    const url = clipFor(ar, 'ar', latin);
+    if (url) { (window as unknown as { __clip?: string }).__clip = url; playClip(url, () => this.sayTts(ar, latin)); return; }
+    this.sayTts(ar, latin);
+  },
+  sayTts(ar: string, latin: string) {
+    if (!('speechSynthesis' in window)) return;
     const u = new SpeechSynthesisUtterance(this.ar ? ar : latin);
     const v = this.ar || this.id;
     if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'ar-SA';
@@ -352,8 +384,14 @@ export const Speech = {
   },
   /** Speech in the UI language (Baby Mo talking). Uses a matching device voice; `force` tries any voice. */
   talk(text: string, lang: 'id' | 'en', force = false, prio = 0) {
-    if (!('speechSynthesis' in window)) return;
     if (this.busy(prio)) return;   // never talk over a letter or du'a
+    // a line with Baby Mo's recorded voice plays that (even on a device with no voice in this language)
+    const url = clipFor(text.replace(/<[^>]+>/g, ' '), lang);
+    if (url) { this.stop(); this.mark(prio, text); (window as unknown as { __clip?: string }).__clip = url; playClip(url, () => this.talkTts(text, lang, force, prio)); return; }
+    this.talkTts(text, lang, force, prio);
+  },
+  talkTts(text: string, lang: 'id' | 'en', force = false, prio = 0) {
+    if (!('speechSynthesis' in window)) return;
     const v = lang === 'id' ? this.id : this.voices.find(x => /^en/i.test(x.lang)) || null;
     if (!v && !force) return;
     this.stop();
@@ -367,20 +405,9 @@ export const Speech = {
   },
 };
 
-/**
- * Letter pronunciation. If recorded files are added at
- * public/audio/hijaiyah/<index>.mp3 (0 = Alif … 27 = Ya) they are used;
- * otherwise the device's text-to-speech reads the letter.
- */
-const recorded = new Map<string, boolean>();
-export function playLetter(i: number, ar: string, latin: string, variant = '') {
-  const file = `audio/hijaiyah/${i}${variant}.mp3`;
-  if (recorded.get(file) === false) { Speech.say(ar, latin); return; }
-  Speech.stop(); Speech.mark(2, latin);
-  const a = new Audio(file);
-  a.onerror = () => { recorded.set(file, false); Speech.say(ar, latin); };
-  a.play().then(() => recorded.set(file, true)).catch(() => { recorded.set(file, false); Speech.say(ar, latin); });
-}
+const recorded = new Map<string, boolean>(); // (a reciter's recording of an ayah: is it there?)
+/** Letter pronunciation: Baby Mo's recorded clip of the letter (found by its Arabic), or the device's voice. */
+export function playLetter(_i: number, ar: string, latin: string, _variant = '') { Speech.say(ar, latin); }
 
 /**
  * An ayah of a surah. If a recitation is added at public/audio/surah/<id>-<n>.mp3

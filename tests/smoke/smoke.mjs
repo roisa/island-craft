@@ -995,6 +995,20 @@ async function run(name) {
       if (!r.locked || r.after || r.paused || r.sec > 1 || !r.day) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('Baby Mo’s recorded voice: a letter, a vowel mark and an English word play their clips (the device voice only without one)', async () => {
+      const r = await g(async () => {
+        const S = window.__speech;
+        const out = {};
+        for (const [k, fn] of [['letter', () => S.say('أَلِف', 'Alif')], ['ba', () => S.say('بَ', 'ba')], ['word', () => S.talk('Apple', 'en', true, 1)], ['none', () => S.say('ثَوْبٌ جَدِيدٌ', 'tsaubun jadidun')]]) {
+          window.__clip = null; S.stop(); fn(); out[k] = window.__clip;
+        }
+        out.ok = await fetch(out.letter).then(r => r.ok && /audio|mpeg/.test(r.headers.get('content-type') || ''), () => false);
+        S.stop();
+        return out;
+      });
+      if (!r.letter || !r.ba || !r.word || r.none || !r.ok) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('open every book tab', async () => {
       const tabs = ['bag', 'craft', 'build', 'wardrobe', 'map', 'letters', 'quests', 'ramadhan', 'prayer', 'settings'];
       const out = {};

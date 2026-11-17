@@ -2410,5 +2410,6 @@ startEmoji3D(); // emoji as modern 3D pictures
 try {
   const game = new Game();
   (window as any).__game = game;
+  (window as any).__speech = Speech; // (the automatic tests check Baby Mo's recorded voice)
   game.boot().catch(e => showFatal('start', e));
 } catch (e) { showFatal('start', e); }

@@ -5,6 +5,26 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Baby Mo's recorded voice (from the Baby Mo app)
+
+- The game now uses the clips made for the Baby Mo app (one Google voice in
+  Arabic, English and Indonesian), found by their text the same way as the app
+  (`src/game/voicekey.ts`, the same rules as the app's `bm-voice.js`).
+- **Covered:** all 28 letter names, every letter with fathah, kasrah and
+  dhammah (ba, bi, bu), 88 of the 168 Iqro syllables, 3 of the 6 du'a, the
+  dhikr and good words (Bismillah, Masya Allah…), and about 85 English and
+  Indonesian lines the game shares with the app (most English word cards).
+  413 clips, 2.4 MB, in `public/voice/`.
+- Anything without a clip is read by the device, as before. A clip also plays
+  on a device with no Arabic or Indonesian voice at all.
+- `tools/voice/import.mjs` brings the clips in again from a `babymo-ios`
+  checkout; `tools/voice/missing.tsv` lists the 119 Arabic lines still without
+  a clip (tanwin and long-vowel syllables, the Iqro words, ayat, 3 du'a).
+- Tested: unit tests (278; new: the key rules, every clip file exists, all
+  letter names and ba/bi/bu have clips), smoke on desktop and iPhone (a letter,
+  a vowel mark and an English word play their clips; a line without one uses
+  the device voice).
+
 ### Audit fix batch: no more getting stuck, a clean screen in games
 
 From a full audit (QA on every device, play screenshots, and a code review).

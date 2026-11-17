@@ -1,0 +1,120 @@
+kind	arabic	latin
+syllable	أً	an
+syllable	تً	tan
+syllable	جً	jan
+syllable	خً	khan
+syllable	ذً	dzan
+syllable	زً	zan
+syllable	شً	syan
+syllable	ضً	dhan
+syllable	ظً	zhan
+syllable	غً	ghan
+syllable	قً	qan
+syllable	لً	lan
+syllable	نً	nan
+syllable	هً	han
+syllable	إٍ	in
+syllable	تٍ	tin
+syllable	جٍ	jin
+syllable	خٍ	khin
+syllable	ذٍ	dzin
+syllable	زٍ	zin
+syllable	شٍ	syin
+syllable	ضٍ	dhin
+syllable	ظٍ	zhin
+syllable	غٍ	ghin
+syllable	قٍ	qin
+syllable	لٍ	lin
+syllable	نٍ	nin
+syllable	هٍ	hin
+syllable	أٌ	un
+syllable	جٌ	jun
+syllable	خٌ	khun
+syllable	ذٌ	dzun
+syllable	زٌ	zun
+syllable	شٌ	syun
+syllable	ضٌ	dhun
+syllable	ظٌ	zhun
+syllable	غٌ	ghun
+syllable	قٌ	qun
+syllable	نٌ	nun
+syllable	هٌ	hun
+syllable	ثَا	tsaa
+syllable	حَا	ḥaa
+syllable	دَا	daa
+syllable	رَا	raa
+syllable	سَا	saa
+syllable	صَا	shaa
+syllable	طَا	thaa
+syllable	عَا	'aa
+syllable	فَا	faa
+syllable	كَا	kaa
+syllable	مَا	maa
+syllable	وَا	waa
+syllable	يَا	yaa
+syllable	بِي	bii
+syllable	ثِي	tsii
+syllable	حِي	ḥii
+syllable	دِي	dii
+syllable	رِي	rii
+syllable	سِي	sii
+syllable	صِي	shii
+syllable	طِي	thii
+syllable	عِي	'ii
+syllable	كِي	kii
+syllable	مِي	mii
+syllable	وِي	wii
+syllable	يِي	yii
+syllable	بُو	buu
+syllable	ثُو	tsuu
+syllable	حُو	ḥuu
+syllable	دُو	duu
+syllable	رُو	ruu
+syllable	سُو	suu
+syllable	صُو	shuu
+syllable	طُو	thuu
+syllable	عُو	'uu
+syllable	فُو	fuu
+syllable	كُو	kuu
+syllable	مُو	muu
+syllable	وُو	wuu
+syllable	يُو	yuu
+word	أَكَلَ	akala
+word	كَتَبَ	kataba
+word	جَلَسَ	jalasa
+word	ذَهَبَ	dzahaba
+word	فَتَحَ	fataḥa
+word	خَلَقَ	khalaqa
+word	شَرِبَ	syariba
+word	سَمِعَ	sami'a
+word	عَمِلَ	'amila
+word	رَجَعَ	raja'a
+word	حَسُنَ	ḥasuna
+word	كَرُمَ	karuma
+ayah Al-Kautsar 1	إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ	Innā a‘ṭainākal-kauṡar
+ayah Al-Kautsar 2	فَصَلِّ لِرَبِّكَ وَانْحَرْ	Fa ṣalli lirabbika wanḥar
+ayah Al-Kautsar 3	إِنَّ شَانِئَكَ هُوَ الْأَبْتَرُ	Inna syāni’aka huwal-abtar
+ayah Al-Ikhlas 1	قُلْ هُوَ اللّٰهُ أَحَدٌ	Qul huwallāhu aḥad
+ayah Al-Ikhlas 2	اللّٰهُ الصَّمَدُ	Allāhuṣ-ṣamad
+ayah Al-Ikhlas 3	لَمْ يَلِدْ وَلَمْ يُولَدْ	Lam yalid wa lam yūlad
+ayah Al-Ikhlas 4	وَلَمْ يَكُنْ لَّهُ كُفُوًا أَحَدٌ	Wa lam yakul lahū kufuwan aḥad
+ayah Al-‘Asr 1	وَالْعَصْرِ	Wal-‘aṣr
+ayah Al-‘Asr 2	إِنَّ الْإِنْسَانَ لَفِي خُسْرٍ	Innal-insāna lafī khusr
+ayah Al-‘Asr 3	إِلَّا الَّذِينَ آمَنُوا وَعَمِلُوا الصَّالِحَاتِ وَتَوَاصَوْا بِالْحَقِّ وَتَوَاصَوْا بِالصَّبْرِ	Illal-lażīna āmanū wa ‘amiluṣ-ṣāliḥāti wa tawāṣau bil-ḥaqqi wa tawāṣau biṣ-ṣabr
+ayah Al-Falaq 1	قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ	Qul a‘ūżu birabbil-falaq
+ayah Al-Falaq 2	مِنْ شَرِّ مَا خَلَقَ	Min syarri mā khalaq
+ayah Al-Falaq 3	وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ	Wa min syarri gāsiqin iżā waqab
+ayah Al-Falaq 4	وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ	Wa min syarrin-naffāṡāti fil-‘uqad
+ayah Al-Falaq 5	وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ	Wa min syarri ḥāsidin iżā ḥasad
+ayah An-Nas 1	قُلْ أَعُوذُ بِرَبِّ النَّاسِ	Qul a‘ūżu birabbin-nās
+ayah An-Nas 2	مَلِكِ النَّاسِ	Malikin-nās
+ayah An-Nas 3	إِلٰهِ النَّاسِ	Ilāhin-nās
+ayah An-Nas 4	مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ	Min syarril-waswāsil-khannās
+ayah An-Nas 5	الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ	Allażī yuwaswisu fī ṣudūrin-nās
+ayah An-Nas 6	مِنَ الْجِنَّةِ وَالنَّاسِ	Minal-jinnati wan-nās
+ayah Al-Fatihah 1	بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيمِ	Bismillāhir-raḥmānir-raḥīm
+ayah Al-Fatihah 2	الْحَمْدُ لِلّٰهِ رَبِّ الْعَالَمِينَ	Al-ḥamdu lillāhi rabbil-‘ālamīn
+ayah Al-Fatihah 3	الرَّحْمٰنِ الرَّحِيمِ	Ar-raḥmānir-raḥīm
+dua takbir	اللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ، لَا إِلَٰهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ وَلِلَّهِ الْحَمْدُ	Allāhu akbar, Allāhu akbar, Allāhu akbar, lā ilāha illallāhu wallāhu akbar, Allāhu akbar wa lillāhil-ḥamd
+dua sleep	بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا	Bismika Allahumma amutu wa ahya
+dua wake	الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ	Alhamdulillahilladzi ahyana ba’da ma amatana wa ilaihin nusyur
