@@ -501,9 +501,12 @@ async function run(name) {
       if (!ok) throw new Error('no race track in this world');
       await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x, k.y + 0.5, k.z - 8); G.player.vel.set(0, 0, 0); });
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
-      await p.waitForFunction(() => __game.race.parked.length === 6, null, { timeout: 10000, polling: 200 });
+      await p.waitForFunction(() => __game.race.parked.length === 6 || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 }); // (a place found during the last race is shown now, after it)
       await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x + 0.3, k.y + 0.3, k.z); G.player.vel.set(0, 0, 0); });
-      await p.waitForFunction(() => __game.race.active || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 });
+      await p.waitForFunction(() => __game.race.active || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 }).catch(async e => {
+        const st = await g(() => { const G = __game, k = G.race.myKart(); return { why: 'no race', armed: G.race.armed, d: Math.hypot(G.player.pos.x - k.x, G.player.pos.z - k.z).toFixed(2), riding: G.fun.riding?.kind ?? null, playing: G.playing?.id ?? null, tennis: !!G.tennis?.active, open: G.ui.isOpen(), paused: G.paused, kind: G.race.kind, races: G.races.map(r => r.kind + ':' + r.active) }; });
+        throw new Error(e.message + ' ' + JSON.stringify(st));
+      });
       const r = await g(() => ({ active: __game.race.active, parked: __game.race.parked.length, karts: __game.race.karts.length }));
       await g(() => { const G = __game; G.race.quit(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
       if (!r.active || r.parked !== 0 || r.karts !== 6) throw new Error(JSON.stringify(r));
@@ -784,13 +787,14 @@ async function run(name) {
       }
       await popup('#iqDone');
       const c0 = await g(() => __game.stats.coins);
-      await g(() => document.querySelector('.veil.on #iqDone').click());
-      const r = await g(c0 => ({ step: __game.iqro.step, gained: __game.stats.coins - c0, stone: __game.stats.iqro.stone }), c0);
+      // closed with ✕ on the star screen (not "Done"): the lesson still counts, and the next book can open
+      await g(() => document.querySelector('.veil.on #iqX').click());
+      const r = await g(c0 => ({ step: __game.iqro.step, gained: __game.stats.coins - c0, stone: __game.stats.iqro.stone, open: __game.iqro.opened }), c0);
       await p.waitForFunction(() => !!__game.iqro.stone, null, { timeout: 20000 });
       await g(() => { __game.ui.closeAllModals(); __game.ui.openBook('letters'); });
       const path = await g(() => document.querySelectorAll('#vBook .iqStage').length);
       await g(keep => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.stats.letters = keep; G.player.pos.set(0.5, 47, 3.5); }, keep);
-      if (compass !== '📖' || sylls !== 7 || r.step !== 1 || r.gained < 15 || path !== 5) throw new Error(JSON.stringify({ compass, sylls, ...r, path }));
+      if (compass !== '📖' || sylls !== 7 || r.step !== 1 || r.gained < 15 || r.open || path !== 5) throw new Error(JSON.stringify({ compass, sylls, ...r, path }));
       return { compass, sylls, ...r, path };
     });
     await step('Iqro in the game: Dad’s exam and certificate, the imam reads a surah you learned, the three Quls at bedtime', async () => {
@@ -946,6 +950,51 @@ async function run(name) {
       if (r.locked !== 10 || r.open !== 11 || r.worn.suit !== 'su_night' || !r.worn.emblem || (!r.worn.mask && !r.girl) || !r.worn.cape || r.off.suit || r.off.emblem) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('in a game the screen is clean; a race started from another game stops that game; nothing piles up race after race', async () => {
+      const r = await g(async () => {
+        const G = __game, wait = ms => new Promise(res => setTimeout(res, ms)), res = {};
+        const shown = sel => { const e = document.querySelector(sel); return !!e && getComputedStyle(e).display !== 'none' && !e.closest('.hidden'); };
+        G.ui.closeAllModals(); G.setFull?.(true);
+        res.before = { bag: shown('#hotbarWrap'), use: shown('#bUse') };
+        // the stadium, then a race straight from it: the stadium stops first
+        const S = G.activities.find(a => a.id === 'stadium'), R = G.races.find(x => x.kind === 'snow');
+        S.start('shoot'); await wait(200);
+        res.inStadium = { bag: shown('#hotbarWrap'), compass: shown('#compass'), use: shown('#bUse') };
+        R.start(); await wait(300);
+        res.stadiumStopped = !S.active; res.race = R.active;
+        res.inRace = { bag: shown('#hotbarWrap'), use: shown('#bUse'), jump: shown('#bJump'), item: !!document.querySelector('#raceItem') };
+        // a race left and started again a few times: the scene doesn't keep growing
+        const count = () => { let n = 0; G.scene.traverse(() => n++); return n; };
+        R.quit(); G.ui.closeAllModals(); await wait(200);
+        // left behind = shapes still in memory but no longer in the world (before the fix: 30–40 more every race)
+        const orphans = () => { const u = new Set(); G.scene.traverse(o => { if (o.geometry) u.add(o.geometry.uuid); }); return G.renderer.info.memory.geometries - u.size; };
+        const o0 = orphans();
+        for (let i = 0; i < 3; i++) { R.start(); await wait(250); R.quit(); G.ui.closeAllModals(); await wait(150); }
+        res.geoGrew = orphans() - o0;
+        // the stadium twice: its crowd is made once
+        S.start('shoot'); await wait(150); S.quit(); const c1 = S.crowd.length; S.start('shoot'); await wait(150); S.quit(); res.crowdGrew = S.crowd.length - c1;
+        G.ui.closeAllModals(); await wait(300);
+        res.after = { bag: shown('#hotbarWrap'), use: shown('#bUse'), mode: document.body.className, playing: G.playing?.id ?? null, race: !!G.race?.active };
+        return res;
+      });
+      if (!r.before.bag || r.inStadium.bag || r.inStadium.compass || !r.inStadium.use || !r.stadiumStopped || !r.race || r.inRace.bag || r.inRace.use || r.inRace.jump
+        || r.geoGrew > 30 || r.crowdGrew !== 0 || !r.after.bag || !r.after.use) throw new Error(JSON.stringify(r));
+      // back home for the next steps (the stadium leaves you by its pitch)
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.player.vel.set(0, 0, 0); G.player.yaw = 0; G.ents.mo.pos.set(2, 47, 1.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
+    await step('a new day: yesterday’s bedtime screen goes by itself, play time starts again', async () => {
+      const r = await g(async () => {
+        const G = __game, wait = ms => new Promise(res => setTimeout(res, ms));
+        G.ui.closeAllModals(); G.stats.play = { day: 'yesterday', sec: 9999 };
+        G.ui.lockScreen(true); const locked = G.ui.locked;
+        G.dayKey = 'Mon Jan 01 2001'; G.checkNewDay(); await wait(50);
+        return { locked, after: G.ui.locked, paused: G.paused, sec: G.stats.play.sec, day: G.stats.play.day === new Date().toDateString() };
+      });
+      if (!r.locked || r.after || r.paused || r.sec > 1 || !r.day) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('open every book tab', async () => {
       const tabs = ['bag', 'craft', 'build', 'wardrobe', 'map', 'letters', 'quests', 'ramadhan', 'prayer', 'settings'];
       const out = {};
@@ -1059,10 +1108,12 @@ async function run(name) {
       const r = await p.evaluate(async () => {
         const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
         const tut0 = G.stats.tut, w0 = G.kid.walked; G.kid.walked = 0; G.stats.tut = 0; G.ui.closeAllModals(); // step 1 "walk to Baby Mo", not yet done
+        G.gameEvent = null; G.ents.mo.prayAt = null; G.hour = 9; G.lastHour = 9; // (outside prayer time: then Baby Mo is in his place in the row, not following you)
         const mo = G.ents.mo, pp = G.player.pos;
         const res = [];
         for (let i = 0; i < 12; i++) {
-          mo.pos.set(pp.x + 14, mo.pos.y, pp.z + 3); // Baby Mo a little way off
+          mo.pos.set(pp.x + 9, pp.y, pp.z + 3); // Baby Mo a little way off (not so far that he hops straight back to you: that's at 14)
+          if (G.ui.isOpen()) G.ui.closeAllModals(); // (a pop-up pauses the game, and the arrow with it)
           await wait(150);
           const want = Math.atan2(mo.pos.x - pp.x, mo.pos.z - pp.z), got = G.guide.obj.rotation.y;
           res.push({ vis: G.guide.obj.visible, diff: Math.abs(Math.atan2(Math.sin(got - want), Math.cos(got - want))) });

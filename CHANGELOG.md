@@ -5,6 +5,59 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Audit fix batch: no more getting stuck, a clean screen in games
+
+From a full audit (QA on every device, play screenshots, and a code review).
+
+**Getting stuck or losing progress**
+- **Iqro:** closing a lesson on its star screen (✕, Escape, bedtime) lost
+  the lesson and the book never opened again until a restart. It now counts
+  however it's closed.
+- **Prayer:** praying Maghrib somewhere else before the iftar picnic moved to the
+  masjid left the village masjid closed for prayer until the next Maghrib.
+- **A new day is noticed while the app stays open or asleep:** yesterday's
+  bedtime screen goes by itself, play time starts again, the daily gift comes,
+  and the prayer times / Ramadhan day / moon are worked out for today.
+- **"Follow the real clock":** midnight now starts a new game day (once-a-day
+  things like good deeds and the iftar du'a come back).
+- **Iqro book:** only placed on open ground you can stand on (not a roof, a
+  treetop or a lake floor); a book already in such a spot moves.
+- **Previous world:** if bringing it back can't be saved, the game carries on
+  (it froze) and the previous world is kept (it was deleted).
+- **Wudu before prayer:** closing it with Escape no longer stops the prayer from
+  asking again. Baby Mo's bubble never shows `<b>` tags.
+
+**Games**
+- Starting a race (or travelling on the map) from another game stops that game
+  first; on a boat at sea you're asked to reach land.
+- Football: the first tap after Penalty school or the Skills show is no longer
+  swallowed; you can't dive after Baby Mo has already kicked.
+- Leaving a race no longer reads out a coin sum. Baby Mo's race tips are short
+  lines (how to race, then today's letters).
+
+**Buying**
+- A purchase that finishes after the 45-second wait (slow sign-in, Face ID…)
+  still opens everything, with the celebration. Buy and Restore can't be
+  tapped twice; a Restore with no answer says so (not "nothing bought").
+
+**A clean screen in games**
+- In a race, the stadium, tennis, archery and the other games, only the game's
+  own buttons show: no compass, goals, tutorial card, bag bar, side buttons or
+  Mine. In a race the ✋ button (which left the race) and Jump are hidden
+  next to the power-up button. The Bismillah card moves to the bottom.
+- New places found during a game are celebrated after it, not in the middle.
+
+**Memory and speed**
+- Races no longer leave karts, drivers, boxes and the ramp in memory (30–40
+  shapes a race before); the stadium's crowd is made once.
+- Prayer times were recalculated every 15 s when the city and the device's time
+  zone differ; Ramadhan's start is worked out once a day.
+
+Tested: unit tests (273, new: late purchase, restore timeout, Ramadhan cache),
+smoke on desktop, iPhone, iPad and Android (new steps: clean screen in games,
+race over another game, nothing left behind after races, a new day lifts the
+bedtime screen; the Iqro step now closes with ✕ on the star screen).
+
 ### The ⛵ button only where a boat can go in
 
 - **Bug (found by CI on iPhone):** the ⛵ Sail button showed next to any

@@ -63,8 +63,13 @@ export const store = {
     try {
       // the App Store sometimes never answers (no internet, or the purchase isn't ready in App Store Connect yet):
       // don't leave the card saying "Talking to the App Store…" for ever
-      const r = await withTimeout((async () => (await kit()).buy({ id: FULL_ID }))(), 45000);
-      if (r === TIMEOUT) return 'timeout';
+      const pay = (async () => (await kit()).buy({ id: FULL_ID }))();
+      const r = await withTimeout(pay, 45000);
+      if (r === TIMEOUT) {
+        // still waiting (a slow sign-in, adding a card, Face ID…): if it goes through later, it still opens
+        pay.then(late => { if (late.owned) this.set(true); }, () => { /* gave up: nothing bought */ });
+        return 'timeout';
+      }
       if (r.owned) { this.set(true); return 'owned'; }
       return r.pending ? 'pending' : r.unverified ? 'error' : 'cancelled';
     } catch (e) { this.lastError = (e as Error)?.message || String(e); return 'error'; }

@@ -211,7 +211,8 @@ export class Stadium implements Activity {
   }
   quit() { if (this.active) this.end(); }
   tap() {
-    if (this.waitTap) { this.waitTap = false; this.scriptT = Math.max(this.scriptT, this.nextAt()); return; }
+    // a tap while Baby Mo is showing something skips ahead; once the game is yours, taps are yours (none is lost)
+    if (this.waitTap) { this.waitTap = false; if (this.phase === 'script') { this.scriptT = Math.max(this.scriptT, this.nextAt()); return; } }
     if (this.phase === 'aim') { this.phase = 'power'; this.pt = 0; SFX.click(); return; }
     if (this.phase === 'power') { this.power = powerSweep(this.pt); this.g.ui.meter(null); this.phase = 'runup'; this.pt = 0; return; }
     if (this.phase === 'moRun' && this.myDive === 0 && this.myDiveT === 0) { this.dive(0); return; }
@@ -270,7 +271,7 @@ export class Stadium implements Activity {
   }
   /** you dive (1 = to your left, −1 = to your right, 0 = stay in the middle) */
   private dive(d: -1 | 0 | 1) {
-    if (this.phase !== 'moRun' && this.phase !== 'moSetup' && !(this.phase === 'fly' && this.flight && !this.flight.byMe)) return;
+    if (this.phase !== 'moRun' && this.phase !== 'moSetup') return; // (once Baby Mo has kicked, the save is already decided)
     if (this.myDiveT > 0) return;
     this.myDive = d; this.myDiveT = 0.001; SFX.jump();
   }
@@ -628,8 +629,9 @@ export class Stadium implements Activity {
     if (h && h.t >= 2.5) this.netHit = null;
   }
   private cheer(sec: number) { this.cheerT = Math.max(this.cheerT, sec); if (sec >= 1) SFX.boom(); }
+  /** the fans are made once and stay in their seats; between games they're just hidden (no new ones each game) */
   private seatCrowd() {
-    if (this.crowd.length) return;
+    if (this.crowd.length) { for (const c of this.crowd) c.rig.root.visible = true; return; }
     const C = this.centre, g = this.g;
     let n = 0;
     for (const side of [-1, 1]) for (let row = 0; row < 3; row++) for (let i = 0; i < 6; i++) {
@@ -641,7 +643,7 @@ export class Stadium implements Activity {
       g.scene.add(rig.root); this.crowd.push({ rig, ph: Math.random() * 6, y });
     }
   }
-  private clearCrowd() { for (const c of this.crowd) this.g.scene.remove(c.rig.root); this.crowd = []; }
+  private clearCrowd() { for (const c of this.crowd) c.rig.root.visible = false; }
   private scoreBoard() {
     const a = this.myKicks.reduce((s, v) => s + v, 0), b = this.moKicks.reduce((s, v) => s + v, 0);
     if (this.mode === 'keep') this.drawBoard(tr('TANGKAP', 'SAVES'), String(this.saves), `/${this.moKicks.length}`);
@@ -759,7 +761,7 @@ export class Stadium implements Activity {
 
   private end() {
     const g = this.g;
-    this.active = false; this.phase = 'idle'; this.flight = null; this.loose = null; this.walk = null; this.dribble = null; this.script = [];
+    this.active = false; this.phase = 'idle'; this.flight = null; this.loose = null; this.walk = null; this.dribble = null; this.script = []; this.waitTap = false;
     this.ball.visible = false; this.aimRing.visible = false; this.hint.visible = false; this.slow = 1;
     this.clearCones(); this.clearCrowd(); this.practice = false; this.myDiveT = 0; this.myDive = 0; this.kickAnim = 0; this.moKick = 0; this.keeperDive = 0;
     for (const r of [g.avatar, g.ents.mo.rig]) if (r) r.body.rotation.set(0, 0, 0); // (no dive or lean left over)

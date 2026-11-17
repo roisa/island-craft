@@ -33,3 +33,13 @@ describe('hijri calendar', () => {
     expect(s.daysUntil).toBeGreaterThan(200); expect(s.daysUntil).toBeLessThan(300);
   });
 });
+
+describe('Ramadhan status is worked out once a day', () => {
+  it('gives the same answer, without recounting, for the same date', async () => {
+    const { ramadhanStatus } = await import('../../src/game/prayer');
+    const d = new Date(2026, 10, 17, 9), later = new Date(2026, 10, 17, 21);
+    const a = ramadhanStatus(d);
+    expect(ramadhanStatus(later)).toBe(a);
+    expect(ramadhanStatus(new Date(2026, 10, 18))).not.toBe(a);
+  });
+});

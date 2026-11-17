@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { Game } from '../main';
 import { tr, t2 } from '../i18n';
 import { B } from '../world/blocks';
+import { H } from '../world/gen';
 import { lessonAt, lessons, STAGES, SURAHS, WORDS, type Surah } from './iqro';
 import { SFX } from './audio';
 
@@ -71,6 +72,10 @@ export class IqroQuest {
     if (!st.stone && (this.placeT -= dt) <= 0) { this.placeT = 2; this.place(); }
     if (!st.stone) { if (this.book) { g.scene.remove(this.book); this.book = null; } return; }
     const [x, y, z] = st.stone;
+    if (!this.checked && g.world.isLoaded(Math.floor(x), Math.floor(z))) {
+      this.checked = true;
+      if (this.groundAt(Math.floor(x), Math.floor(z)) !== Math.floor(y) - 1) { st.stone = undefined; this.placeT = 0; return; }
+    }
     if (!this.book) { this.book = bookMesh(); g.scene.add(this.book); }
     const t = performance.now() / 1000;
     this.book.position.set(x, y + 0.9 + Math.sin(t * 2) * 0.12, z); this.book.rotation.y = t * 0.6;
@@ -88,13 +93,26 @@ export class IqroQuest {
       const a = Math.random() * Math.PI * 2, d = 18 + Math.random() * 17;
       const x = Math.floor(p.x + Math.cos(a) * d), z = Math.floor(p.z + Math.sin(a) * d);
       if (!g.world.isLoaded(x, z)) continue;
-      const h = g.world.heightAt(x, z), top = g.world.get(x, h, z);
-      if (top === B.WATER || top === B.ICE || h < 30 || Math.abs(h - p.y) > 12 || g.world.roofed(x + 0.5, h + 1, z + 0.5)) continue;
+      const h = this.groundAt(x, z);
+      if (h === null || h < 30 || Math.abs(h - p.y) > 12) continue;
       this.st.stone = [x + 0.5, h + 1, z + 0.5];
       g.saveSoon();
       return;
     }
   }
+  /**
+   * The open ground here, or null: the highest block in the column must be the land itself (not a
+   * roof, a treetop or water over a lake floor), and solid to stand on.
+   */
+  private groundAt(x: number, z: number): number | null {
+    const w = this.g.world;
+    let top = H - 1; while (top > 1 && w.get(x, top, z) === B.AIR) top--;
+    const b = w.get(x, top, z);
+    if (b === B.WATER || b === B.ICE || top !== this.g.gen.column(x, z).h) return null;
+    return top;
+  }
+  /** a saved spot from before this check: if a child can't stand there, the book moves */
+  private checked = false;
   /** open the lesson of the book you found */
   open(review = false, at?: number) {
     const g = this.g, st = this.st;

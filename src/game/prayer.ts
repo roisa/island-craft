@@ -78,9 +78,10 @@ export const fmtHour = (h: number) => {
 
 // ---- Hijri ---------------------------------------------------------------
 export interface Hijri { day: number; month: number; year: number }
+let hijriFmt: Intl.DateTimeFormat | null = null; // (made once: building one is slow, and Ramadhan's start looks at up to 400 days)
 export function hijri(d: Date): Hijri | null {
   try {
-    const parts = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', { day: 'numeric', month: 'numeric', year: 'numeric' }).formatToParts(d);
+    const parts = (hijriFmt ??= new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', { day: 'numeric', month: 'numeric', year: 'numeric' })).formatToParts(d);
     const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10);
     const r = { day: get('day'), month: get('month'), year: get('year') };
     return r.month ? r : null;
@@ -93,7 +94,16 @@ export const HIJRI_MONTHS: [string, string][] = [
 ];
 
 /** Ramadhan status today: day of Ramadhan (1..30) or days until it begins. */
-export function ramadhanStatus(now = new Date()): { inRamadhan: boolean; day: number; daysUntil: number; hijri: Hijri | null } {
+type RStatus = { inRamadhan: boolean; day: number; daysUntil: number; hijri: Hijri | null };
+const rCache = new Map<string, RStatus>();
+export function ramadhanStatus(now = new Date()): RStatus {
+  const key = now.toDateString(), hit = rCache.get(key);
+  if (hit) return hit;
+  const r = ramadhanOn(now);
+  rCache.set(key, r);
+  return r;
+}
+function ramadhanOn(now: Date): RStatus {
   const h = hijri(now);
   if (h && h.month === 9) return { inRamadhan: true, day: h.day, daysUntil: 0, hijri: h };
   let until = -1;

@@ -103,6 +103,7 @@ export class Race {
   static readonly GRID: [number, number][] = [[-2.5, 1.8], [-2.5, -1.8], [-7, 2.6], [-7, -1.0], [-11.5, 1.0], [-11.5, -2.6]];
   /** a big race (at a set time, with the villagers watching): double prizes */
   grand = false;
+  private ramps: THREE.Group[] = [];
   private crowd: { rig: ReturnType<typeof buildBlocky>; ph: number }[] = []; private stand: [number, number, number] | null = null;
   private lastHour = -1;
   /** your kart's place on the grid */
@@ -131,7 +132,7 @@ export class Race {
     if (d > 4) this.armed = true;
     else if (d < 1.4 && this.armed && !g.fun.riding && !g.ui.isOpen() && !g.tennis?.active) { this.armed = false; this.start(); }
   }
-  private clearParked() { for (const o of this.parked) this.g.scene.remove(o); this.parked = []; }
+  private clearParked() { for (const o of this.parked) dropKart(this.g.scene, o); this.parked = []; }
 
   /**
    * Every frame: the notice before a big race, and the villagers on the grandstand
@@ -184,7 +185,7 @@ export class Race {
       if (++n >= 16) return;
     }
   }
-  private clearCrowd() { for (const c of this.crowd) this.g.scene.remove(c.rig.root); this.crowd = []; }
+  private clearCrowd() { for (const c of this.crowd) { this.g.scene.remove(c.rig.root); disposeRig(c.rig.root); } this.crowd = []; }
   /** how many villagers are watching */
   get watching() { return this.crowd.length; }
 
@@ -338,7 +339,7 @@ export class Race {
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
       Race.boxMat = new THREE.MeshLambertMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45, transparent: true, opacity: 0.92 });
     }
-    return new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), Race.boxMat);
+    return new THREE.Mesh(kgeo('mbox', () => new THREE.BoxGeometry(1.1, 1.1, 1.1)), Race.boxMat);
   }
   private layTrack() {
     const g = this.g, tk = this.tk;
@@ -349,8 +350,9 @@ export class Race {
       g.scene.add(mesh); this.boxes.push({ s, lane, mesh, back: 0 });
     }
     // the jump ramp: a yellow and black wedge across the track (you drive up it and fly)
-    for (const r of tk.ramps) {
-      const p = tk.pointAt(r.s + r.len / 2, 0), ramp = new THREE.Group();
+    if (this.ramps.length) { for (const r of this.ramps) { g.scene.add(r); this.extras.push(r); } }
+    else for (const r of tk.ramps) {
+      const p = tk.pointAt(r.s + r.len / 2, 0), ramp = new THREE.Group(); this.ramps.push(ramp); // (made once for this track)
       const c = document.createElement('canvas'); c.width = 64; c.height = 16;
       const x = c.getContext('2d')!; for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#1d1d20' : '#ffd23f'; x.fillRect(i * 8, 0, 8, 16); }
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
@@ -361,9 +363,9 @@ export class Race {
     }
     // the desert's tumbleweeds rolling across the long straights
     if (this.kind === 'desert') {
-      const mat = new THREE.MeshLambertMaterial({ color: 0xb08a52, flatShading: true }), wire = new THREE.MeshBasicMaterial({ color: 0x7a5a30, wireframe: true });
+      const mat = weedMat ??= new THREE.MeshLambertMaterial({ color: 0xb08a52, flatShading: true }), wire = weedWire ??= new THREE.MeshBasicMaterial({ color: 0x7a5a30, wireframe: true });
       for (const [s, ph] of [[tk.half * 0.55, 0], [tk.half + tk.ARC + tk.half * 0.6, 2], [tk.half + tk.ARC + tk.half * 1.75, 4]] as const) {
-        const m = new THREE.Group(); m.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.55, 0), mat), new THREE.Mesh(new THREE.IcosahedronGeometry(0.66, 1), wire));
+        const m = new THREE.Group(); m.add(new THREE.Mesh(kgeo('weed', () => new THREE.IcosahedronGeometry(0.55, 0)), mat), new THREE.Mesh(kgeo('weedW', () => new THREE.IcosahedronGeometry(0.66, 1)), wire));
         g.scene.add(m); this.weeds.push({ s, lane: -tk.W / 2 - 1.5 + ph, dir: 1, mesh: m, ph });
       }
     }
@@ -372,7 +374,7 @@ export class Race {
     const sc = this.g.scene;
     for (const b of this.boxes) sc.remove(b.mesh); for (const b of this.peels) sc.remove(b.mesh); for (const w of this.weeds) sc.remove(w.mesh); for (const e of this.extras) sc.remove(e);
     this.boxes = []; this.peels = []; this.weeds = []; this.extras = [];
-    if (this.bubble) { this.bubble.parent?.remove(this.bubble); this.bubble = null; }
+    if (this.bubble) this.bubble.parent?.remove(this.bubble); // (kept for next time)
     this.item = null; this.rolled = null; this.rolling = 0; this.g.ui.raceItem(null);
   }
   /** use the power-up you're holding (the 🚀 button, Space or F) */
@@ -408,8 +410,8 @@ export class Race {
     const g = this.g;
     if (this.active) return;
     if (this.kind !== 'main' && !g.can(this.id)) return; // the Snow and Desert tracks: Full BabyMo Craft
+    if (!g.leaveGames()) return; // (another game first stops; on a boat at sea, get to land first)
     this.grand = this.kind === 'main' && (grand || crowdTime(g.hour));
-    if (g.fun.riding) g.fun.dismount();
     this.active = true; this.phase = 'count'; this.t = 0; this.count = 3; this.armed = false;
     this.clearParked();
     // the grid, just behind the start line: you and Baby Mo in front, the racers behind
@@ -441,11 +443,12 @@ export class Race {
     const abc = this.set.map(i => LETTERS[i].name).join(', '), abcAr = this.set.map(i => LETTERS[i].g).join(' ');
     setTimeout(() => { if (this.active) g.ui.raceMath(abcAr); }, 400);
     const first = !g.stats.raceBoxes;
-    const where = this.kind === 'snow' ? tr(' Hati-hati, es di tikungan licin! ❄️', ' Careful, the ice on the bends is slippery! ❄️') : this.kind === 'desert' ? tr(' Hindari pasir di tikungan dan bola rumput yang menggelinding! 🌵', ' Keep off the sand on the bends, and watch the rolling tumbleweeds! 🌵') : '';
-    const letterLine = tr(` Huruf hari ini: ${abc}! Tabrak hurufnya untuk melesat 🟩`, ` Today’s letters: ${abc}! Drive through them to zoom 🟩`);
-    g.ui.say((first ? tr('Setelah GO, gokartmu jalan sendiri — kamu tinggal belok. Lewati kotak ❓ untuk dapat kejutan, lalu ketuk tombolnya untuk memakainya! Bismillah!', 'After GO your kart drives by itself — you just steer. Drive through the ❓ boxes for a surprise, then tap its button to use it! Bismillah!') + where
-      : this.grand ? tr('Balapan besar! Warga desa menonton dari tribun. Hadiahnya dua kali lipat! Bismillah!', 'The big race! The villagers are watching from the grandstand. Double prizes! Bismillah!')
-        : tr(`Balapan di ${this.name}! ${this.laps} putaran, ambil kotak ❓ dan koin. Bismillah!`, `Racing on ${this.name}! ${this.laps} laps — grab the ❓ boxes and the coins. Bismillah!`) + where) + letterLine, 'idea', 8000);
+    // short lines a child can take in at a glance: first how to race, then (a few seconds later) today's letters
+    const where = this.kind === 'snow' ? tr(' Es di tikungan licin! ❄️', ' Ice on the bends is slippery! ❄️') : this.kind === 'desert' ? tr(' Awas pasir dan bola rumput! 🌵', ' Watch out for sand and tumbleweeds! 🌵') : '';
+    g.ui.say(first ? tr('Gokartmu jalan sendiri — kamu tinggal belok! Tabrak kotak ❓ untuk kejutan. Bismillah!', 'Your kart drives itself — just steer! Hit the ❓ boxes for a surprise. Bismillah!') + where
+      : this.grand ? tr('Balapan besar — hadiahnya dua kali lipat! Bismillah!', 'The big race — double prizes! Bismillah!')
+        : tr(`${this.laps} putaran — ambil kotak ❓ dan koin. Bismillah!`, `${this.laps} laps — grab the ❓ boxes and the coins. Bismillah!`) + where, 'idea', 5000);
+    setTimeout(() => { if (this.active && this.phase !== 'done') g.ui.say(tr(`Huruf hari ini: ${abc}! Tabrak hurufnya untuk melesat 🟩`, `Today’s letters: ${abc}! Drive through them to zoom 🟩`), 'alright', 5000); }, 5600);
     g.stats.races = (g.stats.races || 0) + 1;
   }
 
@@ -625,12 +628,12 @@ export class Race {
     const g = this.g, order = this.order(), place = order.indexOf(0) + 1, time = this.t, st0 = g.stats;
     this.phase = 'done';
     g.ui.raceHud(null); g.ui.raceCount(null); g.ui.raceItem(null);
-    this.flushSum();
+    if (quit) this.sum = null; else this.flushSum(); // (leaving: no sum read out as you go)
     let ended = false;
     const end = () => {
       if (ended) return; ended = true;
       this.clearCoins(); this.clearTrack(); this.clearLetters();
-      for (const k of this.karts) g.scene.remove(k.obj);
+      for (const k of this.karts) dropKart(g.scene, k.obj, k.rig);
       this.karts = []; this.active = false;
       g.ents.mo.seat = null;
       // step out beside the start line
@@ -671,27 +674,46 @@ function nthPlace(place: number) {
 }
 
 /** a yellow banana peel lying on the track */
+let peelMat: THREE.MeshLambertMaterial | null = null, weedMat: THREE.MeshLambertMaterial | null = null, weedWire: THREE.MeshBasicMaterial | null = null;
 function bananaModel() {
-  const g = new THREE.Group(), m = new THREE.MeshLambertMaterial({ color: 0xffd84a, emissive: 0x6a5200, emissiveIntensity: 0.3 });
-  for (let i = 0; i < 3; i++) { const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.62), m); leaf.rotation.y = (i / 3) * Math.PI * 2; leaf.position.set(Math.sin(leaf.rotation.y) * 0.25, 0.05, Math.cos(leaf.rotation.y) * 0.25); g.add(leaf); }
-  const top = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.2), m); top.position.y = 0.14; g.add(top);
+  const g = new THREE.Group(), m = peelMat ??= new THREE.MeshLambertMaterial({ color: 0xffd84a, emissive: 0x6a5200, emissiveIntensity: 0.3 });
+  for (let i = 0; i < 3; i++) { const leaf = new THREE.Mesh(kgeo('leaf', () => new THREE.BoxGeometry(0.16, 0.08, 0.62)), m); leaf.rotation.y = (i / 3) * Math.PI * 2; leaf.position.set(Math.sin(leaf.rotation.y) * 0.25, 0.05, Math.cos(leaf.rotation.y) * 0.25); g.add(leaf); }
+  const top = new THREE.Mesh(kgeo('stalk', () => new THREE.BoxGeometry(0.2, 0.22, 0.2)), m); top.position.y = 0.14; g.add(top);
   return g;
 }
 
 /** a little go-kart: a low body with a nose, a seat, a steering wheel and four fat wheels (faces +z) */
+// karts share their shapes and plain colours (made once); only the body colour is each kart's own
+const KGEO = new Map<string, THREE.BufferGeometry>(), KMAT = new Map<number, THREE.MeshLambertMaterial>();
+const kgeo = (k: string, make: () => THREE.BufferGeometry) => { let x = KGEO.get(k); if (!x) KGEO.set(k, x = make()); return x; };
+const kmat = (c: number) => { let x = KMAT.get(c); if (!x) KMAT.set(c, x = new THREE.MeshLambertMaterial({ color: c })); return x; };
+/** take a kart away for good: its own body colour, and the driver it carries */
+function dropKart(scene: THREE.Scene, obj: THREE.Object3D, rig?: { root: THREE.Object3D }) {
+  scene.remove(obj);
+  (obj.userData.body as THREE.Material | undefined)?.dispose();
+  if (rig) disposeRig(rig.root);
+}
+/** free a character's own parts (its shapes and face pictures; the shared plain colours stay) */
+export function disposeRig(root: THREE.Object3D) {
+  root.traverse(o => {
+    const m = o as THREE.Mesh; if (!m.isMesh) return;
+    m.geometry.dispose();
+    for (const x of Array.isArray(m.material) ? m.material : [m.material]) { const t = (x as THREE.MeshLambertMaterial).map; if (t) { t.dispose(); x.dispose(); } }
+  });
+}
 function kartModel(color: number) {
-  const g = new THREE.Group(), m = (c: number) => new THREE.MeshLambertMaterial({ color: c });
-  const box = (w: number, h: number, d: number, c: number, x: number, y: number, z: number) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m(c)); b.position.set(x, y, z); g.add(b); return b; };
+  const g = new THREE.Group(), own = new THREE.MeshLambertMaterial({ color }), m = (c: number) => c === color ? own : kmat(c);
+  const box = (w: number, h: number, d: number, c: number, x: number, y: number, z: number) => { const b = new THREE.Mesh(kgeo(`b${w},${h},${d}`, () => new THREE.BoxGeometry(w, h, d)), m(c)); b.position.set(x, y, z); g.add(b); return b; };
   const body = box(1.0, 0.18, 1.8, color, 0, 0.28, 0);
   g.userData.body = body.material; // (⭐ star power makes it glow in rainbow colours)
   box(0.7, 0.16, 0.5, color, 0, 0.36, 0.85);
   box(1.1, 0.08, 0.3, 0xffffff, 0, 0.32, 1.02);
   box(0.6, 0.45, 0.12, 0x2b2b30, 0, 0.55, -0.45);
   box(0.6, 0.1, 0.5, 0x2b2b30, 0, 0.4, -0.25);
-  const sw = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.03, 6, 12), m(0x222222)); sw.position.set(0, 0.62, 0.35); sw.rotation.x = -0.9; g.add(sw);
+  const sw = new THREE.Mesh(kgeo('wheel', () => new THREE.TorusGeometry(0.14, 0.03, 6, 12)), m(0x222222)); sw.position.set(0, 0.62, 0.35); sw.rotation.x = -0.9; g.add(sw);
   const wheels: THREE.Mesh[] = [];
   for (const [x, z] of [[-0.55, 0.6], [0.55, 0.6], [-0.55, -0.6], [0.55, -0.6]]) {
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.2, 12), m(0x1d1d20)); w.rotation.z = Math.PI / 2; w.position.set(x, 0.22, z); g.add(w); wheels.push(w);
+    const w = new THREE.Mesh(kgeo('tyre', () => new THREE.CylinderGeometry(0.22, 0.22, 0.2, 12)), m(0x1d1d20)); w.rotation.z = Math.PI / 2; w.position.set(x, 0.22, z); g.add(w); wheels.push(w);
   }
   g.userData.wheels = wheels;
   return g;

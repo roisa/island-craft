@@ -193,6 +193,7 @@ export class UI {
     clearTimeout(this.toastT); this.toastT = window.setTimeout(() => t.classList.remove('on'), ms);
   }
   say(text: string, pose: 'idea' | 'ok' | 'alright' | 'pose-05' = 'idea', ms?: number) {
+    text = text.replace(/<[^>]*>/g, ''); // (the bubble is plain text: no <b> showing, nothing read aloud as a tag)
     ms = ms ?? Math.min(7000, 2600 + text.length * 45);
     // Baby Mo (waist up) pops up again from behind the bubble each time he says something new
     const mo = $<HTMLImageElement>('#bubble img.moPeek');
@@ -211,7 +212,10 @@ export class UI {
   setFlying(on: boolean) { $('#bDown').classList.toggle('hidden', !on); }
   underwater(on: boolean) { $('#underwater').style.display = on ? 'block' : 'none'; }
   sleepFade(on: boolean) { $('#sleepFade').style.opacity = on ? '1' : '0'; }
+  private ringP = -1;
   mineRing(p: number) {
+    if (p === this.ringP) return; // (called every frame: only touch the page when it changes)
+    this.ringP = p;
     $('#mineRing').classList.toggle('on', p > 0);
     $('#mineArc').setAttribute('stroke-dashoffset', String(119.4 * (1 - Math.min(1, p))));
   }
@@ -609,6 +613,7 @@ export class UI {
     let i = 0, count = 0, splashes = 0, idle = 0, finished = false;
     const TOTAL = WUDU.reduce((a, w) => a + w.times, 0);
     const drops = Array.from({ length: 9 }, (_, k) => `<i style="--x:${8 + ((k * 37) % 84)}%;--d:${(k * 0.23) % 1.6}s;--s:${0.7 + ((k * 13) % 5) / 10}"></i>`).join('');
+    let gone = () => {}; // (however the pop-up closes — ✕, Escape, bedtime — the timers stop and the prayer can ask again)
     const { el, close } = this.modal(`<div class="wudu w2"><h2>💧 ${forPrayer ? tr('Wudhu dulu sebelum sholat', 'Wudu before we pray') : tr('Berwudhu', 'Making wudu')}</h2>
       <div class="wBody"><div class="wStage" id="wStage"><div class="wCaustic"></div><div class="wRain">${drops}</div>
         <div class="pgFrames wMo" id="wPic"></div><div class="wPool"></div><div class="wSplash" id="wSplash"></div></div>
@@ -617,7 +622,7 @@ export class UI {
         <div class="wCnt" id="wCnt"></div></div></div>
       <div class="wsteps">${WUDU.map((w, k) => `<button class="ws" data-k="${k}" aria-label="${esc(t2(w.name))}"><span>${w.icon}</span>${g.settings.english !== false && BODY_WORDS[k] ? `<em class="wen">${BODY_WORDS[k]!.en}</em>` : ''}</button>`).join('')}</div>
       <p id="wMsg">${tr('Ketuk tombol air untuk membasuh 💧', 'Tap the water button to wash 💧')}</p>
-      <div class="row">${forPrayer ? `<button class="btn ghost small" id="wStill">✓ ${tr('Aku masih punya wudhu', 'I still have wudu')}</button>` : ''}<button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`);
+      <div class="row">${forPrayer ? `<button class="btn ghost small" id="wStill">✓ ${tr('Aku masih punya wudhu', 'I still have wudu')}</button>` : ''}<button class="btn ghost small" id="wGuide">▶️ ${tr('Lihat caranya', 'Watch how')}</button><button class="btn ghost small" id="wX">${tr('Tutup', 'Close')}</button></div></div>`, () => gone());
     const btns = el.querySelectorAll<HTMLElement>('.ws');
     const pic = this.frames($('#wPic', el));
     const stage = $('#wStage', el), splashBox = $('#wSplash', el);
@@ -689,8 +694,9 @@ export class UI {
       this.toast(tr('✓ Kalau wudhumu belum batal (belum tidur, ke toilet, dll.), kamu boleh sholat dengan wudhu itu 🤲', '✓ If your wudu hasn’t been broken (no sleep, no toilet…), you can pray with it 🤲'), 5000);
       finish();
     });
-    $('#wX', el).onclick = () => { clearInterval(nudge); pic.stop(); close(); notDone(); };
-    $('#wGuide', el).onclick = () => { clearInterval(nudge); pic.stop(); close(); notDone(); setTimeout(() => this.poseGuide('wudu'), 30); };
+    gone = () => { clearInterval(nudge); pic.stop(); notDone(); };
+    $('#wX', el).onclick = () => close();
+    $('#wGuide', el).onclick = () => { close(); setTimeout(() => this.poseGuide('wudu'), 30); };
   }
   /** a picture that flips through its frames like a little cartoon, with a soft crossfade */
   private frames(box: HTMLElement, ms = 900) {
@@ -1531,6 +1537,8 @@ export class UI {
     };
     const [wid, wen] = why[what] ?? ['Tempat ini ada di BabyMo Craft Lengkap.', 'This place is in Full BabyMo Craft.'];
     const price = store.price ? ` · ${esc(store.price)}` : '';
+    // a purchase that goes through after the card stopped waiting still opens everything, with the celebration
+    function late(full: boolean) { if (full && el.isConnected) done(); }
     const { el, close } = this.modal(`<div class="unlockCard"><div class="ulHero">🏝️🔓</div>
       <h2>${tr('Buka seluruh pulau!', 'Open the whole island!')}</h2>
       <p class="ulWhy">${tr(wid, wen)} ${tr('Minta izin ayah atau ibu ya 😊', 'Ask a grown-up 😊')}</p>
@@ -1546,23 +1554,39 @@ export class UI {
         <div class="row"><button class="btn ghost small" id="ulRestore">${tr('Pulihkan pembelian', 'Restore purchase')}</button><button class="btn ghost small" id="ulX">${tr('Nanti saja', 'Not now')}</button></div>`
       : `<p class="ulNote">${tr('BabyMo Craft Lengkap ada di aplikasi iPhone & iPad (segera di App Store).', 'Full BabyMo Craft is in the iPhone & iPad app (coming soon on the App Store).')}</p>
         <div class="row"><button class="btn gold" id="ulX">${tr('Oke', 'OK')}</button></div>`}
-      <p class="ulMsg" id="ulMsg"></p></div>`);
+      <p class="ulMsg" id="ulMsg"></p></div>`, () => { const k = store.listeners.indexOf(late); if (k >= 0) store.listeners.splice(k, 1); });
     const msg = el.querySelector<HTMLElement>('#ulMsg')!;
     el.querySelector<HTMLElement>('#ulX')!.onclick = () => { SFX.click(); close(); };
     const done = () => { close(); SFX.fanfare(); this.confetti(60); this.say(tr('Alhamdulillah! Seluruh pulau sudah terbuka. Ayo jelajahi! 🏝️', 'Alhamdulillah! The whole island is open now. Let’s explore! 🏝️'), 'alright', 6000); };
-    el.querySelector<HTMLElement>('#ulBuy')?.addEventListener('click', () => this.parentGate(async () => {
+    // one purchase or restore at a time (a second tap would start a second purchase)
+    let busy = false;
+    const btns = [...el.querySelectorAll<HTMLButtonElement>('#ulBuy, #ulRestore')];
+    const working = (on: boolean) => { busy = on; for (const b of btns) b.disabled = on; };
+    // a purchase that goes through after the card stopped waiting still opens everything, with the celebration
+    store.listeners.push(late);
+    el.querySelector<HTMLElement>('#ulBuy')?.addEventListener('click', () => { if (!busy) this.parentGate(async () => {
+      if (busy) return;
+      working(true);
       msg.textContent = tr('Menghubungi App Store…', 'Talking to the App Store…');
       const r = await store.buy();
-      if (r === 'owned') done();
+      working(false);
+      if (r === 'owned') { if (el.isConnected) done(); }
       else msg.innerHTML = r === 'pending' ? tr('Menunggu persetujuan orang tua (Ask to Buy). Pulau terbuka begitu disetujui.', 'Waiting for a parent’s approval (Ask to Buy). The island opens as soon as it’s approved.')
         : r === 'cancelled' ? ''
           // no answer, or Apple doesn't know the product yet: say what a grown-up can check
           : tr('App Store belum menjawab. Pastikan internet menyala, lalu coba lagi.', 'The App Store didn’t answer. Check the internet is on, then try again.')
             + (store.price ? '' : `<br><small>${tr('Untuk pengembang: pembelian belum tersedia — cek perjanjian Paid Apps (Active) dan status In-App Purchase di App Store Connect.', 'For the developer: the purchase isn’t available yet — check the Paid Apps agreement (Active) and the in-app purchase’s status in App Store Connect.')}${store.lastError ? ` (${esc(store.lastError)})` : ''}</small>`);
-    }));
+    }); });
     el.querySelector<HTMLElement>('#ulRestore')?.addEventListener('click', async () => {
+      if (busy) return;
+      working(true);
       msg.textContent = tr('Memeriksa pembelian…', 'Checking purchases…');
-      if (await store.restore()) done(); else msg.textContent = tr('Belum ada pembelian BabyMo Craft Lengkap di akun ini.', 'No Full BabyMo Craft purchase found on this account.');
+      const ok = await store.restore();
+      working(false);
+      if (ok) { if (el.isConnected) done(); }
+      else msg.textContent = store.lastError === 'timeout'
+        ? tr('App Store belum menjawab. Pastikan internet menyala, lalu coba lagi.', 'The App Store didn’t answer. Check the internet is on, then try again.')
+        : tr('Belum ada pembelian BabyMo Craft Lengkap di akun ini.', 'No Full BabyMo Craft purchase found on this account.');
     });
     void g;
   }
@@ -1663,7 +1687,7 @@ export class UI {
       if (err) this.toast(tr('😕 File ini bukan simpanan BabyMo Craft', '😕 This is not a BabyMo Craft save file'), 4000);
     };
     g.hasPrevious().then(has => { if (!has) return; const b = $('#pPrev', el); b.classList.remove('hidden');
-      b.onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia sebelumnya', 'Previous world'), text: tr('Kembalikan dunia sebelum “Dunia baru”? Dunia sekarang akan disimpan sebagai gantinya.', 'Bring back the world from before “New world”? The current world is kept in its place.'), speak: false, buttons: [{ label: tr('Ya, kembalikan', 'Yes, bring it back'), cls: 'gold', fn: () => { g.restorePrevious(); } }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
+      b.onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia sebelumnya', 'Previous world'), text: tr('Kembalikan dunia sebelum “Dunia baru”? Dunia sekarang akan disimpan sebagai gantinya.', 'Bring back the world from before “New world”? The current world is kept in its place.'), speak: false, buttons: [{ label: tr('Ya, kembalikan', 'Yes, bring it back'), cls: 'gold', fn: () => { void g.restorePrevious().then(ok => { if (!ok) this.toast(tr('⚠️ Dunia sebelumnya belum bisa dikembalikan. Coba lagi nanti.', '⚠️ Couldn’t bring the previous world back. Please try again later.')); }); } }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
     });
     $('#pNew', el).onclick = () => { close(); setTimeout(() => this.dialog({ face: '🌍', who: tr('Dunia baru', 'New world'), text: tr('Yakin? Dunia, barang, dan progres sekarang akan dihapus.', 'Are you sure? The current world, items and progress will be deleted.'), speak: false, buttons: [{ label: tr('Ya, buat baru', 'Yes, start over'), cls: 'gold', fn: () => g.newWorld() }, { label: tr('Batal', 'Cancel'), cls: 'ghost' }] }), 30); };
   }
@@ -1747,11 +1771,16 @@ export class UI {
     lock.querySelectorAll<HTMLElement>('[data-add]').forEach(b => (b.onclick = () => {
       const add = +b.dataset.add! * 60, pl = g.stats.play;
       if (pl) { pl.extra = (pl.extra || 0) + add; pl.slept = false; pl.sec = Math.min(pl.sec, g.settings.playLimit * 60 + pl.extra); }
-      lock.remove(); g.pause(false); g.bedtime.reset(); g.saveSoon();
+      lock.remove(); if (!this.modals.length) g.pause(false); g.bedtime.reset(); g.saveSoon(); // (a pop-up that came just before the lock stays, and keeps the game paused)
       this.toast(tr(`⏱️ Tambah ${b.dataset.add} menit. Selamat bermain!`, `⏱️ ${b.dataset.add} more minutes. Have fun!`));
     }));
   }
   get locked() { return !!document.querySelector('.lockScr'); }
+  /** a new day: the bedtime / break screen goes away by itself */
+  liftLock() {
+    document.querySelectorAll('.lockScr').forEach(e => e.remove());
+    if (!this.modals.length && !$('#vBook').classList.contains('on')) this.g.pause(false);
+  }
 
   // ---------- modals ----------
   /**
@@ -1822,16 +1851,17 @@ export class UI {
    * hear each ayah, recite them all with Baby Mo, then put the ayat in order. `done` gets 1–3 stars.
    */
   iqroLesson(L: Lesson, title: string, done: (stars: number) => void, closed: () => void) {
-    let finished = false;
-    const { el, close } = this.modal(`<div class="iqro"><h2>${title}</h2><div id="iqBody"></div><div class="row"><button class="btn ghost small" id="iqX">${tr('Tutup', 'Close')}</button></div></div>`, () => { Speech.stop(2); if (!finished) closed(); });
+    // once the stars show, the lesson counts however the pop-up is closed (Done, Close, Escape, bedtime)
+    let finished = false, got = 0;
+    const { el, close } = this.modal(`<div class="iqro"><h2>${title}</h2><div id="iqBody"></div><div class="row"><button class="btn ghost small" id="iqX">${tr('Tutup', 'Close')}</button></div></div>`, () => { Speech.stop(2); if (finished) done(got); else closed(); });
     const body = $('#iqBody', el);
     $('#iqX', el).onclick = () => close();
     const say = (x: Syll | { ar: string; lat: string }) => Speech.say(x.ar, x.lat.replace(/-/g, ''));
     const big = (ar: string, size = 46, w = 84, hgt = 76) => arImg(ar, { size, w, h: hgt });
     const finish = (stars: number) => {
-      finished = true; SFX.fanfare(); this.confetti(30 + stars * 10);
+      finished = true; got = stars; SFX.fanfare(); this.confetti(30 + stars * 10);
       body.innerHTML = `<div class="iqEnd"><div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div><p>${stars === 3 ? tr('Sempurna! Masya Allah!', 'Perfect! Masha Allah!') : stars === 2 ? tr('Bagus sekali! Alhamdulillah', 'Very good! Alhamdulillah') : tr('Terus berlatih ya, Insya Allah makin lancar!', 'Keep practising, Insha Allah it gets easier!')}</p><button class="btn gold" id="iqDone">${tr('Selesai', 'Done')} ✓</button></div>`;
-      $('#iqDone', el).onclick = () => { close(); done(stars); };
+      $('#iqDone', el).onclick = () => close(); // (closing gives the stars)
     };
     /** three listening questions: hear it, pick it */
     const quiz = <T,>(pool: T[], ar: (x: T) => string, play: (x: T) => void, show: (x: T) => string) => {

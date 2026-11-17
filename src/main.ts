@@ -216,6 +216,18 @@ export class Game {
   iqro!: IqroQuest;
   /** the activity going on now, if any */
   get playing() { return this.activities.find(a => a.active) ?? null; }
+  /**
+   * Stop whatever game you're in (a race, the stadium, tennis, archery…) and get off a ride, before
+   * going somewhere else or starting another game. False if you can't get off (a boat out at sea).
+   */
+  leaveGames(): boolean {
+    if (this.fun.riding) this.fun.dismount();
+    if (this.fun.riding) return false;
+    for (const r of this.races) if (r.active) r.quit();
+    this.playing?.quit();
+    if (this.tennis?.active) this.tennis.quit();
+    return true;
+  }
   /** Full BabyMo Craft (the one-time unlock in the app); `devFull` lets tests and screenshots see everything */
   devFull = false;
   get full() { return store.full || this.devFull; }
@@ -313,7 +325,7 @@ export class Game {
       jump: document.getElementById('bJump')!, mine: document.getElementById('bMine')!, use: document.getElementById('bUse')!, down: document.getElementById('bDown')!,
     });
     document.getElementById('bJump')!.addEventListener('touchstart', () => this.jumpTap());
-    document.addEventListener('visibilitychange', () => { if (document.hidden) this.save(); else void store.recheck(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.save(); else { void store.recheck(); if (this.running) this.checkNewDay(); } });
     addEventListener('pagehide', () => this.save());
     Speech.init();
     this.refreshTimes();
@@ -572,8 +584,10 @@ export class Game {
     this.saveSoon();
   }
 
+  /** the date the prayer times were last worked out on */
+  private timesDay = '';
   refreshTimes() {
-    const now = new Date();
+    const now = new Date(); this.timesDay = now.toDateString();
     this.realTimes = timesFor(this.loc.lat, this.loc.lng, now, this.settings.method);
     // the in-game day uses the same shape. Keep it sane for far-north places.
     const hs = hoursOf(this.realTimes, this.loc.lng);
@@ -757,8 +771,7 @@ export class Game {
     if (id === 'fish_pond') return this.goToPond();
     const l = this.gen.landmarks.find(x => x.id === id); if (!l) return false;
     const e = l.at?.entry ?? [l.x + 0.5, l.y, l.z + 0.5];
-    if (this.fun.riding) this.fun.dismount();
-    if (this.race?.active) this.race.quit();
+    if (!this.leaveGames()) return false;
     this.ui.sleepFade(true);
     setTimeout(() => {
       const p = this.player; p.pos.set(e[0], e[1], e[2]); p.vel.set(0, 0, 0); p.visY = e[1]; p.flying = false;
@@ -993,7 +1006,6 @@ export class Game {
     // the button of the place you're at (archery, basketball, horses, ice rink)
     const free = !this.playing && !this.fun.riding && !this.race?.active && !this.tennis?.active;
     // while playing a game (the stadium, a race…) the crosshair and the name of the block under it are hidden
-    document.body.classList.toggle('acting', !!this.playing || !!this.race?.active || !!this.tennis?.active);
     const here = free ? this.activities.find(a => a.near(p.pos)) : undefined;
     if (here) { const [icon, label] = here.button(); this.ui.showPlay({ icon, label: (this.full || allowed(false, here.id) ? '' : '🔒 ') + label, fn: () => { if (this.can(here.id)) here.open(); } }); } else this.ui.showPlay(null);
     if (rod && !this.stats.fishGuide && !this.ui.isOpen()) this.ui.fishGuide();
@@ -1086,10 +1098,11 @@ export class Game {
     this.running = false;
     const [meta, edits] = await Promise.all([Save.get('meta'), Save.get('edits')]);
     const ok = await Save.putMany([['meta', prev.meta], ['edits', prev.edits ?? {}], ['previous', meta ? { meta, edits, at: Date.now() } : undefined], ['backup', undefined]]);
+    if (!ok) { this.running = true; return false; } // (couldn't write: keep playing, and keep the previous world)
     if (!meta) await Save.del('previous');
     await Save.del('backup');
-    if (ok) location.reload();
-    return ok;
+    location.reload();
+    return true;
   }
   photo() {
     this.render();
@@ -1135,6 +1148,9 @@ export class Game {
     if (!this.running) return;
     const t = performance.now() / 1000;
     this.uniforms.uTime.value = t;
+    this.screenMode();
+    // a new day (the app left open overnight, or asleep in the background): checked even while paused or locked
+    if ((this.dayCheckT -= dt) <= 0) { this.dayCheckT = 20; this.checkNewDay(); }
     if (this.ui.locked && !this.paused) this.pause(true); // the play-time lock holds, whatever else opens or closes
     if (!this.paused) this.tick(dt, t);
     this.watchFps(dt);
@@ -1193,6 +1209,35 @@ export class Game {
   /** daily play time & the gentle rest reminder */
   /** play seconds since the last water break */
   private waterSec = 0;
+  /** in a game (a race, the stadium, tennis, archery…) only that game's own buttons show (see features.css) */
+  private mode = '';
+  private screenMode() {
+    const racing = !!this.race?.active, m = racing ? 'racing' : this.playing || this.tennis?.active ? 'acting' : '';
+    if (m === this.mode) return;
+    this.mode = m;
+    document.body.classList.toggle('acting', !!m);
+    document.body.classList.toggle('racing', racing);
+  }
+  /** today's date, as the game last saw it */
+  private dayKey = new Date().toDateString();
+  private dayCheckT = 20;
+  /**
+   * The date changed while the app was open (or asleep in the background): a fresh day of play.
+   * Yesterday's "see you tomorrow" screen goes, the play time starts again from zero, the prayer
+   * times, Ramadhan day and moon are worked out for today, and the daily gift comes.
+   */
+  checkNewDay() {
+    const today = new Date().toDateString();
+    if (today === this.dayKey) return;
+    this.dayKey = today;
+    if (!this.stats.days.includes(today)) this.stats.days.push(today);
+    this.stats.play = { day: today, sec: 0 };
+    this.bedtime.reset();
+    this.refreshTimes();
+    if (this.ui.locked) this.ui.liftLock();
+    setTimeout(() => { if (this.running && !this.kid.tutorialActive()) this.festive.dailyGift(); }, 2500);
+    this.saveSoon();
+  }
   private playTime(dt: number) {
     // water break: every N minutes of play Baby Mo brings a glass of water
     const every = (this.settings.water ?? 20) * 60;
@@ -1200,7 +1245,7 @@ export class Game {
       this.waterSec += dt;
       if (this.waterSec >= every && !this.ui.isOpen() && !this.kid.tutorialActive() && !this.prayingTogether) { this.waterSec = 0; this.ui.waterBreak(); }
     }
-    const today = new Date().toDateString();
+    const today = this.dayKey;
     const pl = this.stats.play && this.stats.play.day === today ? this.stats.play : (this.stats.play = { day: today, sec: 0 });
     pl.sec += dt; this.stats.playTotal = (this.stats.playTotal || 0) + dt;
     if (!this.settings.playLimit) { this.bedtime.tick(null, dt); return; }
@@ -1312,7 +1357,7 @@ export class Game {
 
     // time of day
     if (this.settings.dayMinutes > 0) { if (!this.jamaah?.joined) this.hour += dt * 24 / (this.settings.dayMinutes * 60); } // time waits while you pray
-    else { const n = new Date(); this.hour = n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600; }
+    else { const n = new Date(), was = this.hour; this.hour = n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600; if (this.hour < was - 12) this.day++; } // (following the real clock: midnight starts a new game day)
     if (this.hour >= 24) { this.hour -= 24; this.day++; }
     this.gameTimeEvents();
 
@@ -2059,6 +2104,7 @@ export class Game {
   private endPrayerTime() {
     for (const n of this.ents.npcs) n.goPray(false, n.home);
     this.gameEvent = null; this.festive.setPicnic(false); this.ents.mo.prayAt = null; this.endPrayTogether();
+    this.picnicToMasjid = -1; // (if you prayed somewhere else before the iftar picnic moved to the masjid, the village masjid opens again)
     rowPose.pose = 'qiyam'; rowPose.head = 0;
   }
   /** you're in your place in the row: the prayer starts, everyone together */
@@ -2118,7 +2164,7 @@ export class Game {
   private realReminders() {
     if (!this.settings.reminders) return;
     const now = new Date();
-    if (now.getDate() !== this.realTimes.fajr.getDate()) this.refreshTimes();
+    if (now.toDateString() !== this.timesDay) this.refreshTimes(); // (by the day they were worked out for: the city's time zone can differ from the device's)
     for (const p of PRAYERS) {
       const t = this.realTimes[p];
       const k = now.toDateString() + p;
@@ -2152,11 +2198,13 @@ export class Game {
   }
   private slowChecks() {
     const p = this.player.pos;
-    this.checkDiscoveries();
+    // in the middle of a game, new places wait: they're found (and celebrated) once it's over
+    const inGame = !!this.playing || !!this.race?.active || !!this.tennis?.active;
+    if (!inGame) this.checkDiscoveries();
     this.deeds?.jumuah(!!this.siteAt(this.player.pos));
     const col = this.gen.column(Math.floor(p.x), Math.floor(p.z));
     const bn = Biome[col.biome];
-    if (!this.stats.biomes.includes(bn)) {
+    if (!inGame && !this.stats.biomes.includes(bn)) {
       this.stats.biomes.push(bn);
       if (this.stats.biomes.length > 1) this.kid.reward('biome');
       const info = BIOME_INFO[col.biome];
