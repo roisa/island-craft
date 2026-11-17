@@ -5,6 +5,21 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Making the last clips in Cloud Shell
+
+- `tools/voice/cloudshell.sh` (with `gen.py`) makes the Arabic lines that
+  still have no clip in Baby Mo's voice (Chirp3-HD Algenib), like the
+  Pulau Hijaiyah script: it retries a silent syllable, says a lone tanwin
+  syllable as its sound, then pushes a `voice-clips-…` branch. Qur'an ayat are
+  never generated (murottal only).
+- The new clips go to `public/voice/game-*.mp3` and
+  `src/game/voice-manifest.game.json`; re-importing the app's clips keeps them.
+- The du'a on waking up now plays the Baby Mo app's clip (the same words,
+  "ba'da ma" written apart). Left to make: 22 long-vowel syllables, 2 words,
+  2 du'a (26 lines).
+- Tested: unit tests (278), desktop smoke; the script lists its work without
+  credentials and stops with a clear message when it has none.
+
 ### More of Baby Mo's voice: the Pulau Hijaiyah clips
 
 - The clips from Pulau Hijaiyah (`hijaiyah` repo: the same voice, Algenib) come

@@ -43,6 +43,13 @@ for (const SRC of SRCS) for (const L of LAYOUTS) {
   }
 }
 
+// the same words written a little differently in the game and in the app: play the app's clip
+const SAME = [
+  // the du'a on waking up ("ba'da ma" written apart in the game, together in the app)
+  ['الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ', 'الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَمَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ'],
+];
+for (const [game, app] of SAME) { const f = index.get('ar|' + normText(app, 'ar')); if (f) index.set('ar|' + normText(game, 'ar'), f); }
+
 // every line the game might say: the string literals in src (both languages)
 const lines = new Set();
 const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.ts$/.test(e.name)) {
@@ -61,7 +68,8 @@ const by = l => [...keep.keys()].filter(k => k.startsWith(l + '|')).length;
 console.log(`clips: ${files.size} files, ${(bytes / 1e6).toFixed(1)} MB · keys ar ${by('ar')} · tr ${by('tr')} · en ${by('en')} · id ${by('id')}`);
 if (DRY) { console.log([...keep.keys()].filter(k => /^(en|id)\|/.test(k)).slice(0, 40).join('\n')); process.exit(0); }
 
-fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
+fs.mkdirSync(OUT, { recursive: true });
+for (const f of fs.readdirSync(OUT)) if (!f.startsWith('game-')) fs.rmSync(path.join(OUT, f)); // (clips made for the game itself, game-*.mp3, stay)
 const name = new Map(); // source -> file name in public/voice (folder prefix keeps names unique)
 for (const f of files) {
   const folder = path.basename(path.dirname(f)).replace('-voice', '').replace(/^voice$/, 'app');

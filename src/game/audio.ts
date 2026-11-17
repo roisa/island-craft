@@ -326,8 +326,9 @@ export function adhan(): number {
 // way as the app does (voicekey.ts). A line with no clip is read by the device, as before.
 // tools/voice/import.mjs brings them in: public/voice/*.mp3 and voice-manifest.json.
 import CLIPS from './voice-manifest.json';
+import GAME_CLIPS from './voice-manifest.game.json'; // (clips made for the game itself: tools/voice/cloudshell.sh)
 import { voiceKey, trKey, spellings } from './voicekey';
-const CLIP = CLIPS as Record<string, string>;
+const CLIP = { ...(GAME_CLIPS as Record<string, string>), ...(CLIPS as Record<string, string>) };
 /** the clip for a line said in `lang` (Arabic text finds the Arabic clip), or for an Arabic word's Latin name */
 export function clipFor(text: string, lang: string, latin?: string): string | null {
   let f: string | undefined;

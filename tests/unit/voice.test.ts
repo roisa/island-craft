@@ -3,12 +3,13 @@
 import { describe, it, expect } from 'vitest';
 import { voiceKey, normText, trKey, spellings } from '../../src/game/voicekey';
 import CLIPS from '../../src/game/voice-manifest.json';
+import GAME_CLIPS from '../../src/game/voice-manifest.game.json';
 import { LETTERS } from '../../src/world/blocks';
 import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
 import fs from 'fs';
 
-const M = CLIPS as Record<string, string>;
+const M = { ...(GAME_CLIPS as Record<string, string>), ...(CLIPS as Record<string, string>) };
 const has = (ar: string, latin?: string) => !!(spellings(ar).map(t => M[voiceKey(t, 'ar')]).find(Boolean) ?? (latin ? M[trKey(latin)] : undefined));
 
 describe('finding a clip by its text (the same keys as the Baby Mo app)', () => {
