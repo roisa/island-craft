@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Privacy and support pages: the marketing page's look
+
+- `privacy.html` and `support.html` now look like the marketing page: the
+  island sky, liquid-glass cards, rounded headings, the EN / ID switch (one
+  language at a time, remembered with the marketing page's choice), light and
+  dark mode. Shared style in `public/legal.css` and `legal.js`.
+- **Privacy:** the policy's wording is unchanged (same date); the Indonesian
+  version now has every section the English one has.
+- **Support:** the free / Full BabyMo Craft lists match the game today (Full
+  adds the Snow & Desert tracks, the Mini Stadium and the hero suits too); the
+  questions open and close; a big email button.
+- Tested: both pages at desktop and phone size, light and dark, EN and ID: no
+  errors, no missing files, no sideways scrolling.
+
 ### Every Arabic line in Baby Mo's voice
 
 - Merged the 50 clips made in Cloud Shell (`voice-clips-20261117-0855`,
