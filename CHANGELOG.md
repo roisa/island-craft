@@ -5,6 +5,17 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Updated pictures show right away
+
+- Why the kit still showed the old screenshots: the offline cache took every
+  picture from its stored copy first, and the new screenshots kept their file
+  names. Now pages and pictures are fetched fresh when online (the stored copy
+  is the offline fallback); only files whose names change with their content
+  (the built game, voice clips, emoji) come from the cache first. The cache is
+  renamed (`babymo-craft-v2`), so everyone's old copies are dropped once.
+- Tested in a browser: the cache fills, a picture comes from the network when
+  online, and with the network off the game still starts and pictures show.
+
 ### Ready for babymo.id/island-craft/
 
 - The offline cache (`sw.js`) now clears only its own old caches
