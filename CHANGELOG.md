@@ -5,6 +5,21 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### New home: babymo.id/island-craft/
+
+- The whole site (game, marketing page, privacy, support, App Store kit,
+  recording page) is now at **https://babymo.id/island-craft/**: babymo-web
+  copies this repo's published site into `/island-craft/` on every deploy and
+  refreshes it hourly. babymo-web's service worker leaves `/island-craft/` and
+  its caches to the game.
+- The old https://roisa.github.io/island-craft/… addresses forward to the same
+  page at babymo.id (a line at the top of each page that only acts on the old
+  address; the iOS app and babymo.id are unaffected).
+- App Store kit: Privacy, Support and Marketing URLs now point at babymo.id.
+- Tested: forwarding in a browser (old privacy, kit, marketing and game links
+  land on the same babymo.id page; nothing moves elsewhere); unit tests (278);
+  desktop smoke.
+
 ### Updated pictures show right away
 
 - Why the kit still showed the old screenshots: the offline cache took every
