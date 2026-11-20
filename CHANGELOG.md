@@ -5,6 +5,15 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### App Store kit: fresh screenshots
+
+- All 60 screenshots (10 per device, iPhone, iPhone Duo and iPad, English and
+  Indonesian) rendered again from the game as it is now: the balloon letters
+  and the clean race screen, the new guide arrow, no reward pop-ups. Zips
+  rebuilt (30 files each). Same file names, so the kit page is unchanged.
+- Tested: every image checked by eye on contact sheets; every file the kit page
+  links to exists.
+
 ### Marketing page: new screenshots
 
 - Fresh renders of the game as it is now (balloon letters, the new guide arrow,
