@@ -5,6 +5,13 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Ready for babymo.id/island-craft/
+
+- The offline cache (`sw.js`) now clears only its own old caches
+  (`babymo-craft-…`): on babymo.id the rest of the Baby Mo site shares the same
+  browser storage and keeps its own caches. (babymo-web's service worker gets
+  the matching change and leaves `/island-craft/` to the game.)
+
 ### App Store kit: fresh screenshots
 
 - All 60 screenshots (10 per device, iPhone, iPhone Duo and iPad, English and

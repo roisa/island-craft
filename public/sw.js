@@ -4,7 +4,8 @@
 const CACHE = 'babymo-craft-v1';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
-  for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
+  // only our own old caches: on babymo.id the site's other pages share this storage (and keep their own caches)
+  for (const k of await caches.keys()) if (k.startsWith('babymo-craft-') && k !== CACHE) await caches.delete(k);
   await self.clients.claim();
 })()));
 self.addEventListener('fetch', e => {
