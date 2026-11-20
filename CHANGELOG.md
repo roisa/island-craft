@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Marketing page: new screenshots
+
+- Fresh renders of the game as it is now (balloon letters, the new guide arrow,
+  the clean screen in games), English and Indonesian: 6 feature cards (from
+  the iPad shots) and a 10-picture gallery (from the phone shots). The gallery
+  swaps archery for the snow race, the Mini Stadium and the hero suits.
+- Text: the race card tells about the snow and desert tracks, letters and
+  mystery boxes; "a whole island" adds football and the hero suits; the Iqro
+  card says everything is read aloud; Full BabyMo Craft lists the new tracks,
+  the stadium and the suits; "12 fun places" (was 9).
+- The screenshot script clears confetti and coin pop-ups before each picture.
+- Tested: every picture the page uses exists in both languages; each new
+  picture checked by eye.
+
 ### Privacy and support pages: the marketing page's look
 
 - `privacy.html` and `support.html` now look like the marketing page: the
