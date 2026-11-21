@@ -1201,10 +1201,10 @@ async function run(name) {
     });
     await step('water life: fish swim in a pool; a sheep that ends up in the water climbs out (land animals don\'t swim)', async () => {
       await g(() => {
-        const G = __game, W = G.world, p = G.player, x0 = Math.floor(p.pos.x) - 8, z0 = Math.floor(p.pos.z) - 8, y = W.heightAt(x0, z0);
-        for (let x = x0; x < x0 + 5; x++) for (let z = z0; z < z0 + 5; z++) { for (let yy = y - 3; yy <= y; yy++) W.set(x, yy, z, 11); for (let yy = y + 1; yy <= y + 4; yy++) W.set(x, yy, z, 0); }
+        const G = __game, W = G.world, p = G.player, x0 = Math.floor(p.pos.x) - 12, z0 = Math.floor(p.pos.z) - 12, y = W.heightAt(x0, z0);
+        for (let x = x0; x < x0 + 9; x++) for (let z = z0; z < z0 + 9; z++) { for (let yy = y - 3; yy <= y; yy++) W.set(x, yy, z, 11); for (let yy = y + 1; yy <= y + 4; yy++) W.set(x, yy, z, 0); }
         const a = G.ents.animals.find(a => a.kind === 'sheep') ?? G.ents.animals[0];
-        a.pos.set(x0 + 2.5, y - 0.5, z0 + 2.5); a.target = null;
+        a.pos.set(x0 + 4.5, y - 0.5, z0 + 4.5); a.target = null;
         window.__pool = { a: G.ents.animals.indexOf(a), x0, z0, y };
       });
       await p.waitForFunction(() => { const G = __game, a = G.ents.animals[__pool.a]; return G.world.get(Math.floor(a.pos.x), Math.floor(a.pos.y + 0.3), Math.floor(a.pos.z)) !== 11; }, null, { timeout: 5000, polling: 100 });

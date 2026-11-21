@@ -79,7 +79,7 @@ export class Ambient {
   /** a spot in water at least 2 deep near p: the water's top and the floor */
   private findWater(p: THREE.Vector3): { x: number; z: number; top: number; floor: number } | null {
     const W = this.world;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 24; i++) { // (cheap block reads: enough tries that a small pond is found within a few scans, even on a slow device)
       const x = Math.floor(p.x + (Math.random() - 0.5) * 36), z = Math.floor(p.z + (Math.random() - 0.5) * 36);
       if (!W.isLoaded(x, z)) continue;
       for (let y = Math.floor(p.y) + 6; y > Math.floor(p.y) - 14; y--) {
