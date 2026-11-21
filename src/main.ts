@@ -18,7 +18,7 @@ import { initMesherTables, WorldUniforms } from './world/mesher';
 import { Generator, Biome, BIOME_INFO, SEA, VILLAGE_Y, H, CS } from './world/gen';
 import { World } from './world/world';
 import { B, I, BLOCKS, ITEMS, LETTERS, isBlockId, isLetter, isDeco, nameOf } from './world/blocks';
-import { Player } from './game/player';
+import { Player, PW } from './game/player';
 import { Input, isTouch } from './game/input';
 import { Inventory, Recipe, Station, craft as doCraft, RECIPES } from './game/inventory';
 import { Sky, Schedule } from './game/sky';
@@ -41,7 +41,7 @@ import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, load
 import { QUESTS, Stats, newStats, DUAS, CALENDAR, letterReward } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
-import { Fun, Outfit, defaultOutfit, outfitItem, dressUp, HAT_GIFTS } from './game/fun';
+import { Fun, Outfit, defaultOutfit, outfitItem, dressUp, HAT_GIFTS, wearsCape } from './game/fun';
 const shadeHex = (c: number, k: number) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
 import { Festive, PICNIC } from './game/festive';
 import { Places } from './game/places';
@@ -424,6 +424,7 @@ export class Game {
     this.ents.onStartle = a => SFX.critter(a.kind);
     this.ents.onGreet = () => SFX.chime();
     this.ambient = new Ambient(this.scene, this.world);
+    this.ambient.onSplash = (x, y, z, near) => { this.fx.sparkle(x, y, z, 6, 0xbfe9ff, 1.2); if (near) SFX.splash(); };
     this.player = new Player(this.world);
     this.player.onStep = () => { const q = this.player.pos; SFX.stepMat(matOf(this.world.get(Math.floor(q.x), Math.floor(q.y - 0.2), Math.floor(q.z)))); };
     this.player.onSplash = () => SFX.splash();
@@ -1127,17 +1128,67 @@ export class Game {
     if (code === 'KeyT') this.rotatePlacement();
     if (code === 'KeyV' || code === 'F5') this.toggleCamera();
     if (code === 'KeyZ' && this.undo) this.doUndo();
-    if (code === 'KeyF' && this.inv.creative) this.toggleFly();
+    if (code === 'KeyF' && this.canFly()) this.toggleFly();
     if (code === 'Space') this.jumpTap();
   }
   private jumpTap() {
     const now = performance.now();
-    if (this.inv.creative && now - this.lastJumpTap < 300) this.toggleFly();
+    if (now - this.lastJumpTap < 350 && this.canFly()) { this.toggleFly(); this.lastJumpTap = 0; return; }
     this.lastJumpTap = now;
   }
+  /**
+   * A mud trap: mud laid over a hole holds you for a moment, wobbles, then gives way and you drop in
+   * (soft wet mud can't hold you up with nothing under it). The mud goes back in the bag.
+   */
+  private mudT = 0;
+  private mudTrap(dt: number) {
+    const p = this.player;
+    if (!p.onGround || p.flying || this.fun?.riding) { this.mudT = 0; return; }
+    const y = Math.floor(p.pos.y - 0.05), cells: [number, number][] = [];
+    for (const dx of [-PW + 0.02, PW - 0.02]) for (const dz of [-PW + 0.02, PW - 0.02]) {
+      const x = Math.floor(p.pos.x + dx), z = Math.floor(p.pos.z + dz);
+      if (cells.some(([a, b]) => a === x && b === z)) continue;
+      if (this.world.get(x, y, z) === B.MUD && !this.world.solidAt(x, y - 1, z)) cells.push([x, z]);
+    }
+    if (!cells.length) { this.mudT = 0; return; }
+    if (this.mudT === 0) { SFX.hitMat(matOf(B.MUD)); this.fx.breakBurst(p.pos.x, y + 1, p.pos.z, B.MUD); }
+    this.mudT += dt;
+    if (this.mudT < 0.35) return;
+    this.mudT = 0;
+    // every mud block of the trap that you stand on, and the mud joined to it over the same hole, gives way
+    const out: [number, number][] = [], seen = new Set<string>(), todo = [...cells];
+    while (todo.length && out.length < 16) {
+      const [x, z] = todo.pop()!, k = x + ',' + z; if (seen.has(k)) continue; seen.add(k);
+      if (this.world.get(x, y, z) !== B.MUD || this.world.solidAt(x, y - 1, z)) continue;
+      out.push([x, z]); todo.push([x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]);
+    }
+    for (const [x, z] of out) {
+      this.world.set(x, y, z, B.AIR);
+      this.fx.breakBurst(x + 0.5, y + 0.5, z + 0.5, B.MUD);
+      if (!this.inv.creative) this.give([[B.MUD, 1]], new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5));
+    }
+    SFX.breakMat(matOf(B.MUD)); SFX.splash(); haptic([10, 30, 20]);
+    p.onGround = false; p.vel.y = Math.min(p.vel.y, -1);
+    this.dirtySave = true;
+    const n = this.stats.mudTraps = (this.stats.mudTraps ?? 0) + 1;
+    if (n === 1) this.ui.say(tr('Hihi, jebakan lumpurnya berhasil! 😄 Lumpur basah tidak kuat menahanmu kalau di bawahnya kosong. Lumpurnya kembali ke tasmu.', 'Hehe, your mud trap worked! 😄 Wet mud can’t hold you up with nothing underneath. The mud went back into your bag.'), 'alright', 6000);
+    else this.ui.toast(tr('🕳️ Byur! Jebakan lumpur!', '🕳️ Splosh! Mud trap!'));
+  }
+  /** creative mode flies; so does anyone in a cape (a hero cape or a hero suit's), out on the island */
+  canFly() {
+    if (this.inv.creative) return true;
+    return wearsCape(this.settings.outfit) && !this.fun?.riding && !this.race?.active && !this.tennis?.active && !this.playing;
+  }
   private toggleFly() {
-    this.player.flying = !this.player.flying;
-    this.ui.toast(this.player.flying ? tr('🕊️ Terbang! Tahan ⬆️ naik, ⬇️ turun', '🕊️ Flying! Hold ⬆️ up, ⬇️ down') : tr('🚶 Mendarat', '🚶 Landing'));
+    const p = this.player;
+    p.flying = !p.flying;
+    if (p.flying) {
+      if (p.vel.y < 4) p.vel.y = 4; // a little lift-off
+      SFX.jump(); this.fx.sparkle(p.pos.x, p.pos.y + 0.3, p.pos.z, 14, 0xffffff, 1.6);
+      const first = !this.inv.creative && !this.stats.flown;
+      if (first) { this.stats.flown = true; this.saveSoon(); this.ui.say(tr('Wah, kamu terbang seperti pahlawan! 🦸 Tahan ⬆️ untuk naik, ⬇️ untuk turun. Saat menyentuh tanah, kamu mendarat. Bismillah!', 'Wow, you’re flying like a hero! 🦸 Hold ⬆️ to go up, ⬇️ to go down. Touch the ground to land. Bismillah!'), 'alright', 7000); }
+      else this.ui.toast(tr('🦸 Terbang! Tahan ⬆️ naik, ⬇️ turun', '🦸 Flying! Hold ⬆️ up, ⬇️ down'));
+    } else this.ui.toast(tr('🚶 Mendarat', '🚶 Landing'));
   }
 
   // ---------- main loop ----------
@@ -1270,6 +1321,8 @@ export class Game {
     const act = this.playing;
     if (act) { const tap = !!inp.tapAt; inp.tapAt = null; if (inp.takeUse() || tap) act.tap(); }
     if (!this.race?.step(dt) && !this.tennis?.step(dt) && !act?.step(dt, performance.now() / 1000) && !this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
+    if (p.flying && !this.canFly()) p.flying = false; // (the cape came off, or a game started: you glide down)
+    this.mudTrap(dt);
     this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }
 
@@ -2340,10 +2393,11 @@ export class Game {
     }
     const pose = this.anim.update(dt, t, inp);
     pose.headX += -p.pitch * 0.5;
+    if (p.flying && p.speed > 2) { pose.armRx = -2.9; pose.armRz = 0.05; pose.bodyX = 0.35; } // flying forward: one fist out in front, like a hero
     applyPose(a, pose);
     if (riding) a.root.position.y -= 0.35;
     const sw = this.anim.loco === 'walk' || this.anim.loco === 'run' ? pose.armRx : 0;
-    const cape = a.body.getObjectByName('cape'); if (cape) cape.rotation.x = 0.15 + Math.min(0.9, p.speed * 0.12) + Math.sin(t * 6) * 0.05;
+    const cape = a.body.getObjectByName('cape'); if (cape) cape.rotation.x = p.flying ? 0.5 + Math.min(0.8, p.speed * 0.1) + Math.sin(t * 14) * 0.12 : 0.15 + Math.min(0.9, p.speed * 0.12) + Math.sin(t * 6) * 0.05;
     if (a.blink) { const ph = t % 4.6; a.blink(ph < 0.13); }
     // standing still in the masjid at prayer time: pray along with the villagers
     const inMasjid = !!this.siteAt(p.pos);

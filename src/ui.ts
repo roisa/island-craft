@@ -1264,6 +1264,7 @@ export class UI {
       else (o as any)[b.dataset.slot!] = item.id;
       SFX.pickup(); g.buildAvatar(); g.saveSoon(); this.renderBook();
       if (item.slot === 'hat') g.wearHat(item.id);
+      else if (item.perk) this.toast(`${item.icon} ${t2(item.name)}: ${t2(item.perk)}`, 5000); // (a cape: you can fly)
     }));
   }
 

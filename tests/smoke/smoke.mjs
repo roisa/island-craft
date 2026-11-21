@@ -1165,6 +1165,54 @@ async function run(name) {
       await g(() => { __game.stats.play.sec = 0; __game.stats.play.extra = 0; });
       return { night, woke };
     });
+    await step('a mud trap: mud over a hole gives way when you step on it, and the mud goes back in the bag', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.leaveGames?.(); });
+      const r0 = await g(() => {
+        const G = __game, W = G.world, p = G.player, x = Math.floor(p.pos.x) + 3, z = Math.floor(p.pos.z);
+        const y = W.heightAt(x, z); // the top block
+        // a 3-deep hole with mud on top, and clear air above it
+        for (let yy = y - 2; yy <= y + 4; yy++) W.set(x, yy, z, 0);
+        W.set(x, y, z, 70);
+        p.flying = false; p.pos.set(x + 0.5, y + 1, z + 0.5); p.vel.set(0, 0, 0); p.visY = y + 1;
+        window.__trap = { x, y, z, mud: G.inv.count?.(70) ?? null };
+        return window.__trap;
+      });
+      await p.waitForFunction(() => { const t = __trap; return __game.world.get(t.x, t.y, t.z) === 0 && __game.player.pos.y < t.y; }, null, { timeout: 8000, polling: 100 });
+      return await g(() => ({ fellTo: +__game.player.pos.y.toFixed(2), top: __trap.y, mudBack: __game.inv.count?.(70) ?? null, before: __trap.mud }));
+    });
+    await step('a cape lets you fly: tap jump twice and you lift off; take it off and you land', async () => {
+      const r = await g(() => {
+        const G = __game, p = G.player; G.ui.closeAllModals();
+        G.inv.creative = false;
+        const o = G.settings.outfit; const before = o.cape; o.cape = 'c_none'; o.suit = undefined;
+        G.jumpTap(); G.jumpTap(); const noCape = p.flying;
+        o.cape = 'c_hero';
+        G.jumpTap(); G.jumpTap(); const withCape = p.flying;
+        window.__capeBefore = before;
+        return { noCape, withCape };
+      });
+      if (r.noCape || !r.withCape) throw new Error('flying: ' + JSON.stringify(r));
+      await p.waitForTimeout(400);
+      const up = await g(() => __game.player.vel.y >= 0 && __game.player.flying);
+      const off = await g(() => { const G = __game; G.settings.outfit.cape = 'c_none'; return true; });
+      await p.waitForFunction(() => !__game.player.flying, null, { timeout: 3000, polling: 100 });
+      await g(() => { const G = __game; G.settings.outfit.cape = window.__capeBefore ?? 'c_none'; G.inv.creative = G.settings.mode === 'creative'; });
+      return { ...r, up, off };
+    });
+    await step('water life: fish swim in a pool; a sheep that ends up in the water climbs out (land animals don\'t swim)', async () => {
+      await g(() => {
+        const G = __game, W = G.world, p = G.player, x0 = Math.floor(p.pos.x) - 8, z0 = Math.floor(p.pos.z) - 8, y = W.heightAt(x0, z0);
+        for (let x = x0; x < x0 + 5; x++) for (let z = z0; z < z0 + 5; z++) { for (let yy = y - 3; yy <= y; yy++) W.set(x, yy, z, 11); for (let yy = y + 1; yy <= y + 4; yy++) W.set(x, yy, z, 0); }
+        const a = G.ents.animals.find(a => a.kind === 'sheep') ?? G.ents.animals[0];
+        a.pos.set(x0 + 2.5, y - 0.5, z0 + 2.5); a.target = null;
+        window.__pool = { a: G.ents.animals.indexOf(a), x0, z0, y };
+      });
+      await p.waitForFunction(() => { const G = __game, a = G.ents.animals[__pool.a]; return G.world.get(Math.floor(a.pos.x), Math.floor(a.pos.y + 0.3), Math.floor(a.pos.z)) !== 11; }, null, { timeout: 5000, polling: 100 });
+      await p.waitForFunction(() => __game.ambient.counts.fish > 0, null, { timeout: 30000, polling: 250 }).catch(async e => {
+        throw new Error('no fish: ' + JSON.stringify(await g(() => { const G = __game, P = __pool, W = G.world; return { en: G.ambient.enabled, low: G.settings.lowGfx, c: G.ambient.counts, pl: G.player.pos.toArray().map(Math.round), pool: P, top: W.get(P.x0 + 2, P.y, P.z0 + 2), h: W.heightAt(P.x0 + 2, P.z0 + 2), paused: G.paused }; })));
+      });
+      return await g(() => ({ fish: __game.ambient.counts.fish, sheep: __game.ents.animals[__pool.a].kind }));
+    });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
   } catch { failed++; }

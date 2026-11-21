@@ -236,7 +236,7 @@ void main(){
   blk = max(blk, vec3(1.0, 0.86, 0.62) * uLamp * 1.1 * (1.0 - smoothstep(2.0, 13.0, vDist)));
   vec3 lit = max(skyC, blk) + vec3(0.06, 0.065, 0.085);
   vec3 col = t.rgb * lit * vLight.x;
-  float a = uWater > 0.5 ? 0.78 : 1.0;
+  float a = uWater > 0.5 ? 0.7 : 1.0; // (clear enough to see the fish)
   float fog = smoothstep(uFogNear, uFogFar, vDist);
   if (uUnderwater > 0.5) fog = smoothstep(2.0, uUnderwater > 1.5 ? 44.0 : 22.0, vDist); // 2 = wearing the diving mask
   col = mix(col, uFogColor, fog);

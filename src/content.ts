@@ -42,6 +42,8 @@ export interface Stats {
   rescued?: string[]; fed?: number;
   /** kites flown, and whether one has flown really high (on a hill) */
   kites?: number; kiteHigh?: boolean;
+  /** flown with a cape once (Baby Mo explains it the first time); mud traps sprung */
+  flown?: boolean; mudTraps?: number;
   /** treasure map pieces found (the places they came from), and the great treasure dug up */
   mapPieces?: string[]; greatTreasure?: boolean;
   /** mangrove seedlings planted in shallow water */

@@ -15,7 +15,7 @@ import type { Stats } from '../content';
 
 // ======================= outfits =======================
 export type { OutfitSlot, OutfitItem, SuitDef, SuitEmblem } from './suits';
-import { SUITS, EMBLEMS, type OutfitItem, type SuitDef } from './suits';
+import { SUITS, EMBLEMS, CAPE_PERK, type OutfitItem, type SuitDef } from './suits';
 export { SUITS };
 /** hats with a power: anyone can wear them, even over a hijab */
 export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'hat_diver', 'crown', 'explorer']);
@@ -50,11 +50,17 @@ export const OUTFITS: OutfitItem[] = [
   { id: 's_eid_green', slot: 'shirt', name: ['Baju Lebaran Hijau', 'Green Eid Outfit'], icon: '🌙', level: 99, color: 0x1f8a4c, unlock: { test: s => !!s.eidShirts?.includes('s_eid_green'), how: ['Bazar Lebaran', 'Eid bazaar'] } },
   { id: 's_eid_gold', slot: 'shirt', name: ['Baju Lebaran Emas', 'Golden Eid Outfit'], icon: '✨', level: 99, color: 0xe9cf7a, unlock: { test: s => !!s.eidShirts?.includes('s_eid_gold'), how: ['Bazar Lebaran', 'Eid bazaar'] } },
   { id: 'c_none', slot: 'cape', name: ['Tanpa Jubah', 'No Cape'], icon: '➖', level: 1 },
-  { id: 'c_hero', slot: 'cape', name: ['Jubah Pahlawan', 'Hero Cape'], icon: '🦸', level: 4, color: 0xe4423a },
-  { id: 'c_star', slot: 'cape', name: ['Jubah Bintang', 'Star Cape'], icon: '🌟', level: 7, color: 0x6b4fc8 },
+  { id: 'c_hero', slot: 'cape', name: ['Jubah Pahlawan', 'Hero Cape'], icon: '🦸', level: 4, color: 0xe4423a, perk: CAPE_PERK },
+  { id: 'c_star', slot: 'cape', name: ['Jubah Bintang', 'Star Cape'], icon: '🌟', level: 7, color: 0x6b4fc8, perk: CAPE_PERK },
   { id: 'su_none', slot: 'suit', name: ['Tanpa Kostum', 'No Suit'], icon: '🙂', level: 1 },
   ...SUITS,
 ];
+/** wearing a cape (its own, or a hero suit's): it lets you fly */
+export function wearsCape(o: Outfit | undefined) {
+  if (!o) return false;
+  const su = o.suit ? outfitItem(o.suit)?.suit : undefined;
+  return su?.cape !== undefined || outfitItem(o.cape)?.color !== undefined;
+}
 export interface Outfit { hat: string; hijab: string; cape: string; shirt: string; suit?: string }
 export const defaultOutfit = (girl: boolean): Outfit => ({ hat: 'none', hijab: 'h_pink', cape: 'c_none', shirt: girl ? 's_pink' : 's_blue' });
 export const outfitItem = (id: string) => OUTFITS.find(o => o.id === id);

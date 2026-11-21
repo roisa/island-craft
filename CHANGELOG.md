@@ -5,6 +5,30 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Ibra's feedback: mud traps, flying capes, fish in the water
+
+- **Mud traps work.** Mud laid over a hole holds you for a moment, wobbles, then
+  gives way and you drop in. Mud joined to it over the same hole falls too, and
+  the mud goes back in the bag. The first time, Baby Mo explains it. (Mud resting
+  on ground is unchanged.)
+- **Capes fly.** The Hero Cape, the Star Cape and the hero suits that have a cape
+  let you fly in Adventure mode, not only in Creative: tap jump twice. While
+  flying, ⬆️ goes up and ⬇️ goes down, and touching the ground lands you.
+  Forward flight uses a hero pose (one fist out front), and the cape streams
+  behind. The wardrobe card and a toast name the power. Flying stops when the
+  cape comes off or a game starts.
+- **Land animals don't swim.** A sheep, cow or other animal following you now
+  waits on the shore instead of swimming after you, and only catches up onto dry
+  ground. An animal that ends up in the water climbs out to the nearest dry spot.
+- **Fish in the water.** Little schools of coloured fish circle in water near
+  you, dart away when you come close, and now and then one leaps out with a
+  splash. They also show in low-graphics mode (one small draw call). Water is a
+  little clearer so they can be seen.
+- Tested: tsc, vitest 278/278, and the Playwright smoke on desktop, iPhone,
+  iPad and Android, with three new steps: the mud trap, cape flying, and water
+  life (fish appear; a sheep put in the water climbs out). Also checked by
+  screenshot.
+
 ### New home: babymo.id/island-craft/
 
 - The whole site (game, marketing page, privacy, support, App Store kit,

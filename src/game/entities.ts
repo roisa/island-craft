@@ -77,6 +77,16 @@ export const ANIMAL_NAME: Record<AnimalKind, T2> = {
 };
 
 export class Animal extends Entity {
+  private outT = 0;
+  /** the nearest dry spot to stand on (within 8 blocks), or null */
+  private dryNear(): THREE.Vector3 | null {
+    for (let r = 1; r <= 8; r++) for (let i = 0; i < r * 8; i++) {
+      const a = i / (r * 8) * Math.PI * 2, x = this.pos.x + Math.cos(a) * r, z = this.pos.z + Math.sin(a) * r;
+      const gy = groundY(this.world, x, this.pos.y + 1, z);
+      if (gy !== null) return new THREE.Vector3(Math.floor(x) + 0.5, gy, Math.floor(z) + 0.5);
+    }
+    return null;
+  }
   target: THREE.Vector3 | null = null;
   wait = Math.random() * 3;
   cooldown = 0;          // produce cooldown (seconds)
@@ -146,6 +156,12 @@ export class Animal extends Entity {
     this.startleCd = Math.max(0, this.startleCd - dt);
     this.happy = Math.max(0, this.happy - dt);
     if (this.ridden) return; // moved by the rider
+    // in the water (the ground under it was dug away, or an old save): a land animal climbs out to the nearest dry ground
+    if (this.world.get(Math.floor(this.pos.x), Math.floor(this.pos.y + 0.3), Math.floor(this.pos.z)) === B.WATER && (this.outT -= dt) <= 0) {
+      this.outT = 0.5;
+      const dry = this.dryNear();
+      if (dry) { this.pos.copy(dry); this.target = null; this.hop = 0.5; }
+    }
     if (this.follow) {
       const f = this.follow(), d = Math.hypot(f.x - this.pos.x, f.z - this.pos.z);
       // animals wait outside while you're indoors (a house, the masjid, a cave) or up in a building
@@ -154,7 +170,11 @@ export class Animal extends Entity {
       const around = Math.min(top(f.x + 4, f.z), top(f.x - 4, f.z), top(f.x, f.z + 4), top(f.x, f.z - 4));
       const away = W.roofed(f.x, f.y, f.z) || f.y - (around + 1) > 3.5;
       if (away) { if (this.target && this.world.roofed(this.target.x, this.pos.y, this.target.z)) this.target = null; this.waiting = true; }
-      else if (d > 18 || Math.abs(f.y - this.pos.y) > 6) { this.pos.set(f.x - 1.5, f.y, f.z + 1.5); this.target = null; this.waiting = false; }
+      else if (d > 18 || Math.abs(f.y - this.pos.y) > 6) {
+        // catch up with you, but only onto dry ground: land animals don't swim (they wait on the shore while you swim)
+        const gy = groundY(this.world, f.x - 1.5, f.y, f.z + 1.5);
+        if (gy !== null) { this.pos.set(f.x - 1.5, gy, f.z + 1.5); this.target = null; this.waiting = false; } else this.waiting = true;
+      }
       else if (d > 3) { this.target = new THREE.Vector3(f.x + (this.pos.x - f.x) / d * 2, f.y, f.z + (this.pos.z - f.z) / d * 2); this.wait = 0; this.waiting = false; }
       else this.waiting = false;
     }
@@ -177,11 +197,11 @@ export class Animal extends Entity {
         const sy = gy === null ? waterSurface(this.world, nx, this.pos.y, nz) : null;
         if (this.world.roofed(nx, gy ?? this.pos.y, nz) && !this.world.roofed(this.pos.x, this.pos.y, this.pos.z)) { this.target = null; this.wait = 1 + Math.random() * 2; }
         else if (gy === null || Math.abs(gy - this.pos.y) > 1.1) {
-          if (this.follow && sy !== null) { this.pos.x = nx; this.pos.z = nz; this.pos.y = sy - 0.5; }
+          if (this.follow && sy !== null) { this.target = null; this.wait = 0.5; this.waiting = true; } // (water ahead: wait on the shore)
           else {
             this.target = null; this.wait = this.follow ? 0.3 : 1 + Math.random() * 2;
             // a friend stuck at a fence or a wall while you're outside hops over to you
-            if (this.follow && !this.waiting && (this.stuckT += dt + this.wait) > 1.2) { const f = this.follow(); this.pos.set(f.x - 1, f.y, f.z + 1); this.stuckT = 0; this.hop = 0.5; }
+            if (this.follow && !this.waiting && (this.stuckT += dt + this.wait) > 1.2) { const f = this.follow(), gy = groundY(this.world, f.x - 1, f.y, f.z + 1); if (gy !== null) { this.pos.set(f.x - 1, gy, f.z + 1); this.hop = 0.5; } this.stuckT = 0; }
           }
         }
         else { this.pos.x = nx; this.pos.z = nz; this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 10); this.stuckT = 0; }

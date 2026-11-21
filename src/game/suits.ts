@@ -23,9 +23,11 @@ export interface SuitDef {
   hijab: number;
 }
 export type SuitEmblem = 'star' | 'crescent' | 'bolt' | 'leaf' | 'drop' | 'cloud' | 'gem' | 'heart' | 'snowflake';
+/** a cape's power: it lets you fly (tap jump twice) */
+export const CAPE_PERK: T2 = ['Bisa terbang! Ketuk ⬆️ lompat 2× cepat', 'You can fly! Tap ⬆️ jump twice, quickly'];
 const ALL_LETTERS = (s: Stats) => (s.letters?.length ?? 0) >= 28;
 const SUIT_HOW: T2 = ['Temukan semua 28 huruf hijaiyah', 'Find all 28 hijaiyah letters'];
-const suit = (id: string, name: T2, icon: string, shirt: number, def: SuitDef): OutfitItem => ({ id, slot: 'suit', name, icon, level: 99, color: shirt, suit: def, unlock: { test: ALL_LETTERS, how: SUIT_HOW } });
+const suit = (id: string, name: T2, icon: string, shirt: number, def: SuitDef): OutfitItem => ({ id, slot: 'suit', name, icon, level: 99, color: shirt, suit: def, unlock: { test: ALL_LETTERS, how: SUIT_HOW }, ...(def.cape !== undefined ? { perk: CAPE_PERK } : {}) });
 /** the 10 hero suits, opened by finding all 28 letters */
 export const SUITS: OutfitItem[] = [
   suit('su_star', ['Bintang Penolong', 'Helper Star'], '⭐', 0x1f4fbf, { pants: 0xd62f2f, belt: 0xf2c230, boots: 0xd62f2f, gloves: 0xd62f2f, cape: 0xd62f2f, emblem: 'star', emblemColor: 0xf2c230, emblemBack: 0xffffff, hijab: 0xd62f2f }),
