@@ -1,0 +1,18 @@
+{
+  "name": "BabyMo Craft — Petualangan Ramadhan",
+  "short_name": "BabyMo Craft",
+  "description": "Petualangan kotak-kotak Ramadhan untuk anak: huruf hijaiyah, waktu sholat, membangun dan menjelajah.",
+  "lang": "id",
+  "start_url": "./?source=home",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#1FA971",
+  "theme_color": "#1FA971",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
