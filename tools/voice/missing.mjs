@@ -6,11 +6,19 @@
 import { voiceKey, spellings } from '../../src/game/voicekey';
 import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
+import { LETTERS } from '../../src/world/blocks';
 import fs from 'fs';
 const M = JSON.parse(fs.readFileSync(new URL('../../src/game/voice-manifest.json', import.meta.url), 'utf8'));
 const rows = new Map();
 const G = (() => { try { return JSON.parse(fs.readFileSync(new URL('../../src/game/voice-manifest.game.json', import.meta.url), 'utf8')); } catch { return {}; } })();
-const want = (kind, ar, lat) => { if (!spellings(ar).some(t => M[voiceKey(t, 'ar')] || G[voiceKey(t, 'ar')]) && !rows.has(ar)) rows.set(ar, [kind, ar, lat, voiceKey(ar, 'ar')]); };
+// (an app clip marked broken in voice-manifest.fix.json doesn't count: it's near-silent)
+const FIX = (() => { try { return JSON.parse(fs.readFileSync(new URL('../../src/game/voice-manifest.fix.json', import.meta.url), 'utf8')); } catch { return {}; } })();
+const has = k => (M[k] && FIX[k] !== '') || G[k];
+const want = (kind, ar, lat) => { if (!spellings(ar).some(t => has(voiceKey(t, 'ar'))) && !rows.has(ar)) rows.set(ar, [kind, ar, lat, voiceKey(ar, 'ar')]); };
+// the letters with their vowel marks (the letter cards' a / i / u buttons), and the Iqro syllables
+for (const [i, L] of LETTERS.entries()) ['َ', 'ِ', 'ُ'].forEach((m, k) => { const v = 'aiu'[k]; want('syllable', i === 0 ? ['أَ', 'إِ', 'أُ'][k] : L.g + m, i === 0 ? v : L.lat === "'" ? "'" + v : L.lat + v); });
+// (and the card's "More" row: long vowels and tanwin)
+for (const [i, L] of LETTERS.entries()) if (i) { const b = L.lat === "'" ? "'" : L.lat; [['َا', 'aa'], ['ِي', 'ii'], ['ُو', 'uu'], ['ً', 'an'], ['ٍ', 'in'], ['ٌ', 'un']].forEach(([m, v]) => want('syllable', L.g + m, b + v)); }
 for (const l of lessons()) if (l.kind === 'syll') for (const s of l.items) want('syllable', s.ar, s.lat);
 for (const w of WORDS) want('word', w.ar, w.lat.replace(/-/g, ''));
 for (const s of SURAHS) s.ayat.forEach((a, i) => want(`ayah ${s.name} ${i + 1}`, a.ar, a.lat));

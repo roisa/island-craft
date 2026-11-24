@@ -2038,29 +2038,44 @@ export class UI {
     const marks: [string, string, string][] = [['َ', 'a', 'Fathah'], ['ِ', 'i', 'Kasrah'], ['ُ', 'u', 'Dhammah']];
     const base = i === 0 ? 'ا' : L.g;
     const lat = (v: string) => (i === 0 ? v : L.lat === "'" ? "'" + v : L.lat + v);
-    const { el, close } = this.modal(`<div class="lcard">
+    const found = this.g.stats.letters.length;
+    // a new letter: a celebration (the letter pops in on a tile and wobbles, light rays turn behind it, sparkles)
+    const { el, close } = this.modal(`<div class="lcard ${isNew ? 'isNew' : ''}">
       <div class="lc-left">
-        ${isNew ? `<div class="lnew">✨ ${tr('HURUF BARU DITEMUKAN!', 'NEW LETTER FOUND!')} (${this.g.stats.letters.length}/28)</div>` : ''}
-        <div class="bigLetter">${arImg(L.g, { size: 110, w: 170, h: 150 })}</div>
+        ${isNew ? `<div class="lnew"><span class="rib">✨ ${tr('HURUF BARU!', 'NEW LETTER!')} ✨</span><div class="lprog"><i style="width:${(found / 28 * 100).toFixed(1)}%"></i><b>${found}/28</b></div></div>` : ''}
+        <div class="lstage">${isNew ? '<div class="rays"></div><span class="spk k1">✦</span><span class="spk k2">✦</span><span class="spk k3">✦</span><span class="spk k4">✦</span>' : ''}
+          <button class="bigLetter tile3d" id="lBig" aria-label="${esc(L.name)}">${arImg(L.g, { size: 110, w: 170, h: 150 })}</button></div>
         <h2 class="lname">${esc(L.name)}</h2><div class="arname">${arImg(L.ar, { size: 34, w: 140, h: 52, color: '#0B8A4A' })}</div>
       </div>
       <div class="lc-right">
         ${isNew && reward ? this.letterRewardStrip(reward) : ''}
-        <p>${tr('Ketuk untuk mendengar bunyinya dengan harakat:', 'Tap to hear it with vowel marks:')}</p>
-        <div class="harakat">${marks.map(([m, v, n], k) => `<button data-k="${k}"><span class="hg">${arImg(i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m, { size: 46, w: 76, h: 76 })}</span><small>${lat(v)}</small><small class="hn">${n}</small></button>`).join('')}</div>
+        <p class="vhint">${tr('Ketuk kartunya untuk mendengar bunyinya 👂', 'Tap a card to hear how it sounds 👂')}</p>
+        <div class="harakat vcards">${marks.map(([m, v, n], k) => `<button class="vc v${k}" data-k="${k}" aria-label="${lat(v)}"><span class="vspk">🔊</span><span class="hg">${arImg(i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + m, { size: 46, w: 76, h: 76 })}</span><small>${lat(v)}</small><small class="hn">${n}</small></button>`).join('')}<span class="finger" aria-hidden="true">👆</span></div>
         ${i === 0 ? '' : `<details class="adv"><summary>${tr('⭐ Lanjutan: bacaan panjang & tanwin', '⭐ More: long vowels & tanwin')}</summary>
-          <div class="harakat small">${[[L.g + 'َا', lat('aa'), tr('panjang a', 'long a')], [L.g + 'ِي', lat('ii'), tr('panjang i', 'long i')], [L.g + 'ُو', lat('uu'), tr('panjang u', 'long u')]].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg">${arImg(a, { size: 38, w: 70, h: 64 })}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
-          <div class="harakat small">${[[L.g + 'ً', lat('an'), 'tanwin'], [L.g + 'ٍ', lat('in'), 'tanwin'], [L.g + 'ٌ', lat('un'), 'tanwin']].map(([a, b, n]) => `<button data-ar="${a}" data-lat="${b}"><span class="hg">${arImg(a, { size: 38, w: 70, h: 64 })}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
+          <div class="harakat small vcards">${[[L.g + 'َا', lat('aa'), tr('panjang a', 'long a')], [L.g + 'ِي', lat('ii'), tr('panjang i', 'long i')], [L.g + 'ُو', lat('uu'), tr('panjang u', 'long u')]].map(([a, b, n], k) => `<button class="vc v${k}" data-ar="${a}" data-lat="${b}"><span class="vspk">🔊</span><span class="hg">${arImg(a, { size: 38, w: 70, h: 64 })}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
+          <div class="harakat small vcards">${[[L.g + 'ً', lat('an'), 'tanwin'], [L.g + 'ٍ', lat('in'), 'tanwin'], [L.g + 'ٌ', lat('un'), 'tanwin']].map(([a, b, n], k) => `<button class="vc v${k}" data-ar="${a}" data-lat="${b}"><span class="vspk">🔊</span><span class="hg">${arImg(a, { size: 38, w: 70, h: 64 })}</span><small>${b}</small><small class="hn">${n}</small></button>`).join('')}</div>
         </details>`}
-        <div class="row"><button class="btn ghost" id="lSay">${ic('speaker')} ${esc(L.name)}</button><button class="btn" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div>
-      </div></div>`, () => Speech.stop(2), { onShow: () => setTimeout(sayName, 150) });
+        <div class="row lbtns"><button class="btn ghost" id="lSay">${ic('speaker')} ${esc(L.name)}</button><button class="btn ${isNew ? 'gold' : ''}" id="lOk">${isNew ? tr('Alhamdulillah! ✨', 'Alhamdulillah! ✨') : tr('Tutup', 'Close')}</button></div>
+      </div></div>`, () => Speech.stop(2), { onShow: () => { setTimeout(sayName, isNew ? 450 : 150); if (isNew) setTimeout(() => this.confetti(36), 250); } });
+    // a tapped card bounces, its letter wiggles; the pointing finger moves on to the next card not heard yet
+    const heard = new Set<number>(), finger = el.querySelector<HTMLElement>('.finger')!, cards = [...el.querySelectorAll<HTMLElement>('.harakat:not(.small) .vc')];
+    const point = () => {
+      const next = cards.find((_, k) => !heard.has(k));
+      if (!next) { finger.classList.add('gone'); return; }
+      finger.style.left = (next.offsetLeft + next.offsetWidth / 2) + 'px';
+      finger.style.top = (next.offsetTop + next.offsetHeight - 10) + 'px';
+    };
+    requestAnimationFrame(() => requestAnimationFrame(point)); setTimeout(point, 400);
+    const bounce = (b: HTMLElement) => { b.classList.remove('hit'); void b.offsetWidth; b.classList.add('hit'); };
+    const big = $('#lBig', el); big.onclick = () => { bounce(big); sayName(); };
     $('#lSay', el).onclick = sayName;
     el.querySelectorAll<HTMLElement>('[data-k]').forEach(b => (b.onclick = () => {
       const k = +b.dataset.k!;
       const ar = i === 0 ? ['أَ', 'إِ', 'أُ'][k] : base + marks[k][0];
+      bounce(b); heard.add(k); point();
       playLetter(i, ar, lat(marks[k][1]), '-' + 'aiu'[k]);
     }));
-    el.querySelectorAll<HTMLElement>('[data-ar]').forEach(b => (b.onclick = () => Speech.say(b.dataset.ar!, b.dataset.lat!)));
+    el.querySelectorAll<HTMLElement>('[data-ar]').forEach(b => (b.onclick = () => { bounce(b); Speech.say(b.dataset.ar!, b.dataset.lat!); }));
     $('#lOk', el).onclick = () => close();
   }
 

@@ -1226,6 +1226,19 @@ async function run(name) {
       await g(() => { const G = __game; G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; G.bedtime.reset?.(); G.ui.dusk?.(0); });
       return { ...start, said };
     });
+    await step('letter card: the letter pops in, the vowel cards are tappable with a pointing finger, and play the cleaned-up clips', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.letterCard(1, true, undefined); });
+      await popup('.lcard');
+      await p.waitForTimeout(500);
+      const before = await g(() => ({ pop: !!document.querySelector('.veil.on .lcard.isNew .tile3d'), cards: document.querySelectorAll('.veil.on .harakat.vcards:not(.small) .vc').length, finger: document.querySelector('.veil.on .finger').style.left }));
+      await g(() => document.querySelector('.veil.on .vc.v0').click());
+      await p.waitForTimeout(500);
+      const after = await g(() => ({ clip: window.__clip, said: window.__said, finger: document.querySelector('.veil.on .finger').style.left, hit: document.querySelector('.veil.on .vc.v0').classList.contains('hit') }));
+      if (!before.pop || before.cards !== 3 || !before.finger || after.finger === before.finger || !after.hit) throw new Error(JSON.stringify({ before, after }));
+      if (!/voice\/fix-hijaiyah-/.test(after.clip || '')) throw new Error('ba should play the trimmed clip: ' + after.clip);
+      await g(() => __game.ui.closeAllModals());
+      return { before, after };
+    });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
   } catch { failed++; }

@@ -9,6 +9,7 @@ import './style.css';
 import './features.css';
 import './ios.css';
 import './mo.css';
+import './kids.css';
 import './install';
 import * as THREE from 'three';
 import { tr, t2, getLang, setLang } from './i18n';

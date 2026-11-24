@@ -1,16 +1,17 @@
 // Baby Mo's recorded voice: the clips from the Baby Mo app are found by their text, the same way as
 // in the app, and they cover the letters, the vowel marks and the Iqro journey.
 import { describe, it, expect } from 'vitest';
-import { voiceKey, normText, trKey, spellings } from '../../src/game/voicekey';
+import { voiceKey, normText, trKey, spellings, mergeClips } from '../../src/game/voicekey';
 import CLIPS from '../../src/game/voice-manifest.json';
 import GAME_CLIPS from '../../src/game/voice-manifest.game.json';
 import REC_CLIPS from '../../src/game/voice-manifest.rec.json';
+import FIX_CLIPS from '../../src/game/voice-manifest.fix.json';
 import { LETTERS } from '../../src/world/blocks';
 import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
 import fs from 'fs';
 
-const M = { ...(GAME_CLIPS as Record<string, string>), ...(CLIPS as Record<string, string>), ...(REC_CLIPS as Record<string, string>) };
+const M = mergeClips(GAME_CLIPS as Record<string, string>, CLIPS as Record<string, string>, FIX_CLIPS as Record<string, string>, REC_CLIPS as Record<string, string>);
 const has = (ar: string, latin?: string) => !!(spellings(ar).map(t => M[voiceKey(t, 'ar')]).find(Boolean) ?? (latin ? M[trKey(latin)] : undefined));
 
 describe('finding a clip by its text (the same keys as the Baby Mo app)', () => {
@@ -33,9 +34,13 @@ describe('what Baby Mo says with his recorded voice', () => {
     const missing = LETTERS.filter(L => !has(L.ar, L.name)).map(L => L.name);
     expect(missing).toEqual([]);
   });
-  it('every letter with fathah, kasrah and dhammah (ba, bi, bu)', () => {
+  it('every letter with fathah, kasrah and dhammah (ba, bi, bu) has a working clip, or is listed to be made', () => {
+    // (a few of the app's syllable clips are near-silent and are dropped (voice-manifest.fix.json): those are
+    // read by the device until tools/voice/cloudshell.sh makes them, so they must be in tools/voice/missing.tsv)
+    const listed = new Set(fs.readFileSync('tools/voice/missing.tsv', 'utf8').trim().split('\n').slice(1).map(l => l.split('\t')[1]));
     const missing = lessons().filter(l => l.kind === 'syll' && l.stage === 2).flatMap(l => (l as any).items).filter((s: any) => !has(s.ar)).map((s: any) => s.ar);
-    expect(missing).toEqual([]);
+    expect(missing.filter((a: string) => !listed.has(a))).toEqual([]);
+    expect(missing.length).toBeLessThanOrEqual(20);
   });
   it('reports how much of the Iqro journey and the du\'a have clips', () => {
     const sylls = lessons().filter(l => l.kind === 'syll').flatMap(l => (l as any).items as { ar: string }[]);
@@ -48,5 +53,19 @@ describe('what Baby Mo says with his recorded voice', () => {
     };
     console.log('recorded clips:', JSON.stringify(report));
     expect(report.syllables.split('/')[0]).not.toBe('0');
+  });
+});
+
+describe('cleaned-up letter clips (voice-manifest.fix.json)', () => {
+  const FIX = FIX_CLIPS as Record<string, string>;
+  it('every trimmed clip exists, and replaces the app clip', () => {
+    for (const [k, f] of Object.entries(FIX)) if (f) { expect(fs.existsSync('public/voice/' + f), f).toBe(true); expect(M[k]).toBe((REC_CLIPS as Record<string, string>)[k] ?? f); }
+  });
+  it('a broken (near-silent) app clip is never played: the key falls back to a game clip or to the device', () => {
+    for (const [k, f] of Object.entries(FIX)) if (!f) expect(M[k]).toBe((REC_CLIPS as Record<string, string>)[k] ?? (GAME_CLIPS as Record<string, string>)[k]);
+  });
+  it('mergeClips: recording > fixed app clip > app clip > game clip; "" drops the app clip', () => {
+    const m = mergeClips({ a: 'g-a', b: 'g-b', d: 'g-d' }, { a: 'app-a', b: 'app-b', c: 'app-c', e: 'app-e' }, { b: '', c: 'fix-c', e: '' }, { d: 'rec-d' });
+    expect(m).toEqual({ a: 'app-a', b: 'g-b', c: 'fix-c', d: 'rec-d' });
   });
 });

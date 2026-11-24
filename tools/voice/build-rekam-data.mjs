@@ -8,14 +8,14 @@
 //       (voice/<id>.mp3), ks: the manifest keys}
 import fs from 'fs';
 import crypto from 'crypto';
-import { voiceKey } from '../../src/game/voicekey';
+import { voiceKey, mergeClips } from '../../src/game/voicekey';
 import { LETTERS } from '../../src/world/blocks';
 import { SURAHS, WORDS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
 
 const J = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return {}; } };
-const APP = J('src/game/voice-manifest.json'), GAME = J('src/game/voice-manifest.game.json'), REC = J('src/game/voice-manifest.rec.json');
-const ALL = { ...GAME, ...APP, ...REC }; // (what the game plays: a recording, else the app's clip, else one made for the game)
+const APP = J('src/game/voice-manifest.json'), GAME = J('src/game/voice-manifest.game.json'), REC = J('src/game/voice-manifest.rec.json'), FIX = J('src/game/voice-manifest.fix.json');
+const ALL = mergeClips(GAME, APP, FIX, REC); // (what the game plays: a recording, else the app's clip (cleaned up), else one made for the game)
 
 const SECTIONS = [
   { s: 'huruf', id: 'Huruf & harakat', en: 'Letters & vowel marks', ic: '🔤' },

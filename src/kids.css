@@ -1,0 +1,133 @@
+/* ================= Kids UI: chunky candy buttons, iOS-style sheets, a celebrating letter card =================
+   Loaded last (after ios.css), so these win. Big enough for small fingers, never stretched across a whole sheet. */
+
+/* ---------- buttons: pressable 3D candy, sized to their label ---------- */
+.btn { min-height: 52px; padding: 12px 24px; font-size: 17px; font-weight: 900 !important; border-radius: 999px !important;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1.15;
+  transition: transform .09s ease-out, box-shadow .09s ease-out, filter .15s !important; -webkit-tap-highlight-color: transparent; }
+.btn:not(.gold):not(.ghost) { background: linear-gradient(180deg, #5DB8FF 0%, #1E90FF 45%, #0A7BEB 100%) !important; color: #fff !important;
+  box-shadow: 0 5px 0 #0560BE, 0 12px 20px -10px rgba(10, 110, 230, .7), inset 0 2px 0 rgba(255,255,255,.45) !important; text-shadow: 0 1px 1px rgba(0,40,100,.25); }
+.btn.gold { background: linear-gradient(180deg, #FFE36B 0%, #FFC81E 50%, #FFB300 100%) !important; color: #3D2600 !important;
+  box-shadow: 0 5px 0 #CC8A00, 0 12px 20px -10px rgba(230, 150, 0, .75), inset 0 2px 0 rgba(255,255,255,.6) !important; }
+.btn.ghost { background: linear-gradient(180deg, #FFFFFF, #F1F5FA) !important; color: #0A7BEB !important;
+  box-shadow: 0 4px 0 #CCD6E3, inset 0 0 0 2px #E2E9F2, 0 10px 16px -12px rgba(30, 60, 100, .5) !important; }
+.btn:active { transform: translateY(4px) !important; filter: brightness(.97);
+  box-shadow: 0 1px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.35) !important; }
+.btn.small { min-height: 42px; padding: 8px 16px; font-size: 15px; }
+.btn.small:not(.gold):not(.ghost) { box-shadow: 0 3px 0 #0560BE, inset 0 2px 0 rgba(255,255,255,.45) !important; }
+.btn.small.gold { box-shadow: 0 3px 0 #CC8A00, inset 0 2px 0 rgba(255,255,255,.6) !important; }
+.btn.small.ghost { box-shadow: 0 3px 0 #CCD6E3, inset 0 0 0 2px #E2E9F2 !important; }
+.btn.small:active { transform: translateY(2px) !important; }
+.btn.big { min-height: 60px; font-size: 20px; }
+/* in a sheet: as wide as it needs to be (comfortable), never a long bar across the whole sheet */
+.panel .btn { width: auto; max-width: 100%; }
+.panel > .btn:not(.small), .panel > div > .btn:not(.small):only-child, .panel .btn.wide { display: flex; width: min(100%, 340px); margin-left: auto; margin-right: auto; }
+.panel .row { justify-content: center; flex-wrap: wrap; }
+.panel .row > .btn { flex: 1 1 0; min-width: 132px; max-width: 260px; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none !important; } }
+
+/* ---------- sheets: iOS-style liquid glass, springing in ---------- */
+.veil { background: radial-gradient(120% 90% at 50% 40%, rgba(10, 25, 45, .18), rgba(5, 15, 30, .42)) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(140%) !important; backdrop-filter: blur(10px) saturate(140%) !important; }
+.panel { border-radius: 36px !important; padding: 20px 20px 22px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.93), rgba(246,248,252,.9)) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(190%) !important; backdrop-filter: blur(40px) saturate(190%) !important;
+  box-shadow: 0 40px 90px -30px rgba(0, 20, 50, .55), 0 0 0 1px rgba(255,255,255,.75), inset 0 1px 0 #fff !important; }
+.veil.on > .panel { animation: sheetIn .42s cubic-bezier(.2, 1.25, .35, 1) both !important; }
+@keyframes sheetIn { 0% { transform: translateY(26px) scale(.9); opacity: 0; filter: blur(4px); } 60% { opacity: 1; filter: blur(0); } 100% { transform: none; opacity: 1; } }
+.panel h2 { font-size: 23px; letter-spacing: -.02em; }
+.panel p { color: #4B5563; }
+/* the close button: a round glass ✕ */
+.x { width: 40px !important; height: 40px !important; top: 14px !important; right: 14px !important; border-radius: 50% !important;
+  background: rgba(120,120,128,.14) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.6); transition: transform .1s; }
+.x:active { transform: scale(.9); background: rgba(120,120,128,.26) !important; }
+@media (prefers-reduced-motion: reduce) { .veil.on > .panel { animation: none !important; } }
+
+/* ---------- the letter card ---------- */
+.lcard .lnew { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 2px; }
+.lcard .rib { display: inline-block; padding: 6px 16px; border-radius: 999px; font: 900 14px/1 var(--ui, Nunito), sans-serif; letter-spacing: .04em; color: #4A2E00;
+  background: linear-gradient(180deg, #FFE680, #FFC52E); box-shadow: 0 3px 0 #D99A00, 0 8px 14px -8px rgba(220,150,0,.8); animation: ribIn .5s .1s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes ribIn { from { transform: translateY(-14px) scale(.6); opacity: 0; } }
+.lcard .lprog { position: relative; width: 150px; height: 16px; border-radius: 999px; background: rgba(20,60,40,.1); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.1); }
+.lcard .lprog i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #34C759, #7EE08F); animation: progIn 1s .3s ease-out both; }
+@keyframes progIn { from { width: 0; } }
+.lcard .lprog b { position: relative; display: block; text-align: center; font: 900 11px/16px var(--ui, Nunito), sans-serif; color: #0B5A2E; }
+
+.lstage { position: relative; display: grid; place-items: center; width: 190px; height: 176px; margin: 4px auto 2px; }
+.lstage .rays { position: absolute; inset: -30px; border-radius: 50%; pointer-events: none; opacity: .75;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 200, 40, .55) 0deg 9deg, rgba(255, 200, 40, 0) 9deg 24deg);
+  -webkit-mask: radial-gradient(circle, #000 25%, transparent 68%); mask: radial-gradient(circle, #000 25%, transparent 68%);
+  animation: raysSpin 14s linear infinite, raysIn .6s ease-out both; }
+@keyframes raysSpin { to { transform: rotate(360deg); } }
+@keyframes raysIn { from { opacity: 0; transform: scale(.4); } }
+.tile3d { position: relative; z-index: 1; width: 162px; height: 150px; border: 0; padding: 0; cursor: pointer; display: grid !important; place-items: center;
+  border-radius: 34px; background: linear-gradient(180deg, #FFFFFF 0%, #FFF7E2 100%);
+  box-shadow: 0 7px 0 #E9B53C, 0 0 0 4px #FFD35A, 0 22px 34px -14px rgba(160, 100, 0, .55), inset 0 -8px 16px -10px rgba(220, 160, 40, .5) !important; }
+.tile3d:active { transform: translateY(4px); box-shadow: 0 3px 0 #E9B53C, 0 0 0 4px #FFD35A !important; }
+.tile3d .arimg { width: 140px; height: auto; }
+/* a new letter: pops out of nowhere with a wobble, then gently floats */
+.isNew .tile3d { animation: letterPop .9s cubic-bezier(.2, 1, .3, 1) both, letterFloat 3s 1s ease-in-out infinite; }
+@keyframes letterPop {
+  0% { transform: scale(.15) rotate(-25deg); opacity: 0; }
+  45% { transform: scale(1.22) rotate(8deg); opacity: 1; }
+  60% { transform: scale(.95) rotate(-7deg); }
+  72% { transform: scale(1.06) rotate(5deg); }
+  84% { transform: scale(.99) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes letterFloat { 50% { transform: translateY(-6px) rotate(1.5deg); } }
+.hit.tile3d, .vc.hit { animation: tapBounce .45s cubic-bezier(.2, 1.5, .4, 1) !important; }
+@keyframes tapBounce { 0% { transform: scale(1); } 30% { transform: scale(.88) rotate(-4deg); } 65% { transform: scale(1.1) rotate(3deg); } 100% { transform: scale(1); } }
+.lstage .spk { position: absolute; z-index: 2; color: #FFC21A; font-size: 22px; text-shadow: 0 0 10px rgba(255, 200, 40, .9); pointer-events: none; animation: twinkle 1.6s ease-in-out infinite both; }
+.lstage .k1 { top: 4px; left: 6px; } .lstage .k2 { top: 14px; right: 2px; font-size: 16px; animation-delay: .4s; }
+.lstage .k3 { bottom: 10px; left: 0; font-size: 15px; animation-delay: .8s; } .lstage .k4 { bottom: 0; right: 10px; animation-delay: 1.2s; }
+@keyframes twinkle { 0%, 100% { transform: scale(.4) rotate(0); opacity: .2; } 50% { transform: scale(1.15) rotate(45deg); opacity: 1; } }
+.lcard .lname { font-size: 26px !important; margin-top: 6px !important; }
+
+/* the vowel cards: chunky, colourful, clearly something to tap (a 🔊 badge, a press-down shadow, a pointing finger) */
+.lcard .vhint { font-size: 14px; font-weight: 900; color: #4B5563; margin: 4px 0 2px; }
+.harakat.vcards { position: relative; gap: 12px; padding-bottom: 30px; margin-top: 6px; }
+.harakat .vc { position: relative; width: 96px; border: 0 !important; border-radius: 22px !important; padding: 8px 4px 10px !important; cursor: pointer;
+  transition: transform .09s ease-out, box-shadow .09s ease-out; -webkit-tap-highlight-color: transparent; }
+.harakat .vc.v0 { background: linear-gradient(180deg, #FFF3E6, #FFE2C2) !important; box-shadow: 0 6px 0 #F2A65A, inset 0 0 0 3px #FFB870, 0 14px 20px -12px rgba(230, 120, 20, .6) !important; }
+.harakat .vc.v1 { background: linear-gradient(180deg, #EAF4FF, #D3E8FF) !important; box-shadow: 0 6px 0 #6FA8E8, inset 0 0 0 3px #8DBDF5, 0 14px 20px -12px rgba(40, 110, 220, .6) !important; }
+.harakat .vc.v2 { background: linear-gradient(180deg, #EAFBEF, #D2F4DC) !important; box-shadow: 0 6px 0 #5DBE7B, inset 0 0 0 3px #84D69D, 0 14px 20px -12px rgba(30, 150, 70, .6) !important; }
+.harakat .vc:active { transform: translateY(5px); }
+.harakat .vc.v0:active { box-shadow: 0 1px 0 #F2A65A, inset 0 0 0 3px #FFB870 !important; }
+.harakat .vc.v1:active { box-shadow: 0 1px 0 #6FA8E8, inset 0 0 0 3px #8DBDF5 !important; }
+.harakat .vc.v2:active { box-shadow: 0 1px 0 #5DBE7B, inset 0 0 0 3px #84D69D !important; }
+.harakat .vc small { font-size: 18px !important; }
+.harakat .vc.v0 small { color: #C25E00 !important; } .harakat .vc.v1 small { color: #1D5FB4 !important; } .harakat .vc.v2 small { color: #13803A !important; }
+.harakat .vc small.hn { font-size: 11px !important; opacity: .8; }
+.harakat .vc .vspk { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 14px;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+.harakat .vc.hit .hg { animation: glyphWiggle .5s ease-in-out; }
+@keyframes glyphWiggle { 25% { transform: rotate(-10deg) scale(1.08); } 50% { transform: rotate(8deg) scale(1.12); } 75% { transform: rotate(-4deg); } }
+.harakat.small.vcards { padding-bottom: 6px; }
+.harakat.small .vc { width: 82px; }
+.harakat .finger { position: absolute; z-index: 3; left: 50%; top: 100%; font-size: 34px; line-height: 1; pointer-events: none; transform: translateX(-30%);
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,.25)); transition: left .35s cubic-bezier(.3, 1.3, .5, 1), opacity .3s; animation: fingerTap 1.1s ease-in-out infinite; }
+.harakat .finger.gone { opacity: 0; }
+@keyframes fingerTap { 0%, 100% { translate: 0 6px; } 50% { translate: 0 -4px; } }
+.lcard .adv { border-radius: 18px !important; background: rgba(120,120,128,.08) !important; padding: 8px 12px !important; }
+.lcard .lbtns { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) {
+  .isNew .tile3d, .lstage .rays, .lstage .spk, .harakat .finger, .lcard .rib, .lcard .lprog i { animation: none !important; }
+}
+/* phones held sideways: the card is two columns, keep the stage compact */
+@media (max-height: 500px) {
+  .lstage { width: 150px; height: 128px; }
+  .tile3d { width: 124px; height: 112px; border-radius: 28px; }
+  .tile3d .arimg { width: 104px; }
+  .lcard .lname { font-size: 21px !important; margin-top: 2px !important; }
+  .harakat .vc { width: 84px; }
+  .harakat.vcards { padding-bottom: 26px; gap: 10px; }
+  .harakat .finger { font-size: 28px; }
+  .lcard .rib { font-size: 12px; padding: 5px 12px; }
+  .lcard .vhint { margin: 0; }
+}
+
+/* quiz answers and other big choice tiles: pressable too */
+.quizOpts button { border: 0 !important; border-radius: 22px !important; background: linear-gradient(180deg, #FFFDF6, #FFF1C9) !important;
+  box-shadow: 0 6px 0 #E3B341, inset 0 0 0 3px #FFD35A, 0 14px 20px -12px rgba(200, 140, 0, .55) !important; transition: transform .09s ease-out, box-shadow .09s ease-out; }
+.quizOpts button:active { transform: translateY(5px); box-shadow: 0 1px 0 #E3B341, inset 0 0 0 3px #FFD35A !important; }

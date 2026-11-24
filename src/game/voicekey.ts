@@ -43,3 +43,17 @@ export function spellings(text: string): string[] {
   if (/^[\u0623\u0625][\u064B-\u0650]$/.test(text)) for (const a of ['\u0623', '\u0625', '\u0627']) { const t = a + text.slice(1); if (!out.includes(t)) out.push(t); }
   return out;
 }
+
+/**
+ * What the game plays for each key: a recording (rec) wins; else the app's clip, cleaned up (fix: its silence
+ * cut; "" = the app's clip is a broken near-silent blip, so it is dropped); else a clip made for the game.
+ */
+export function mergeClips(game: Record<string, string>, app: Record<string, string>, fix: Record<string, string>, rec: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = { ...game, ...app };
+  for (const [k, v] of Object.entries(fix)) {
+    if (v) out[k] = v;
+    else if (game[k]) out[k] = game[k];
+    else delete out[k];
+  }
+  return Object.assign(out, rec);
+}

@@ -5,6 +5,42 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A celebrating letter card, tappable vowel cards, clearer letter sounds, kid-friendly buttons and sheets
+
+- **Finding a letter is a celebration.** The letter pops out on a gold 3D tile with
+  a wobble, then gently floats, with light rays turning and sparkles twinkling
+  behind it. A gold "NEW LETTER!" ribbon has a progress bar (n/28), and confetti
+  falls. Tapping the big letter says its name.
+- **Vowel cards look tappable.** They're chunky, pressable cards (orange a, blue
+  i, green u) with a 🔊 badge. A bobbing 👆 finger points at the next card not
+  heard yet, a tapped card bounces and its letter wiggles. The long-vowel and
+  tanwin cards match.
+- **Letter sounds fixed.** The letter and syllable clips from the Baby Mo app were
+  made by a text-to-speech voice one syllable at a time:
+  - Many started with up to a second of silence (Alif's "a" spoke only after
+    0.95 s), so taps felt late and quick taps overlapped. `tools/voice/fix-clips.mjs`
+    cuts that silence and evens the loudness: 150 clips (e.g. "a" is now 0.36 s
+    and starts at once).
+  - 17 were near-silent blips (تِ تُ دِ رِ نَ نِ هَ هِ كِ مِ …), so those buttons
+    played almost nothing. They're no longer played: the device reads them for
+    now. They're listed in `tools/voice/missing.tsv` (with the long-vowel and
+    tanwin forms), so the next `tools/voice/cloudshell.sh` run makes them, and a
+    recording on the rekam page always wins.
+  - A new layer, `voice-manifest.fix.json`, sits between the app's clips and
+    recordings.
+- **Buttons for small fingers.** Every button is a pressable 3D "candy" button:
+  rounded, at least 52 px tall, with a press-down shadow. Inside sheets, buttons
+  are sized to their label instead of stretched across the sheet (up to 340 px;
+  side-by-side buttons 132–260 px each). Quiz answer tiles press down too.
+- **iOS-style sheets.** Frosted-glass sheets that spring in, a softer blurred
+  backdrop, larger corners and a round glass close button.
+- Tested: tsc, vitest 281/281 (new: the fix layer's merge order; every trimmed
+  clip exists; broken clips never play and are listed to be made), and the
+  smoke tests with a new letter-card step (pop-in, three tappable cards, the
+  finger moving on after a tap, the trimmed clip playing). Screenshots checked
+  on iPad and phone: letter card, parents panel, book, quiz, unlock card,
+  discovery, water break, daily gift, start screen.
+
 ### Play time you can see: a sun by the clock
 
 - With a daily play limit set, a **play-time sun** sits in the clock pill from the
