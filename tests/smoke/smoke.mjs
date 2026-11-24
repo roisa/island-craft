@@ -1213,6 +1213,19 @@ async function run(name) {
       });
       return await g(() => ({ fish: __game.ambient.counts.fish, sheep: __game.ents.animals[__pool.a].kind }));
     });
+    await step('play time: the sun by the clock shows the minutes left from the start, turns to a moon near bedtime, and a tap makes Baby Mo say it', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; });
+      await p.waitForFunction(() => !document.querySelector('#playT').classList.contains('hidden') && document.querySelector('#playM').textContent === '60', null, { timeout: 5000, polling: 100 });
+      const start = await g(() => ({ icon: document.querySelector('#playI').textContent, min: document.querySelector('#playM').textContent, line: __game.playLeftLine(true) }));
+      await g(() => { __game.stats.play.sec = 60 * 60 - 300; });
+      await p.waitForFunction(() => document.querySelector('#playI').textContent === '🌙', null, { timeout: 5000, polling: 100 });
+      const said = await g(() => { document.querySelector('#playT').click(); return document.querySelector('#bubbleTxt').textContent; });
+      if (!/5/.test(said)) throw new Error('Mo said: ' + said);
+      await g(() => { const G = __game; G.settings.playLimit = 0; });
+      await p.waitForFunction(() => document.querySelector('#playT').classList.contains('hidden'), null, { timeout: 5000, polling: 100 });
+      await g(() => { const G = __game; G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; G.bedtime.reset?.(); G.ui.dusk?.(0); });
+      return { ...start, said };
+    });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
   } catch { failed++; }

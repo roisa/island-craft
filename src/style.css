@@ -30,7 +30,20 @@ button { font-family: var(--ui); cursor: pointer; border: none; color: inherit; 
   font-weight: 900; color: #5a3a00; font-size: 18px; transition: transform 0.15s linear; flex: 0 0 auto; }
 #compassText { font-size: 13px; font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #compassText small { display: block; font-size: 11px; color: var(--ink-dim); font-weight: 700; }
-#clock { margin-left: auto; pointer-events: auto; padding: 6px 12px; height: 44px; display: flex; flex-direction: column; justify-content: center; text-align: right; }
+#clock { margin-left: auto; pointer-events: auto; padding: 6px 12px; height: 44px; display: flex; align-items: center; gap: 10px; text-align: right; }
+#clock .ct { display: flex; flex-direction: column; justify-content: center; }
+/* today's play time: a sun that sinks to a moon, the minutes left and a bar that empties (tap: Baby Mo says how long) */
+#playT { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 5px; row-gap: 3px; align-items: center;
+  padding-right: 10px; border-right: 1.5px solid var(--card-b); cursor: pointer; }
+#playT.hidden { display: none; }
+#playI { grid-row: 1 / 3; font-size: 22px; line-height: 1; }
+#playT .pv { display: flex; align-items: baseline; gap: 2px; line-height: 1; white-space: nowrap; }
+#playM { font-size: 15px; font-weight: 900; color: var(--ink); }
+#playT .pu { font-size: 10px; font-weight: 800; color: var(--ink-dim); }
+#playT .pbar { width: 42px; height: 5px; border-radius: 5px; background: rgba(21, 34, 48, 0.12); overflow: hidden; }
+#playBar { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #FFB020, #FFD874); transition: width 1s linear; }
+#playT.late #playBar { background: linear-gradient(90deg, #6b5fd6, #9b8cff); }
+#playT.late #playM { color: #5b4fc4; }
 #clock b { font-size: 15px; font-weight: 900; }
 #clock small { font-size: 11px; font-weight: 800; color: var(--green-d); white-space: nowrap; }
 #quest { position: absolute; top: calc(60px + var(--safe-t)); right: calc(8px + var(--safe-r)); max-width: 230px; padding: 8px 12px; pointer-events: auto; cursor: pointer; }
@@ -395,6 +408,13 @@ body.desktop #bUndo { bottom: calc(96px + var(--safe-b)); }
   #compass small { display: none; }
   #stars { height: 40px; padding: 2px 8px 2px 6px; } #stars .st { font-size: 18px; } #stars .sv { min-width: 34px; }
   #clock { height: 40px; padding: 3px 8px; } #clock b { font-size: 13px; } #clock small { font-size: 10px; }
+  /* no room in the top bar: the play-time sun gets its own little pill under the clock, and the side buttons move down */
+  #clock { position: relative; overflow: visible; }
+  #playT { position: absolute; top: calc(100% + 6px); right: 0; padding: 5px 9px; border: 1.5px solid var(--card-b); border-radius: 14px;
+    background: var(--card); box-shadow: 0 8px 22px -14px rgba(20, 50, 90, 0.6); column-gap: 4px; }
+  #playI { font-size: 18px; } #playM { font-size: 13px; } #playT .pbar { width: 34px; }
+  body.playOn #sideBtns { top: calc(106px + var(--safe-t)); }
+  body.playOn #bubble { right: calc(104px + var(--safe-r)); }
   #quest { display: none !important; }
   #bubble { left: calc(8px + var(--safe-l)); right: calc(56px + var(--safe-r)); max-width: none; top: calc(56px + var(--safe-t)); padding: 6px 8px 6px 6px; }
   #bubble img { width: 34px; height: 34px; }

@@ -512,10 +512,13 @@ export class Game {
     // players who found all 28 letters before the hero suits came: show them once
     if (this.stats.letters.length >= 28 && !this.stats.suitsShown) setTimeout(() => { if (this.running) this.suitsUnlocked(); }, 6000);
     if (meta && !this.kid.tutorialActive()) setTimeout(() => this.festive.dailyGift(), 2500);
+    // the greeting also tells how long we can play today (the sun by the clock counts it down)
+    const playLine = this.playLeftLine(true);
     if (!meta) {
       setTimeout(() => this.ui.say(tr('Assalamu’alaikum! Aku Baby Mo. Ayo main bersamaku! 🌙', 'Assalamu’alaikum! I’m Baby Mo. Come and play with me! 🌙'), 'pose-05'), 700);
+      // (a new player: the tutorial talks first; the play time comes once it's done, see kid.ts)
     } else {
-      setTimeout(() => this.ui.say(tr('Assalamu’alaikum, selamat datang kembali! 😊', 'Assalamu’alaikum, welcome back! 😊'), 'pose-05'), 600);
+      setTimeout(() => this.ui.say(tr('Assalamu’alaikum, selamat datang kembali! 😊', 'Assalamu’alaikum, welcome back! 😊') + (playLine ? ' ' + playLine : ''), 'pose-05', playLine ? 9000 : undefined), 600);
     }
     this.checkQuests(true);
     this.save();
@@ -1136,6 +1139,24 @@ export class Game {
     if (now - this.lastJumpTap < 350 && this.canFly()) { this.toggleFly(); this.lastJumpTap = 0; return; }
     this.lastJumpTap = now;
   }
+  /** today's play time left, in seconds (null: no limit set) */
+  playLeft(): number | null {
+    if (!this.settings.playLimit) return null;
+    const pl = this.stats.play;
+    const sec = pl && pl.day === this.dayKey ? pl.sec : 0, extra = pl && pl.day === this.dayKey ? pl.extra || 0 : 0;
+    if (pl?.day === this.dayKey && pl.slept) return 0;
+    return Math.max(0, this.settings.playLimit * 60 + extra - sec);
+  }
+  /** what Baby Mo says about today's play time (at the start, and when the sun by the clock is tapped) */
+  playLeftLine(start = false): string | null {
+    const rem = this.playLeft(); if (rem === null) return null;
+    const m = Math.max(1, Math.ceil(rem / 60));
+    if (rem <= 60) return tr('Sebentar lagi waktunya tidur 🌙 Yuk bersiap!', 'It’s nearly bedtime 🌙 Let’s get ready!');
+    if (start) return tr(`Hari ini kita bisa main <b>${m} menit</b> ☀️ Lihat matahari di dekat jam: kalau sudah berubah jadi bulan 🌙, waktunya kita istirahat.`, `Today we can play for <b>${m} minutes</b> ☀️ Watch the sun by the clock: when it turns into a moon 🌙, it’s time for us to rest.`);
+    return tr(`Kita masih bisa main <b>${m} menit</b> lagi hari ini ${rem <= 600 ? '🌙' : '☀️'} Kalau mataharinya sudah jadi bulan, waktunya tidur.`, `We can still play for <b>${m} more minutes</b> today ${rem <= 600 ? '🌙' : '☀️'} When the sun turns into the moon, it’s bedtime.`);
+  }
+  sayPlayLeft() { const l = this.playLeftLine(); if (l) { SFX.click(); this.ui.say(l, 'idea', 6000); } }
+
   /**
    * A mud trap: mud laid over a hole holds you for a moment, wobbles, then gives way and you drop in
    * (soft wet mud can't hold you up with nothing under it). The mud goes back in the bag.
@@ -1299,8 +1320,9 @@ export class Game {
     const today = this.dayKey;
     const pl = this.stats.play && this.stats.play.day === today ? this.stats.play : (this.stats.play = { day: today, sec: 0 });
     pl.sec += dt; this.stats.playTotal = (this.stats.playTotal || 0) + dt;
-    if (!this.settings.playLimit) { this.bedtime.tick(null, dt); return; }
+    if (!this.settings.playLimit) { this.ui.playHud(null, 0); this.bedtime.tick(null, dt); return; }
     const lim = this.settings.playLimit * 60 + (pl.extra || 0);
+    this.ui.playHud(pl.slept ? 0 : lim - pl.sec, lim);
     if (pl.sec > lim - 60 && pl.sec - dt <= lim - 60) this.ui.toast(tr('🌙 1 menit lagi waktunya tidur', '🌙 1 minute until bedtime'), 4000);
     // evening, a sleepy Baby Mo, then bedtime (see game/bedtime.ts)
     this.bedtime.tick(lim - pl.sec, dt);

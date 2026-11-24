@@ -22,6 +22,7 @@ import { PRAISE, ANIMAL_WORDS, FRUIT_WORDS, COLOR_WORDS, NUMBER_WORDS, BODY_WORD
 const ALL_WORDS = () => [...PRAISE, ...Object.values(ANIMAL_WORDS), ...Object.values(FRUIT_WORDS), ...Object.values(COLOR_WORDS), ...NUMBER_WORDS, ...BODY_WORDS.filter((w): w is EWord => !!w), ...Object.values(WEATHER_WORDS), ...Object.values(ACTION_WORDS), ...PHRASES, ...Object.values(GREETS), ...REPLIES.flatMap(r => [r.me, r.back])];
 import { WUDU_GUIDE, SHOLAT_GUIDE, poseFrames, type GuideStep } from './game/tutorials';
 import { GOALS, GOAL_COINS, ALL_BONUS, progress } from './game/daily';
+import { EVENING } from './game/bedtime';
 import { moonPhase, moonAge, moonLit, phaseIndex, daysToNewMoon, drawMoon, PHASES, CONSTELLATIONS } from './game/moon';
 import { levelOf, starsFor } from './game/kid';
 import { BLUEPRINTS, blueprintCost, OUTFITS, PERK_HATS, type Blueprint } from './game/fun';
@@ -72,7 +73,7 @@ export class UI {
     <button class="pill" id="stars"><span class="st">${ic('star')}</span><span class="sv"><b id="starN">0</b><small id="starLv"></small><i class="sbar"><i id="starBar"></i></i></span></button>
     <button class="pill" id="coins" aria-label="Coins"><span class="ci">${ic('coin')}</span><b id="coinN">0</b></button>
     <button class="pill" id="thirst" aria-label="${tr('Minum', 'Water')}"><span class="twd">💧</span><span class="tw"><i class="tb"><i id="twMe"></i></i><small>${tr('Aku', 'Me')}</small></span><span class="tw"><i class="tb"><i id="twMo"></i></i><small>Mo</small></span></button>
-    <button class="pill" id="clock"><b id="clockT">--:--</b><small id="clockP"></small></button>
+    <button class="pill" id="clock"><span id="playT" class="hidden" aria-label="Play time"><span id="playI">☀️</span><span class="pv"><span id="playM">--</span><span class="pu">${tr('menit', 'min')}</span></span><span class="pbar"><span id="playBar"></span></span></span><span class="ct"><b id="clockT">--:--</b><small id="clockP"></small></span></button>
   </div>
   <div id="jmHud" class="pill hidden"></div>
   <div id="raceHud" class="pill hidden"><span id="raceT"></span><button class="btn small ghost" id="raceX">${tr('Keluar', 'Exit')}</button></div>
@@ -164,6 +165,8 @@ export class UI {
     $('#bCam').onclick = () => g.toggleCamera();
     $('#quest').onclick = () => this.openBook('quests');
     $('#clock').onclick = () => this.openBook('prayer');
+    // the play-time sun: a tap and Baby Mo says how long is left today
+    $('#playT').onclick = e => { e.stopPropagation(); this.g.sayPlayLeft(); };
     $('#compass').onclick = () => this.openBook('map');
     $('#vBook').addEventListener('click', e => { if (e.target === $('#vBook')) this.closeBook(); });
   }
@@ -797,6 +800,26 @@ export class UI {
     this.duskShown = v; $('#dusk').style.opacity = String(v);
   }
   /** "🌙 Bedtime in 7 min" with a Sleep now button; null hides it */
+  private playShown = '';
+  /**
+   * Today's play time, always in sight by the clock: a sun that sinks as time goes by
+   * (☀️ plenty, 🌤️ about half, 🌇 getting late, 🌙 the last 10 minutes: bedtime is near),
+   * the minutes left and a bar that slowly empties. rem/total in seconds; null: no limit.
+   */
+  playHud(rem: number | null, total: number) {
+    const el = $('#playT');
+    if (rem === null || total <= 0) { if (this.playShown) { this.playShown = ''; el.classList.add('hidden'); $('#clock').classList.remove('withPlay'); document.body.classList.remove('playOn'); } return; }
+    const f = Math.max(0, Math.min(1, rem / total)), m = Math.max(0, Math.ceil(rem / 60));
+    const icon = rem <= EVENING ? '🌙' : f > 0.5 ? '☀️' : f > 0.25 ? '🌤️' : '🌇';
+    const key = icon + m + ':' + Math.round(f * 50);
+    if (key === this.playShown) return;
+    if (!this.playShown) { el.classList.remove('hidden'); $('#clock').classList.add('withPlay'); document.body.classList.add('playOn'); }
+    this.playShown = key;
+    $('#playI').textContent = icon; $('#playM').textContent = String(m);
+    ($('#playBar') as HTMLElement).style.width = (f * 100).toFixed(1) + '%';
+    el.classList.toggle('late', rem <= EVENING);
+    el.title = tr(`Waktu main hari ini: ${m} menit lagi`, `Play time today: ${m} min left`);
+  }
   bedHud(rem: number | null) {
     const el = $('#bedHud');
     if (rem === null || this.g.jamaah) { if (this.bedShown) { this.bedShown = ''; el.classList.add('hidden'); } return; }

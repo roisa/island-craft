@@ -141,7 +141,8 @@ export class Kid {
         g.ui.confetti(30);
         if (!this.tutorialActive()) {
           g.ui.tutorial(null);
-          setTimeout(() => g.ui.say(tr('Hebat! Kamu sudah siap berpetualang sendiri. Lihat ⭐ misi di kanan atas ya!', 'Amazing! You’re ready to explore on your own. Check the ⭐ quests at the top right!'), 'alright', 7000), 600);
+          const play = g.playLeftLine(true); // (and how long we can play today: the sun by the clock)
+          setTimeout(() => g.ui.say(tr('Hebat! Kamu sudah siap berpetualang sendiri. Lihat ⭐ misi di kanan atas ya!', 'Amazing! You’re ready to explore on your own. Check the ⭐ quests at the top right!') + (play ? ' ' + play : ''), 'alright', play ? 11000 : 7000), 600);
           setTimeout(() => g.festive.dailyGift(), 4000);
         } else this.showStep();
       }

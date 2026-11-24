@@ -5,6 +5,24 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Play time you can see: a sun by the clock
+
+- With a daily play limit set, a **play-time sun** sits in the clock pill from the
+  start: the minutes left and a bar that slowly empties. The sun sinks as time
+  goes by: ☀️ while there's plenty left, 🌤️ around half, 🌇 when it's getting
+  late, and 🌙 in the last 10 minutes, when the evening, Baby Mo's yawns and
+  the "Bedtime in … · Sleep now" pill begin. The ending is unchanged: a sleepy
+  Mo and the goodnight card.
+- Baby Mo says it when a session starts ("Today we can play for 60 minutes ☀️
+  Watch the sun by the clock: when it turns into a moon 🌙, it's time to
+  rest"). New players hear it after the tutorial. A tap on the sun makes him say
+  how much time is left.
+- On narrow portrait phones the sun is its own little pill under the clock, and
+  the side buttons move down.
+- Tested: tsc, vitest 278/278, and a new smoke step (the sun at the start, the
+  moon near bedtime, Mo's line on a tap, hidden with no limit). Screenshots
+  checked on desktop, iPhone landscape, iPad and phone portrait.
+
 ### Ibra's feedback: mud traps, flying capes, fish in the water
 
 - **Mud traps work.** Mud laid over a hole holds you for a moment, wobbles, then
