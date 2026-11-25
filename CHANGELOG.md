@@ -5,6 +5,23 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Buttons in the latest iOS style (Liquid Glass)
+
+- Buttons are now iOS "Liquid Glass" capsules, replacing the chunky candy
+  shadow:
+  - **Main** (blue): tinted glass with a soft specular sheen along the top and a
+    gentle coloured glow.
+  - **Gold**: warm tinted glass.
+  - **Secondary**: clear frosted glass with blue text (a light grey glass inside
+    sheets).
+  - **Pressing** shrinks the button a little with a springy bounce and brightens
+    it, as on iOS.
+- Sizes stay big for small fingers (52 px tall, 42 px for small ones), sized to
+  their label. The letter tile, vowel cards and quiz tiles keep their playful 3D
+  look.
+- Checked by screenshot on iPad: start screen, letter card, letter quiz, unlock
+  card, parents panel.
+
 ### Baby Mo's guidance on the recording page: record it in your own voice
 
 - **A new part of the recording page (`rekam/`): Mo's guidance.** The page's

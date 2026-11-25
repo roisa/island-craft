@@ -1,23 +1,28 @@
-/* ================= Kids UI: chunky candy buttons, iOS-style sheets, a celebrating letter card =================
+/* ================= Kids UI: iOS Liquid Glass buttons, iOS-style sheets, a celebrating letter card =================
    Loaded last (after ios.css), so these win. Big enough for small fingers, never stretched across a whole sheet. */
 
-/* ---------- buttons: pressable 3D candy, sized to their label ---------- */
-.btn { min-height: 52px; padding: 12px 24px; font-size: 17px; font-weight: 900 !important; border-radius: 999px !important;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1.15;
-  transition: transform .09s ease-out, box-shadow .09s ease-out, filter .15s !important; -webkit-tap-highlight-color: transparent; }
-.btn:not(.gold):not(.ghost) { background: linear-gradient(180deg, #5DB8FF 0%, #1E90FF 45%, #0A7BEB 100%) !important; color: #fff !important;
-  box-shadow: 0 5px 0 #0560BE, 0 12px 20px -10px rgba(10, 110, 230, .7), inset 0 2px 0 rgba(255,255,255,.45) !important; text-shadow: 0 1px 1px rgba(0,40,100,.25); }
-.btn.gold { background: linear-gradient(180deg, #FFE36B 0%, #FFC81E 50%, #FFB300 100%) !important; color: #3D2600 !important;
-  box-shadow: 0 5px 0 #CC8A00, 0 12px 20px -10px rgba(230, 150, 0, .75), inset 0 2px 0 rgba(255,255,255,.6) !important; }
-.btn.ghost { background: linear-gradient(180deg, #FFFFFF, #F1F5FA) !important; color: #0A7BEB !important;
-  box-shadow: 0 4px 0 #CCD6E3, inset 0 0 0 2px #E2E9F2, 0 10px 16px -12px rgba(30, 60, 100, .5) !important; }
-.btn:active { transform: translateY(4px) !important; filter: brightness(.97);
-  box-shadow: 0 1px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.35) !important; }
+/* ---------- buttons: iOS "Liquid Glass" capsules, sized to their label ----------
+   Prominent buttons are tinted glass (colour with a soft specular sheen and a gentle glow), secondary ones clear
+   frosted glass; a press shrinks a little and brightens, like iOS. Big enough for small fingers. */
+.btn { position: relative; isolation: isolate; overflow: hidden; min-height: 52px; padding: 12px 24px; font-size: 17px; font-weight: 800 !important;
+  letter-spacing: -.01em; border-radius: 999px !important; border: 0 !important;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1.15; text-shadow: none !important;
+  transition: transform .18s cubic-bezier(.3, 1.4, .5, 1), filter .18s, box-shadow .18s !important; -webkit-tap-highlight-color: transparent; }
+/* the glass sheen along the top edge */
+.btn::before { content: ''; position: absolute; inset: 1px 1px 50% 1px; border-radius: 999px 999px 40% 40% / 999px 999px 100% 100%; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0)); opacity: .9; }
+.btn:not(.gold):not(.ghost) { color: #fff !important; background: linear-gradient(180deg, rgba(64, 156, 255, .96), rgba(10, 122, 255, .96)) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 -6px 14px -8px rgba(0, 40, 120, .45), 0 8px 22px -8px rgba(10, 122, 255, .65) !important; }
+.btn.gold { color: #3B2500 !important; background: linear-gradient(180deg, rgba(255, 222, 92, .97), rgba(255, 186, 18, .97)) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45), inset 0 -6px 14px -8px rgba(150, 90, 0, .45), 0 8px 22px -8px rgba(240, 160, 0, .6) !important; }
+.btn.ghost { color: #0A7AFF !important; background: rgba(255,255,255,.55) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(190%); backdrop-filter: blur(20px) saturate(190%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.85), inset 0 -8px 16px -12px rgba(60, 90, 140, .35), 0 6px 18px -10px rgba(20, 40, 80, .35) !important; }
+.panel .btn.ghost { background: rgba(120, 130, 150, .12) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7) !important; }
+.btn:active { transform: scale(.95) !important; filter: brightness(1.08) saturate(1.05); }
 .btn.small { min-height: 42px; padding: 8px 16px; font-size: 15px; }
-.btn.small:not(.gold):not(.ghost) { box-shadow: 0 3px 0 #0560BE, inset 0 2px 0 rgba(255,255,255,.45) !important; }
-.btn.small.gold { box-shadow: 0 3px 0 #CC8A00, inset 0 2px 0 rgba(255,255,255,.6) !important; }
-.btn.small.ghost { box-shadow: 0 3px 0 #CCD6E3, inset 0 0 0 2px #E2E9F2 !important; }
-.btn.small:active { transform: translateY(2px) !important; }
 .btn.big { min-height: 60px; font-size: 20px; }
 /* in a sheet: as wide as it needs to be (comfortable), never a long bar across the whole sheet */
 .panel .btn { width: auto; max-width: 100%; }
