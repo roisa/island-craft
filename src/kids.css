@@ -212,5 +212,6 @@
 .veil.prayVeil > .panel { padding-top: 12px; padding-bottom: 12px; }
 .veil.prayVeil .prayHold .phTxt { font-size: 14px; line-height: 1.35; margin-top: 2px; }
 .veil.prayVeil .prayHold .phWait { margin: 4px 0 2px; }
-html.prayScene #hud, html.prayScene #hotbarWrap, html.prayScene #hotbar, html.prayScene .moHost, html.prayScene #dzikir, html.prayScene .amalChip { visibility: hidden !important; }
+/* (display, not visibility: the item pictures in the bar set their own visibility and would still show) */
+html.prayScene #hud, html.prayScene #hotbarWrap, html.prayScene .moHost, html.prayScene #dzikir, html.prayScene .amalChip { display: none !important; }
 @media (max-height: 520px) { .veil.prayVeil { place-items: center end !important; } .veil.prayVeil > .panel { max-height: 92vh; width: min(380px, 50vw); margin: 0 12px 0 0; } }

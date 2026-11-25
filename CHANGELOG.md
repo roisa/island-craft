@@ -5,6 +5,18 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### App Store kit: the prayer pause; the masjid scene framed for every screen
+
+- Screenshot 04 is now the prayer pause ("Stops for the real prayer times"):
+  Baby Mo's card over the Grand Masjid, everyone praying in rows. The other
+  shots are re-taken with the new buttons, glass windows and race circuits.
+- The description (EN/ID) has a line on the prayer pause, and the promo text
+  leads with it. The in-app purchase review screenshot shows the new card.
+- Behind the prayer card the item bar is hidden for real (its pictures set
+  their own visibility, so the bar is now taken out of the layout), and on a
+  wide screen the camera frames the whole village row beside the card and
+  looks across the Grand Masjid instead of down at its carpet.
+
 ### Racing: real circuits, one thing at a time
 
 - **Real circuit shapes instead of ovals.** Each track is now built from

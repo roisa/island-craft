@@ -2279,12 +2279,20 @@ export class Game {
     const grand = s.site.id === 'grand', sway = Math.sin(s.t * 0.22);
     if (this.camera.fov !== 78) { this.camera.fov = 78; this.camera.updateProjectionMatrix(); } // (a wider view of the hall)
     if (grand) {
+      // (a tall phone looks down more, so the rows sit above the card; a wide screen looks across the hall)
+      const down = this.camera.aspect < 1 ? 3.2 : 1.6;
       this.camera.position.set(r.x + sway * 1.2, r.y + 4.4, r.z + 3.0);
-      this.camera.lookAt(r.x + sway * 0.36, r.y - 3.2, r.z - 1.2);
+      this.camera.lookAt(r.x + sway * 0.36, r.y - down, r.z - 1.2);
     } else {
       // the village masjid is small: from a back corner, so the whole row and the imam fit on a phone
-      this.camera.position.set(r.x + 5.2 + sway * 0.4, r.y + 3.6, r.z + 4.4);
-      this.camera.lookAt(r.x - 0.3, r.y - 2.4, r.z - 0.4);
+      if (this.camera.aspect < 1) {
+        this.camera.position.set(r.x + 5.2 + sway * 0.4, r.y + 3.6, r.z + 4.4);
+        this.camera.lookAt(r.x - 0.3, r.y - 2.4, r.z - 0.4);
+      } else {
+        // a wide screen: from behind the row, the card on the right, so the row sits left of the middle
+        this.camera.position.set(r.x + 1.6 + sway * 0.5, r.y + 2.6, r.z + 4.4);
+        this.camera.lookAt(r.x + 2.9, r.y + 0.2, r.z - 2);
+      }
     }
   }
   private endPrayScene() {
