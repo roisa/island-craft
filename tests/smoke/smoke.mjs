@@ -53,6 +53,8 @@ async function run(name) {
       const day = await g(() => __game.settings.dayMinutes);
       if (day !== 24) throw new Error('a new world should have a 24-minute game day, dayMinutes=' + day);
       await p.waitForTimeout(1500);
+      // (a real prayer time during the run would pause the game on its card: the prayer-pause step turns it on)
+      await g(() => { __game.settings.prayPause = false; });
       return await g(() => ({ chunks: __game.world.chunks.size, animals: __game.ents.animals.length, npcs: __game.ents.npcs?.length }));
     });
     await step('free part: letter 8, Iqro and archery show the Full BabyMo Craft card; free places stay open; then everything is opened for the tests', async () => {
@@ -1302,6 +1304,35 @@ async function run(name) {
       });
       if (!/Masya Allah/.test(r.streak.say) || !/مَا شَاءَ/.test(r.streak.ar) || !/Barakallahu fik/.test(r.deed.say) || !/بَارَكَ/.test(r.deed.ar)) throw new Error(JSON.stringify(r));
       return r;
+    });
+    await step('prayer pause: a real prayer time pauses the game and the play timer on Baby Mo’s card; “I have prayed” opens after the wait, then play goes on with the same time left', async () => {
+      const a = await g(async () => {
+        const G = __game, sleep = ms => new Promise(r => setTimeout(r, ms));
+        G.ui.closeAllModals(); G.gameEvent = null; G.stats.prayHold = undefined; G.settings.prayPause = true; G.settings.playLimit = 60;
+        const past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past;
+        G.realTimes.maghrib = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick();
+        await sleep(300);
+        const card = document.querySelector('.veil.on .prayHold'), btn = document.querySelector('#phOk');
+        const sec0 = G.stats.play.sec, left0 = G.playLeft(); await sleep(1500);
+        return { card: !!card, title: card?.querySelector('h2')?.textContent, mo: card?.querySelector('.phMo')?.getAttribute('src'), disabled: btn?.disabled, wait: document.querySelector('#phWait')?.textContent,
+          paused: G.paused, timerStill: G.stats.play.sec === sec0 && G.playLeft() === left0, left0 };
+      });
+      if (!a.card || !/Maghrib/.test(a.title) || !/poses\/s0/.test(a.mo) || !a.disabled || !/\d:\d\d/.test(a.wait) || !a.paused || !a.timerStill) throw new Error(JSON.stringify(a));
+      // closed some other way, it comes back until the child has prayed
+      await g(() => __game.ui.closeAllModals());
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .prayHold'), null, { timeout: 5000 });
+      // the wait is over: the button opens, and a tap lets play go on with the same time left
+      await g(() => { __game.stats.prayHold.openAt = Date.now() - 1; });
+      await p.waitForFunction(() => document.querySelector('#phOk') && !document.querySelector('#phOk').disabled, null, { timeout: 4000 });
+      const b = await g(async () => {
+        const G = __game, n0 = G.stats.prayedReal || 0;
+        document.querySelector('#phOk').click(); await new Promise(r => setTimeout(r, 400));
+        const out = { paused: G.paused, hold: !!G.stats.prayHold, prayed: (G.stats.prayedReal || 0) - n0, card: !!document.querySelector('.veil.on .prayHold'), left: G.playLeft() };
+        G.settings.prayPause = false; G.gameEvent = null; G.ui.closeAllModals();
+        return out;
+      });
+      if (b.paused || b.hold || b.prayed !== 1 || b.card || Math.abs(b.left - a.left0) > 2) throw new Error(JSON.stringify({ a, b }));
+      return { wait: a.wait, left: Math.round(b.left) };
     });
     await step('prayer at the real time: the game day runs on its own, a real prayer time brings the prayer and the sky matches it; no iftar outside Ramadan', async () => {
       const r = await g(() => {

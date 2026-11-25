@@ -183,3 +183,18 @@
 @keyframes moHop { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
 @media (max-height: 500px) { #start .logo.mo { height: 64px; width: auto; } }
 @media (prefers-reduced-motion: reduce) { #start .logo.mo { animation: none; } }
+
+/* ---------- prayer pause: the game waits while the child prays ---------- */
+.prayHold { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding-top: 4px; }
+.prayHold .phTag { background: linear-gradient(120deg, #16B46A, #0A9C8C); color: #fff; font-weight: 900; font-size: 15px; padding: 6px 16px; border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 6px 14px -8px rgba(10, 143, 160, .6); }
+.prayHold .phMo { height: 150px; width: auto; margin: 2px 0 -4px; filter: drop-shadow(0 10px 12px rgba(30, 60, 110, .25)); transition: transform .4s; }
+.prayHold .phMo.done { animation: phPop .6s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes phPop { 0% { transform: scale(.85); } 100% { transform: scale(1); } }
+.prayHold .phAr { font-family: var(--ar); font-size: 34px; line-height: 1.5; color: #0B8A4A; }
+.prayHold h2 { margin: 0; font-size: 24px; color: #C26A00; line-height: 1.15; }
+.prayHold .phTxt { margin: 4px 0 0; font-size: 16px; line-height: 1.45; color: #4A3A2A; max-width: 34ch; }
+.prayHold .phWait { margin: 6px 0 4px; font-weight: 900; color: #0B8A4A; font-variant-numeric: tabular-nums; min-height: 1.3em; }
+.prayHold .btn[disabled] { filter: grayscale(.55) opacity(.6); pointer-events: none; }
+.prayHold .btn[disabled]::after { display: none; }
+@media (max-height: 520px) { .prayHold .phMo { height: 84px; } .prayHold .phAr { font-size: 26px; } .prayHold h2 { font-size: 20px; } .prayHold .phTxt { font-size: 14px; } }

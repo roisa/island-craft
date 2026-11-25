@@ -14,6 +14,10 @@ export interface Stats {
   pet?: { kind: string; name: string }; chests?: number; built?: number; rides?: number;
   words?: number; play?: { day: string; sec: number; extra?: number; slept?: boolean; grace?: boolean }; onTime?: number; playTotal?: number;
   bedug?: number; giftDay?: string; stories?: string[]; picnicDay?: number;
+  /** a real prayer time that paused the game: the card waits until "I have prayed" (kept across a reload) */
+  prayHold?: { key: string; p: string; openAt: number; at: number };
+  /** real prayers the child said they prayed when the game paused for them */
+  prayedReal?: number;
   /** glasses of water drunk at a water break */
   water?: number;
   /** furniture & decorations placed */

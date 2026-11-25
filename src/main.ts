@@ -85,6 +85,8 @@ import { GuideArrow } from './game/guide';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
+  /** at a real prayer time the game pauses until the child has prayed (a parent can turn it off) */
+  prayPause?: boolean;
   protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; adhan?: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean; clockV2?: boolean; clockV3?: boolean; methodV2?: boolean;
   /** minutes of play between water breaks (0 = off) */
   water: number;
@@ -2218,6 +2220,35 @@ export class Game {
       isha: ['Sudah Isya 🌙 Ayo sholat berjamaah!', 'It’s Isha 🌙 Let’s pray together!'],
     };
     this.ui.say(tr(lines[p][0], lines[p][1]), p === 'maghrib' ? 'alright' : 'idea', 7000);
+    // the game pauses for the real prayer: the play timer stops until the child has prayed
+    if (this.settings.prayPause !== false) this.holdForPrayer(p);
+  }
+  /** how long the "I have prayed" button waits (time to make wudu and pray) */
+  static PRAY_WAIT_MS = 330_000;
+  /**
+   * Pause the game for a real prayer time (as the Baby Mo app's games do): a card with Baby Mo praying, and
+   * "I have prayed" opens after a few minutes. While it's open the game and the play timer stop; afterwards play
+   * goes on with the same time left. It is kept in the save, so reloading the page brings the same card back.
+   */
+  holdForPrayer(p: Prayer) {
+    const key = this.timesDay + p, h = this.stats.prayHold;
+    if (!h || h.key !== key) this.stats.prayHold = { key, p, openAt: Date.now() + Game.PRAY_WAIT_MS, at: Date.now() };
+    this.saveSoon();
+    this.showPrayHold();
+  }
+  private showPrayHold() {
+    const h = this.stats.prayHold; if (!h || this.ui.prayHoldOpen()) return;
+    // an old card (the game was left for hours): let it go
+    if (Date.now() - h.at > 3 * 3_600_000) { this.stats.prayHold = undefined; return; }
+    this.ui.prayHold(h.p as Prayer, h.openAt, this.ramadhan.inRamadhan, () => this.prayedNow());
+  }
+  /** "I have prayed": play goes on, with the same time left */
+  private prayedNow() {
+    this.stats.prayHold = undefined;
+    this.stats.prayedReal = (this.stats.prayedReal || 0) + 1;
+    this.goodWord('prayed', true);
+    this.ui.say(tr('Alhamdulillah, semoga Allah menerima sholatmu 🤲 Yuk lanjut main!', 'Alhamdulillah, may Allah accept your prayer 🤲 Let’s play on!'), 'ok', 5000);
+    this.save();
   }
   /**
    * No town chosen and a time zone the quick list doesn't know (e.g. America/New_York): take the biggest town in
@@ -2396,6 +2427,8 @@ export class Game {
     this.treasure?.update();
   }
   private slowChecks() {
+    // a prayer card that was closed some other way comes back until the child has prayed
+    if (this.stats.prayHold && this.settings.prayPause !== false && !this.ui.locked) this.showPrayHold();
     const p = this.player.pos;
     // in the middle of a game, new places wait: they're found (and celebrated) once it's over
     const inGame = !!this.playing || !!this.race?.active || !!this.tennis?.active;

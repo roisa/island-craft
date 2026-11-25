@@ -5,6 +5,30 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The game pauses for prayer (as in the Baby Mo app's games)
+
+- When a real prayer time comes in the player's town, the game now **pauses on
+  a card**: "It is time for Maghrib", حَيَّ عَلَى الصَّلَاةِ, and Baby Mo on his
+  prayer mat (standing, then raising his hands for the takbir). "I have prayed
+  Maghrib" stays closed for 5½ minutes, with a countdown, so there is time to
+  make wudu and pray. Then Baby Mo sits for his du'a, the button opens, and a
+  tap lets play go on: "Alhamdulillah, may Allah accept your prayer".
+- While the card is open the game **and the play timer** stop, so praying
+  doesn't use up play time: play goes on with the same minutes left.
+- The card can't be skipped: if it is closed any other way, or the page is
+  reloaded, it comes back with the same countdown until the child has prayed.
+- In Ramadan, Maghrib's card says to break the fast first (a drink and some
+  dates), then pray. The villagers still gather at the masjid as before, and
+  the child can join them after the card, without a second stop.
+- Parents can turn it off ("Pause play at prayer times", next to "Prayer times
+  on the island"). The learning report counts the prayers prayed this way.
+- Tests: a new smoke step brings a real Maghrib, checks the card, the paused
+  game and the stopped play timer, closes it and sees it come back, then opens
+  the button and checks play goes on with the same time left. The other smoke
+  steps turn the pause off, so a real prayer time during a run doesn't get in
+  their way. Screenshots of the card in English and Indonesian on an iPhone,
+  before and after the wait.
+
 ### Blocky Baby Mo on the opening page and the app icon
 
 - The opening page shows the new blocky **Baby Mo** (green outfit, waving as

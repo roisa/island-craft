@@ -8,7 +8,7 @@ import { B, I, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
 import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from './game/inventory';
 import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
-import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri, resolveMethod, methodLabel } from './game/prayer';
+import { PRAYERS, Prayer, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri, resolveMethod, methodLabel } from './game/prayer';
 import { loadTowns, searchTowns, nearestTown, townLoc, townName, flag, countryName, type Town } from './game/cities';
 import { SFX, playLetter, Speech, haptic, adhan, playAyah } from './game/audio';
 import { MARK_INFO, choices, lessons, STAGES, type Lesson, type Syll } from './game/iqro';
@@ -601,6 +601,43 @@ export class UI {
     document.body.appendChild(el); it.first ? SFX.chime() : SFX.pop(6);
     const t = window.setTimeout(() => { el.remove(); this.amalNow = null; this.nextAmal(); }, it.first ? 3400 : 1900);
     this.amalNow = { el, t };
+  }
+  // ---------- prayer pause ----------
+  private prayCard: { close: () => void } | null = null;
+  prayHoldOpen() { return !!this.prayCard; }
+  /**
+   * The real prayer time has come: the game pauses (and the play timer with it) on a card with Baby Mo at
+   * prayer, and "I have prayed" opens after a few minutes, as in the Baby Mo app's games. Then play goes on.
+   */
+  prayHold(p: Prayer, openAt: number, ramadan: boolean, done: () => void) {
+    const name = prayerName(p), iftar = ramadan && p === 'maghrib';
+    const text = iftar
+      ? tr(`Alhamdulillah, waktunya berbuka puasa! Minum dan makan kurma dulu, lalu sholat ${name}. Pulaunya menunggumu.`, `Alhamdulillah, it’s time to break the fast! Have a drink and some dates first, then pray ${name}. The island will wait for you.`)
+      : tr(`Yuk berhenti sebentar dan sholat ${name} dulu, di masjid atau di rumah. Pulaunya menunggumu.`, `Let’s stop for a moment and pray ${name} first, at the masjid or at home. The island will wait for you.`);
+    const { el, close } = this.modal(`<div class="prayHold"><span class="phTag">${tr('Waktunya sholat', 'Time to pray')}</span>
+      <img class="phMo" src="img/poses/s02a.webp" alt="Baby Mo">
+      <div class="phAr" lang="ar" dir="rtl">حَيَّ عَلَى الصَّلَاةِ</div>
+      <h2>${tr(`Sudah masuk waktu ${name}`, `It is time for ${name}`)}</h2>
+      <p class="phTxt">${text}</p>
+      <p class="phWait" id="phWait"></p>
+      <button class="btn big wide" id="phOk" disabled>✓ ${tr(`Aku sudah sholat ${name}`, `I have prayed ${name}`)}</button></div>`,
+      () => { this.prayCard = null; clearInterval(tick); }, { now: true, onShow: () => { if (this.g.settings.moVoice) Speech.talk(text, getLang(), false, 1); } });
+    this.prayCard = { close };
+    const btn = $<HTMLButtonElement>('#phOk', el), wait = $('#phWait', el), mo = $<HTMLImageElement>('.phMo', el);
+    // Baby Mo raises his hands for the takbir, then stands for the prayer
+    let pose = 0;
+    const update = () => {
+      const left = Math.max(0, Math.ceil(((this.g.stats.prayHold?.openAt ?? openAt) - Date.now()) / 1000));
+      if (left > 0) {
+        wait.textContent = tr(`Tombol terbuka dalam ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`, `The button opens in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`);
+        if (++pose % 3 === 0) mo.src = `img/poses/${pose % 6 === 0 ? 's02a' : 's01b'}.webp`;
+      } else if (btn.disabled) {
+        btn.disabled = false; wait.textContent = tr('Sudah sholat? Ketuk tombolnya 🤲', 'Have you prayed? Tap the button 🤲');
+        mo.src = 'img/poses/s10b.webp'; mo.classList.add('done'); SFX.chime();
+      }
+    };
+    const tick = window.setInterval(update, 1000); update();
+    btn.onclick = () => { if (btn.disabled) return; SFX.click(); this.prayCard = null; close(); done(); };
   }
   /** a tasbih: tap 33 times */
   tasbih() {
@@ -1666,6 +1703,7 @@ export class UI {
         <div><b>Lv ${lv}</b><small>⭐ ${st.stars || 0}</small></div>
         <div><b>${g.questsDone.size}</b><small>${tr('misi selesai', 'quests done')}</small></div>
         <div><b>💧 ${st.water || 0}</b><small>${tr('gelas air saat istirahat minum', 'glasses of water at water breaks')}</small></div>
+        <div><b>🤲 ${st.prayedReal || 0}</b><small>${tr('sholat saat game dijeda untuk sholat', 'prayers when the game paused for prayer')}</small></div>
         <div><b>📖 ${Math.min(st.iqro?.n ?? 0, lessons().length)}/${lessons().length}</b><small>${tr('pelajaran Iqro', 'Iqro lessons')}${st.iqro?.exams?.length ? ` · 🎓 ${st.iqro.exams.map(e => 'Iqro ' + e).join(', ')}` : ''}</small></div>
         <div><b>${learnedSurahs(st.iqro?.stars).length}/6</b><small>${tr('surat pendek', 'short surahs')}${learnedSurahs(st.iqro?.stars).length ? ': ' + learnedSurahs(st.iqro?.stars).map(x => x.name).join(', ') : ''}</small></div>
       </div>
@@ -1677,6 +1715,7 @@ export class UI {
       <div class="set"><span>${tile('shield', C.green)}${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
       <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Waktu sholat di pulau (waktu asli)', 'Prayer times on the island (real times)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
+      <div class="set"><span>${tile('moon', C.green)}${tr('Jeda main saat waktu sholat (tombol “Aku sudah sholat” terbuka setelah 5½ menit)', 'Pause play at prayer times (“I have prayed” opens after 5½ minutes)')}</span><button class="toggle ${s.prayPause !== false ? 'on' : ''}" id="pPray"></button></div>
       <div class="set"><span>${tile('leaf', C.green)}${tr('Kumbang nakal saat senja (tidak bisa melukai)', 'Naughty beetles at dusk (can’t hurt)')}</span><button class="toggle ${s.beetles !== false ? 'on' : ''}" id="pBug"></button></div>
       <div class="set"><span>${tile('moon', C.purple)}${tr('Bazar Lebaran di desa', 'Eid bazaar in the village')}</span><select id="pEid">${([['auto', tr('Ikuti kalender', 'By the calendar')], ['on', tr('Buka sekarang', 'Open now')], ['off', tr('Tutup', 'Closed')]] as const).map(([v, l]) => `<option value="${v}" ${(s.eid ?? 'auto') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <p style="margin-top:8px;font-size:13px">${tr('Tanpa iklan dan tanpa chat, dengan satu pembelian pilihan (BabyMo Craft Lengkap). Progres disimpan di perangkat ini. Tidak ada kalah; hanya batas main harian yang Anda pilih.', 'No ads and no chat, with one optional purchase (Full BabyMo Craft). Progress is stored on this device. There is no losing; only the daily play limit you choose.')}</p>
@@ -1692,6 +1731,7 @@ export class UI {
       <button class="btn wide" id="pOk">${tr('Selesai', 'Done')}</button>`, undefined, { now: true }); // a grown-up just passed the check: show it now, ahead of any queued pop-up
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
+    $('#pPray', el).onclick = e => { s.prayPause = s.prayPause === false; (e.currentTarget as HTMLElement).classList.toggle('on', s.prayPause !== false); if (!s.prayPause) g.stats.prayHold = undefined; g.saveSoon(); };
     $('#pBug', el).onclick = e => { s.beetles = s.beetles === false; (e.currentTarget as HTMLElement).classList.toggle('on', s.beetles !== false); g.saveSoon(); };
     $<HTMLSelectElement>('#pEid', el).onchange = e => { s.eid = (e.target as HTMLSelectElement).value as 'auto' | 'on' | 'off'; g.eid.refresh(); g.saveSoon(); };
     $<HTMLSelectElement>('#pLim', el).onchange = e => { s.playLimit = +(e.target as HTMLSelectElement).value; g.applySettings(); };
