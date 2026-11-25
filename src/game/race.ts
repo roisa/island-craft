@@ -1,5 +1,5 @@
 // Go-kart races on the three race tracks (the big circuit, the Snow track and the Desert track):
-// you, Baby Mo and the racers, three laps, with mystery boxes, boost pads and a jump ramp.
+// you, Baby Mo and the racers, three or four laps, with mystery boxes, boost pads and a jump ramp.
 // Kept easy for a child: after GO your kart drives by itself, you only steer
 // (the joystick pulled back brakes), and a gentle helper keeps you pointing
 // along the track. The others follow the racing line; the ones far ahead ease
@@ -63,9 +63,10 @@ const CROWD: BlockyOpts[] = [
 export function addLine(before: number, add: number): { show: string; say: [string, string] } {
   const after = before + add;
   if (before === 0) return { show: `🪙 ${after}`, say: [`${after} koin!`, after === 1 ? 'One coin!' : `${after} coins!`] };
+  // short enough to finish before the next thing on the track
   return {
     show: `🪙 ${before} + ${add} = ${after}`,
-    say: [`${before} tambah ${add} sama dengan ${after}. Sekarang koinmu ${after}!`, `${before} plus ${add} makes ${after}. Now you have ${after} coins!`],
+    say: [`${before} tambah ${add} sama dengan ${after}!`, `${before} plus ${add} makes ${after}!`],
   };
 }
 
@@ -210,12 +211,12 @@ export class Race {
     }
   }
   private clearCoins() { for (const c of this.coins) this.g.scene.remove(c.mesh); this.coins = []; }
-  /** say the sum for the coins just picked up */
-  private flushSum() {
+  /** show (and say, unless a letter was just read out) the sum for the coins just picked up */
+  private flushSum(say = true) {
     const s = this.sum; if (!s) return; this.sum = null;
     const line = addLine(s.before, s.add);
-    this.g.ui.raceMath(line.show);
-    Speech.talk(getLang() === 'en' ? line.say[1] : line.say[0], getLang(), true, 1);
+    this.tell(line.show, 1);
+    if (say && this.t - this.letterAt > 2) Speech.talk(getLang() === 'en' ? line.say[1] : line.say[0], getLang(), true, 1);
   }
   /** where you are on the track: laps done and metres into this one */
   get lap() { return Math.min(this.laps, Math.floor(Math.max(0, this.total) / this.tk.LAP) + 1); }
@@ -278,9 +279,10 @@ export class Race {
     const ball = new THREE.Mesh(K.balloon, K.colours[slot]); ball.scale.set(1, 1.18, 1); ball.position.y = 1.7; top.add(ball);
     return grp;
   }
-  private layLetters() {
+  /** this lap's letters: each of the four once, spread round the lap */
+  private layLetters(lap = 1) {
     this.clearLetters();
-    for (const sp of letterSpots(this.tk, Math.round(this.tk.LAP / 17), Math.random)) {
+    for (const sp of letterSpots(this.tk, lap)) {
       const mesh = this.letterBox(this.set[sp.slot], sp.slot), p = this.tk.pointAt(sp.s, sp.lane);
       mesh.position.set(this.cx + p.x, this.y + 1.3, this.cz + p.z); mesh.rotation.y = p.yaw + Math.PI; // (a face towards you as you come)
       this.g.scene.add(mesh); this.letters.push({ ...sp, mesh, taken: false, fly: 0, ph: Math.random() * 6 });
@@ -307,11 +309,22 @@ export class Race {
     this.read++; this.readEach[slot]++;
     this.boostT = Math.max(this.boostT, 1.6); this.letterZoom = 1.6;
     g.fx.sparkle(at.x, at.y, at.z, 16, 0x3ccf7e, 2.4);
-    playLetter(i, L.ar, L.name);
-    if (this.sum) this.flushSum();
-    g.ui.raceMath(`${L.g}  ${L.name}`);
+    if (this.sum) this.flushSum(false); // (the coins' sum is shown, but the letter is the one said aloud)
+    playLetter(i, L.ar, L.name); this.letterAt = this.t;
+    this.tell(`${L.g}  ${L.name}`, 2);
   }
-  private letterZoom = 0;
+  private letterZoom = 0; private letterAt = -9;
+  /**
+   * One message in the middle of the screen at a time: a new one only replaces the one showing
+   * if it matters as much (2 a letter, 1 the coins' sum, 0 a little cheer) or that one has been
+   * read already, so a child is never given two things at once.
+   */
+  private tell(text: string, prio: 0 | 1 | 2) {
+    if (prio < this.toldPrio && this.t - this.toldAt < 1.6) return;
+    this.toldPrio = prio; this.toldAt = this.t;
+    this.g.ui.raceMath(text);
+  }
+  private toldPrio = 0; private toldAt = -9;
 
   // ---------- mystery boxes, power-ups, the ramp and the track's own surprises ----------
   /** the power-up you're holding (tap 🚀 / Space to use it), and the one being rolled in the box */
@@ -364,7 +377,8 @@ export class Race {
     // the desert's tumbleweeds rolling across the long straights
     if (this.kind === 'desert') {
       const mat = weedMat ??= new THREE.MeshLambertMaterial({ color: 0xb08a52, flatShading: true }), wire = weedWire ??= new THREE.MeshBasicMaterial({ color: 0x7a5a30, wireframe: true });
-      for (const [s, ph] of [[tk.half * 0.55, 0], [tk.half + tk.ARC + tk.half * 0.6, 2], [tk.half + tk.ARC + tk.half * 1.75, 4]] as const) {
+      for (const [k, s] of tk.weeds.entries()) {
+        const ph = k * 2;
         const m = new THREE.Group(); m.add(new THREE.Mesh(kgeo('weed', () => new THREE.IcosahedronGeometry(0.55, 0)), mat), new THREE.Mesh(kgeo('weedW', () => new THREE.IcosahedronGeometry(0.66, 1)), wire));
         g.scene.add(m); this.weeds.push({ s, lane: -tk.W / 2 - 1.5 + ph, dir: 1, mesh: m, ph });
       }
@@ -383,7 +397,7 @@ export class Race {
     if (!this.active || this.phase !== 'go' || !it || !me) return;
     this.item = null; g.ui.raceItem(null);
     const name = POWER_NAME[it];
-    g.ui.raceMath(`${POWER_ICON[it]} ${tr(name[0], name[1])}!`);
+    this.tell(`${POWER_ICON[it]} ${tr(name[0], name[1])}!`, 1);
     if (it === 'rocket') { this.rocketT = 2.2; me.v = Math.max(me.v, 15); SFX.boom(); }
     else if (it === 'star') { this.starT = 5.5; SFX.fanfare(); }
     else if (it === 'shield') {
@@ -403,7 +417,7 @@ export class Race {
     if ((k.spin ?? 0) > 0) return;
     k.spin = 1.2; SFX.pop(1);
     this.g.fx.sparkle(k.x, this.y + 0.8, k.z, 10, why === 'banana' ? 0xffe14d : 0xfff3a0, 1.8);
-    if (this.t - this.calloutAt > 1.5) { this.calloutAt = this.t; this.g.ui.raceMath(why === 'banana' ? `🍌 ${tr('Wuuush!', 'Whoops!')} ${k.name}` : `⭐ ${tr('Duk!', 'Bonk!')}`); }
+    if (this.t - this.calloutAt > 3) { this.calloutAt = this.t; this.tell(why === 'banana' ? `🍌 ${tr('Wuuush!', 'Whoops!')} ${k.name}` : `⭐ ${tr('Duk!', 'Bonk!')}`, 0); }
   }
 
   start(grand = false) {
@@ -440,15 +454,15 @@ export class Race {
     g.ents.mo.seat = { pos: new THREE.Vector3(), yaw: 0 };
     this.place();
     SFX.click();
-    const abc = this.set.map(i => LETTERS[i].name).join(', '), abcAr = this.set.map(i => LETTERS[i].g).join(' ');
-    setTimeout(() => { if (this.active) g.ui.raceMath(abcAr); }, 400);
-    const first = !g.stats.raceBoxes;
-    // short lines a child can take in at a glance: first how to race, then (a few seconds later) today's letters
-    const where = this.kind === 'snow' ? tr(' Es di tikungan licin! ❄️', ' Ice on the bends is slippery! ❄️') : this.kind === 'desert' ? tr(' Awas pasir dan bola rumput! 🌵', ' Watch out for sand and tumbleweeds! 🌵') : '';
-    g.ui.say(first ? tr('Gokartmu jalan sendiri — kamu tinggal belok! Tabrak kotak ❓ untuk kejutan. Bismillah!', 'Your kart drives itself — just steer! Hit the ❓ boxes for a surprise. Bismillah!') + where
+    this.toldPrio = 0; this.toldAt = -9; this.letterAt = -9;
+    const abc = this.set.map(i => LETTERS[i].name).join(', ');
+    // one short line at a time: during the countdown how to race (the very first time) or the laps,
+    // then once you're driving (and the start is behind you) today's letters
+    const where = this.kind === 'snow' ? tr(' Es itu licin! ❄️', ' The ice is slippery! ❄️') : this.kind === 'desert' ? tr(' Awas pasir! 🌵', ' Watch out for the sand! 🌵') : '';
+    g.ui.say(!g.stats.races ? tr('Gokartmu jalan sendiri — kamu tinggal belok! Bismillah!', 'Your kart drives itself — just steer! Bismillah!')
       : this.grand ? tr('Balapan besar — hadiahnya dua kali lipat! Bismillah!', 'The big race — double prizes! Bismillah!')
-        : tr(`${this.laps} putaran — ambil kotak ❓ dan koin. Bismillah!`, `${this.laps} laps — grab the ❓ boxes and the coins. Bismillah!`) + where, 'idea', 5000);
-    setTimeout(() => { if (this.active && this.phase !== 'done') g.ui.say(tr(`Huruf hari ini: ${abc}! Tabrak hurufnya untuk melesat 🟩`, `Today’s letters: ${abc}! Drive through them to zoom 🟩`), 'alright', 5000); }, 5600);
+        : tr(`${this.laps} putaran. Bismillah!`, `${this.laps} laps. Bismillah!`) + where, 'idea', 3800);
+    setTimeout(() => { if (this.active && this.phase !== 'done') g.ui.say(tr(`Huruf hari ini: ${abc}. Tabrak hurufnya untuk melesat! 🟩`, `Today’s letters: ${abc}. Drive through them to zoom! 🟩`), 'alright', 4500); }, 6500);
     g.stats.races = (g.stats.races || 0) + 1;
   }
 
@@ -474,7 +488,7 @@ export class Race {
     if (this.shieldT > 0 && (this.shieldT -= dt) <= 0 && this.bubble) { this.bubble.parent?.remove(this.bubble); SFX.pop(0); }
     if (this.rolling > 0 && (this.rolling -= dt) <= 0 && this.rolled) {
       this.item = this.rolled; this.rolled = null; SFX.chime(); g.ui.raceItem(POWER_ICON[this.item]);
-      if (!g.stats.raceBoxes) { g.stats.raceBoxes = 1; g.ui.raceMath(tr('Ketuk untuk memakai! 👉', 'Tap it to use it! 👉')); }
+      if (!g.stats.raceBoxes) { g.stats.raceBoxes = 1; this.tell(tr('Ketuk untuk memakai! 👉', 'Tap it to use it! 👉'), 2); }
     }
     const safe = this.starT > 0 || this.shieldT > 0;
     // you: drive on by yourself, steer with the joystick, pull back to brake
@@ -522,7 +536,7 @@ export class Race {
     /** how far you drove this frame: added to every pick-up's reach, so nothing is skipped on a slow phone */
     const reach = Math.abs(me.v) * dt;
     // the coins: pick them up (the 🧲 pulls them in), and add them up group by group
-    if (this.lap !== this.coinLap && this.total >= 0) { this.flushSum(); this.layCoins(this.lap); this.layLetters(); }
+    if (this.lap !== this.coinLap && this.total >= 0) { this.flushSum(); this.layCoins(this.lap); this.layLetters(this.lap); }
     for (const c of this.coins) {
       if (c.taken) continue;
       c.mesh.rotation.y += dt * 3;
@@ -571,7 +585,7 @@ export class Race {
       if (this.hop < 0.8 && Math.hypot(w.mesh.position.x - me.x, w.mesh.position.z - me.z) < 1.3) {
         g.fx.sparkle(w.mesh.position.x, w.mesh.position.y, w.mesh.position.z, 10, 0xc9a46a, 2);
         w.lane = -Math.sign(w.lane || 1) * (tk.W / 2 + 1.5); // (it bounces off to the side)
-        if (!safe) { me.v *= 0.55; SFX.pop(1); if (this.t - this.calloutAt > 1.5) { this.calloutAt = this.t; g.ui.raceMath(tr('🌾 Ups, bola rumput!', '🌾 Oops, a tumbleweed!')); } } else SFX.pop(4);
+        if (!safe) { me.v *= 0.55; SFX.pop(1); if (this.t - this.calloutAt > 3) { this.calloutAt = this.t; this.tell(tr('🌾 Ups, bola rumput!', '🌾 Oops, a tumbleweed!'), 0); } } else SFX.pop(4);
       }
     }
     // the others: along the racing line, keeping it close
@@ -598,8 +612,8 @@ export class Race {
     this.place();
     const order = this.order(), place = order.indexOf(0) + 1;
     // moving up a place: a cheer (not while a sum is being shown)
-    if (place !== this.lastPlace) { if (this.lastPlace && place < this.lastPlace && !this.sum && this.t - this.calloutAt > 2.5 && this.t > 3) { this.calloutAt = this.t; SFX.pop(6); g.ui.raceMath(`⬆️ ${nthPlace(place)}!`); } this.lastPlace = place; this.placeAt = this.t; }
-    g.ui.raceHud({ lap: this.lap, laps: this.laps, place, of: this.karts.length, time: this.t, coins: this.got, letters: this.read });
+    if (place !== this.lastPlace) { if (this.lastPlace && place < this.lastPlace && !this.sum && this.t - this.calloutAt > 4 && this.t > 3) { this.calloutAt = this.t; SFX.pop(6); this.tell(`⬆️ ${nthPlace(place)}!`, 0); } this.lastPlace = place; this.placeAt = this.t; }
+    g.ui.raceHud({ lap: this.lap, laps: this.laps, place, of: this.karts.length, coins: this.got });
     if (this.total >= this.laps * tk.LAP) this.finish(false);
     return true;
   }

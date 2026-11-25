@@ -4,6 +4,7 @@
 // and a "discovery" with a short fun fact when you first get close.
 import { B, I } from './blocks';
 import { cellKind, laneOf, onBoost, progressOf, TRACK, TRACKS, type Track } from '../game/track';
+const TRACK_MAIN = TRACKS.main;
 import { COURT, courtCell } from '../game/court';
 import { Biome, H, SEA, type Column } from './gen';
 import { mulberry32, hash3 } from './noise';
@@ -893,7 +894,7 @@ const SPECS = (): Spec[] => specs ??= [
     },
   },
   {
-    // the big race circuit: a long, wide oval with rainbow arches, boost pads and a grandstand
+    // the big race circuit: a wide track with a hairpin, a rainbow chicane and a long sweeper, boost pads and a grandstand
     id: 'race_track', icon: '🏎️', name: ['Sirkuit Balap', 'The Race Track'], biomes: [Biome.MEADOW, Biome.DESERT, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.DESERT, Biome.BEACH, Biome.FOREST, Biome.SNOWY], dist: [90, 300], r: 30, loose: true, clear: 40,
     ok: c => c.h > SEA + 1 && c.h < SEA + 16,
     hint: ['Ada sirkuit balap besar dengan gapura pelangi dan tribun penonton. Ayo balapan gokart bersama Baby Mo!', 'There’s a big race circuit with rainbow arches and a grandstand. Let’s race go-karts with Baby Mo!'],
@@ -925,31 +926,26 @@ const SPECS = (): Spec[] => specs ??= [
       for (const pz of [Math.floor(zi), Math.ceil(zo)]) b.box(x, y + 1, pz, x, y + 6, pz, B.OAK_LOG);
       b.box(x, y + 7, Math.floor(zi), x, y + 7, Math.ceil(zo), (_X, _Y, Z) => ((Z % 2) === 0 ? B.WOOL_WHITE : B.BASALT));
       for (let pz = Math.floor(zi) + 2; pz <= Math.ceil(zo) - 2; pz += 2) b.stamp(x, y + 6, pz, B.LANTERN);
-      // rainbow arches over the north straight: drive through them!
+      // rainbow arches through the chicane: drive through them!
       const RAINBOW = [B.WOOL_RED, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLUE, B.WOOL_PURPLE];
-      const ni = z - R + W / 2 + 1, no = z - R - W / 2 - 1;
-      RAINBOW.forEach((c, i) => {
-        const ax = x - HALF + 8 + i * Math.floor((2 * HALF - 16) / (RAINBOW.length - 1));
-        for (const pz of [Math.ceil(ni), Math.floor(no)]) b.box(ax, y + 1, pz, ax, y + 5, pz, c);
-        b.box(ax, y + 6, Math.floor(no), ax, y + 6, Math.ceil(ni), c);
-      });
-      // a tunnel of lanterns round the east bend: posts on the inside with lanterns
-      for (let k = 0; k <= 6; k++) {
-        const t = (k / 6) * Math.PI, rIn = R - W / 2 - 1.5;
-        const px = Math.round(x + HALF + rIn * Math.sin(t)), pz = Math.round(z - rIn * Math.cos(t));
+      TRACK_MAIN.arches.forEach((s, i) => trackArch(b, x, y, z, TRACK_MAIN, s, RAINBOW[i % RAINBOW.length], () => RAINBOW[i % RAINBOW.length]));
+      // a tunnel of lanterns round the inside of the long sweeper
+      for (const s of TRACK_MAIN.lanterns) {
+        const p = TRACK_MAIN.pointAt(s, -(W / 2 + 1.5)), px = Math.floor(x + p.x), pz = Math.floor(z + p.z);
         b.box(px, y + 1, pz, px, y + 2, pz, B.OAK_LOG); b.stamp(px, y + 3, pz, B.LANTERN);
       }
-      // a grandstand along the north straight, four steps of blue seats
+      // a grandstand along the north side, four steps of blue seats
       const gz = z - OUT - 2;
       for (let k = 0; k < 4; k++) b.box(x - 20, y + 1, gz - k, x + 20, y + 1 + k, gz - k, (_X, Y) => (Y === y + 1 + k ? B.WOOL_BLUE : B.PLANKS));
       b.box(x - 20, y + 1, gz - 4, x + 20, y + 6, gz - 4, B.PLANKS);
       for (const lx of [x - 21, x + 21]) { b.stamp(lx, y + 1, gz, B.OAK_LOG); b.stamp(lx, y + 2, gz, B.LANTERN); }
-      // the infield: a pit box with a chest, flags, palm trees and flowers
-      b.box(x - 7, y, z - 2, x + 7, y, z + 2, B.COBBLE);
+      // the infield: a pit box with a chest, flags, palm trees and flowers (only where the track leaves room)
+      const clear = clearOf(TRACK_MAIN, x, z);
+      b.box(x - 7, y, z - 2, x + 7, y, z + 2, (X, _Y, Z) => (clear(X, Z) ? B.COBBLE : null));
       b.stamp(x + 7, y + 1, z + 2, B.CHEST);
-      for (const fx of [x - 7, x - 3, x + 1]) { b.stamp(fx, y + 1, z - 2, B.OAK_LOG); b.stamp(fx, y + 2, z - 2, B.WOOL_RED); }
-      for (const px of [x - HALF + 4, x + HALF - 4]) palm(b, px, y, z, 4);
-      for (let fx = x - HALF + 8; fx <= x + HALF - 8; fx += 3) for (const fz of [z - 5, z + 5]) b.stamp(fx, y + 1, fz, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE][((fx - x) / 3 + (fz > z ? 1 : 0)) & 3]);
+      for (const fx of [x - 7, x - 3, x + 1]) if (clear(fx, z - 2)) { b.stamp(fx, y + 1, z - 2, B.OAK_LOG); b.stamp(fx, y + 2, z - 2, B.WOOL_RED); }
+      for (const px of [x - HALF + 4, x + HALF - 4]) if (clear(px, z, 3)) palm(b, px, y, z, 4);
+      for (let fx = x - HALF + 8; fx <= x + HALF - 8; fx += 3) for (const fz of [z - 5, z + 5]) if (clear(fx, fz)) b.stamp(fx, y + 1, fz, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PURPLE][((fx - x) / 3 + (fz > z ? 1 : 0)) & 3]);
       return {
         y: y + 1,
         at: { centre: [x + 0.5, y + 1, z + 0.5], start: [x + 0.5, y + 1, z + R + 0.5], stand: [x + 0.5, y + 1, gz + 0.5], entry: [x + 2.5, y + 1, z + 5.5] },
@@ -1204,10 +1200,24 @@ const SPECS = (): Spec[] => specs ??= [
   },
 ];
 
+/** is this column well away from the track (not on it, its kerb or its wall), with `m` blocks to spare? */
+function clearOf(tk: Track, x: number, z: number) {
+  return (X: number, Z: number, m = 0) => Math.abs(tk.laneOf(X + 0.5 - x, Z + 0.5 - z)) > tk.W / 2 + 2 + m;
+}
+
+/** an arch over the track `s` metres round the lap: a post on each side and a beam across (on a bend too) */
+function trackArch(b: Builder, x: number, y: number, z: number, tk: Track, s: number, post: number, beam: () => number) {
+  const side = tk.W / 2 + 1.5, a = tk.pointAt(s, -side), c = tk.pointAt(s, side);
+  const ax = Math.floor(x + a.x), az = Math.floor(z + a.z), cx = Math.floor(x + c.x), cz = Math.floor(z + c.z);
+  b.box(ax, y + 1, az, ax, y + 5, az, post); b.box(cx, y + 1, cz, cx, y + 5, cz, post);
+  const n = Math.max(1, Math.abs(cx - ax), Math.abs(cz - az));
+  for (let i = 0; i <= n; i++) b.stamp(Math.round(ax + ((cx - ax) * i) / n), y + 6, Math.round(az + ((cz - az) * i) / n), beam());
+}
+
 /**
- * A themed race circuit (the Snow or the Desert track) on a stadium oval: the track with its
- * hazards (ice or sand) and boost pads, kerbs and a tyre wall, a start gantry, arches over the
- * north straight, a small grandstand and a decorated infield with a chest.
+ * A themed race circuit (the Snow or the Desert track): the track with its hazards (ice or sand)
+ * and boost pads, kerbs and a tyre wall, a start gantry, arches over the back straight, a small
+ * grandstand and a decorated infield with a chest.
  */
 function buildCircuit(b: Builder, x: number, y: number, z: number, tk: Track) {
   y = Math.max(y, SEA + 1);
@@ -1238,20 +1248,15 @@ function buildCircuit(b: Builder, x: number, y: number, z: number, tk: Track) {
   for (const pz of [Math.floor(zi), Math.ceil(zo)]) b.box(x, y + 1, pz, x, y + 6, pz, post);
   b.box(x, y + 7, Math.floor(zi), x, y + 7, Math.ceil(zo), (_X, _Y, Z) => ((Z % 2) === 0 ? B.WOOL_WHITE : B.BASALT));
   for (let pz = Math.floor(zi) + 2; pz <= Math.ceil(zo) - 2; pz += 2) b.stamp(x, y + 6, pz, B.LANTERN);
-  // arches over the north straight: ice arches in the snow, sandstone arches in the desert
-  const ni = z - R + W / 2 + 1, no = z - R - W / 2 - 1, n = snow ? 3 : 4;
-  for (let i = 0; i < n; i++) {
-    const ax = Math.round(x - HALF + 6 + i * ((2 * HALF - 12) / Math.max(1, n - 1)));
-    const c = snow ? B.ICE : [B.SANDSTONE, B.WOOL_RED, B.SANDSTONE, B.WOOL_YELLOW][i % 4];
-    for (const pz of [Math.ceil(ni), Math.floor(no)]) b.box(ax, y + 1, pz, ax, y + 5, pz, snow ? B.ICE : B.SANDSTONE);
-    b.box(ax, y + 6, Math.floor(no), ax, y + 6, Math.ceil(ni), c);
-  }
+  // arches over the back straight: ice arches in the snow, sandstone arches in the desert
+  tk.arches.forEach((s, i) => trackArch(b, x, y, z, tk, s, snow ? B.ICE : B.SANDSTONE, () => (snow ? B.ICE : [B.SANDSTONE, B.WOOL_RED, B.SANDSTONE, B.WOOL_YELLOW][i % 4])));
   // a small grandstand behind the north wall
   const gz = z - OUT - 2;
   for (let k = 0; k < 3; k++) b.box(x - 12, y + 1, gz - k, x + 12, y + 1 + k, gz - k, (_X, Y) => (Y === y + 1 + k ? (snow ? B.WOOL_BLUE : B.WOOL_RED) : B.PLANKS));
   for (const lx of [x - 13, x + 13]) { b.stamp(lx, y + 1, gz, post); b.stamp(lx, y + 2, gz, B.LANTERN); }
-  // the infield: a pit box with a chest, and the track's own scenery
-  b.box(x - 4, y, z - 2, x + 4, y, z + 2, B.COBBLE);
+  // the infield: a pit box with a chest, and the track's own scenery (only where the track leaves room)
+  const clear = clearOf(tk, x, z);
+  b.box(x - 4, y, z - 2, x + 4, y, z + 2, (X, _Y, Z) => (clear(X, Z) ? B.COBBLE : null));
   b.stamp(x + 4, y + 1, z + 2, B.CHEST);
   const inner = R - W / 2 - 3; // room inside the bends
   if (snow) {
@@ -1261,18 +1266,28 @@ function buildCircuit(b: Builder, x: number, y: number, z: number, tk: Track) {
       for (let l = 0; l < 3; l++) { const r = 2 - Math.floor(l * 0.7), yy = y + h - 1 + l; for (let ddx = -r; ddx <= r; ddx++) for (let ddz = -r; ddz <= r; ddz++) if (Math.abs(ddx) + Math.abs(ddz) <= r + 0 && !(ddx === 0 && ddz === 0 && l < 2)) b.stamp(px + ddx, yy, pz + ddz, B.PINE_LEAVES); }
       b.stamp(px, y + h + 2, pz, B.PINE_LEAVES);
     };
-    const snowman = (px: number, pz: number) => { b.stamp(px, y + 1, pz, B.SNOW); b.stamp(px, y + 2, pz, B.SNOW); b.stamp(px, y + 3, pz, B.WOOL_RED); };
-    for (const px of [x - HALF - inner / 2, x + HALF + inner / 2]) pine(Math.round(px), z, 4);
+    const snowman = (px: number, pz: number) => { if (!clear(px, pz)) return; b.stamp(px, y + 1, pz, B.SNOW); b.stamp(px, y + 2, pz, B.SNOW); b.stamp(px, y + 3, pz, B.WOOL_RED); };
+    for (const px of [x - HALF - inner / 2, x + HALF + inner / 2]) if (clear(Math.round(px), z, 3)) pine(Math.round(px), z, 4);
     for (let fx = x - HALF + 2; fx <= x + HALF - 2; fx += 6) snowman(fx, z + (fx % 12 === 0 ? -5 : 5));
-    for (const [px, pz] of [[X0 + 2, Z1 - 2], [X1 - 2, Z1 - 2], [X0 + 2, Z0 + 3], [X1 - 2, Z0 + 3]]) pine(px, pz, 5);
+    for (const [px, pz] of [[X0 + 2, Z1 - 2], [X1 - 2, Z1 - 2], [X0 + 2, Z0 + 3], [X1 - 2, Z0 + 3]]) if (clear(px, pz, 3)) pine(px, pz, 5);
   } else {
-    // a little stepped pyramid, cacti and palms
-    for (let k = 0; k < 4; k++) b.box(x - 10 + k, y + 1 + k, z - 3 + k, x - 4 - k, y + 1 + k, z + 3 - k, B.SANDSTONE);
-    b.stamp(x - 7, y + 5, z, B.GOLD_TILE);
-    const cactus = (px: number, pz: number, h: number) => { for (let i = 1; i <= h; i++) b.stamp(px, y + i, pz, B.CACTUS); };
+    // a little stepped pyramid in the infield: the first spot with room for it, as big as fits there (off the pit box)
+    let pyr: [number, number, number] | null = null; // (its middle and half its width, kept free of cacti)
+    pyramid: for (const steps of [4, 3]) for (const [px, pz] of [[-7, 0], [-14, 0], [12, 0], [-20, 0], [20, 1], [-7, 1], [12, 1]]) {
+      const n = steps - 1, cx = x + px, cz = z + pz;
+      if (Math.abs(px) - n <= 5 || ![[-n - 1, -n - 1], [n + 1, -n - 1], [-n - 1, n + 1], [n + 1, n + 1]].every(([ex, ez]) => clear(cx + ex, cz + ez))) continue;
+      for (let k = 0; k < steps; k++) b.box(cx - n + k, y + 1 + k, cz - n + k, cx + n - k, y + 1 + k, cz + n - k, B.SANDSTONE);
+      b.stamp(cx, y + steps + 1, cz, B.GOLD_TILE);
+      pyr = [cx, cz, n + 1];
+      break pyramid;
+    }
+    const cactus = (px: number, pz: number, h: number) => {
+      if (!clear(px, pz) || (pyr && Math.abs(px - pyr[0]) <= pyr[2] && Math.abs(pz - pyr[1]) <= pyr[2])) return;
+      for (let i = 1; i <= h; i++) b.stamp(px, y + i, pz, B.CACTUS);
+    };
     for (let fx = x + 6; fx <= x + HALF - 2; fx += 5) { cactus(fx, z - 4, 2 + (fx & 1)); cactus(fx + 2, z + 4, 3 - (fx & 1)); }
-    for (const px of [x - HALF - inner / 2, x + HALF + inner / 2]) palm(b, Math.round(px), y, z, 5);
-    for (const [px, pz] of [[X0 + 2, Z1 - 2], [X1 - 2, Z1 - 2]]) palm(b, px, y, pz, 5);
+    for (const px of [x - HALF - inner / 2, x + HALF + inner / 2]) if (clear(Math.round(px), z, 3)) palm(b, Math.round(px), y, z, 5);
+    for (const [px, pz] of [[X0 + 2, Z1 - 2], [X1 - 2, Z1 - 2]]) if (clear(px, pz, 3)) palm(b, px, y, pz, 5);
     for (const [px, pz] of [[X0 + 2, Z0 + 3], [X1 - 2, Z0 + 3]]) cactus(px, pz, 3);
   }
   return {

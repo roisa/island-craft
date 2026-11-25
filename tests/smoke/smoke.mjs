@@ -558,7 +558,7 @@ async function run(name) {
         }, kind);
         await g(() => { const G = __game; G.ui.closeAllModals(); });
         const after = await g(k => { const R = __game.races.find(r => r.kind === k); return { active: R.active, boxes: R.boxes.length, item: R.item }; }, kind);
-        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes || r.read < 1 || !r.flew || !r.popped || r.letters < 8 || r.set.length !== 4) throw new Error(JSON.stringify({ kind, r, after }));
+        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes || r.read < 1 || !r.flew || !r.popped || r.letters !== 4 || r.set.length !== 4) throw new Error(JSON.stringify({ kind, r, after }));
         out[kind] = { ...r, ...after };
       }
       // the next race brings the next four letters

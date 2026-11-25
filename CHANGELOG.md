@@ -5,6 +5,37 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Racing: real circuits, one thing at a time
+
+- **Real circuit shapes instead of ovals.** Each track is now built from
+  straights and bends of a set radius (`src/game/track.ts`), solved so the lap
+  closes exactly: the big circuit has a sweeper into a hairpin, a chicane under
+  the rainbow arches, a kink into a long right-hander and a kink before the
+  line; the Snow track a left flick into an icy hairpin, esses and a two-part
+  final bend; the Desert track long straights, a hairpin and kinks. Every track
+  stays on the same ground as before (nothing else in a world moves), its
+  parts never come closer than 20 m, and no bend is tighter than 9 m.
+- **Fewer laps:** 3 on the big circuit and the Desert, 4 on the Snow track
+  (was 4 / 5 / 4), about 45 seconds a race.
+- **Letters well apart:** each of the race's four letters once a lap (was about
+  11 letters a lap, one every 1.3 s), 30–60 m apart, near the middle of the
+  track, never on a box row, the ramp, ice or sand.
+- **Less at once:** 2 coin groups a lap (was 6) and 2 box rows (was 3), placed
+  as far as possible from the letters and each other; the sum is said shortly
+  ("3 plus 2 makes 5!") and not at all when a letter was just read out. One
+  message in the middle at a time (a letter wins over a sum, a sum over a
+  cheer). The start says one line during the countdown and today's letters
+  once you're driving (the Arabic letters no longer flash over the countdown).
+  The top bar shows just the lap, your place and the coins (the time and the
+  letters read are on the finish card).
+- Scenery follows the new shapes: arches and the lantern tunnel stand where
+  the track goes, and the infield decorations (and the Desert's pyramid) only
+  go where the track leaves room.
+- Tested: unit tests (285; new: every track closes, stays on its ground and off
+  the grandstand, bends of different sizes and some left-handers, one of each
+  letter a lap, things spread round the lap, nothing built on the road, the
+  pyramid is there), desktop smoke (all race steps; the treasure-map step fails
+  the same way before this change), and pictures of the three tracks and a race.
 ### Behind the prayer card: everyone praying at the masjid
 
 - While the prayer card waits, the game behind it is no longer where you were

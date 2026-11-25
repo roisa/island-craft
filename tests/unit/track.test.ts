@@ -4,7 +4,10 @@ import { TRACK, LAP, cellKind, pointAt, progressOf, ranking } from '../../src/ga
 describe('race track', () => {
   it('every point on the centre line is on the track, and the lap length adds up', () => {
     for (let s = 0; s < LAP; s += 0.7) { const p = pointAt(s); expect(cellKind(p.x, p.z), `s ${s.toFixed(1)}`).toBe('track'); }
-    expect(LAP).toBeCloseTo(4 * TRACK.half + 2 * Math.PI * TRACK.R, 5);
+    // the lap closes up: the end of the lap is the start line again, facing the same way
+    const a = pointAt(0), b = pointAt(LAP - 1e-9);
+    expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeLessThan(1e-6);
+    expect(Math.cos(a.yaw - b.yaw)).toBeGreaterThan(0.9999);
   });
   it('progress along the lap matches the point it came from', () => {
     for (let s = 0.5; s < LAP - 0.5; s += 1.3) { const p = pointAt(s); expect(progressOf(p.x, p.z), `s ${s.toFixed(1)}`).toBeCloseTo(s, 4); }
@@ -36,24 +39,25 @@ describe('the big circuit: coins to add up and boost pads', () => {
     expect(TRACK.W).toBeGreaterThanOrEqual(9);
     expect(LAP).toBeGreaterThan(180);
   });
-  it('lays small groups of coins on the track, away from the start line', () => {
+  it('lays two small groups of coins on the track, away from the start line', () => {
     for (const lap of [1, 2]) {
       const c = coinPlan(lap);
       const groups = new Set(c.map(x => x.group));
-      expect(groups.size).toBe(6);
+      expect(groups.size).toBe(2);
       for (const g of groups) { const n = c.filter(x => x.group === g).length; expect(n).toBeGreaterThanOrEqual(1); expect(n).toBeLessThanOrEqual(3); }
       for (const x of c) { const p = pointAt(x.s, x.lane); expect(cellKind(p.x, p.z)).toBe('track'); expect(x.s).toBeGreaterThan(10); expect(x.s).toBeLessThan(LAP - 10); }
-      expect(c.length).toBeLessThanOrEqual(12);
+      expect(c.length).toBeLessThanOrEqual(6);
     }
   });
   it('the coins are added up out loud: “3 plus 2 makes 5”', () => {
     expect(addLine(0, 1).show).toBe('🪙 1');
     expect(addLine(0, 1).say[1]).toBe('One coin!');
     expect(addLine(3, 2).show).toBe('🪙 3 + 2 = 5');
-    expect(addLine(3, 2).say[1]).toBe('3 plus 2 makes 5. Now you have 5 coins!');
-    expect(addLine(1, 1).say[0]).toBe('1 tambah 1 sama dengan 2. Sekarang koinmu 2!');
+    // short, so it's finished before the next thing on the track
+    expect(addLine(3, 2).say[1]).toBe('3 plus 2 makes 5!');
+    expect(addLine(1, 1).say[0]).toBe('1 tambah 1 sama dengan 2!');
   });
-  it('has boost pads in the middle of the straights', () => {
+  it('has boost pads on straights', () => {
     for (const b of BOOSTS) {
       const p = pointAt(b.s + b.len / 2);
       expect(onBoost(b.s + b.len / 2, laneOf(p.x, p.z))).toBe(true);
@@ -104,9 +108,40 @@ describe('the three tracks (big circuit, Snow, Desert)', () => {
       expect(tk.patches.length > 0).toBe(tk.kind !== 'main');
     });
   }
-  it('the big circuit keeps its old shape (saved worlds)', () => {
+  it('each track keeps the ground it was built on (so nothing else in a saved world moves)', () => {
     expect([TRACKS.main.half, TRACKS.main.R, TRACKS.main.W]).toEqual([26, 14, 9]);
+    expect([TRACKS.snow.half, TRACKS.snow.R, TRACKS.desert.half, TRACKS.desert.R]).toEqual([16, 15, 32, 11]);
   });
+  for (const tk of Object.values(TRACKS)) {
+    it(`${tk.kind}: a real circuit — it closes up, stays on its ground and off the grandstand, and its parts never touch`, () => {
+      const OUT = Math.ceil(tk.R + tk.W / 2 + 2), X = tk.half + OUT + 3, Z1 = OUT + 3, stand = -OUT - 2;
+      const a = tk.pointAt(0), b = tk.pointAt(tk.LAP - 1e-9);
+      expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeLessThan(1e-6);
+      expect([a.x, a.z]).toEqual([0, tk.R]); // (the start line, under the gantry)
+      let closest = Infinity, turned = 0, prev = a.yaw;
+      for (let s = 0; s < tk.LAP; s += 0.5) {
+        const p = tk.pointAt(s);
+        // the tyre wall (6.5 m out) stays on the track's ground and in front of the grandstand
+        expect(Math.abs(p.x) + 7, `${tk.kind} s ${s}`).toBeLessThanOrEqual(X);
+        expect(p.z + 7).toBeLessThanOrEqual(Z1);
+        if (Math.abs(p.x) <= 22) expect(p.z - tk.W / 2 - 2).toBeGreaterThan(stand);
+        // other parts of the lap are far enough away that their kerbs and walls never meet
+        for (let u = s + 35; u < s + tk.LAP - 35; u += 1) { const q = tk.pointAt(u); closest = Math.min(closest, Math.hypot(p.x - q.x, p.z - q.z)); }
+        let d = p.yaw - prev; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; turned += d; prev = p.yaw;
+      }
+      expect(closest, tk.kind).toBeGreaterThan(tk.W + 6);
+      expect(Math.abs(turned)).toBeCloseTo(2 * Math.PI, 1); // (once round)
+      expect(tk.cellKind(0, 0)).toBe('in');
+    });
+    it(`${tk.kind}: not an oval — bends of different sizes, and some turn the other way`, () => {
+      const curv: number[] = [];
+      for (let s = 0; s < tk.LAP; s += 1) { let d = tk.pointAt(s + 1).yaw - tk.pointAt(s).yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; curv.push(d); }
+      expect(curv.some(c => c > 0.02)).toBe(true);   // a left-hander (a kink, a flick or a chicane)
+      const radii = new Set(curv.filter(c => c < -0.02).map(c => Math.round(1 / -c)));
+      expect(radii.size, tk.kind).toBeGreaterThanOrEqual(3);
+      expect(Math.min(...[...radii]), tk.kind).toBeGreaterThanOrEqual(8); // (no bend too tight to steer round)
+    });
+  }
 });
 
 describe('mystery boxes', () => {
@@ -136,21 +171,33 @@ describe('hijaiyah letters on the track', () => {
     expect(Math.max(...seen)).toBe(6);
     expect(letterSet(1, 7)).toEqual([4, 5, 6, 0]);
   });
-  it('many letters a lap, all four of them, on the track and off the boxes, ramp and start line', () => {
-    let seed = 1; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    for (const tk of Object.values(TRACKS)) for (let lap = 0; lap < 5; lap++) {
-      const spots = letterSpots(tk, Math.round(tk.LAP / 17), rnd);
-      expect(spots.length, tk.kind).toBeGreaterThanOrEqual(8);
-      expect(new Set(spots.map(p => p.slot)).size).toBe(4);
-      for (const p of spots) {
+  it('each of the four letters once a lap, well apart, near the middle of the track and off the boxes, ramp, ice, sand and start line', () => {
+    for (const tk of Object.values(TRACKS)) for (let lap = 1; lap <= LAPS_FOR[tk.kind]; lap++) {
+      const spots = letterSpots(tk, lap);
+      expect(spots.map(p => p.slot)).toEqual([0, 1, 2, 3]);
+      for (const [i, p] of spots.entries()) {
         const q = tk.pointAt(p.s, p.lane); expect(tk.cellKind(q.x, q.z)).toBe('track');
-        expect(tk.boxRows.every(b => Math.abs(b - p.s) >= 3.5)).toBe(true);
+        expect(Math.abs(p.lane)).toBeLessThanOrEqual(2);
+        expect(tk.boxRows.every(b => Math.abs(b - p.s) >= 5)).toBe(true);
         expect(tk.onRamp(p.s, 0)).toBe(false);
-        expect(p.s).toBeGreaterThan(6);
+        expect(tk.patchAt(p.s, p.lane)).toBeNull();
+        expect(p.s).toBeGreaterThan(9);
+        if (i) expect(p.s - spots[i - 1].s, tk.kind).toBeGreaterThan(tk.LAP / 8);
       }
     }
   });
-  it('races last about a minute: more laps on the shorter track', () => {
-    for (const tk of Object.values(TRACKS)) { const metres = LAPS_FOR[tk.kind] * tk.LAP; expect(metres, tk.kind).toBeGreaterThan(700); expect(metres, tk.kind).toBeLessThan(900); }
+  it('one thing at a time: letters, coin groups and box rows are spread round the lap', () => {
+    for (const tk of Object.values(TRACKS)) {
+      const at = [...tk.boxRows, ...letterSpots(tk, 1).map(p => p.s), ...[...new Set(tk.coinPlan(1).map(c => c.group))].map(g => tk.coinPlan(1).find(c => c.group === g)!.s)].sort((a, b) => a - b);
+      expect(at.length).toBe(8);
+      for (let i = 1; i < at.length; i++) expect(at[i] - at[i - 1], tk.kind).toBeGreaterThanOrEqual(8);
+    }
+  });
+  it('races are short and sweet: a few laps, under a minute', () => {
+    for (const tk of Object.values(TRACKS)) {
+      const metres = LAPS_FOR[tk.kind] * tk.LAP;
+      expect(LAPS_FOR[tk.kind]).toBeLessThanOrEqual(4);
+      expect(metres, tk.kind).toBeGreaterThan(550); expect(metres, tk.kind).toBeLessThan(750);
+    }
   });
 });

@@ -147,7 +147,17 @@ describe('the Snow and Desert tracks', () => {
         const pt = tk.patches[0]; expect(at(pt.s + pt.len / 2, (pt.lane0 + pt.lane1) / 2), `${id} patch seed ${seed}`).toBe(patch);
         expect(at(tk.boosts[0].s + 2), `${id} boost seed ${seed}`).toBe(B.GOLD_TILE);
         for (const o of g.landmarks) if (o !== r) expect(Math.abs(o.x - r.x) < tk.half + tk.R + 6 && Math.abs(o.z - r.z) < tk.R + 6, `${o.id} inside ${id}, seed ${seed}`).toBe(false);
+        // nothing of the scenery stands on the road or its kerb (the arches' posts stand just outside; the start gantry's posts as ever at the kerb's edge)
+        for (const [k, v] of m) {
+          const [X, Y, Z] = k.split(',').map(Number);
+          if (Y <= y + 1 || Y > y + 5 || v === 0 || X === r.x || Math.abs(X - r.x) > tk.half + 30 || Math.abs(Z - r.z) > 30) continue;
+          const kind = tk.cellKind(X + 0.5 - r.x, Z + 0.5 - r.z);
+          expect(kind === 'track' || kind === 'kerb', `${id} block ${v} on the road at ${k}, seed ${seed}`).toBe(false);
+        }
       }
+      // the Desert track's little pyramid (its gold top above the ground) is still there
+      const d = g.landmarks.find(l => l.id === 'desert_track')!, dy = d.at!.centre[1] - 1;
+      expect([...m].some(([k, v]) => { const [X, Y, Z] = k.split(',').map(Number); return v === B.GOLD_TILE && Y > dy + 2 && Math.abs(X - d.x) < 30 && Math.abs(Z - d.z) < 8; }), `pyramid seed ${seed}`).toBe(true);
     }
   });
 });
