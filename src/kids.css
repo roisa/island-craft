@@ -247,3 +247,17 @@ html.prayScene #hud, html.prayScene #hotbarWrap, html.prayScene .moHost, html.pr
   #bubble { top: calc(102px + var(--safe-t)); }
   #sideBtns, body.playOn #sideBtns { top: calc(104px + var(--safe-t)); }
 }
+
+/* ---------- "Hi!" over Baby Mo: a small speech bubble pointing at him (not a big orange blob floating above) ---------- */
+#moHi { transform: translate(-50%, calc(-100% - 4px)) !important; border: 1.5px solid rgba(10, 143, 160, .4) !important; border-radius: 999px !important;
+  background: linear-gradient(180deg, #FFFFFF, #EAF8F5) !important; color: #0B6E7A !important; font: 900 16px/1 Nunito, system-ui, sans-serif !important;
+  padding: 0 14px 0 10px !important; min-height: 40px !important; display: inline-flex; align-items: center; gap: 5px;
+  box-shadow: 0 3px 0 rgba(10, 120, 140, .25), 0 8px 18px -8px rgba(10, 60, 80, .5) !important;
+  animation: hiBob2 1.6s ease-in-out infinite !important; transition: opacity .25s; }
+#moHi span { font-size: 16px !important; }
+#moHi::after { bottom: -9px !important; border-width: 8px 7px 0 !important; border-style: solid !important; border-color: #EAF8F5 transparent transparent !important;
+  filter: drop-shadow(0 1.5px 0 rgba(10, 143, 160, .4)); }
+#moHi:active { transform: translate(-50%, calc(-100% - 2px)) scale(.96) !important; }
+#moHi.covered { opacity: 0; pointer-events: none !important; }
+@keyframes hiBob2 { 0%, 100% { transform: translate(-50%, calc(-100% - 4px)); } 50% { transform: translate(-50%, calc(-100% - 8px)); } }
+@media (prefers-reduced-motion: reduce) { #moHi { animation: none !important; } }

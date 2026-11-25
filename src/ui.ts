@@ -278,13 +278,26 @@ export class UI {
     const g = this.g, el = $('#moHi'), mo = g.ents?.mo;
     let show = !!mo && !g.stats.talked.mo && !this.modals.length && !g.paused && !g.race?.active && !g.playing; // (not while racing or playing a game)
     if (show) {
-      const v = this.hiV.set(mo.pos.x, mo.pos.y + mo.rig.height + 0.55, mo.pos.z);
+      // (just above his name tag: the bubble’s tail points at him)
+      const v = this.hiV.set(mo.pos.x, mo.pos.y + mo.rig.height + 0.62, mo.pos.z);
       show = v.distanceTo(g.player.pos) < 14;
       v.project(g.camera);
       show &&= v.z < 1 && Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.95;
       if (show) { el.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; el.style.top = ((1 - v.y) / 2 * innerHeight) + 'px'; }
     }
     el.classList.toggle('hidden', !show);
+    // over Baby Mo's speech bubble, the tutorial card or the top bar it would be a jumble: it fades out until there's room
+    let covered = false;
+    if (show) {
+      const r = el.getBoundingClientRect();
+      for (const id of ['#bubble', '#tut', '#topbar', '#quest']) {
+        const o = document.querySelector(id) as HTMLElement | null;
+        if (!o || o.classList.contains('hidden') || o.offsetParent === null) continue;
+        const q = o.getBoundingClientRect();
+        if (q.width && r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top) { covered = true; break; }
+      }
+    }
+    el.classList.toggle('covered', covered);
   }
   starPop(n: number) {
     const el = h(`<div class="spop">+${n} ⭐</div>`);

@@ -5,6 +5,17 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### "Hi!" over Baby Mo is a small speech bubble
+
+- The "say hi" button over Baby Mo was a big orange blob floating well above
+  him, which on a phone landed on his speech bubble and the tutorial card. It
+  is now a small white speech bubble with teal text and a tail pointing down at
+  his name tag, like the other buttons, bobbing gently. While it would sit on
+  his speech bubble, the tutorial card or the top bar, it fades out until
+  there's room again.
+- Tested: screenshots on an iPhone (with and without the cards); unit tests
+  and the desktop and iPhone smoke runs.
+
 ### A tidier top bar
 
 - Landscape: every pill in the top bar is the same height on one line, and
