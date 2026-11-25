@@ -10,6 +10,9 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 - The opening page shows the new blocky **Baby Mo** (green outfit, waving as
   he walks in) with a gentle bounce; it stays still with reduced motion. A
   player with a saved world still sees their own face there, as before.
+- The start page's **Adam** and **Baby Ais** faces are the new blocky
+  renders too (head crops from `art/reference`, remade by
+  `python3 tools/icon/make-faces.py`).
 - The **app icon** is the new Baby Mo waving over "Mo Craft" on the same teal
   sky: web icons, the maskable Android icon (kept inside the safe circle), the
   iOS icon and the favicon. `node tools/icon/make-icon.mjs` remakes them all.
