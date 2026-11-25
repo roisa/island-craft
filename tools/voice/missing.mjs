@@ -8,6 +8,7 @@ import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
 import { LETTERS } from '../../src/world/blocks';
 import { DZIKIR } from '../../src/game/phrases';
+import { moLines } from './molines.mjs';
 import fs from 'fs';
 const M = JSON.parse(fs.readFileSync(new URL('../../src/game/voice-manifest.json', import.meta.url), 'utf8'));
 const rows = new Map();
@@ -26,6 +27,9 @@ for (const w of WORDS) want('word', w.ar, w.lat.replace(/-/g, ''));
 for (const d of Object.values(DZIKIR)) want('phrase', d.ar, d.say);
 for (const s of SURAHS) s.ayat.forEach((a, i) => want(`ayah ${s.name} ${i + 1}`, a.ar, a.lat));
 for (const [id, d] of Object.entries(DUAS)) want(`dua ${id}`, d.ar, d.lat ?? '');
+// Baby Mo's guidance in Indonesian and English (made with the app's id-ID / en-US voice; a recording wins)
+const REC = (() => { try { return JSON.parse(fs.readFileSync(new URL('../../src/game/voice-manifest.rec.json', import.meta.url), 'utf8')); } catch { return {}; } })();
+for (const L of moLines(k => has(k) || REC[k])) rows.set(L.k, ['mo-' + L.lang, L.t, '', L.k]);
 console.log('kind\tarabic\tlatin\tkey');
 for (const r of rows.values()) console.log(r.join('\t'));
 console.error(`${rows.size} lines without a clip`);

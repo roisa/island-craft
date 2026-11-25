@@ -5,6 +5,21 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Cloud Shell makes Baby Mo's guidance too (Indonesian & English)
+
+- `bash tools/voice/cloudshell.sh` now also makes **Baby Mo's guidance**: the
+  ~260 sentences of the recording page's Mo · ID / Mo · EN tabs. It uses the
+  same voice as the Baby Mo app in each language (`id-ID-Chirp3-HD-Algenib`,
+  `en-US-Chirp3-HD-Algenib`), next to the Arabic (`ar-XA-Chirp3-HD-Algenib`).
+  This run has 302 lines: the 17 near-silent syllables, the long-vowel / tanwin
+  forms, "Tawakkaltu ‘alallah" and Mo's 261 sentences (about 10 minutes).
+- One list of Mo's lines (`tools/voice/molines.mjs`) feeds both the recording
+  page and the generator, so they always agree. Generated lines show on the
+  recording page under "Mo's guidance" with their real wording, and a recording
+  made there still replaces them.
+- Tested: the generator's dry run lists the 302 lines, and each line picks the
+  right voice for its language; vitest voice tests pass.
+
 ### Buttons in the latest iOS style (Liquid Glass)
 
 - Buttons are now iOS "Liquid Glass" capsules, replacing the chunky candy

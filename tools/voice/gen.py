@@ -3,6 +3,9 @@
 (Google Cloud Text-to-Speech, Chirp3-HD "Algenib" — the same voice as the Baby Mo app and Pulau Hijaiyah).
 
 Input:  tools/voice/missing.tsv  (kind, arabic, latin, key; made by `npx vite-node tools/voice/missing.mjs`)
+        The "arabic" column is the text to say: Arabic lines, and Baby Mo's guidance in Indonesian and English
+        (kinds mo-id / mo-en, keys id|… / en|…), said with the same voice in that language (id-ID / en-US Algenib,
+        as in the Baby Mo app). Mo's lines are played sentence by sentence, so each row is one sentence.
 Output: public/voice/game-<id>.mp3 and src/game/voice-manifest.game.json  {"ar|<text>": "game-<id>.mp3"}
         (re-importing the app's clips with import.mjs keeps these)
 The Qur'an ayat are made too, for now; a reciter's recording made on the recording page (rekam/) replaces them
@@ -49,10 +52,17 @@ HELP = """No working Google credentials, so no clip was made. Use one of:
   - gcloud auth login && gcloud config set project <your-project>, then run this again
   - export GOOGLE_TTS_API_KEY=<an API key with Cloud Text-to-Speech enabled>, then run this again"""
 
+def voice_for(key, voice):
+    """the voice for a line: the Arabic voice, or the same voice in Indonesian / English for Mo's guidance"""
+    parts = voice.split("-")
+    if key.startswith("id|"): return "-".join(["id", "ID"] + parts[2:])
+    if key.startswith("en|"): return "-".join(["en", "US"] + parts[2:])
+    return voice
+
 def synth(text, voice):
     global _auth
     url = "https://texttospeech.googleapis.com/v1/text:synthesize" + ("?key=" + KEY if KEY else "")
-    body = {"input": {"text": text}, "voice": {"languageCode": "ar-XA", "name": voice},
+    body = {"input": {"text": text}, "voice": {"languageCode": "-".join(voice.split("-")[:2]), "name": voice},
             "audioConfig": {"audioEncoding": "MP3", "sampleRateHertz": 24000}}  # Chirp voices: natural speed
     refreshed = False
     for attempt in range(5):
@@ -119,7 +129,7 @@ def main():
     except Exception: manifest = {}
     os.makedirs(OUT, exist_ok=True)
     tag = a.voice.split("-")[-1].lower()
-    name = lambda r: "game-" + hashlib.sha1((tag + "|" + r["key"]).encode()).hexdigest()[:8] + ".mp3"
+    name = lambda r: "game-" + hashlib.sha1((tag + "|" + r["key"]).encode()).hexdigest()[:8] + ".mp3"  # (the key has the language)
     todo = [r for r in rows if a.force or not (manifest.get(r["key"]) and os.path.exists(os.path.join(OUT, manifest[r["key"]])))]
     print(f"▶ {len(rows)} lines on the list, {len(todo)} to make, voice {a.voice}")
     if a.dry_run:
@@ -130,7 +140,7 @@ def main():
         print("✅ the voice works" if mp3 else "⚠️ the voice answered, but with silence"); return
     done = bad = 0
     for i, r in enumerate(todo, 1):
-        mp3 = make(r["arabic"], a.voice)
+        mp3 = make(r["arabic"], voice_for(r["key"], a.voice))
         if not mp3: print(f"   ✗ no sound for {r['arabic']} ({r['latin']})"); bad += 1; continue
         fn = name(r)
         with open(os.path.join(OUT, fn), "wb") as f: f.write(mp3)

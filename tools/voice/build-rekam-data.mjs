@@ -8,7 +8,8 @@
 //       (voice/<id>.mp3), ks: the manifest keys}
 import fs from 'fs';
 import crypto from 'crypto';
-import { voiceKey, mergeClips, sentences } from '../../src/game/voicekey';
+import { voiceKey, mergeClips } from '../../src/game/voicekey';
+import { moLines } from './molines.mjs';
 import { LETTERS } from '../../src/world/blocks';
 import { SURAHS, WORDS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
@@ -38,9 +39,11 @@ const missing = [];
 try {
   const [head, ...lines] = fs.readFileSync('tools/voice/missing.tsv', 'utf8').trim().split('\n');
   const cols = head.split('\t');
-  for (const line of lines) { const r = Object.fromEntries(line.split('\t').map((v, i) => [cols[i], v])); if (r.key && !ALL[r.key]) missing.push(r); }
+  for (const line of lines) { const r = Object.fromEntries(line.split('\t').map((v, i) => [cols[i], v])); if (r.key && !ALL[r.key] && !r.kind.startsWith('mo-')) missing.push(r); } // (Mo's lines have their own rows below)
 } catch { /* no list */ }
 
+// (Mo's lines as written, for the rows of lines that already have a clip: the key alone is lower-cased)
+const MO_TEXT = new Map(moLines().map(L => [L.k, L.t]));
 const byFile = new Map();
 for (const [k, file] of Object.entries(ALL)) { const f = file.split('?')[0]; if (!byFile.has(f)) byFile.set(f, []); byFile.get(f).push(k); }
 const rows = [];
@@ -55,36 +58,18 @@ for (const [file, keys] of byFile) {
   const ks = keys.sort((a, b) => (a.startsWith('tr|') ? 1 : 0) - (b.startsWith('tr|') ? 1 : 0)), k = ks[0];
   const l = k.slice(0, 2), id = file.replace(/\.mp3$/, '').replace(/^rec-(.*)-\d+$/, '$1');
   if (l === 'tr') continue; // (only a Latin name: always with its Arabic)
-  const g = l === 'ar' ? groupOf(k, file) : { s: l, g: file.startsWith('app-') ? 'Baby Mo app' : 'Pulau Hijaiyah', h: '' };
-  rows.push({ id, s: g.s, g: g.g, t: k.slice(3), h: g.h, l, f: 'voice/' + id + '.mp3', ks });
+  const g = l === 'ar' ? groupOf(k, file) : { s: l, g: file.startsWith('app-') ? 'Baby Mo app' : file.startsWith('game-') || /^rec-mo-/.test(file) ? 'Panduan Mo · Mo’s guidance' : 'Pulau Hijaiyah', h: '' };
+  rows.push({ id, s: g.s, g: g.g, t: MO_TEXT.get(k) ?? k.slice(3), h: g.h, l, f: 'voice/' + id + '.mp3', ks });
 }
 for (const r of missing) {
   const id = 'mc-' + crypto.createHash('sha1').update(r.key).digest('hex').slice(0, 8);
   const w = what.get(r.key) ?? { s: r.kind.startsWith('ayah') ? 'quran' : r.kind.startsWith('dua') ? 'doa' : 'kata', g: r.kind, h: r.latin };
   rows.push({ id, s: w.s, g: w.g + ' · belum ada suara / no clip yet', t: r.arabic, h: r.latin || w.h, l: 'ar', f: 'voice/' + id + '.mp3', ks: [r.key] });
 }
-// Baby Mo's guidance: every line he says with fixed wording (the tutorial steps, prayer times, game instructions…),
-// sentence by sentence, in Indonesian and English, that has no recording yet. A line plays from the recordings
-// once all its sentences have one (audio.ts talk), so a family can record them bit by bit.
-{
-  const files = [];
-  const walk = d => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = d + '/' + f.name; if (f.isDirectory()) walk(p); else if (/\.ts$/.test(f.name)) files.push(p); } };
-  walk('src');
-  const STR = "'((?:[^'\\\\]|\\\\.)*)'";
-  const PAIR = new RegExp('tr\\(\\s*' + STR + '\\s*,\\s*' + STR + '\\s*\\)', 'g');
-  const STEP = new RegExp('\\[\\s*' + STR + '\\s*,\\s*' + STR + '\\s*\\]', 'g'); // (each step's [id, en] text: touch and keyboard versions)
-  const unesc = x => x.replace(/\\(.)/g, '$1');
-  const seen = new Set(), lines = [];
-  const add = (idT, enT, g) => { for (const [lang, txt] of [['id', idT], ['en', enT]]) for (const t of sentences(unesc(txt), lang)) { const k = voiceKey(t, lang); if (k.startsWith('ar|') || ALL[k] || seen.has(k)) continue; seen.add(k); lines.push({ lang, t, k, g }); } };
-  for (const f of files) {
-    const src = fs.readFileSync(f, 'utf8');
-    if (f.endsWith('game/kid.ts')) { const a = src.indexOf('const STEPS'), b = src.indexOf('];', a); for (const m of src.slice(a, b).matchAll(STEP)) add(m[1], m[2], 'Tutorial · rekam dulu / record first'); }
-    for (const line of src.split('\n')) if (/\bsay\(/.test(line) && !/Speech\.say\(/.test(line.replace(/\.ui\.say\(|\bg\.ui\.say\(/g, ''))) for (const m of line.matchAll(PAIR)) add(m[1], m[2], 'Panduan Mo · Mo’s guidance');
-  }
-  for (const L of lines) {
-    const id = 'mo-' + crypto.createHash('sha1').update(L.k).digest('hex').slice(0, 8);
-    rows.push({ id, s: L.lang, g: L.g, t: L.t, h: '', l: L.lang, f: 'voice/' + id + '.mp3', ks: [L.k] });
-  }
+// Baby Mo's guidance (tools/voice/molines.mjs): the sentences with no clip yet, to record
+for (const L of moLines(k => !!ALL[k])) {
+  const id = 'mo-' + crypto.createHash('sha1').update(L.k).digest('hex').slice(0, 8);
+  rows.push({ id, s: L.lang, g: L.g, t: L.t, h: '', l: L.lang, f: 'voice/' + id + '.mp3', ks: [L.k] });
 }
 const order = Object.fromEntries(SECTIONS.map((s, i) => [s.s, i]));
 const gRank = g => (g.startsWith('Tutorial') ? 0 : g.startsWith('Panduan Mo') ? 1 : 2); // (Mo's tutorial first: the lines a new player hears)
