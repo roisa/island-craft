@@ -55,6 +55,15 @@ export function sumLine(before: number, add: number): { show: string; say: [stri
   return { show: `🎯 ${before} + ${add} = ${after}`, say: [`${before} tambah ${add} sama dengan ${after}`, `${before} plus ${add} makes ${after}`] };
 }
 
+/** free an arrow's or a target's geometry, materials and its ring picture (each shot and round makes new ones) */
+function dispose(o: THREE.Object3D) {
+  o.removeFromParent();
+  o.traverse(c => {
+    const m = c as THREE.Mesh; if (!m.isMesh) return;
+    m.geometry.dispose();
+    for (const mat of Array.isArray(m.material) ? m.material : [m.material]) { (mat as THREE.MeshLambertMaterial).map?.dispose(); mat.dispose(); }
+  });
+}
 /** a target: a straw boss on two legs with the coloured rings and their points */
 function targetMesh(r: number) {
   const g = new THREE.Group();
@@ -137,13 +146,13 @@ export class Archery implements Activity {
     g.ents.mo.stand = { pos: new THREE.Vector3(this.shoot.x + 2.2, this.shoot.y, this.shoot.z + 0.6), yaw: Math.PI };
     this.nock();
     g.goodWord('start', true);
-    g.ui.say(lv.wind ? tr('Level 5: ada angin! Angin mendorong panah ke kanan — bidik sedikit ke kiri ya 💨', 'Level 5: it’s windy! The wind pushes your arrow to the right — aim a little to the left 💨')
+    g.ui.say(lv.wind ? tr('Level 5: berangin! Bidik sedikit ke kiri ya 💨', 'Level 5: windy! Aim a little to the left 💨')
       : lv.move ? tr('Level 4: sasarannya bergerak! Tunggu saat yang tepat 🎯', 'Level 4: the target moves! Wait for the right moment 🎯')
-        : tr(`Level ${level + 1}: ketuk ✋ saat lingkaran merah ada di tengah kuning. Butuh ${lv.need} poin dengan 5 panah!`, `Level ${level + 1}: tap ✋ when the red circle is over the yellow middle. You need ${lv.need} points with 5 arrows!`), 'idea', 6000);
+        : tr(`Level ${level + 1}: ketuk ✋ saat lingkaran merah di tengah kuning! 🎯`, `Level ${level + 1}: tap ✋ when the red circle is on the yellow! 🎯`), 'idea', 6000);
     g.stats.archeryRounds = (g.stats.archeryRounds || 0) + 1;
   }
   quit() { if (this.active) this.end(); }
-  private nock() { if (this.nocked) this.nocked.removeFromParent(); this.nocked = arrowMesh(this.arrow); this.nocked.scale.multiplyScalar(0.8); this.bow.add(this.nocked); this.nocked.rotation.set(0, -Math.PI / 2, 0); this.nocked.position.set(0.25, 0, 0); }
+  private nock() { if (this.nocked && this.nocked.parent === this.bow) dispose(this.nocked); this.nocked = arrowMesh(this.arrow); this.nocked.scale.multiplyScalar(0.8); this.bow.add(this.nocked); this.nocked.rotation.set(0, -Math.PI / 2, 0); this.nocked.position.set(0.25, 0, 0); }
   /** where your aim is on the target, in the world */
   private aimPoint(u: [number, number]) {
     const lv = LEVELS[this.level], c = this.target!.position;
@@ -160,7 +169,7 @@ export class Archery implements Activity {
     const from = new THREE.Vector3(); this.bow.getWorldPosition(from);
     obj.position.copy(from); g.scene.add(obj);
     this.flying = { obj, from, to, t: 0, pts };
-    if (this.nocked) { this.nocked.removeFromParent(); this.nocked = null; }
+    if (this.nocked) { dispose(this.nocked); this.nocked = null; }
     this.state = 'fly'; this.releaseT = 0.35; this.shot++;
     SFX.pop(4);
   }
@@ -200,7 +209,7 @@ export class Archery implements Activity {
       SFX.pop(f.pts >= 50 ? 8 : 5); g.fx.sparkle(f.to.x, f.to.y, f.to.z, f.pts / 10, f.pts === 100 ? 0xffd21f : 0xffffff, 1.4);
       if (f.pts === 100) { g.goodWord('bullseye'); g.ents.mo.celebrate = 1.2; if (this.arrow.id === 'star') g.ui.confetti(25); }
     } else {
-      g.scene.remove(f.obj);
+      dispose(f.obj);
       g.ui.raceMath(tr('Meleset!', 'Missed!')); SFX.pop(1); g.goodWord('missed');
     }
     if (this.shot >= ARROWS_PER_ROUND) { this.state = 'done'; setTimeout(() => this.result(), 1100); }
@@ -234,14 +243,14 @@ export class Archery implements Activity {
     });
     g.checkQuests(); g.saveSoon();
   }
-  private clearStuck() { for (const o of this.stuck) o.removeFromParent(); this.stuck = []; }
+  private clearStuck() { for (const o of this.stuck) dispose(o); this.stuck = []; }
   private end() {
     const g = this.g;
     this.active = false; this.state = 'done'; this.reticle.visible = false;
-    if (this.flying) { g.scene.remove(this.flying.obj); this.flying = null; }
+    if (this.flying) { dispose(this.flying.obj); this.flying = null; }
     this.clearStuck();
-    if (this.target) { g.scene.remove(this.target); this.target = null; }
-    this.bow.removeFromParent(); if (this.nocked) { this.nocked.removeFromParent(); this.nocked = null; }
+    if (this.target) { dispose(this.target); this.target = null; }
+    this.bow.removeFromParent(); if (this.nocked) { dispose(this.nocked); this.nocked = null; }
     g.ents.mo.stand = null; g.ui.actHud(null);
     g.player.pos.set(this.shoot.x + 3, this.shoot.y, this.shoot.z + 1);
   }

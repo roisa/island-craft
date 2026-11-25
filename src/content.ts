@@ -46,6 +46,8 @@ export interface Stats {
   flown?: boolean; mudTraps?: number;
   /** the town's date when the real clock last counted a day */
   clockDate?: string;
+  /** the 7 free letters found (Baby Mo said so once) */
+  freeLettersDone?: boolean;
   /** treasure map pieces found (the places they came from), and the great treasure dug up */
   mapPieces?: string[]; greatTreasure?: boolean;
   /** mangrove seedlings planted in shallow water */

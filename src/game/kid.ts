@@ -74,11 +74,29 @@ export class Kid {
   skipStep() {
     if (!this.tutorialActive()) return;
     this.g.stats.tut = this.step + 1;
-    if (!this.tutorialActive()) this.g.ui.tutorial(null); else this.showStep();
+    if (!this.tutorialActive()) this.finishTutorial(); else this.showStep();
     this.g.saveSoon();
   }
   /** skip everything that's left (offered after a skip) */
-  skipAll() { this.g.stats.tut = STEPS.length; this.g.ui.tutorial(null); this.g.saveSoon(); }
+  skipAll() { const was = this.tutorialActive(); this.g.stats.tut = STEPS.length; this.g.ui.tutorial(null); this.g.saveSoon(); if (was) this.finishTutorial(); }
+  /**
+   * The tutorial is over (done or skipped): Baby Mo says what's next and how long we can play today, once the
+   * pop-ups that came with the last step (a letter card, a level up…) are closed, so it isn't hidden behind them;
+   * then today's gift.
+   */
+  private finishTutorial() {
+    const g = this.g;
+    g.ui.tutorial(null);
+    const play = g.playLeftLine(true);
+    const line = tr('Hebat! Kamu siap berpetualang sendiri. Lihat ⭐ misi di kanan atas ya!', 'Amazing! You’re ready to explore. Check the ⭐ quests at the top right!') + (play ? ' ' + play : '');
+    let tries = 0;
+    const go = () => {
+      if (g.ui.isOpen() && tries++ < 120) { setTimeout(go, 500); return; } // (wait for the pop-ups, up to a minute)
+      g.ui.say(line, 'alright', play ? 11000 : 7000);
+      setTimeout(() => g.festive.dailyGift(), 3500);
+    };
+    setTimeout(go, 600);
+  }
   tutorialActive() { return this.step < STEPS.length; }
   /** while the tutorial runs: where its step wants you to go (null = a step with no place, e.g. look around);
    *  undefined when the tutorial is over, so the guide arrow follows the mission instead */
@@ -139,12 +157,8 @@ export class Kid {
         SFX.quest(); this.reward('tutorial');
         g.ents.mo.celebrate = 1.5;
         g.ui.confetti(30);
-        if (!this.tutorialActive()) {
-          g.ui.tutorial(null);
-          const play = g.playLeftLine(true); // (and how long we can play today: the sun by the clock)
-          setTimeout(() => g.ui.say(tr('Hebat! Kamu sudah siap berpetualang sendiri. Lihat ⭐ misi di kanan atas ya!', 'Amazing! You’re ready to explore on your own. Check the ⭐ quests at the top right!') + (play ? ' ' + play : ''), 'alright', play ? 11000 : 7000), 600);
-          setTimeout(() => g.festive.dailyGift(), 4000);
-        } else this.showStep();
+        if (!this.tutorialActive()) this.finishTutorial();
+        else this.showStep();
       }
     }
 

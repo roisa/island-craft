@@ -84,7 +84,7 @@ export class Basketball implements Activity {
     g.ents.mo.stand = { pos: new THREE.Vector3(this.hoop.x + 2.4, this.court.y, this.hoop.z + 1.2), yaw: 0 };
     this.toSpot();
     g.goodWord('start', true);
-    g.ui.say(tr('Ayo main basket! Ketuk ✋ saat penanda merah ada di bagian hijau untuk menembak. 5 tembakan, makin jauh makin sulit. Masuk = 2 poin, dari luar garis lengkung = 3 poin!', 'Let’s play basketball! Tap ✋ when the red marker is in the green to shoot. 5 shots, each one further out. In = 2 points, from outside the arc = 3 points!'), 'alright', 7000);
+    g.ui.say(tr('Ayo main basket! Ketuk ✋ saat penanda merah di hijau. 5 tembakan! 🏀', 'Basketball! Tap ✋ when the red marker is in the green. 5 shots! 🏀'), 'alright', 7000);
     g.stats.basketGames = (g.stats.basketGames || 0) + 1;
   }
   quit() { if (this.active) this.end(); }
@@ -226,7 +226,7 @@ export class Soccer implements Activity {
     this.active = true; this.kick = 0; this.goals = 0; this.ready();
     g.ents.mo.stand = { pos: new THREE.Vector3(this.goal.x, this.goal.y, this.goal.z + 0.6), yaw: 0 };
     g.goodWord('start', true);
-    g.ui.say(tr('Adu penalti! Baby Mo jadi kiper. Bidikan kuning bergeser di gawang — ketuk ✋ untuk menendang. Tendang ke tempat yang tidak dijaga Baby Mo!', 'Penalties! Baby Mo is in goal. The yellow aim slides across the goal — tap ✋ to kick. Kick where Baby Mo isn’t!'), 'alright', 7000);
+    g.ui.say(tr('Adu penalti! Ketuk ✋ untuk menendang, jauh dari Baby Mo ⚽', 'Penalties! Tap ✋ to kick, away from Baby Mo ⚽'), 'alright', 7000);
     g.stats.soccerGames = (g.stats.soccerGames || 0) + 1;
   }
   quit() { if (this.active) this.end(); }

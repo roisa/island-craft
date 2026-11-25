@@ -206,8 +206,8 @@ export class Stadium implements Activity {
     if (mode === 'school') this.school();
     else if (mode === 'skills') this.skills();
     else if (mode === 'juggle') this.juggleStart();
-    else if (mode === 'keep') { g.ui.say(tr('Kamu kipernya! Perhatikan ke mana badan Baby Mo condong waktu berlari, lalu lompat ke kiri ⬅️, tetap 🧤, atau ke kanan ➡️.', 'You’re in goal! Watch which way Baby Mo’s body leans as he runs up, then dive left ⬅️, stay 🧤, or dive right ➡️.'), 'idea', 7000); this.moSetup(); }
-    else { if (mode === 'shootout') g.ui.say(tr('Adu penalti! Kamu menendang dulu, lalu jadi kiper. 5 tendangan masing-masing. Bismillah!', 'Shootout! You kick first, then you go in goal. 5 kicks each. Bismillah!'), 'alright', 6000); else g.ui.say(tr('Bidikan kuning berputar di gawang — ketuk untuk memilih sudut (atau arahkan dengan joystick). Lalu ketuk lagi saat bar tenaga di hijau!', 'The yellow aim moves round the goal — tap to pick a corner (or steer it with the joystick). Then tap again when the power bar is in the green!'), 'idea', 7000); this.shootSetup(); }
+    else if (mode === 'keep') { g.ui.say(tr('Kamu kipernya! Lihat badan Baby Mo, lalu lompat ⬅️ 🧤 ➡️', 'You’re in goal! Watch Baby Mo lean, then dive ⬅️ 🧤 ➡️'), 'idea', 7000); this.moSetup(); }
+    else { if (mode === 'shootout') g.ui.say(tr('Adu penalti! Kamu menendang dulu, lalu jadi kiper. 5 tendangan masing-masing. Bismillah!', 'Shootout! You kick first, then you go in goal. 5 kicks each. Bismillah!'), 'alright', 6000); else g.ui.say(tr('Ketuk untuk memilih sudut gawang, lalu ketuk lagi saat tenaga di hijau! ⚽', 'Tap to pick a corner, then tap again when the power is green! ⚽'), 'idea', 7000); this.shootSetup(); }
   }
   quit() { if (this.active) this.end(); }
   tap() {

@@ -1324,6 +1324,18 @@ async function run(name) {
       await g(() => { const G = __game; G.endPrayerTime(); G.hour = 9; G.lastHour = 9; G.refreshTimes(); });
       return { ...r, ...m, frozen, pill };
     });
+    await step('free part, 7 letters found: the compass shows a free place, and no quests for locked letters', async () => {
+      const r = await g(() => {
+        const G = __game, keep = G.stats.letters, done = G.stats.freeLettersDone, disc = G.stats.discovered;
+        G.ui.closeAllModals(); G.setFull(false); G.stats.letters = [0, 1, 2, 3, 4, 5, 6]; G.stats.discovered = []; G.exploreTarget = null; G.gameEvent = null; G.masjidGuide = null;
+        const c = G.compass(), quests = G.activeQuests().map(q => q.id);
+        const lockedQuest = quests.some(q => q === 'letters10' || q === 'letters28');
+        G.stats.letters = keep; G.stats.discovered = disc; G.stats.freeLettersDone = done; G.setFull(true);
+        return { landmark: c?.landmark ?? null, lockedQuest };
+      });
+      if (!r.landmark || r.lockedQuest) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
   } catch { failed++; }

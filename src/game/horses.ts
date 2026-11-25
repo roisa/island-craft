@@ -115,7 +115,7 @@ export class HorseFarm implements Activity {
     this.pony.visible = true;
     g.ents.mo.seat = { pos: new THREE.Vector3(), yaw: 0 };
     g.goodWord('mount', true);
-    g.ui.say(tr('Bismillah, naik kuda! Kudamu berlari sendiri, mengikuti Baby Mo. Ketuk ✋ tepat sebelum rintangan untuk melompat. 2 putaran, 6 rintangan!', 'Bismillah, up you get! Your horse canters by itself, following Baby Mo. Tap ✋ just before each jump to leap over it. 2 laps, 6 jumps!'), 'alright', 7000);
+    g.ui.say(tr('Bismillah! Ketuk ✋ tepat sebelum rintangan untuk melompat 🐴', 'Bismillah! Tap ✋ just before each jump to leap 🐴'), 'alright', 7000);
     g.stats.horseRides = (g.stats.horseRides || 0) + 1;
   }
   quit() { if (this.active) this.end(); }

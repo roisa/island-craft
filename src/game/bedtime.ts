@@ -51,7 +51,7 @@ export class Bedtime {
     }
     if (ph > this.phase) {
       if (ph === 1) g.ui.say(tr('Hoaam… 🥱 Sudah sore, Mo mulai ngantuk. Yuk selesaikan bangunannya, sebentar lagi waktunya tidur!', 'Yaaawn… 🥱 It’s getting late and I’m sleepy. Let’s finish our building, it’s nearly bedtime!'), 'pose-05', 7000);
-      if (ph === 2) g.ui.say(tr('5 menit lagi waktunya tidur 😴 Rumahmu selalu tersimpan, besok kita lanjutkan! Ketuk <b>Tidur sekarang</b> kalau sudah siap — tidur tepat waktu dapat hadiah ⭐', 'Bedtime in 5 minutes 😴 Your house is always saved, we’ll carry on tomorrow! Tap <b>Sleep now</b> when you’re ready — going to bed on time gets a reward ⭐'), 'idea', 8000);
+      if (ph === 2) g.ui.say(tr('5 menit lagi tidur 😴 Ketuk <b>Tidur sekarang</b> untuk dapat hadiah ⭐', 'Bedtime in 5 minutes 😴 Tap <b>Sleep now</b> for a reward ⭐'), 'idea', 8000);
       this.phase = ph;
     }
     if (ph < this.phase) this.reset(); // a grown-up added time

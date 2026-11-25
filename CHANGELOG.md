@@ -5,6 +5,30 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Audit batch 2: the free part's last letter, shorter lines, battery, archery memory
+
+- **After the 7 free letters**, the golden compass no longer leads to locked
+  shrines. It shows the nearest free place not visited yet. The "10 letters" and
+  "28 letters" quests are left out of the quest list in the free part. Baby Mo
+  says once: "You found the first 7 letters! 🎉 Let's practise them in the letter
+  quiz" (with a quiz button), and that the rest are in Full BabyMo Craft. Dad
+  talks about the first 7 letters (not 28) in the free part, and offers the
+  quiz from the first letter (it used to start at 3, though he asked from 1).
+- **Shorter lines for a 7-year-old**, one instruction each, at most about 12–15
+  words: basketball, penalties, the goalkeeper, the stadium aim, archery levels
+  and wind, tennis drill, horse jumps, the fishing pond, flying, the masjid
+  "villagers are waiting", the 5-minute bedtime, the hero suits.
+- **The "what's next" line after the tutorial** waits until the pop-ups from
+  the last step are closed (it used to be hidden behind them and not spoken),
+  then today's gift. Skipping the tutorial now gives the same hand-off.
+- **Battery and heat**: the game draws at most ~60 frames a second (a 120 Hz
+  iPad drew 120), and about 12 a second while paused behind a pop-up.
+- **Archery** frees each arrow and target when it's removed. Before, every shot
+  and round left their geometry, materials and ring picture in memory.
+- Tested: tsc, vitest 295/295, and the desktop smoke run with a new step (free
+  part with 7 letters: the compass points to a free place, the 🎣 pond, and no
+  locked-letter quests).
+
 ### Real prayer times, a playful game day (audit fixes)
 
 The real-clock change made the whole island follow the town's clock. The audit

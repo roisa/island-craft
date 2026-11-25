@@ -78,7 +78,7 @@ import { record as recordAmal, newLog as newAmalLog, deed as amalDeed } from './
 import { dailyFor, progress, GOALS, GOAL_COINS, ALL_BONUS } from './game/daily';
 import { shareFile } from './native';
 import { store } from './store';
-import { allowed } from './game/unlock';
+import { allowed, FREE_LETTERS, LOCKED } from './game/unlock';
 import { startEmoji3D } from './emoji3d';
 import { GuideArrow } from './game/guide';
 
@@ -113,6 +113,8 @@ const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LO
 interface Sapling { x: number; y: number; z: number; id: number; t: number }
 
 const RAMADAN_QUESTS = new Set(['takjil', 'iftar', 'sahur']);
+/** quests that need more than the 7 free letters */
+const FULL_QUESTS = new Set(['letters10', 'letters28']);
 
 export class Game {
   renderer: THREE.WebGLRenderer;
@@ -675,6 +677,17 @@ export class Game {
       return { rot: -(ta - la), ta, dist: Math.hypot(lm.x + 0.5 - p.x, lm.z + 0.5 - p.z), landmark: lm.icon };
     }
     const have = new Set(this.stats.letters);
+    // the free part: once its 7 letters are found, the other shrines need Full BabyMo Craft, so the compass
+    // shows a free place not visited yet instead
+    const freeDone = !this.full && have.size >= FREE_LETTERS;
+    if (freeDone) {
+      const seen = new Set(this.stats.discovered ?? []);
+      let lmBest: { x: number; z: number; icon: string } | null = null, ld = Infinity;
+      for (const l of this.gen.landmarks) { if (seen.has(l.id) || LOCKED.has(l.id)) continue; const d = Math.hypot(l.x - p.x, l.z - p.z); if (d < ld) { ld = d; lmBest = l; } }
+      if (!lmBest) return null;
+      const ta = Math.atan2(lmBest.x + 0.5 - p.x, lmBest.z + 0.5 - p.z), la = Math.atan2(-Math.sin(this.player.yaw), -Math.cos(this.player.yaw));
+      return { rot: -(ta - la), ta, dist: ld, landmark: lmBest.icon };
+    }
     for (const s of this.gen.shrines) {
       if (have.has(s.letter)) continue;
       const d = Math.hypot(s.x + 0.5 - p.x, s.z + 0.5 - p.z);
@@ -694,7 +707,7 @@ export class Game {
     return best;
   }
   /** the next 3 quests not done yet (the iftar, suhoor and takjil quests only in Ramadan) */
-  activeQuests() { const ram = this.ramadhan?.inRamadhan; return QUESTS.filter(q => !this.questsDone.has(q.id) && (ram || !RAMADAN_QUESTS.has(q.id))).slice(0, 3); }
+  activeQuests() { const ram = this.ramadhan?.inRamadhan, full = this.full; return QUESTS.filter(q => !this.questsDone.has(q.id) && (ram || !RAMADAN_QUESTS.has(q.id)) && (full || !FULL_QUESTS.has(q.id))).slice(0, 3); }
   stations(): Set<Station> {
     const s = new Set<Station>(); const p = this.player.pos;
     for (let x = -4; x <= 4; x++) for (let y = -2; y <= 3; y++) for (let z = -4; z <= 4; z++) {
@@ -839,7 +852,7 @@ export class Game {
       if (!this.inv.count(I.FISHING_ROD)) { this.inv.add(I.FISHING_ROD, 1); this.ui.pickup(I.FISHING_ROD, 1); }
       const at = this.inv.slots.findIndex((x, i) => i < 9 && x?.id === I.FISHING_ROD);
       if (at >= 0 && !this.fishCoach.active) { this.inv.sel = at; this.ui.refreshHotbar(); }
-      this.ui.say(tr('Sampai di Kolam Pancing! 🎣 Di sini ikannya cepat menggigit. Ketuk ✋ Pakai untuk melempar, lalu tunggu pelampungnya tenggelam.', 'Here at the Fishing Pond! 🎣 Fish bite quickly here. Tap ✋ Use to throw, then wait for the float to dip.'), 'alright', 7000);
+      this.ui.say(tr('Kolam Pancing! 🎣 Ketuk ✋ untuk melempar, lalu tunggu pelampung tenggelam.', 'The Fishing Pond! 🎣 Tap ✋ to throw, then wait for the float to dip.'), 'alright', 7000);
       then?.();
     }, 600);
     return true;
@@ -1247,15 +1260,22 @@ export class Game {
       if (p.vel.y < 4) p.vel.y = 4; // a little lift-off
       SFX.jump(); this.fx.sparkle(p.pos.x, p.pos.y + 0.3, p.pos.z, 14, 0xffffff, 1.6);
       const first = !this.inv.creative && !this.stats.flown;
-      if (first) { this.stats.flown = true; this.saveSoon(); this.ui.say(tr('Wah, kamu terbang seperti pahlawan! 🦸 Tahan ⬆️ untuk naik, ⬇️ untuk turun. Saat menyentuh tanah, kamu mendarat. Bismillah!', 'Wow, you’re flying like a hero! 🦸 Hold ⬆️ to go up, ⬇️ to go down. Touch the ground to land. Bismillah!'), 'alright', 7000); }
+      if (first) { this.stats.flown = true; this.saveSoon(); this.ui.say(tr('Kamu terbang seperti pahlawan! 🦸 Tahan ⬆️ naik, ⬇️ turun.', 'You’re flying like a hero! 🦸 Hold ⬆️ to go up, ⬇️ to go down.'), 'alright', 7000); }
       else this.ui.toast(tr('🦸 Terbang! Tahan ⬆️ naik, ⬇️ turun', '🦸 Flying! Hold ⬆️ up, ⬇️ down'));
     } else this.ui.toast(tr('🚶 Mendarat', '🚶 Landing'));
   }
 
   // ---------- main loop ----------
   private clock = new THREE.Clock();
+  /** when the last frame was drawn (for the frame cap) */
+  private lastFrame = 0;
   private loop = () => {
     requestAnimationFrame(this.loop);
+    // battery and heat: at most ~60 frames a second (a 120 Hz iPad draws every other screen refresh), and only
+    // ~12 a second while paused behind a pop-up (the world doesn't move then)
+    const now = performance.now();
+    if (now - this.lastFrame < (this.paused && this.running ? 80 : 15)) return;
+    this.lastFrame = now;
     const dt = Math.min(0.05, this.clock.getDelta());
     if (!this.running) return;
     const t = performance.now() / 1000;
@@ -1896,11 +1916,13 @@ export class Game {
         : Math.random() < 0.5 ? '<br><br>💡 ' + tr(tip[0], tip[1]) : '';
       this.ui.dialog({
         face, img: !!portrait, who: n.name,
-        text: (k === 0 ? tr('Wa’alaikumussalam! Di dunia ini ada <b>28 huruf hijaiyah</b> yang bersinar di kuil-kuil kecil. Ikuti kompas emas, dan dengarkan bunyi setiap huruf ya.', 'Wa’alaikumussalam! There are <b>28 hijaiyah letters</b> glowing in little shrines around this world. Follow the golden compass and listen to each letter’s sound.')
+        text: (k === 0 ? (this.full ? tr('Wa’alaikumussalam! Di dunia ini ada <b>28 huruf hijaiyah</b> yang bersinar di kuil-kuil kecil. Ikuti kompas emas, dan dengarkan bunyi setiap huruf ya.', 'Wa’alaikumussalam! There are <b>28 hijaiyah letters</b> glowing in little shrines around this world. Follow the golden compass and listen to each letter’s sound.')
+            : tr(`Wa’alaikumussalam! Ada huruf hijaiyah yang bersinar di kuil-kuil kecil. Ikuti kompas emas untuk menemukan <b>${FREE_LETTERS} huruf pertama</b>!`, `Wa’alaikumussalam! Hijaiyah letters glow in little shrines. Follow the golden compass to find the <b>first ${FREE_LETTERS} letters</b>!`))
+          : !this.full && k >= FREE_LETTERS && k < 28 ? tr(`Masya Allah, <b>${k} huruf</b> pertama sudah kamu temukan! Ayo latihan tebak huruf bersama Ayah.`, `Masha Allah, you found the first <b>${k} letters</b>! Let’s practise them in a letter quiz.`)
           : k < 28 ? tr(`Masya Allah, kamu sudah menemukan <b>${k} huruf</b>! Mau latihan tebak huruf bersama Ayah?`, `Masha Allah, you have found <b>${k} letters</b>! Want to practise a letter quiz with me?`)
             : tr('Subhanallah! Semua 28 huruf sudah kamu temukan. Teruslah belajar sampai bisa membaca Al-Qur’an ya!', 'Subhanallah! You found all 28 letters. Keep learning until you can read the Qur’an!')) + extra,
         buttons: [
-          ...(k >= 3 ? [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
+          ...(k >= 1 ? [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }] : []),
           { label: ic('book') + tr('Buku huruf', 'Letter book'), cls: 'ghost', fn: () => this.ui.openBook('letters') },
           { label: ic('blueprint') + tr('Lihat rancangan', 'See blueprints'), cls: 'ghost', fn: () => this.ui.openBook('build') },
           { label: '🇬🇧 ' + tr('Sapa dalam Bahasa Inggris', 'Say hello in English'), cls: 'ghost', fn: () => this.english.chat(n.name, face, !!portrait) },
@@ -2018,6 +2040,12 @@ export class Game {
       this.kid.reward('letter', 3);
       this.ui.treasure(rw.treasure);
     }
+    if (!this.full && this.stats.letters.length === FREE_LETTERS && !this.stats.freeLettersDone) {
+      this.stats.freeLettersDone = true;
+      this.ui.dialog({ face: 'img/baby-mo-ok.webp', img: true, who: 'Baby Mo',
+        text: tr(`Masya Allah, kamu sudah menemukan <b>${FREE_LETTERS} huruf</b> pertama! 🎉 Ayo latihan dengan tebak huruf. Huruf lainnya ada di BabyMo Craft Lengkap — tanya orang tuamu ya.`, `Masha Allah, you found the first <b>${FREE_LETTERS} letters</b>! 🎉 Let’s practise them in the letter quiz. The other letters are in Full BabyMo Craft — ask a grown-up.`),
+        buttons: [{ label: ic('sparkles') + tr('Tebak huruf', 'Letter quiz'), cls: 'gold', fn: () => this.ui.quiz() }, { label: tr('Nanti', 'Later'), cls: 'ghost' }] });
+    }
     if (this.stats.letters.length === 28) {
       SFX.fanfare(); this.fx.fireworks(this.player.pos.x, this.player.pos.y + 3, this.player.pos.z);
       setTimeout(() => this.ui.say(tr('Subhanallah! Kamu menemukan SEMUA 28 huruf hijaiyah! 🏆 Sekarang perjalanan Iqro dimulai: ikuti kompas emas ke buku pelajaran pertama 📖', 'Subhanallah! You found ALL 28 hijaiyah letters! 🏆 Now the Iqro journey begins: follow the golden compass to the first lesson book 📖'), 'alright', 9000), 800);      this.suitsUnlocked();
@@ -2032,8 +2060,7 @@ export class Game {
     this.stats.suitsShown = 1;
     this.ui.dialog({
       face: '🦸', who: tr('Hadiah 28 huruf!', 'Your 28-letter reward!'),
-      text: tr('Masya Allah! Karena kamu menemukan semua huruf hijaiyah, <b>10 kostum pahlawan</b> terbuka: Bintang Penolong ⭐, Penjaga Malam 🌙, Pelari Kilat ⚡, Penjaga Hutan 🍃, Penjelajah Ombak 🌊, Penjaga Langit ☁️, Si Hijau Perkasa 💪, Zirah Emas 🛡️, Bayangan Ungu 🔮 dan Pahlawan Salju ❄️. Pahlawan sejati suka menolong! 🤝',
-        'Masha Allah! For finding every hijaiyah letter, <b>10 hero suits</b> are yours: Helper Star ⭐, Night Watcher 🌙, Lightning Runner ⚡, Forest Guardian 🍃, Wave Rider 🌊, Sky Guardian ☁️, Mighty Green 💪, Golden Armour 🛡️, Purple Shadow 🔮 and Snow Hero ❄️. A real hero loves to help others! 🤝'),
+      text: tr('Masya Allah! <b>10 kostum pahlawan</b> terbuka untukmu! ⭐🌙⚡🍃🌊 Pahlawan sejati suka menolong 🤝', 'Masha Allah! <b>10 hero suits</b> are yours! ⭐🌙⚡🍃🌊 A real hero loves to help 🤝'),
       buttons: [{ label: '🦸 ' + tr('Coba kostumnya!', 'Try them on!'), cls: 'gold', fn: () => this.ui.openBook('wardrobe') }, { label: tr('Nanti', 'Later'), cls: 'ghost' }],
     });
   }
@@ -2212,7 +2239,7 @@ export class Game {
       if (!ev.attended && here && (this.picnicToMasjid < 0 || here.id !== 'village')) {
         ev.attended = true;
         SFX.chime();
-        this.ui.say(tr(`Warga menunggumu! Berwudhu dulu 💧, lalu berdiri di tempatmu di barisan (tanda yang bersinar ✨) atau tekan 🤲 Sholat bersama — sholat ${prayerName(ev.p)} dimulai bersama-sama.`, `The villagers are waiting for you! Make wudu 💧, then stand in your place in the row (the glowing mark ✨) or press 🤲 Pray together — then ${prayerName(ev.p)} prayer starts together.`), 'alright', 8000);
+        this.ui.say(tr(`Warga menunggumu! Wudhu dulu 💧, lalu berdiri di tanda yang bersinar ✨`, `The villagers are waiting! Make wudu 💧, then stand on the glowing mark ✨`), 'alright', 8000);
       }
       if (this.picnicToMasjid >= 0 && Date.now() >= this.picnicToMasjid) {
         this.picnicToMasjid = -1;

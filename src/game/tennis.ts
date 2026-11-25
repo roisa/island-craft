@@ -129,7 +129,7 @@ export class Tennis {
     g.ents.mo.stand = { pos: new THREE.Vector3(this.c.x, this.c.y, this.moZ), yaw: 0 };
     g.stats.tennis = (g.stats.tennis || 0) + 1;
     if (mode === 'drill') {
-      g.ui.say(tr('Latihan! Baby Mo melempar 10 bola: forehand, lalu backhand. Ketuk ✋ saat bola sampai di dekatmu. Kamu bergeser sendiri ke bola!', 'Drill time! Baby Mo sends you 10 balls: a forehand, then a backhand. Tap ✋ when the ball reaches you. You move to the ball by yourself!'), 'alright', 7000);
+      g.ui.say(tr('Latihan! Ketuk ✋ saat bola sampai di dekatmu 🎾', 'Drill time! Tap ✋ when the ball reaches you 🎾'), 'alright', 7000);
       this.feed(1.6);
     } else {
       g.ui.say(mode === 'serve'
