@@ -7,6 +7,7 @@ import { voiceKey, spellings } from '../../src/game/voicekey';
 import { lessons, WORDS, SURAHS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
 import { LETTERS } from '../../src/world/blocks';
+import { DZIKIR } from '../../src/game/phrases';
 import fs from 'fs';
 const M = JSON.parse(fs.readFileSync(new URL('../../src/game/voice-manifest.json', import.meta.url), 'utf8'));
 const rows = new Map();
@@ -21,6 +22,8 @@ for (const [i, L] of LETTERS.entries()) ['َ', 'ِ', 'ُ'].forEach((m, k) => { c
 for (const [i, L] of LETTERS.entries()) if (i) { const b = L.lat === "'" ? "'" : L.lat; [['َا', 'aa'], ['ِي', 'ii'], ['ُو', 'uu'], ['ً', 'an'], ['ٍ', 'in'], ['ٌ', 'un']].forEach(([m, v]) => want('syllable', L.g + m, b + v)); }
 for (const l of lessons()) if (l.kind === 'syll') for (const s of l.items) want('syllable', s.ar, s.lat);
 for (const w of WORDS) want('word', w.ar, w.lat.replace(/-/g, ''));
+// the good words Baby Mo says (Alhamdulillah, Barakallahu fik, Tawakkaltu ‘alallah…)
+for (const d of Object.values(DZIKIR)) want('phrase', d.ar, d.say);
 for (const s of SURAHS) s.ayat.forEach((a, i) => want(`ayah ${s.name} ${i + 1}`, a.ar, a.lat));
 for (const [id, d] of Object.entries(DUAS)) want(`dua ${id}`, d.ar, d.lat ?? '');
 console.log('kind\tarabic\tlatin\tkey');

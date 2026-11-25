@@ -76,7 +76,7 @@ for (const name of profiles) {
     await layout('start screen');
     await tap('#sPlay');
     await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
-    await g(() => { const G = __game; G.settings.reminders = false; G.settings.water = 0; G.kid.stuckCooldown = 1e9; G.watchFps = () => {}; });
+    await g(() => { const G = __game; G.settings.reminders = false; G.settings.dayMinutes = 24; G.settings.water = 0; G.kid.stuckCooldown = 1e9; G.watchFps = () => {}; });
     await p.waitForTimeout(800);
     return await g(() => document.documentElement.lang || 'id');
   });

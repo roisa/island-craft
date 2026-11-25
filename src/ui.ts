@@ -8,7 +8,8 @@ import { B, I, LETTERS, nameOf, ITEMS, isBlockId } from './world/blocks';
 import { RECIPES, canCraft, STATION_NAME, creativeCatalog, type Recipe } from './game/inventory';
 import { SKILLS, skillLevel, toNext, MAX_LEVEL, cookZone, cookQuality, markerAt, type Skill } from './game/skills';
 import { QUESTS, CALENDAR, DUAS, Dua, WORDS, Word, LOAD_TIPS, type Treasure, letterReward } from './content';
-import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri } from './game/prayer';
+import { PRAYERS, PRAYER_ICON, prayerName, fmtTime, fmtHour, CITIES, METHODS, HIJRI_MONTHS, MethodId, hijri, resolveMethod, methodLabel } from './game/prayer';
+import { loadTowns, searchTowns, nearestTown, townLoc, townName, flag, countryName, type Town } from './game/cities';
 import { SFX, playLetter, Speech, haptic, adhan, playAyah } from './game/audio';
 import { MARK_INFO, choices, lessons, STAGES, type Lesson, type Syll } from './game/iqro';
 import { learnedSurahs } from './game/iqroquest';
@@ -1480,10 +1481,10 @@ export class UI {
     const g = this.g, t = g.realTimes, now = new Date();
     const next = PRAYERS.find(p => t[p] > now);
     body.innerHTML = `<p>${tr(`Jadwal sholat hari ini di <b>${esc(g.loc.name)}</b>:`, `Today's prayer times in <b>${esc(g.loc.name)}</b>:`)}</p>
-      <div class="ptable" style="margin-top:8px">${PRAYERS.map(p => `<div class="prow ${p === next ? 'next' : ''}"><span class="pic">${ic(PICON[p])}</span><span class="nm">${prayerName(p)}</span><span class="tm">${fmtTime(t[p], g.loc.lng)}</span></div>`).join('')}</div>
+      <div class="ptable" style="margin-top:8px">${PRAYERS.map(p => `<div class="prow ${p === next ? 'next' : ''}"><span class="pic">${ic(PICON[p])}</span><span class="nm">${prayerName(p)}</span><span class="tm">${fmtTime(t[p], g.loc.lng, g.loc.tz)}</span></div>`).join('')}</div>
       ${next ? `<p style="margin-top:8px;text-align:center">${tr('Sholat berikutnya', 'Next prayer')}: <b>${prayerName(next)}</b> · ${tr('sekitar', 'in about')} ${Math.max(1, Math.round((+t[next] - +now) / 60000))} ${tr('menit lagi', 'minutes')}</p>` : ''}
-      <div class="set"><span>${tile('map', C.red)}${tr('Kota', 'City')}</span><select id="selCity"><option value="">${esc(g.loc.name)}</option>${CITIES.map((c, i) => `<option value="${i}">${c.i} ${c.n}</option>`).join('')}<option value="gps">${ic('map')} ${tr('Pakai lokasiku', 'Use my location')}</option></select></div>
-      <div class="set"><span>${tile('clock', C.indigo)}${tr('Metode', 'Method')}</span><select id="selMethod">${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
+      <div class="set"><span>${tile('map', C.red)}${tr('Kota', 'City')}</span><button class="btn small ghost" id="selCity">${flag(g.loc.cc)} ${esc(g.loc.name)} · ${tr('Ganti', 'Change')}</button></div>
+      <div class="set"><span>${tile('clock', C.indigo)}${tr('Metode', 'Method')}</span><select id="selMethod"><option value="auto" ${g.settings.method === 'auto' ? 'selected' : ''}>${tr('Otomatis', 'Automatic')}: ${esc(methodLabel(resolveMethod('auto', g.loc.cc)))}</option>${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
       <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
       <div class="row amalBtns"><button class="btn small gold" id="prGo">🕌 ${tr('Ke masjid', 'Go to a masjid')}</button><button class="btn small ghost" id="prSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button><button class="btn small ghost" id="prWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
       <h3>${tr('Di dalam game', 'Inside the game')}</h3>
@@ -1492,14 +1493,7 @@ export class UI {
     $('#prSholat', body).onclick = () => this.poseGuide('sholat');
     $('#prGo', body).onclick = () => { this.closeBook(); setTimeout(() => this.masjidPicker(), 50); };
     $('#prWudu', body).onclick = () => this.poseGuide('wudu');
-    $<HTMLSelectElement>('#selCity', body).onchange = e => {
-      const v = (e.target as HTMLSelectElement).value;
-      if (v === 'gps') {
-        // using the device location asks for a permission: only a grown-up can turn it on
-        this.parentGate(() => navigator.geolocation?.getCurrentPosition(p => { g.setLocation({ name: tr('Lokasiku', 'My location'), lat: p.coords.latitude, lng: p.coords.longitude }); this.renderBook(); },
-          () => this.toast(tr('Lokasi tidak bisa dipakai. Pilih kota saja ya.', 'Location unavailable. Please pick a city.')), { timeout: 8000 }), () => this.renderBook());
-      } else if (v) { const c = CITIES[+v]; g.setLocation({ name: c.n, lat: c.lat, lng: c.lng }); this.renderBook(); }
-    };
+    $('#selCity', body).onclick = () => this.citySheet();
     $<HTMLSelectElement>('#selMethod', body).onchange = e => { g.settings.method = (e.target as HTMLSelectElement).value as MethodId; g.refreshTimes(); g.saveSoon(); this.renderBook(); };
     $('#tRem', body).onclick = () => { g.settings.reminders = !g.settings.reminders; g.saveSoon(); this.renderBook(); };
   }
@@ -1516,7 +1510,7 @@ export class UI {
       <div class="set"><span>${tile('globe', C.blue)}${tr('Bahasa', 'Language')}</span>${this.langSeg()}</div>
       <div class="set"><span>${tile('camera', C.gray)}${tr('Kamera', 'Camera')}</span><select id="sCam"><option value="third" ${s.cam === 'third' ? 'selected' : ''}>${tr('Orang ketiga', 'Third person')}</option><option value="first" ${s.cam === 'first' ? 'selected' : ''}>${tr('Orang pertama', 'First person')}</option></select></div>
       <div class="set"><span>${tile('eye', C.teal)}${tr('Jarak pandang', 'View distance')}</span><select id="sDist">${[3, 4, 5, 6, 8].map(n => `<option value="${n}" ${s.dist === n ? 'selected' : ''}>${n * 16} m</option>`).join('')}</select></div>
-      <div class="set"><span>${tile('sun', C.orange)}${tr('Panjang 1 hari di game', 'Length of a game day')}</span><select id="sDay">${[12, 24, 48].map(n => `<option value="${n}" ${s.dayMinutes === n ? 'selected' : ''}>${n} ${tr('menit', 'min')}</option>`).join('')}<option value="0" ${s.dayMinutes === 0 ? 'selected' : ''}>${tr('Ikuti jam asli', 'Follow the real clock')}</option></select></div>
+      <div class="set"><span>${tile('sun', C.orange)}${tr('Panjang 1 hari di game', 'Length of a game day')}</span><select id="sDay">${[12, 24, 48].map(n => `<option value="${n}" ${s.dayMinutes === n ? 'selected' : ''}>${n} ${tr('menit', 'min')}</option>`).join('')}<option value="0" ${s.dayMinutes === 0 ? 'selected' : ''}>${tr('Jam asli kotamu (waktu sholat sungguhan)', 'Real clock of your city (real prayer times)')}</option></select></div>
       <div class="set"><span>${tile('hand', C.pink)}${tr('Kepekaan geser', 'Look sensitivity')}</span><input type="range" id="sSens" min="0.4" max="2" step="0.1" value="${s.sens}"></div>
       <div class="set"><span>${tile('game', C.purple)}${tr('Mode', 'Mode')}</span><select id="sMode"><option value="adventure" ${s.mode === 'adventure' ? 'selected' : ''}>${tr('Petualangan', 'Adventure')}</option><option value="creative" ${s.mode === 'creative' ? 'selected' : ''}>${tr('Kreatif (balok tak terbatas, terbang)', 'Creative (unlimited blocks, fly)')}</option></select></div>
       <div class="row"><button class="btn ghost small" id="bHome">${ic('home')} ${tr('Pulang ke desa', 'Back to village')}</button><button class="btn ghost small" id="bShot">${ic('camera')} ${tr('Foto', 'Photo')}</button></div>
@@ -1978,6 +1972,7 @@ export class UI {
     const order = [...pool].sort(() => Math.random() - 0.5).slice(0, 5);
     const wide = stage >= 4;
     const { el, close } = this.modal(`<div class="iqro"><h2>📝 ${tr('Ujian Iqro', 'Iqro exam')} ${stage}</h2><p class="iqHow">${tr('Ayah menguji bacaanmu. Dengarkan, lalu pilih yang benar. Benar 4 dari 5 untuk lulus!', 'Dad tests your reading. Listen, then pick the right one. Get 4 of 5 right to pass!')}</p><div id="iqBody"></div><div class="row"><button class="btn ghost small" id="iqX">${tr('Nanti saja', 'Later')}</button></div></div>`, () => { Speech.stop(2); if (!finished) done(-1); });
+    this.g.goodWord('exam', true, true); // (before a test: "Tawakkaltu ‘alallah", shown, so Dad's questions aren't talked over)
     const body = $('#iqBody', el);
     $('#iqX', el).onclick = () => close();
     const show = (x: { ar: string }) => wide ? `<span class="ar exa" lang="ar" dir="rtl">${x.ar}</span>` : arImg(x.ar, { size: 40, w: 76, h: 68 });
@@ -2079,6 +2074,50 @@ export class UI {
     $('#lOk', el).onclick = () => close();
   }
 
+  /**
+   * Where the prayer times are for: search any town in the world (the Baby Mo app's offline list: country and
+   * time zone come with it, and so the calculation method), a few quick picks, or the device's location.
+   */
+  citySheet() {
+    const g = this.g;
+    const { el, close } = this.modal(`<div class="citySheet"><button class="x" aria-label="Close">${ic('x')}</button>
+      <h2>${ic('map')} ${tr('Waktu sholat untuk…', 'Prayer times for…')}</h2>
+      <p>${tr('Ketik nama kotamu. Zona waktu dan metode hitung ikut otomatis.', 'Type your town. Its time zone and calculation method come with it.')}</p>
+      <input id="cityQ" type="search" autocomplete="off" spellcheck="false" placeholder="${tr('Cari kota… (mis. Bekasi, Makkah, London)', 'Search a town… (e.g. Bekasi, Makkah, London)')}">
+      <button class="btn small ghost wide" id="cityGps">📍 ${tr('Pakai lokasiku', 'Use my location')}</button>
+      <div class="cityList" id="cityList"><div class="cityHint">${tr('Memuat daftar kota…', 'Loading the town list…')}</div></div>
+      <p class="cityCredit">${tr('Data kota', 'Town data')} © GeoNames (CC BY 4.0)</p></div>`);
+    const list = $('#cityList', el), q = $<HTMLInputElement>('#cityQ', el), L = getLang() === 'en' ? 'en' : 'id';
+    const pick = (l: ReturnType<typeof townLoc>) => { g.setLocation(l); close(); this.toast(`${flag(l.cc)} ${tr('Waktu sholat untuk', 'Prayer times for')} ${l.name}`); this.renderBook(); };
+    const quick = () => CITIES.map(c => `<button class="cityRow" data-quick="${c.n}"><span class="cf">${flag(c.cc)}</span><b>${esc(c.n)}</b><small>${esc(c.tz.split('/').pop()!.replace(/_/g, ' '))}</small></button>`).join('');
+    let towns: Town[] | null = null, shown: Town[] = [];
+    const render = () => {
+      const v = q.value.trim();
+      if (!towns || !v) { list.innerHTML = (towns ? '' : `<div class="cityHint">${tr('Memuat daftar kota…', 'Loading the town list…')}</div>`) + quick(); wire(); return; }
+      shown = searchTowns(towns, v);
+      list.innerHTML = shown.length ? shown.map((c, i) => `<button class="cityRow" data-i="${i}"><span class="cf">${flag(c.cc)}</span><b>${esc(townName(c))}</b><small>${esc(countryName(c.cc, L))}</small></button>`).join('')
+        : `<div class="cityHint">${tr('Kota tidak ditemukan. Coba nama kota terdekat yang lebih besar.', 'No town found. Try the nearest bigger town.')}</div>`;
+      wire();
+    };
+    const wire = () => list.querySelectorAll<HTMLElement>('.cityRow').forEach(b => (b.onclick = () => {
+      if (b.dataset.quick) { const c = CITIES.find(x => x.n === b.dataset.quick)!; pick({ name: c.n, lat: c.lat, lng: c.lng, tz: c.tz, cc: c.cc }); }
+      else pick(townLoc(shown[+b.dataset.i!]));
+    }));
+    q.oninput = render;
+    q.onkeydown = e => e.stopPropagation(); // (typing a town must not move the player)
+    render();
+    loadTowns().then(t => { towns = t; render(); }).catch(() => { list.querySelector('.cityHint')?.remove(); });
+    // the device's location asks for a permission: only a grown-up can use it. The spot is named after the nearest town.
+    $('#cityGps', el).onclick = () => this.parentGate(() => navigator.geolocation?.getCurrentPosition(async p => {
+      const lat = p.coords.latitude, lng = p.coords.longitude, tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      let near: ReturnType<typeof nearestTown> = null;
+      try { near = nearestTown(await loadTowns(), lat, lng); } catch { /* no list: still use the spot */ }
+      pick({ name: near && near.km < 40 ? townName(near.c) : tr('Lokasiku', 'My location'), lat, lng, tz, cc: near?.c.cc });
+    }, () => this.toast(tr('Lokasi tidak bisa dipakai. Cari kotamu saja ya.', 'Location unavailable. Please search for your town.')), { timeout: 8000 }));
+    $('.x', el).onclick = () => close();
+    setTimeout(() => q.focus(), 350);
+  }
+
   quiz() {
     const g = this.g, have = g.stats.letters;
     const ans = have[Math.floor(Math.random() * have.length)];
@@ -2100,11 +2139,14 @@ export class UI {
       const o = +b.dataset.o!;
       if (o === ans) {
         done = true; b.classList.add('right'); SFX.letter(); g.stats.quiz++; g.kid.reward('quiz'); g.amal('learn'); this.confetti(14); g.checkQuests();
+        g.praiseStreak(++this.quizStreak); // (3 right in a row: Masya Allah… 9: Allahu Akbar)
         this.toast(tr(`Benar! Itu huruf ${L.name} ⭐`, `Correct! That's ${L.name} ⭐`));
         setTimeout(() => { close(); this.quiz(); }, 1100);
-      } else { b.classList.add('wrong'); SFX.error(); this.toast(tr('Hampir! Coba lagi ya 😊', 'Almost! Try again 😊')); }
+      } else { b.classList.add('wrong'); SFX.error(); this.quizStreak = 0; this.toast(tr('Hampir! Coba lagi ya 😊', 'Almost! Try again 😊')); }
     }));
   }
+  /** right answers in a row in the letter quiz */
+  private quizStreak = 0;
 
   private lastWord = -1;
   wordGame() {

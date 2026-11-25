@@ -35,10 +35,10 @@ import { BugSwarm, type Bug } from './game/bugs';
 import { Fishing } from './game/fishing';
 import { skillLevel, hitPower, catchFor, type Skill } from './game/skills';
 import { heldModel } from './game/held';
-import { SFX, Music, Speech, audioState, haptic, adhan } from './game/audio';
+import { SFX, Music, Speech, audioState, haptic, adhan, clipFor } from './game/audio';
 import * as Save from './game/save';
 import { SAVE_VERSION, chooseSave, cleanEdits, makeExport, parseExport, type SaveMeta, type Edits } from './game/persist';
-import { timesFor, hoursOf, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
+import { timesFor, hoursOf, placeHour, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
 import { QUESTS, Stats, newStats, DUAS, CALENDAR, letterReward } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
@@ -68,7 +68,7 @@ import { IceRink } from './game/skating';
 import { IqroQuest, learnedSurahs, stagesDone, examPool, EXAM_PASS } from './game/iqroquest';
 import { applyStroke } from './game/tennispose';
 import type { Activity } from './game/activity';
-import { DZIKIR, MOMENTS, canSay } from './game/phrases';
+import { DZIKIR, MOMENTS, canSay, streakWord } from './game/phrases';
 import { English } from './game/english';
 import { Bedtime } from './game/bedtime';
 import { VILLAGE_SITE, grandSite, nearestSite, Congregation, Beacons, type MasjidSite } from './game/masjids';
@@ -84,7 +84,7 @@ import { GuideArrow } from './game/guide';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; adhan?: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean;
+  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; adhan?: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean; clockV2?: boolean; methodV2?: boolean;
   /** minutes of play between water breaks (0 = off) */
   water: number;
   /** naughty beetles at dusk (parents can turn them off) */
@@ -119,8 +119,8 @@ export class Game {
   gen!: Generator; world!: World; sky!: Sky; ents!: Entities; fx: FX; player!: Player;
   input: Input; inv = new Inventory(); ui: UI;
   settings: Settings = {
-    sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 24, sens: 1,
-    mode: 'adventure', avatar: 'boy', reminders: true, method: 'kemenag', protectVillage: true, playLimit: 60, water: 20,
+    sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 0, sens: 1,
+    mode: 'adventure', avatar: 'boy', reminders: true, method: 'auto', protectVillage: true, playLimit: 60, water: 20,
     // older/low-memory phones start in light graphics mode
     lowGfx: ((navigator as any).deviceMemory ?? 4) <= 3 || (navigator.hardwareConcurrency ?? 8) <= 4,
   };
@@ -247,15 +247,23 @@ export class Game {
    * happens, Subhanallah at something beautiful, Masya Allah for something well done, Astaghfirullah
    * after a mistake, Bismillah to begin, Insya Allah for next time. Shown and said, not too often.
    */
-  goodWord(what: string, force = false) {
+  goodWord(what: string, force = false, silent = false) {
     const m = MOMENTS[what]; if (!m) return false;
     const now = performance.now();
     if (!force && !canSay(now, this.dzAt, this.dzLast[m])) return false;
     this.dzAt = now; this.dzLast[m] = now;
     const d = DZIKIR[m];
     this.ui.dzikir(d.ar, d.say + '!', t2(d.mean));
-    if (this.settings.moVoice) Speech.talk(d.say, 'id', false, 0);
+    // Baby Mo says it in his recorded Arabic voice when there's a clip for it, else the device reads the Latin
+    // (never over a letter, a du'a or a game's own read-out, like the archery sums: then the word is only shown)
+    if (this.settings.moVoice && !silent && !Speech.busy(0)) { if (clipFor(d.ar, 'ar')) Speech.say(d.ar, d.say); else Speech.talk(d.say, 'id', false, 0); }
     return true;
+  }
+  /** a streak of right answers / good shots: praise that grows (Masya Allah → Subhanallah → Barakallahu fik → Allahu Akbar) */
+  praiseStreak(n: number) {
+    const m = streakWord(n); if (!m) return false;
+    const key = Object.keys(MOMENTS).find(k => MOMENTS[k] === m)!;
+    return this.goodWord(key, true);
   }
   /** English word cards: praise, animals, fruits */
   english!: English;
@@ -355,6 +363,12 @@ export class Game {
     this.backupEdits = res.source === 'backup' ? rawBackup.edits : undefined;
     const meta: any = res.meta;
     if (meta?.settings) Object.assign(this.settings, meta.settings);
+    // the island now follows the real clock of the player's city by default (prayer times as in real life);
+    // older saves move over once (a grown-up can still pick a fast 12/24/48-minute day in the settings)
+    if (!this.settings.clockV2) { this.settings.dayMinutes = 0; this.settings.clockV2 = true; }
+    // the method now follows the place's country by default (as in the Baby Mo app): the old default (Kemenag) becomes
+    // automatic, which is still Kemenag in Indonesia; a method a grown-up chose elsewhere is kept
+    if (!this.settings.methodV2) { const m = this.settings.method as string; this.settings.method = m === 'kemenag' ? 'auto' : m === 'ummalqura' ? 'umm' : this.settings.method; this.settings.methodV2 = true; }
     setLang(meta?.lang ?? getLang());
     this.ui.labels();
     this.ui.showStart(meta ?? null, fresh => { this.start(fresh ? null : meta).catch(e => showFatal('start', e)); });
@@ -507,7 +521,9 @@ export class Game {
     this.ui.refreshHotbar();
     this.ui.updateHud();
     this.running = true;
-    this.lastHour = this.hour;
+    // on the real clock, opening the game just after a prayer time (up to 20 minutes) still brings that prayer
+    if (!this.settings.dayMinutes) this.hour = placeHour(new Date(), this.loc.lng, this.loc.tz);
+    this.lastHour = this.settings.dayMinutes ? this.hour : (this.hour - 1 / 3 + 24) % 24;
     Music.setEnabled(this.settings.music);
     this.kid.start(!meta);
     // players who found all 28 letters before the hero suits came: show them once
@@ -593,9 +609,9 @@ export class Game {
   private timesDay = '';
   refreshTimes() {
     const now = new Date(); this.timesDay = now.toDateString();
-    this.realTimes = timesFor(this.loc.lat, this.loc.lng, now, this.settings.method);
+    this.realTimes = timesFor(this.loc.lat, this.loc.lng, now, this.settings.method, this.loc.cc);
     // the in-game day uses the same shape. Keep it sane for far-north places.
-    const hs = hoursOf(this.realTimes, this.loc.lng);
+    const hs = hoursOf(this.realTimes, this.loc.lng, this.loc.tz);
     const ok = hs.fajr < hs.sunrise && hs.sunrise < hs.dhuhr && hs.dhuhr < hs.asr && hs.asr < hs.maghrib && hs.maghrib < hs.isha;
     this.schedule = ok ? hs : { fajr: 4.6, sunrise: 5.9, dhuhr: 12, asr: 15.2, maghrib: 18, isha: 19.2 };
     this.ramadhan = ramadhanStatus(now);
@@ -1433,7 +1449,7 @@ export class Game {
 
     // time of day
     if (this.settings.dayMinutes > 0) { if (!this.jamaah?.joined) this.hour += dt * 24 / (this.settings.dayMinutes * 60); } // time waits while you pray
-    else { const n = new Date(), was = this.hour; this.hour = n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600; if (this.hour < was - 12) this.day++; } // (following the real clock: midnight starts a new game day)
+    else { const n = new Date(), was = this.hour; this.hour = placeHour(n, this.loc.lng, this.loc.tz) + n.getUTCSeconds() / 3600; if (this.hour < was - 12) this.day++; } // (following the real clock of the chosen city, the same clock as its prayer times: midnight starts a new game day)
     if (this.hour >= 24) { this.hour -= 24; this.day++; }
     this.gameTimeEvents();
 
@@ -1938,6 +1954,15 @@ export class Game {
     this.ui.duaCard(DUAS.sleep, tr('🌜 Doa sebelum tidur', '🌜 Du’a before sleeping'), () => {
       this.ui.sleepFade(true);
       setTimeout(() => {
+        if (!this.settings.dayMinutes) {
+          // on the real clock it's really night: going to bed in the game is real bedtime (the island and the
+          // prayer times keep to the real clock, so there's no skipping to the morning)
+          this.stats.slept++;
+          this.ui.sleepFade(false);
+          if (this.settings.playLimit && this.stats.play?.day === this.dayKey) { this.bedtime.sleepNow(); return; }
+          this.ui.say(tr('Selamat tidur! 🌙 Di dunia nyata juga sudah malam, waktunya tidur sungguhan. Pulaumu tersimpan, besok kita main lagi ya!', 'Goodnight! 🌙 It’s night in real life too, so it’s time to really sleep. Your island is saved: let’s play again tomorrow!'), 'ok', 8000);
+          return;
+        }
         if (this.hour > s.fajr) this.day++;
         this.hour = s.fajr + 0.05; this.lastHour = this.hour;
         this.stats.slept++;
@@ -2026,6 +2051,8 @@ export class Game {
     const first = recordAmal(log, id, new Date().toDateString(), n);
     const d = amalDeed(id); if (!d) return;
     if (!quiet) this.ui.amalPop(d, first);
+    // a kind deed (sharing, planting, helping an animal, clearing the path…): "Barakallahu fik"
+    if (!quiet && d.kind === 'kind' && id !== 'salam' && id !== 'smile') this.goodWord('helped');
     this.projects?.check();
     this.saveSoon();
   }
@@ -2079,7 +2106,8 @@ export class Game {
   private gameTimeEvents() {
     const s = this.schedule;
     for (const p of PRAYERS) {
-      if (this.crossed(s[p])) {
+      // (on the real clock, coming back to the game hours later doesn't start a prayer time long gone)
+      if (this.crossed(s[p]) && (this.settings.dayMinutes > 0 || (this.hour - s[p] + 24) % 24 < 0.5)) {
         // the villagers wait in the row until you join (or until shortly before the next prayer)
         const next = PRAYERS.map(q => s[q]).filter(h => h > s[p]).sort((a, b) => a - b)[0] ?? s.fajr + 24;
         this.gameEvent = { p, until: Math.min(s[p] + 3, next - 0.15) % 24, attended: false };
@@ -2210,7 +2238,8 @@ export class Game {
       this.addCoins(100, from => this.ui.coinPop(100, from));
       SFX.fanfare(); this.ui.confetti(40);
       this.ents.mo.celebrate = 2;
-      this.ui.say(tr('Taqabbalallahu minna wa minkum 🤲 Semoga Allah menerima sholat kita. Kamu dapat 100 koin! 🪙', 'Taqabbalallahu minna wa minkum 🤲 May Allah accept our prayer. You earned 100 coins! 🪙'), 'alright', 7000);
+this.goodWord('prayed', true);
+            this.ui.say(tr('Taqabbalallahu minna wa minkum 🤲 Semoga Allah menerima sholat kita. Kamu dapat 100 koin! 🪙', 'Taqabbalallahu minna wa minkum 🤲 May Allah accept our prayer. You earned 100 coins! 🪙'), 'alright', 7000);
       this.checkQuests(); this.saveSoon();
     }
     if (ev) { ev.prayed = true; ev.until = (this.hour + 0.15) % 24; }
@@ -2239,6 +2268,7 @@ export class Game {
 
   private realReminders() {
     if (!this.settings.reminders) return;
+    if (!this.settings.dayMinutes) return; // (on the real clock the island's own prayer time is the reminder: no second pop-up)
     const now = new Date();
     if (now.toDateString() !== this.timesDay) this.refreshTimes(); // (by the day they were worked out for: the city's time zone can differ from the device's)
     for (const p of PRAYERS) {
@@ -2247,7 +2277,7 @@ export class Game {
       const diff = (+now - +t) / 60000;
       if (diff >= 0 && diff < 10 && !this.remindersShown.has(k)) {
         this.remindersShown.add(k);
-        if (!this.ui.isOpen()) { if (this.settings.adhan === false || !adhan()) SFX.chime(); this.ui.reminder(prayerName(p), fmtTime(t, this.loc.lng), this.loc.name); }
+        if (!this.ui.isOpen()) { if (this.settings.adhan === false || !adhan()) SFX.chime(); this.ui.reminder(prayerName(p), fmtTime(t, this.loc.lng, this.loc.tz), this.loc.name); }
         return;
       }
     }

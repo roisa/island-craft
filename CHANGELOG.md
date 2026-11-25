@@ -5,6 +5,89 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Good words from Nur Connect: Barakallahu fik, Taqabbalallahu minna wa minkum, Tawakkaltu ‘alallah, praise that grows
+
+From the Islamic wording of Nur Connect (roisa/app-ayah, the Baby Mo puzzle):
+- **Three new good words**, each shown in the pill in Arabic with a reading and
+  meaning, and said by Baby Mo:
+  - **Barakallahu fik** ("May Allah bless you") after a kind deed: sharing,
+    planting, caring for animals, clearing the path, giving water or charity.
+  - **Taqabbalallahu minna wa minkum** after praying together.
+  - **Tawakkaltu ‘alallah** ("I put my trust in Allah") as Dad's Iqro exam
+    begins. It's shown without sound, so his questions aren't talked over.
+- **Praise that grows with a streak**, as in Nur Connect: in the letter quiz, 3
+  right in a row bring "Masya Allah", 5 "Subhanallah", 7 "Barakallahu fik", 9
+  "Allahu Akbar" (then every 3).
+- **Full harakat** on every good word (بِسْمِ اللهِ, الْحَمْدُ لِلَّهِ …), as in the
+  Baby Mo apps. Baby Mo now says them in his recorded Arabic voice (the app's
+  clips) instead of the device reading the Latin. He never talks over a letter, a
+  du'a or a game's own read-out (like the archery sums): then the word is only
+  shown.
+- "Tawakkaltu ‘alallah" has no clip yet: it's listed in
+  `tools/voice/missing.tsv` for the next Cloud Shell run.
+- App Store kit: the description's prayer lines now mention real prayer times
+  for your own town and the fuller list of good words, ready for the next
+  version.
+- Tested: vitest (the streak words 3/5/7/9/12/15; every word has harakat; the
+  new moments) and a smoke step: three right answers in a row show "Masya Allah"
+  with مَا شَاءَ, and planting shows "Barakallahu fik" with بَارَكَ.
+
+### Real prayer times: the island follows the real clock of your town, anywhere in the world
+
+- **The real clock is now the default.** The sun, the sky and the prayer times
+  (the bedug, the villagers walking to the masjid, praying together) follow the
+  real local time of the chosen city, so the island's Dhuhr is the real Dhuhr.
+  Older saves switch over once. A grown-up can still choose a fast 12/24/48-minute
+  game day in Settings ("Real clock of your city" is the first choice).
+- **Each city keeps its own clock.** Cities now carry their time zone, including
+  summer time. Before, a device set to Jakarta time showed Makassar's prayers
+  on Jakarta's clock. Pontianak, Manado, Ambon and Jayapura were added, so all
+  three Indonesian time zones are covered. "Use my location" uses the device's
+  time zone.
+- **A better first guess of the city.** With nothing chosen, the city comes from
+  the device's time zone (e.g. Asia/Makassar → Makassar), with no location
+  permission needed; it was always Jakarta before.
+- **Opening the game just after a prayer time** (up to 20 minutes) still starts
+  that prayer moment. Coming back hours later doesn't start one that's long gone.
+  On the real clock the island's own prayer moment is the reminder, so the
+  separate real-time reminder pop-up doesn't fire as well.
+- **Going to bed in the game at real night is real bedtime.** After the du'a,
+  Baby Mo says goodnight. With a play limit set, it ends the day like "Sleep now"
+  (with its on-time reward). No skipping to the morning: the island stays on the
+  real clock.
+- **Any town in the world, as in the Baby Mo app.** The prayer settings have a
+  town search instead of a short city list. It uses the app's own offline list:
+  27,139 towns from GeoNames, CC BY 4.0, credited in the sheet. It loads only when
+  the search opens, finds names the way families type them ("mekah" → Makkah,
+  "tangsel" → South Tangerang), and each town brings its country and time zone.
+  "Use my location" (behind the grown-up check) names the spot after the nearest
+  town and learns its country.
+- **The calculation method follows the country, as in the app.** New option
+  "Automatic: <method>", now the default: Kemenag for Indonesia, JAKIM for
+  Malaysia, MUIS for Singapore, Umm al-Qura for Saudi Arabia (Isha 2 h after
+  Maghrib in Ramadan), Diyanet for Turkey, Egypt, Karachi, ISNA and so on, with
+  Muslim World League elsewhere. Hanafi Asr in Pakistan, India, Bangladesh,
+  Afghanistan and Central Asia. Far north and south use the app's "angle based"
+  rule, and on days without a sunset or sunrise, the nearest normal day's times.
+  Twenty methods can be chosen by hand. Old saves on the old default (Kemenag)
+  switch to Automatic, which is still Kemenag in Indonesia.
+- **Checked against the app's engine.** In Kuala Lumpur, Makkah, Istanbul, London,
+  Karachi, New York, Cairo and Dubai the times match the app to within a minute.
+  In Indonesia the game keeps Kemenag's ihtiyat (+2 min, Dhuhr +3), as in the
+  schedules Kemenag publishes; the app doesn't add these.
+- Tested: tsc, vitest 292/292 (new: the method by country; Hanafi Asr; the town
+  list loads with a time zone for every town; searching "bekasi", "mekah",
+  "tangsel", "makassar", "london"; naming a GPS spot; Tromsø at midsummer). New
+  smoke step: searching Bekasi and Makkah in the sheet sets the town, time zone
+  and country, and Makkah's Isha comes 90 minutes after Maghrib. Earlier
+  checks: vitest 286/286 (every city's time zone; Jakarta / Makassar /
+  Denpasar / Jayapura hours; London summer time; the fall-back to longitude;
+  guessing the city from the device's time zone; Makassar's Dhuhr on its own
+  clock), and a new smoke step: the island's hour matches the city's real time,
+  its Dhuhr matches the computed real Dhuhr, and Makassar runs an hour ahead of
+  Jakarta. The other smoke steps set the hour themselves, so they now use a game
+  day.
+
 ### A celebrating letter card, tappable vowel cards, clearer letter sounds, kid-friendly buttons and sheets
 
 - **Finding a letter is a celebration.** The letter pops out on a gold 3D tile with

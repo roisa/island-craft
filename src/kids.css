@@ -131,3 +131,17 @@
 .quizOpts button { border: 0 !important; border-radius: 22px !important; background: linear-gradient(180deg, #FFFDF6, #FFF1C9) !important;
   box-shadow: 0 6px 0 #E3B341, inset 0 0 0 3px #FFD35A, 0 14px 20px -12px rgba(200, 140, 0, .55) !important; transition: transform .09s ease-out, box-shadow .09s ease-out; }
 .quizOpts button:active { transform: translateY(5px); box-shadow: 0 1px 0 #E3B341, inset 0 0 0 3px #FFD35A !important; }
+
+/* where the prayer times are for: the town search */
+.citySheet h2 { padding-right: 48px; }
+.citySheet #cityQ { width: 100%; margin: 10px 0 8px; padding: 13px 16px; font: 800 16px var(--ui, Nunito), sans-serif; border-radius: 16px; border: 0;
+  background: rgba(120,120,128,.12); outline: none; -webkit-appearance: none; appearance: none; }
+.citySheet #cityQ:focus { box-shadow: 0 0 0 3px rgba(10,132,255,.35); background: #fff; }
+.citySheet .cityList { margin-top: 10px; max-height: min(46vh, 360px); overflow: auto; border-radius: 18px; background: rgba(120,120,128,.07); padding: 4px; }
+.citySheet .cityRow { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; border-radius: 14px; background: transparent; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.citySheet .cityRow:active, .citySheet .cityRow:hover { background: rgba(10,132,255,.1); }
+.citySheet .cityRow .cf { font-size: 22px; line-height: 1; }
+.citySheet .cityRow b { font-size: 15.5px; font-weight: 900; }
+.citySheet .cityRow small { margin-left: auto; font-size: 12px; font-weight: 800; color: #6B7280; }
+.citySheet .cityHint { padding: 14px; text-align: center; font-weight: 800; color: #6B7280; font-size: 13.5px; }
+.citySheet .cityCredit { font-size: 11px !important; margin-top: 8px; text-align: center; opacity: .7; }

@@ -49,6 +49,9 @@ async function run(name) {
     await step('start a new world', async () => {
       touch ? await p.tap('#sPlay') : await p.click('#sPlay');
       await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+      // (a new world follows the real clock; the steps below set the game's hour themselves, so they use a game day)
+      const realClock = await g(() => { const G = __game, was = G.settings.dayMinutes; G.settings.dayMinutes = 24; return was; });
+      if (realClock !== 0) throw new Error('a new world should follow the real clock, dayMinutes=' + realClock);
       await p.waitForTimeout(1500);
       return await g(() => ({ chunks: __game.world.chunks.size, animals: __game.ents.animals.length, npcs: __game.ents.npcs?.length }));
     });
@@ -216,6 +219,8 @@ async function run(name) {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.telescope('stars'); });
       await p.waitForSelector('.veil.on [data-c="triangle"]');
       await g(() => document.querySelector('.veil.on [data-c="triangle"]').click());
+      // (the sheet springs in: measure the stars only once it has settled)
+      await g(() => Promise.all(document.querySelector('.veil.on .panel').getAnimations().map(a => a.finished)));
       await p.waitForTimeout(150);
       const pts = await g(() => { const cv = document.querySelector('.veil.on #scSky'); cv.scrollIntoView({ block: 'center' }); const b = cv.getBoundingClientRect(); return [[30, 22], [74, 16], [52, 78], [30, 22]].map(([x, y]) => [b.left + (20 + x / 100 * 300) * b.width / 340, b.top + (15 + y / 100 * 200) * b.height / 230]); });
       for (const [x, y] of pts) { touch ? await p.touchscreen.tap(x, y) : await p.mouse.click(x, y); await p.waitForTimeout(120); }
@@ -1116,7 +1121,7 @@ async function run(name) {
       };
       await g(() => __game.ui.closeAllModals());
       await gate(() => __game.photo());
-      await gate(() => { __game.ui.openBook('prayer'); const s = document.querySelector('#selCity'); s.value = 'gps'; s.dispatchEvent(new Event('change')); });
+      await gate(() => { __game.ui.closeAllModals(); __game.ui.citySheet(); document.querySelector('.veil.on #cityGps').click(); });
       const city = await g(() => { const s = __game.settings; return s.city ?? s.location?.name ?? null; });
       await g(() => { __game.ui.closeBook(); __game.ui.closeAllModals(); });
       return { city };
@@ -1238,6 +1243,62 @@ async function run(name) {
       if (!/voice\/fix-hijaiyah-/.test(after.clip || '')) throw new Error('ba should play the trimmed clip: ' + after.clip);
       await g(() => __game.ui.closeAllModals());
       return { before, after };
+    });
+    await step('real clock: the island keeps the chosen city\'s time and its real prayer times; Makassar is an hour ahead of Jakarta', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.settings.dayMinutes = 0;
+        G.setLocation({ name: 'Jakarta', lat: -6.2088, lng: 106.8456 });
+        return { loc: G.loc.name };
+      });
+      await p.waitForTimeout(400);
+      const jkt = await g(() => { const G = __game, n = new Date(), want = ((n.getUTCHours() + n.getUTCMinutes() / 60 + 7) % 24); return { hour: G.hour, want, dhuhr: G.schedule.dhuhr, real: (G.realTimes.dhuhr.getUTCHours() + G.realTimes.dhuhr.getUTCMinutes() / 60 + 7) % 24 }; });
+      await g(() => __game.setLocation({ name: 'Makassar', lat: -5.1477, lng: 119.4327 }));
+      await p.waitForTimeout(400);
+      const mks = await g(() => ({ hour: __game.hour }));
+      const near = (a, b, e = 0.05) => Math.abs(((a - b + 36) % 24) - 12) < e || Math.abs(a - b) < e;
+      if (!near(jkt.hour, jkt.want) || !near(jkt.dhuhr, jkt.real, 0.02) || !near(mks.hour, (jkt.hour + 1) % 24, 0.05)) throw new Error(JSON.stringify({ jkt, mks }));
+      await g(() => { const G = __game; G.settings.dayMinutes = 24; G.setLocation({ name: 'Jakarta', lat: -6.2088, lng: 106.8456 }); G.hour = 9; G.lastHour = 9; });
+      return { jkt, mks };
+    });
+    await step('prayer place: search any town in the world (as in the Baby Mo app); its time zone and method come with it', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.method = 'auto'; G.ui.citySheet(); });
+      await popup('#cityQ');
+      await p.waitForFunction(() => window.BMCitiesData && document.querySelectorAll('.veil.on .cityRow').length > 10, null, { timeout: 30000, polling: 200 });
+      const pickTown = async q => {
+        await g(q => { const i = document.querySelector('.veil.on #cityQ'); i.value = q; i.dispatchEvent(new Event('input')); }, q);
+        await p.waitForFunction(() => document.querySelector('.veil.on .cityRow[data-i]'), null, { timeout: 5000 });
+        await g(() => document.querySelector('.veil.on .cityRow[data-i]').click());
+        return await g(() => { const G = __game; return { name: G.loc.name, tz: G.loc.tz, cc: G.loc.cc, hour: +G.hour.toFixed(2), isha: +G.schedule.isha.toFixed(2) }; });
+      };
+      const bekasi = await pickTown('bekasi');
+      await g(() => __game.ui.citySheet()); await popup('#cityQ');
+      const makkah = await pickTown('mekah');
+      if (bekasi.name !== 'Bekasi' || bekasi.tz !== 'Asia/Jakarta' || bekasi.cc !== 'ID' || makkah.name !== 'Makkah' || makkah.tz !== 'Asia/Riyadh' || makkah.cc !== 'SA') throw new Error(JSON.stringify({ bekasi, makkah }));
+      // the method follows the country: Makkah's Isha is 90 min after Maghrib (Umm al-Qura)
+      const umm = await g(() => { const G = __game; return Math.round((+G.realTimes.isha - +G.realTimes.maghrib) / 60000); });
+      if (umm !== 90 && umm !== 120) throw new Error('Umm al-Qura Isha should be 90 (120 in Ramadan) minutes after Maghrib: ' + umm);
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.setLocation({ name: 'Jakarta', lat: -6.2088, lng: 106.8456, tz: 'Asia/Jakarta', cc: 'ID' }); G.hour = 9; G.lastHour = 9; });
+      return { bekasi, makkah, umm };
+    });
+    await step('good words: three right in a row in the letter quiz brings "Masya Allah", a kind deed "Barakallahu fik" (with their Arabic)', async () => {
+      const r = await g(async () => {
+        const G = __game, sleep = ms => new Promise(r => setTimeout(r, ms));
+        // (with one letter found, the quiz's answer is that letter)
+        const keep = G.stats.letters; G.ui.closeAllModals(); G.stats.letters = [5]; G.ui.quizStreak = 0; G.dzAt = 0; G.dzLast = {};
+        for (let i = 0; i < 3; i++) {
+          G.ui.closeAllModals(); G.ui.quiz(); await sleep(60);
+          document.querySelector('.veil.on [data-o="5"]').click(); await sleep(30);
+        }
+        G.stats.letters = keep;
+        const pill = document.querySelector('#dzikir');
+        const streak = { say: pill.querySelector('.dsay').textContent, ar: pill.querySelector('.dar').textContent, n: G.ui.quizStreak };
+        G.ui.closeAllModals(); G.dzAt = 0; G.dzLast = {}; G.amal('plant');
+        const deed = { say: pill.querySelector('.dsay').textContent, ar: pill.querySelector('.dar').textContent };
+        G.ui.closeAllModals();
+        return { streak, deed };
+      });
+      if (!/Masya Allah/.test(r.streak.say) || !/مَا شَاءَ/.test(r.streak.ar) || !/Barakallahu fik/.test(r.deed.say) || !/بَارَكَ/.test(r.deed.ar)) throw new Error(JSON.stringify(r));
+      return r;
     });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
