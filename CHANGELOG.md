@@ -13,8 +13,8 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 - The **app icon** is the new Baby Mo waving over "Mo Craft" on the same teal
   sky: web icons, the maskable Android icon (kept inside the safe circle), the
   iOS icon and the favicon. `node tools/icon/make-icon.mjs` remakes them all.
-- The family renders are kept in `art/reference/` for future use (Baby Mo, the
-  girl in the pink hijab, the dad, the boy in the blue hoodie, and the three
+- The family renders are kept in `art/reference/` for future use (Baby Mo, Baby
+  Ais, Ibrahim, Adam's front/side/back sheet, and Ibrahim, Mo and Ais
   together), cleaned of the specks left by the background removal.
 - Tested: screenshots of the opening page on an iPhone in portrait and
   landscape; the icons checked by eye.
