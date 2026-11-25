@@ -21,7 +21,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,7 +37,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser smoke test (desktop, phone, tablet profiles)
         run: npm run smoke
-        timeout-minutes: 20
+        # (all four profiles take about 21 minutes now that the suite covers the prayer pause and its masjid scene)
+        timeout-minutes: 32
       - name: Push the build to gh-pages
         run: |
           cp -r appstore dist/appstore   # App Store kit: website only, not in the iOS app

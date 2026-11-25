@@ -22,6 +22,9 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 - Tests: the prayer-pause smoke step also checks the scene (inside a masjid,
   Baby Mo in the row) and that you're back in your place afterwards.
   Screenshots of both masjids on an iPhone checked by eye.
+- CI: the browser smoke test (desktop, phone, tablet, Android) now takes about
+  21 minutes, past its 20-minute limit while every step was passing; the limit
+  is 32 minutes (the whole job 50).
 
 ### The game pauses for prayer (as in the Baby Mo app's games)
 
