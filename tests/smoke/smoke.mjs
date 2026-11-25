@@ -850,7 +850,8 @@ async function run(name) {
       await g(() => document.querySelector('#bMasjid').click());
       await wait('picker', () => !!document.querySelector('.veil.on #dbtns button') || (__game.ui.closeAllModals(), __game.ui.masjidPicker(), false), null, 15000);
       await g(() => [...document.querySelectorAll('.veil.on #dbtns button')].find(b => /Masjid Raya|Grand Masjid/.test(b.textContent)).click());
-      await wait('travel', L => Math.hypot(__game.player.pos.x - L.x, __game.player.pos.z - L.z) < 25, L, 8000);
+      // (the trip there can take a while on a slow machine: the same 15 s as the other waits here)
+      await wait('travel', L => Math.hypot(__game.player.pos.x - L.x, __game.player.pos.z - L.z) < 25, L, 15000);
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       // into your place in the men's row: the prayer starts with a full masjid
       await g(L => { const G = __game; G.ui.closeAllModals(); G.wuduDone(); G.player.pos.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); }, L);
