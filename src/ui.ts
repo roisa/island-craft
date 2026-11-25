@@ -564,12 +564,19 @@ export class UI {
   }
 
   // ---------- the Amal Book ----------
-  private amalQ: { d: Deed; first: boolean }[] = []; private amalBusy = false;
+  private amalQ: { d: Deed; first: boolean }[] = []; private amalBusy = false; private amalNow: { el: HTMLElement; t: number } | null = null;
   /** a small "✨ Praying together ×27" chip; the first time, a card with what Rasulullah ﷺ said */
   amalPop(d: Deed, first: boolean) {
     // (the first time used to open a card with the hadith in the middle of play — a lot of reading for a child:
     // now a slightly longer chip says it's new in the Amal Book, where the hadith is, read aloud on a tap)
-    if (first) { this.amalQ.unshift({ d, first }); if (!this.amalBusy) this.nextAmal(); return; }
+    // a new deed shows right away: an ordinary chip on screen makes way for it
+    if (first) {
+      this.amalQ.unshift({ d, first });
+      const now = this.amalNow;
+      if (now && !now.el.classList.contains('new')) { clearTimeout(now.t); now.el.remove(); this.amalNow = null; this.nextAmal(); }
+      else if (!this.amalBusy) this.nextAmal();
+      return;
+    }
     if (this.amalQ.length < 4) this.amalQ.push({ d, first });
     if (!this.amalBusy) this.nextAmal();
   }
@@ -592,7 +599,8 @@ export class UI {
     // a tap on a new deed's chip opens its card with the hadith
     if (it.first) { el.style.pointerEvents = 'auto'; el.style.cursor = 'pointer'; el.onclick = () => { el.remove(); this.amalCard(it.d); }; }
     document.body.appendChild(el); it.first ? SFX.chime() : SFX.pop(6);
-    setTimeout(() => { el.remove(); this.nextAmal(); }, it.first ? 3400 : 1900);
+    const t = window.setTimeout(() => { el.remove(); this.amalNow = null; this.nextAmal(); }, it.first ? 3400 : 1900);
+    this.amalNow = { el, t };
   }
   /** a tasbih: tap 33 times */
   tasbih() {
@@ -1681,7 +1689,7 @@ export class UI {
       <button class="btn ghost small hidden" id="pPrev">${ic('undo')} ${tr('Kembalikan dunia sebelumnya', 'Bring back the previous world')}</button>
       <input type="file" id="pFile" accept=".json,application/json" hidden>
       <button class="btn ghost small" id="pNew">${ic('globe')} ${tr('Buat dunia baru (hapus dunia ini)', 'New world (deletes this one)')}</button>
-      <button class="btn small" id="pOk">${tr('Selesai', 'Done')}</button>`, undefined, { now: true }); // a grown-up just passed the check: show it now, ahead of any queued pop-up
+      <button class="btn wide" id="pOk">${tr('Selesai', 'Done')}</button>`, undefined, { now: true }); // a grown-up just passed the check: show it now, ahead of any queued pop-up
     const tog = (id: string, k: 'protectVillage' | 'lowGfx' | 'reminders') => ($('#' + id, el).onclick = e => { s[k] = !s[k]; (e.currentTarget as HTMLElement).classList.toggle('on', s[k]); g.applySettings(); });
     tog('pProt', 'protectVillage'); tog('pLow', 'lowGfx'); tog('pRem', 'reminders');
     $('#pBug', el).onclick = e => { s.beetles = s.beetles === false; (e.currentTarget as HTMLElement).classList.toggle('on', s.beetles !== false); g.saveSoon(); };

@@ -1,43 +1,62 @@
-/* ================= Kids UI: iOS Liquid Glass buttons, iOS-style sheets, a celebrating letter card =================
+/* ================= Kids UI: the Baby Mo app’s buttons, iOS-style sheets, a celebrating letter card =================
    Loaded last (after ios.css), so these win. Big enough for small fingers, never stretched across a whole sheet. */
 
-/* ---------- buttons: iOS "Liquid Glass" capsules, sized to their label ----------
-   Prominent buttons are tinted glass (colour with a soft specular sheen and a gentle glow), secondary ones clear
-   frosted glass; a press shrinks a little and brightens, like iOS. Big enough for small fingers. */
-.btn { position: relative; isolation: isolate; overflow: hidden; min-height: 52px; padding: 12px 24px; font-size: 17px; font-weight: 800 !important;
-  letter-spacing: -.01em; border-radius: 999px !important; border: 0 !important;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1.15; text-shadow: none !important;
-  transition: transform .18s cubic-bezier(.3, 1.4, .5, 1), filter .18s, box-shadow .18s !important; -webkit-tap-highlight-color: transparent; }
-/* the glass sheen along the top edge */
-.btn::before { content: ''; position: absolute; inset: 1px 1px 50% 1px; border-radius: 999px 999px 40% 40% / 999px 999px 100% 100%; z-index: -1; pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0)); opacity: .9; }
-.btn:not(.gold):not(.ghost) { color: #fff !important; background: linear-gradient(180deg, rgba(64, 156, 255, .96), rgba(10, 122, 255, .96)) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 -6px 14px -8px rgba(0, 40, 120, .45), 0 8px 22px -8px rgba(10, 122, 255, .65) !important; }
-.btn.gold { color: #3B2500 !important; background: linear-gradient(180deg, rgba(255, 222, 92, .97), rgba(255, 186, 18, .97)) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45), inset 0 -6px 14px -8px rgba(150, 90, 0, .45), 0 8px 22px -8px rgba(240, 160, 0, .6) !important; }
-.btn.ghost { color: #0A7AFF !important; background: rgba(255,255,255,.55) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(190%); backdrop-filter: blur(20px) saturate(190%);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.85), inset 0 -8px 16px -12px rgba(60, 90, 140, .35), 0 6px 18px -10px rgba(20, 40, 80, .35) !important; }
-.panel .btn.ghost { background: rgba(120, 130, 150, .12) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7) !important; }
-.btn:active { transform: scale(.95) !important; filter: brightness(1.08) saturate(1.05); }
-.btn.small { min-height: 42px; padding: 8px 16px; font-size: 15px; }
-.btn.big { min-height: 60px; font-size: 20px; }
+/* ---------- buttons: the Baby Mo app's own "Main lagi / Play again" button ----------
+   The same capsule as the app's games (babymo-puzzle, hijaiyah, memory match, kata baik): the main button is a
+   green -> teal -> blue capsule with a glossy top half and a slow shine sweeping across; the smaller choices are
+   white pills; a press springs in a little. Big enough for small fingers, sized to its label. */
+.btn { position: relative; isolation: isolate; overflow: hidden; min-height: 54px; padding: 0 22px; font: 800 17px/1.15 'Nunito', system-ui, sans-serif !important;
+  border-radius: 999px !important; border: 1px solid rgba(255,255,255,.22) !important;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; -webkit-tap-highlight-color: transparent; cursor: pointer;
+  transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), box-shadow .18s ease !important; }
+/* the glossy top half */
+.btn::before { content: ''; position: absolute; left: 3%; right: 3%; top: 1px; height: 50%; border-radius: 999px 999px 40% 40%; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0)); }
+/* the shine that sweeps across now and then */
+.btn::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -40%; width: 28%; z-index: -1; pointer-events: none; transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.24), transparent); animation: bmBtnShine 7s ease-in-out 1.5s infinite; }
+@keyframes bmBtnShine { 0%, 62% { left: -40%; } 82%, 100% { left: 125%; } }
+.btn:not(.gold):not(.ghost) { color: #fff !important; background: linear-gradient(120deg, #16B46A 0%, #0A9C8C 52%, #0A84B8 100%) !important;
+  text-shadow: 0 1px 1px rgba(0, 70, 45, .22) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0, 60, 70, .18), 0 10px 22px -12px rgba(10, 143, 160, .55) !important; }
+.btn.gold { color: #3A2400 !important; background: linear-gradient(120deg, #FFD95A 0%, #FFC233 52%, #FFA41F 100%) !important; text-shadow: 0 1px 0 rgba(255,255,255,.35) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(150, 90, 0, .2), 0 10px 22px -12px rgba(230, 150, 10, .6) !important; }
+/* the smaller choices: white pills, no shine */
+.btn.ghost { color: #2A3446 !important; background: rgba(255,255,255,.92) !important; border-color: rgba(20, 30, 60, .10) !important; text-shadow: none !important;
+  font-size: 15.5px !important; min-height: 46px; box-shadow: 0 6px 14px -10px rgba(20, 30, 60, .45) !important; }
+.btn.ghost::before, .btn.ghost::after, .btn.small::after { display: none; }
+.btn:active { transform: scale(.96) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 14px -10px rgba(10, 143, 160, .5) !important; }
+.btn.ghost:active { transform: scale(.95) !important; box-shadow: 0 3px 8px -6px rgba(20, 30, 60, .4) !important; }
+.btn.small { min-height: 44px; padding: 0 16px; font-size: 15px !important; }
+.btn.big { min-height: 60px; font-size: 20px !important; }
 /* in a sheet: as wide as it needs to be (comfortable), never a long bar across the whole sheet */
 .panel .btn { width: auto; max-width: 100%; }
 .panel > .btn:not(.small), .panel > div > .btn:not(.small):only-child, .panel .btn.wide { display: flex; width: min(100%, 340px); margin-left: auto; margin-right: auto; }
 .panel .row { justify-content: center; flex-wrap: wrap; }
 .panel .row > .btn { flex: 1 1 0; min-width: 132px; max-width: 260px; }
-@media (prefers-reduced-motion: reduce) { .btn { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none !important; } .btn::after { animation: none; display: none; } }
 
-/* ---------- sheets: iOS-style liquid glass, springing in ---------- */
-.veil { background: radial-gradient(120% 90% at 50% 40%, rgba(10, 25, 45, .18), rgba(5, 15, 30, .42)) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(140%) !important; backdrop-filter: blur(10px) saturate(140%) !important; }
+/* ---------- sheets: iOS Liquid Glass, springing in ----------
+   See-through glass over a lightly dimmed island: the game's colours glow through, blurred and saturated; a bright
+   rim, a soft sheen across the top and an inner glow give it depth. Text stays dark and readable. */
+.veil { background: radial-gradient(120% 90% at 50% 40%, rgba(10, 25, 45, .08), rgba(5, 15, 30, .3)) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(120%) !important; backdrop-filter: blur(3px) saturate(120%) !important; }
 .panel { border-radius: 36px !important; padding: 20px 20px 22px !important;
-  background: linear-gradient(180deg, rgba(255,255,255,.93), rgba(246,248,252,.9)) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(190%) !important; backdrop-filter: blur(40px) saturate(190%) !important;
-  box-shadow: 0 40px 90px -30px rgba(0, 20, 50, .55), 0 0 0 1px rgba(255,255,255,.75), inset 0 1px 0 #fff !important; }
+  background: linear-gradient(160deg, rgba(255,255,255,.74) 0%, rgba(255,255,255,.56) 45%, rgba(246,250,255,.62) 100%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(210%) brightness(1.06) !important; backdrop-filter: blur(30px) saturate(210%) brightness(1.06) !important;
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.55), inset 0 -24px 48px -36px rgba(255,255,255,.9),
+    inset 0 30px 60px -50px rgba(120, 180, 255, .35), 0 40px 90px -30px rgba(0, 20, 50, .5), 0 2px 8px rgba(0, 20, 50, .08) !important; }
+/* the glass sheen: a soft light across the top of the sheet (it doesn't take taps) */
+.veil.on > .panel::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 140px; border-radius: 36px 36px 0 0; pointer-events: none;
+  background: radial-gradient(120% 100% at 30% -20%, rgba(255,255,255,.65), rgba(255,255,255,0) 60%); z-index: 0; }
+.veil.on > .panel > * { position: relative; z-index: 1; }
+.veil.on > .panel > .x { position: absolute; z-index: 2; }
+/* cards inside a sheet: lighter glass too */
+.panel .recipe, .panel .qcard, .panel .prow, .panel .report div, .panel .wd, .panel .day, .panel .adv, .panel .jr, .panel .set {
+  background: rgba(255,255,255,.5) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.panel .set { border-radius: 16px; padding-left: 10px; padding-right: 10px; margin-bottom: 6px; border-bottom: 0 !important; }
+.panel .prow.next { background: rgba(52, 199, 89, .16) !important; }
+@media (prefers-reduced-transparency: reduce) { .panel { background: #f7f9fc !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } .veil.on > .panel::after { display: none; } }
 .veil.on > .panel { animation: sheetIn .42s cubic-bezier(.2, 1.25, .35, 1) both !important; }
 @keyframes sheetIn { 0% { transform: translateY(26px) scale(.9); opacity: 0; filter: blur(4px); } 60% { opacity: 1; filter: blur(0); } 100% { transform: none; opacity: 1; } }
 .panel h2 { font-size: 23px; letter-spacing: -.02em; }

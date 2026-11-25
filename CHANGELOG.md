@@ -5,6 +5,28 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Buttons like the Baby Mo app; glass pop-up windows
+
+- **Buttons** now match the Baby Mo app's own "Main lagi / Play again" button
+  (the same capsule as its puzzle, hijaiyah, memory-match and kata-baik games).
+  The main button is a green, teal and blue capsule with a glossy top half and
+  a slow shine sweeping across now and then; gold buttons share the same shape
+  in gold; the smaller choices are white pills with no shine. A press springs
+  in a little. The shine stops when the device asks for reduced motion.
+- **Pop-up windows** are frosted glass: the game shows softly blurred through
+  the sheet, with a light rim and sheen, and the cards inside are glass too.
+  With "Reduce transparency" on, they are solid.
+- The parents panel's Done button is centred and full size.
+- A new good deed's chip shows right away: an ordinary chip on screen makes
+  way for it (before, it could wait behind it for two seconds).
+- A device set to UTC (or another `Etc/` zone) no longer counts as a known
+  place: the game asks for the town, as it does when the zone is unknown.
+- Tests: `guessCity('UTC')` and `Etc/GMT+3` unit checks. The smoke real-clock
+  step waits for Jakarta's hour the same way it waits for Makassar's, closing
+  any pop-up that would pause the game. Screenshots of the start screen, the
+  letter card and the parents panel on an iPhone checked by eye; 298 unit
+  tests and the desktop and iPhone smoke runs pass.
+
 ### Cloud Shell makes Baby Mo's guidance too (Indonesian & English)
 
 - `bash tools/voice/cloudshell.sh` now also makes **Baby Mo's guidance**: the

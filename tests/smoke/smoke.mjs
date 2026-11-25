@@ -1251,7 +1251,8 @@ async function run(name) {
         G.setLocation({ name: 'Jakarta', lat: -6.2088, lng: 106.8456 });
         return { loc: G.loc.name };
       });
-      await p.waitForTimeout(400);
+      // (as for Makassar below: wait for the island's hour, closing any pop-up that would pause the game)
+      await p.waitForFunction(() => { const G = __game, n = new Date(), want = (n.getUTCHours() + n.getUTCMinutes() / 60 + 7) % 24; G.ui.closeAllModals(); const d = Math.abs(G.hour - want); return Math.min(d, 24 - d) < 0.1; }, null, { timeout: 5000, polling: 100 }).catch(() => {});
       const jkt = await g(() => { const G = __game, n = new Date(), want = ((n.getUTCHours() + n.getUTCMinutes() / 60 + 7) % 24); return { hour: G.hour, want, dhuhr: G.schedule.dhuhr, real: (G.realTimes.dhuhr.getUTCHours() + G.realTimes.dhuhr.getUTCMinutes() / 60 + 7) % 24 }; });
       await g(() => __game.setLocation({ name: 'Makassar', lat: -5.1477, lng: 119.4327 }));
       // (the island's hour follows on the next frames; a pop-up that came up meanwhile would pause the game: close it)

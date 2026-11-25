@@ -224,7 +224,9 @@ export function guessCity(zone = (() => { try { return Intl.DateTimeFormat().res
   // a zone the quick list doesn't know: Jakarta's place for now, on the device's own clock, until the game
   // finds the biggest town in that zone (main.ts guessTownFromZone)
   const j = CITIES[0];
-  return { name: j.n, lat: j.lat, lng: j.lng, tz: zone || j.tz, cc: j.cc, guess: 'unknown' };
+  // (a zone with no place, like "UTC" or "Etc/GMT+3": Jakarta on its own clock, so its times read right)
+  if (!zone || !zone.includes('/') || /^(Etc|UTC|GMT)\b/i.test(zone)) return { name: j.n, lat: j.lat, lng: j.lng, tz: j.tz, cc: j.cc, guess: 'zone' };
+  return { name: j.n, lat: j.lat, lng: j.lng, tz: zone, cc: j.cc, guess: 'unknown' };
 }
 export function saveLocation(l: Loc) {
   try { localStorage.setItem('bmic_loc', JSON.stringify(l)); } catch { /* ignore */ }

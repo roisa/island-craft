@@ -69,6 +69,9 @@ describe('the real clock of the chosen city', () => {
     // a zone the quick list doesn't know: the device's own clock, marked so the game picks the biggest town in that zone
     expect(guessCity('America/New_York')).toMatchObject({ tz: 'America/New_York', guess: 'unknown' });
     expect(guessCity('Asia/Makassar').guess).toBe('zone');
+    // a zone with no place (UTC): Jakarta on Jakarta's own clock, not Jakarta's times shown in UTC
+    expect(guessCity('UTC')).toMatchObject({ name: 'Jakarta', tz: 'Asia/Jakarta' });
+    expect(guessCity('Etc/GMT+3').tz).toBe('Asia/Jakarta');
   });
   it("Dhuhr in Makassar, on Makassar's clock, is around midday", () => {
     const c = CITIES.find(x => x.n === 'Makassar')!;
