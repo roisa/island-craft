@@ -551,7 +551,7 @@ async function run(name) {
           res.popped = L.fly === -1 && !L.mesh.visible;
           res.read = R.read; res.set = R.set.slice(); res.said = window.__said; res.letters = R.letters.length;
           R.total = R.laps * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 0.6;
-          for (let i = 0; i < 40 && R.phase !== 'done'; i++) await wait(100);
+          for (let i = 0; i < 40 && R.phase !== 'done'; i++) { if (G.ui.isOpen() && R.phase !== 'done') G.ui.closeAllModals(); await wait(100); } // (a card popping up would pause the race)
           res.done = R.phase === 'done';
           res.dialog = (document.querySelector('.veil.on .who')?.textContent || '').slice(0, 40);
           return res;
@@ -1324,8 +1324,9 @@ async function run(name) {
       if (!/^(village|grand)$/.test(a.scene) || !a.inMasjid || !a.moRow) throw new Error('no prayer scene: ' + JSON.stringify(a));
       if (!a.card || !/Maghrib/.test(a.title) || !/poses\/s0/.test(a.mo) || !a.disabled || !/\d:\d\d/.test(a.wait) || !a.paused || !a.timerStill) throw new Error(JSON.stringify(a));
       // closed some other way, it comes back until the child has prayed
+      // (another pop-up that comes up meanwhile pauses the game, and the card waits behind it: close that one)
       await g(() => __game.ui.closeAllModals());
-      await p.waitForFunction(() => !!document.querySelector('.veil.on .prayHold'), null, { timeout: 5000 });
+      await p.waitForFunction(() => { if (document.querySelector('.veil.on .prayHold')) return true; if (__game.ui.isOpen()) __game.ui.closeAllModals(); return false; }, null, { timeout: 10000, polling: 200 });
       // the wait is over: the button opens, and a tap lets play go on with the same time left
       await g(() => { __game.stats.prayHold.openAt = Date.now() - 1; });
       await p.waitForFunction(() => document.querySelector('#phOk') && !document.querySelector('#phOk').disabled, null, { timeout: 4000 });
