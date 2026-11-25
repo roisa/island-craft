@@ -44,7 +44,7 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
   Baby Mo says with fixed wording: the tutorial steps (touch and keyboard), the
   prayer-time lines, the game instructions, bedtime, flying and so on. It lists
   each sentence that has no recording yet in the Mo · ID and Mo · EN tabs. The
-  tutorial comes first ("Tutorial · record first", 18 sentences), then 400+
+  tutorial comes first ("Tutorial · record first", 18 sentences), then about 240
   more. New lines join the list automatically whenever the page data is rebuilt.
 - **Mo speaks a line from recordings, sentence by sentence.** When every
   sentence of a line has a recording, Mo plays them one after another in that
