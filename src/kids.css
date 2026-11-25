@@ -198,3 +198,19 @@
 .prayHold .btn[disabled] { filter: grayscale(.55) opacity(.6); pointer-events: none; }
 .prayHold .btn[disabled]::after { display: none; }
 @media (max-height: 520px) { .prayHold .phMo { height: 84px; } .prayHold .phAr { font-size: 26px; } .prayHold h2 { font-size: 20px; } .prayHold .phTxt { font-size: 14px; } }
+
+/* the prayer scene shows through: no blur over the masjid, the card sits low, the game buttons step aside */
+.veil.prayVeil { place-items: end center !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  background: linear-gradient(180deg, rgba(5, 15, 30, 0) 30%, rgba(5, 15, 30, .35) 100%) !important; }
+.veil.prayVeil > .panel { margin-bottom: max(14px, env(safe-area-inset-bottom)); max-height: 66vh; }
+.veil.prayVeil > .panel::before { display: none; }
+.veil.prayVeil .prayHold { gap: 2px; }
+.veil.prayVeil .prayHold .phMo { height: 64px; margin: 0 0 -4px; }
+.veil.prayVeil .prayHold .phAr { font-size: 23px; line-height: 1.3; }
+.veil.prayVeil .prayHold h2 { font-size: 20px; }
+.veil.prayVeil .prayHold .phTag { font-size: 13.5px; padding: 4px 13px; }
+.veil.prayVeil > .panel { padding-top: 12px; padding-bottom: 12px; }
+.veil.prayVeil .prayHold .phTxt { font-size: 14px; line-height: 1.35; margin-top: 2px; }
+.veil.prayVeil .prayHold .phWait { margin: 4px 0 2px; }
+html.prayScene #hud, html.prayScene #hotbarWrap, html.prayScene #hotbar, html.prayScene .moHost, html.prayScene #dzikir, html.prayScene .amalChip { visibility: hidden !important; }
+@media (max-height: 520px) { .veil.prayVeil { place-items: center end !important; } .veil.prayVeil > .panel { max-height: 92vh; width: min(380px, 50vw); margin: 0 12px 0 0; } }

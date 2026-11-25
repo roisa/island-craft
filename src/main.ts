@@ -1276,7 +1276,7 @@ export class Game {
     // battery and heat: at most ~60 frames a second (a 120 Hz iPad draws every other screen refresh), and only
     // ~12 a second while paused behind a pop-up (the world doesn't move then)
     const now = performance.now();
-    if (now - this.lastFrame < (this.paused && this.running ? 80 : 15)) return;
+    if (now - this.lastFrame < (this.prayScene ? 33 : this.paused && this.running ? 80 : 15)) return;
     this.lastFrame = now;
     const dt = Math.min(0.05, this.clock.getDelta());
     if (!this.running) return;
@@ -1287,9 +1287,10 @@ export class Game {
     if ((this.dayCheckT -= dt) <= 0) { this.dayCheckT = 20; this.checkNewDay(); }
     if (this.ui.locked && !this.paused) this.pause(true); // the play-time lock holds, whatever else opens or closes
     if (!this.paused) this.tick(dt, t);
+    else if (this.prayScene) this.prayFrame(dt);
     this.watchFps(dt);
     this.ents.viewDist = (this.world.radius + 1) * 16; // (animals past the visible world rest and aren't drawn)
-    this.ents.update(this.paused ? 0 : dt, t, this.player.pos, this.fun?.riding ? 0 : this.player.speed);
+    this.ents.update(this.paused && !this.prayScene ? 0 : dt, t, this.player.pos, this.fun?.riding ? 0 : this.player.speed);
     this.fx.update(dt);
     this.updateAvatar(dt, t);
     const biome = this.gen.column(Math.floor(this.player.pos.x), Math.floor(this.player.pos.z));
@@ -2240,7 +2241,60 @@ export class Game {
     const h = this.stats.prayHold; if (!h || this.ui.prayHoldOpen()) return;
     // an old card (the game was left for hours): let it go
     if (Date.now() - h.at > 3 * 3_600_000) { this.stats.prayHold = undefined; return; }
-    this.ui.prayHold(h.p as Prayer, h.openAt, this.ramadhan.inRamadhan, () => this.prayedNow());
+    this.startPrayScene(h.p as Prayer);
+    this.ui.prayHold(h.p as Prayer, h.openAt, this.ramadhan.inRamadhan, () => this.prayedNow(), () => this.endPrayScene());
+  }
+  /**
+   * Behind the prayer card: the camera goes inside a masjid, where Baby Mo, the villagers and you pray in rows,
+   * the real movements of the prayer. Sometimes the village masjid, sometimes the Grand Masjid (always the
+   * Grand Masjid for Friday's Dhuhr, the Jumu'ah). When the card closes, you're back where you were.
+   */
+  prayScene: { site: MasjidSite; jam: Jamaah; t: number; save: { at: { x: number; y: number; z: number; yaw: number; pitch: number }; mo: THREE.Vector3 } } | null = null;
+  private startPrayScene(p: Prayer) {
+    if (this.prayScene) return;
+    const grand = this.sites.find(s => s.id === 'grand');
+    const jumuah = p === 'dhuhr' && new Date().getDay() === 5;
+    const site = grand && (jumuah || (this.stats.prayedReal || 0) % 2 === 1) ? grand : VILLAGE_SITE;
+    const pl = this.player, row = site.row(this.girl);
+    this.prayScene = { site, jam: new Jamaah(p), t: 0, save: { at: { x: pl.pos.x, y: pl.pos.y, z: pl.pos.z, yaw: pl.yaw, pitch: pl.pitch }, mo: this.ents.mo.pos.clone() } };
+    pl.pos.copy(row.player); pl.vel.set(0, 0, 0); pl.yaw = 0;
+    this.ents.mo.prayAt = row.mo.clone(); this.ents.mo.pos.copy(row.mo);
+    // the villagers take their places in the village masjid (at the Grand Masjid, its own congregation prays)
+    if (site.id === 'village') this.ents.npcs.forEach((n, i) => { const spot = this.rowSpot(n.id, i); n.goPray(true, spot); n.pos.copy(spot); n.target = null; });
+    document.documentElement.classList.add('prayScene');
+  }
+  private prayFrame(dt: number) {
+    const s = this.prayScene!; s.t += dt;
+    if (s.jam.update(dt)) s.jam = new Jamaah(s.jam.prayer); // (the prayer again, while the card waits)
+    const r = s.site.row(this.girl).player;
+    this.world.update(r.x, r.z, 4); // (the masjid may be far from where you were playing)
+    // standing a few steps behind the rows, drifting gently from side to side
+    this.congregation?.update(s.site.id === 'grand', true, false);
+  }
+  /** the camera for the prayer scene (from updateCamera, every frame) */
+  private prayCamera() {
+    const s = this.prayScene!, r = s.site.row(this.girl).player;
+    // looking down at the rows, so they sit in the top half of the screen, above the card (at the Grand Masjid
+    // the curtain between the halls is close behind you)
+    const grand = s.site.id === 'grand', sway = Math.sin(s.t * 0.22);
+    if (this.camera.fov !== 78) { this.camera.fov = 78; this.camera.updateProjectionMatrix(); } // (a wider view of the hall)
+    if (grand) {
+      this.camera.position.set(r.x + sway * 1.2, r.y + 4.4, r.z + 3.0);
+      this.camera.lookAt(r.x + sway * 0.36, r.y - 3.2, r.z - 1.2);
+    } else {
+      // the village masjid is small: from a back corner, so the whole row and the imam fit on a phone
+      this.camera.position.set(r.x + 5.2 + sway * 0.4, r.y + 3.6, r.z + 4.4);
+      this.camera.lookAt(r.x - 0.3, r.y - 2.4, r.z - 0.4);
+    }
+  }
+  private endPrayScene() {
+    const s = this.prayScene; if (!s) return;
+    this.prayScene = null; document.documentElement.classList.remove('prayScene');
+    const pl = this.player, a = s.save.at;
+    pl.pos.set(a.x, a.y, a.z); pl.yaw = a.yaw; pl.pitch = a.pitch; pl.vel.set(0, 0, 0);
+    this.ents.mo.pos.copy(s.save.mo); this.ents.mo.prayAt = null;
+    rowPose.pose = 'qiyam'; rowPose.head = 0;
+    if (s.site.id === 'grand') this.congregation?.update(false, false, false);
   }
   /** "I have prayed": play goes on, with the same time left */
   private prayedNow() {
@@ -2523,6 +2577,7 @@ export class Game {
     const p = this.player, eye = p.eye(), dir = p.look();
     // a place you're playing at can point the camera (and zoom); afterwards the zoom goes back
     if (!this.baseFov) this.baseFov = this.camera.fov;
+    if (this.prayScene) { this.prayCamera(); return; }
     if (this.playing?.camera?.(this.camera)) return;
     if (this.camera.fov !== this.baseFov) { this.camera.fov = this.baseFov; this.camera.updateProjectionMatrix(); }
     document.body.classList.toggle('praying-together', this.prayingTogether);
@@ -2581,7 +2636,8 @@ export class Game {
     // standing still in the masjid at prayer time: pray along with the villagers
     const inMasjid = !!this.siteAt(p.pos);
     if (this.prayCamBefore !== null && (p.speed > 1 || !inMasjid)) this.endPrayTogether();
-    if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, this.jamaah?.joined ? rowPose.pose : 'qiyam'); a.head.rotation.y = this.jamaah?.joined ? rowPose.head : 0; this.prayingPose = true; }
+    if (this.prayScene) { a.root.visible = true; a.root.rotation.y = Math.PI; applyPrayerPose(a, rowPose.pose); a.head.rotation.y = rowPose.head; this.prayingPose = true; }
+    else if (this.gameEvent && inMasjid && p.speed < 0.3 && !this.fun?.riding) { a.root.rotation.y = Math.PI; applyPrayerPose(a, this.jamaah?.joined ? rowPose.pose : 'qiyam'); a.head.rotation.y = this.jamaah?.joined ? rowPose.head : 0; this.prayingPose = true; }
     else if (this.prayingPose) { clearPose(a); this.prayingPose = false; }
     this.updateHeld(t, sw);
     // tennis: forehand, backhand, serve (and the ready stance between shots), for you and Baby Mo
@@ -2622,7 +2678,7 @@ export class Game {
     const p = this.player;
     const meta: SaveMeta = {
       v: SAVE_VERSION, seed: this.seed, hour: this.hour, day: this.day, lang: getLang(),
-      player: { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
+      player: this.prayScene ? { ...this.prayScene.save.at, flying: p.flying } : { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
       inv: this.inv.toJSON(), stats: this.stats as unknown as Record<string, unknown>, questsDone: [...this.questsDone], claimed: [...this.claimed],
       saplings: this.saplings, settings: this.settings as unknown as Record<string, unknown>,
       savedAt: Date.now(), saves: ++this.saveCount,

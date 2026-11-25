@@ -609,7 +609,7 @@ export class UI {
    * The real prayer time has come: the game pauses (and the play timer with it) on a card with Baby Mo at
    * prayer, and "I have prayed" opens after a few minutes, as in the Baby Mo app's games. Then play goes on.
    */
-  prayHold(p: Prayer, openAt: number, ramadan: boolean, done: () => void) {
+  prayHold(p: Prayer, openAt: number, ramadan: boolean, done: () => void, closed: () => void = () => {}) {
     const name = prayerName(p), iftar = ramadan && p === 'maghrib';
     const text = iftar
       ? tr(`Alhamdulillah, waktunya berbuka puasa! Minum dan makan kurma dulu, lalu sholat ${name}. Pulaunya menunggumu.`, `Alhamdulillah, it’s time to break the fast! Have a drink and some dates first, then pray ${name}. The island will wait for you.`)
@@ -621,7 +621,7 @@ export class UI {
       <p class="phTxt">${text}</p>
       <p class="phWait" id="phWait"></p>
       <button class="btn big wide" id="phOk" disabled>✓ ${tr(`Aku sudah sholat ${name}`, `I have prayed ${name}`)}</button></div>`,
-      () => { this.prayCard = null; clearInterval(tick); }, { now: true, onShow: () => { if (this.g.settings.moVoice) Speech.talk(text, getLang(), false, 1); } });
+      () => { this.prayCard = null; clearInterval(tick); closed(); }, { now: true, cls: 'prayVeil', onShow: () => { if (this.g.settings.moVoice) Speech.talk(text, getLang(), false, 1); } });
     this.prayCard = { close };
     const btn = $<HTMLButtonElement>('#phOk', el), wait = $('#phWait', el), mo = $<HTMLImageElement>('.phMo', el);
     // Baby Mo raises his hands for the takbir, then stands for the prayer
@@ -1864,8 +1864,8 @@ export class UI {
    */
   private modals: { veil: HTMLElement; close: () => void }[] = [];
   private modalQueue: { veil: HTMLElement; close: () => void; onShow?: () => void }[] = [];
-  modal(html: string, onClose?: () => void, opts: { now?: boolean; onShow?: () => void } = {}) {
-    const veil = h(`<div class="veil"><div class="panel">${html}</div></div>`);
+  modal(html: string, onClose?: () => void, opts: { now?: boolean; onShow?: () => void; cls?: string } = {}) {
+    const veil = h(`<div class="veil${opts.cls ? ' ' + opts.cls : ''}"><div class="panel">${html}</div></div>`);
     const el = veil.firstElementChild as HTMLElement;
     let closed = false;
     const close = () => {

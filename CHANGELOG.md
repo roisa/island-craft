@@ -5,6 +5,24 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Behind the prayer card: everyone praying at the masjid
+
+- While the prayer card waits, the game behind it is no longer where you were
+  playing: the camera goes **inside a masjid**, where Baby Mo, the villagers and
+  you pray together in rows, through the real movements of the prayer
+  (takbir, ruku, sujud, sitting, salam), over and over while the card waits.
+- It takes turns: sometimes the **village masjid** (Dad Ibrahim leading, Bu
+  Aminah, Kakek Yusuf, you and Baby Mo in one row, seen from a back corner so
+  everyone fits on a phone), sometimes the **Grand Masjid** with its full
+  congregation. Friday's Dhuhr (Jumu'ah) is always at the Grand Masjid.
+- The card sits lower and is more compact, with no blur over the masjid, and
+  the game buttons and the item bar step aside.
+- When the card closes you're back exactly where you were (and a save made
+  meanwhile keeps that place, not the masjid).
+- Tests: the prayer-pause smoke step also checks the scene (inside a masjid,
+  Baby Mo in the row) and that you're back in your place afterwards.
+  Screenshots of both masjids on an iPhone checked by eye.
+
 ### The game pauses for prayer (as in the Baby Mo app's games)
 
 - When a real prayer time comes in the player's town, the game now **pauses on
