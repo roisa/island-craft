@@ -1182,7 +1182,8 @@ async function run(name) {
         window.__trap = { x, y, z, mud: G.inv.count?.(70) ?? null };
         return window.__trap;
       });
-      await p.waitForFunction(() => { const t = __trap; return __game.world.get(t.x, t.y, t.z) === 0 && __game.player.pos.y < t.y; }, null, { timeout: 8000, polling: 100 });
+      // (a pop-up that comes up meanwhile pauses the game: close it while waiting)
+      await p.waitForFunction(() => { const t = __trap; if (__game.ui.isOpen()) __game.ui.closeAllModals(); return __game.world.get(t.x, t.y, t.z) === 0 && __game.player.pos.y < t.y; }, null, { timeout: 15000, polling: 100 });
       return await g(() => ({ fellTo: +__game.player.pos.y.toFixed(2), top: __trap.y, mudBack: __game.inv.count?.(70) ?? null, before: __trap.mud }));
     });
     await step('a cape lets you fly: tap jump twice and you lift off; take it off and you land', async () => {
@@ -1253,7 +1254,8 @@ async function run(name) {
       await p.waitForTimeout(400);
       const jkt = await g(() => { const G = __game, n = new Date(), want = ((n.getUTCHours() + n.getUTCMinutes() / 60 + 7) % 24); return { hour: G.hour, want, dhuhr: G.schedule.dhuhr, real: (G.realTimes.dhuhr.getUTCHours() + G.realTimes.dhuhr.getUTCMinutes() / 60 + 7) % 24 }; });
       await g(() => __game.setLocation({ name: 'Makassar', lat: -5.1477, lng: 119.4327 }));
-      await p.waitForTimeout(400);
+      // (the island's hour follows on the next frames; a pop-up that came up meanwhile would pause the game: close it)
+      await p.waitForFunction(h => { const G = __game; G.ui.closeAllModals(); return Math.abs(((G.hour - h + 36) % 24) - 13) < 0.1; }, jkt.hour, { timeout: 5000, polling: 100 }).catch(() => {});
       const mks = await g(() => ({ hour: __game.hour }));
       const near = (a, b, e = 0.05) => Math.abs(((a - b + 36) % 24) - 12) < e || Math.abs(a - b) < e;
       if (!near(jkt.hour, jkt.want) || !near(jkt.dhuhr, jkt.real, 0.02) || !near(mks.hour, (jkt.hour + 1) % 24, 0.05)) throw new Error(JSON.stringify({ jkt, mks }));
