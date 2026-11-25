@@ -5,6 +5,17 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A tidier top bar
+
+- Landscape: every pill in the top bar is the same height on one line, and
+  the compass's label ends with "…" when it's long instead of being cut off
+  mid-word. Baby Mo leaning over his speech bubble no longer covers the stars.
+- Portrait: the compass was squeezed to a sliver behind the stars; it now has
+  its own row under the status pills, with the play-time sun on the right of
+  that row, and the speech bubble and side buttons start below both rows.
+- Tested: screenshots on an iPhone in portrait and landscape; unit tests and
+  the desktop and iPhone smoke runs.
+
 ### The smaller buttons look like buttons
 
 - The secondary buttons (Hero & mode, New world, Use code, Save to a file…)

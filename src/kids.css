@@ -219,3 +219,31 @@
 /* (display, not visibility: the item pictures in the bar set their own visibility and would still show) */
 html.prayScene #hud, html.prayScene #hotbarWrap, html.prayScene .moHost, html.prayScene #dzikir, html.prayScene .amalChip { display: none !important; }
 @media (max-height: 520px) { .veil.prayVeil { place-items: center end !important; } .veil.prayVeil > .panel { max-height: 92vh; width: min(380px, 50vw); margin: 0 12px 0 0; } }
+
+/* ---------- the top bar: every pill the same height, nothing squeezed ----------
+   Landscape: one row, all 46 px tall, the compass's label cut with "…" when long. Portrait: the five status pills on
+   the first row, and the compass gets a row of its own underneath (with the play-time sun on the right) instead of
+   being squeezed to a sliver behind the stars; Baby Mo's speech bubble starts below both rows. */
+#topbar { align-items: center; }
+#topbar > .pill, #topbar > .ibtn { height: 46px; box-sizing: border-box; flex: 0 0 auto; }
+#topbar > #compass { flex: 0 1 auto; min-width: 0; max-width: 300px; }
+#compassText { min-width: 0; }
+#compassText small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#coins { padding: 0 13px 0 10px; } #coins b { font-size: 15px; }
+#thirst { padding: 0 11px; }
+/* (Baby Mo leaning over his speech bubble stays below the top bar) */
+#bubble { top: calc(72px + var(--safe-t)); }
+@media (orientation: portrait) and (max-width: 600px) {
+  #topbar { flex-wrap: wrap; row-gap: 6px; }
+  #topbar > .pill, #topbar > .ibtn { height: 40px; }
+  #topbar > #compass { order: 10; max-width: calc(100% - 118px); height: 40px; }
+  #compass small { display: block; font-size: 10.5px; }
+  #compassText { line-height: 1.1; }
+  #coins { padding: 0 9px 0 7px; } #coins b { font-size: 13.5px; }
+  #thirst { padding: 0 7px; }
+  #clock { margin-left: auto; }
+  /* the play-time sun: under the clock, on the compass's row */
+  #playT { top: calc(100% + 6px); height: 40px; box-sizing: border-box; padding: 0 10px; }
+  #bubble { top: calc(102px + var(--safe-t)); }
+  #sideBtns, body.playOn #sideBtns { top: calc(104px + var(--safe-t)); }
+}
