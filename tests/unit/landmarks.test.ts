@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Generator, H } from '../../src/world/gen';
 import { landmarkIds } from '../../src/world/landmarks';
 import { B } from '../../src/world/blocks';
@@ -132,6 +132,8 @@ describe('the big race circuit', () => {
 });
 
 import { TRACKS } from '../../src/game/track';
+// (each test generates a whole world: on a busy machine that can take longer than vitest's 5 s default)
+vi.setConfig({ testTimeout: 20_000 });
 describe('the Snow and Desert tracks', () => {
   it('are in every world, with their road, the ice or sand patches, a boost pad and nothing built on them', () => {
     for (const seed of SEEDS) {
