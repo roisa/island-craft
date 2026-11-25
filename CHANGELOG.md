@@ -5,6 +5,17 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The smaller buttons look like buttons
+
+- The secondary buttons (Hero & mode, New world, Use code, Save to a file…)
+  were white pills on a white card and didn't look tappable. They now have a
+  soft teal fill, a teal outline and a raised edge underneath that presses
+  down when tapped, with teal text and icons, and stay on one line.
+- "Change hero / mode" is now "Hero & mode" ("Tokoh & mode"), so it fits on
+  one line next to "New world".
+- Tested: screenshots of the start screen (with a saved world) and the
+  parents panel on an iPhone; unit tests and the desktop and iPhone smoke runs.
+
 ### App icon: just Baby Mo
 
 - The icon is now only blocky Baby Mo, waving as he walks, on the teal sky,
