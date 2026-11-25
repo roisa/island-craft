@@ -12,6 +12,8 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
   the icon and stays inside the circle Android crops to. Web icons, the iOS icon
   and the favicon, all from `node tools/icon/make-icon.mjs`.
 - Tested: the 512, 180 and 60 px icons and the round Android crop checked by eye.
+- The App Store screenshots carry the new icon above each caption (all 60,
+  EN/ID, iPhone, iPhone Duo and iPad), with the zips and thumbnails redone.
 
 ### App Store kit: the prayer pause; the masjid scene framed for every screen
 
