@@ -1053,10 +1053,12 @@ export class UI {
     if (this.coinShown !== (g.stats.coins || 0) && !this.coinRaf) this.updateCoins();
     // clock + next in-game prayer
     $('#clockT').innerHTML = ic('clock') + fmtHour(g.hour) + (g.weather ? ` <span class="wx" title="${esc(t2(g.weather.info.name))}">${g.weather.info.icon}</span>` : '');
-    const np = g.nextGamePrayer();
+    // the next REAL prayer in your town (the island's day runs faster; prayer moments come at the real times)
+    const np = g.nextRealPrayer(), mins = Math.max(1, Math.ceil((+np.at - Date.now()) / 60000));
+    const when = mins <= 90 ? tr(`${mins} mnt lagi`, `in ${mins} min`) : fmtTime(np.at, g.loc.lng, g.loc.tz);
     const rs = g.ramadhan;
     const ram = rs.inRamadhan ? tr(`🌙 Ramadhan hari ${rs.day}`, `🌙 Ramadan day ${rs.day}`) : '';
-    $('#clockP').innerHTML = `${ic(PICON[np.p])} ${prayerName(np.p)} ${fmtHour(np.h)}` + (ram ? ' · ' + ram : '');
+    $('#clockP').innerHTML = `${ic(PICON[np.p])} ${prayerName(np.p)} ${when}` + (ram ? ' · ' + ram : '');
     // compass
     const c = g.compass();
     if (c) {
@@ -1485,10 +1487,10 @@ export class UI {
       ${next ? `<p style="margin-top:8px;text-align:center">${tr('Sholat berikutnya', 'Next prayer')}: <b>${prayerName(next)}</b> · ${tr('sekitar', 'in about')} ${Math.max(1, Math.round((+t[next] - +now) / 60000))} ${tr('menit lagi', 'minutes')}</p>` : ''}
       <div class="set"><span>${tile('map', C.red)}${tr('Kota', 'City')}</span><button class="btn small ghost" id="selCity">${flag(g.loc.cc)} ${esc(g.loc.name)} · ${tr('Ganti', 'Change')}</button></div>
       <div class="set"><span>${tile('clock', C.indigo)}${tr('Metode', 'Method')}</span><select id="selMethod"><option value="auto" ${g.settings.method === 'auto' ? 'selected' : ''}>${tr('Otomatis', 'Automatic')}: ${esc(methodLabel(resolveMethod('auto', g.loc.cc)))}</option>${METHODS.map(m => `<option value="${m.id}" ${m.id === g.settings.method ? 'selected' : ''}>${t2(m.label)}</option>`).join('')}</select></div>
-      <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
+      <div class="set"><span>${tile('bell', C.red)}${tr('Waktu sholat di pulau (waktu asli)', 'Prayer times on the island (real times)')}</span><button class="toggle ${g.settings.reminders ? 'on' : ''}" id="tRem"></button></div>
       <div class="row amalBtns"><button class="btn small gold" id="prGo">🕌 ${tr('Ke masjid', 'Go to a masjid')}</button><button class="btn small ghost" id="prSholat">🕌 ${tr('Cara sholat', 'How to pray')}</button><button class="btn small ghost" id="prWudu">💧 ${tr('Cara wudhu', 'How to make wudu')}</button></div>
       <h3>${tr('Di dalam game', 'Inside the game')}</h3>
-      <p>${tr('Matahari di dunia Baby Mo mengikuti jadwal di atas: fajar saat Subuh, terbenam saat Maghrib. Saat waktu sholat tiba di game, warga desa berjalan ke masjid — kamu boleh ikut!', 'The sun in Baby Mo’s world follows this schedule: dawn at Fajr, sunset at Maghrib. When it is prayer time in the game, villagers walk to the masjid — you can join them!')}</p>
+      <p>${tr('Hari di pulau berjalan lebih cepat supaya seru, tapi waktu sholat datang tepat pada jadwal di atas: bedug berbunyi, langit berubah (fajar saat Subuh, matahari terbenam saat Maghrib), dan warga desa berjalan ke masjid — kamu boleh ikut! Saat Ramadhan ada buka puasa dan sahur bersama.', 'The island’s day runs faster for fun, but prayer times come exactly at the times above: the bedug sounds, the sky changes (dawn at Fajr, sunset at Maghrib) and the villagers walk to the masjid — you can join them! In Ramadan there is iftar and suhoor together.')}</p>
       <p style="font-size:11.5px;margin-top:6px">${tr('Waktu dihitung otomatis di perangkat, dan bisa berbeda beberapa menit dari jadwal masjid setempat.', 'Times are calculated on the device and may differ a few minutes from your local masjid.')}</p>`;
     $('#prSholat', body).onclick = () => this.poseGuide('sholat');
     $('#prGo', body).onclick = () => { this.closeBook(); setTimeout(() => this.masjidPicker(), 50); };
@@ -1660,10 +1662,10 @@ export class UI {
       <div class="set"><span>${tile('drop', C.blue)}${tr('Pengingat minum air', 'Water break reminder')}</span><select id="pWater">${[0, 15, 20, 30, 45].map(n => `<option value="${n}" ${(s.water ?? 20) === n ? 'selected' : ''}>${n ? tr(`tiap ${n} menit`, `every ${n} min`) : tr('Mati', 'Off')}</option>`).join('')}</select></div>
       <div class="set"><span>${tile('shield', C.green)}${tr('Lindungi bangunan desa', 'Protect village buildings')}</span><button class="toggle ${s.protectVillage ? 'on' : ''}" id="pProt"></button></div>
       <div class="set"><span>${tile('leaf', C.mint)}${tr('Grafik ringan (HP lama)', 'Light graphics (older phones)')}</span><button class="toggle ${s.lowGfx ? 'on' : ''}" id="pLow"></button></div>
-      <div class="set"><span>${tile('bell', C.red)}${tr('Pengingat sholat (waktu asli)', 'Prayer reminders (real time)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
+      <div class="set"><span>${tile('bell', C.red)}${tr('Waktu sholat di pulau (waktu asli)', 'Prayer times on the island (real times)')}</span><button class="toggle ${s.reminders ? 'on' : ''}" id="pRem"></button></div>
       <div class="set"><span>${tile('leaf', C.green)}${tr('Kumbang nakal saat senja (tidak bisa melukai)', 'Naughty beetles at dusk (can’t hurt)')}</span><button class="toggle ${s.beetles !== false ? 'on' : ''}" id="pBug"></button></div>
       <div class="set"><span>${tile('moon', C.purple)}${tr('Bazar Lebaran di desa', 'Eid bazaar in the village')}</span><select id="pEid">${([['auto', tr('Ikuti kalender', 'By the calendar')], ['on', tr('Buka sekarang', 'Open now')], ['off', tr('Tutup', 'Closed')]] as const).map(([v, l]) => `<option value="${v}" ${(s.eid ?? 'auto') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <p style="margin-top:8px;font-size:13px">${tr('Tidak ada iklan, pembelian, atau chat. Progres disimpan di perangkat ini. Tidak ada kalah atau tantangan waktu.', 'No ads, purchases or chat. Progress is stored on this device. There is no losing and no timers.')}</p>
+      <p style="margin-top:8px;font-size:13px">${tr('Tanpa iklan dan tanpa chat, dengan satu pembelian pilihan (BabyMo Craft Lengkap). Progres disimpan di perangkat ini. Tidak ada kalah; hanya batas main harian yang Anda pilih.', 'No ads and no chat, with one optional purchase (Full BabyMo Craft). Progress is stored on this device. There is no losing; only the daily play limit you choose.')}</p>
       <h3>💾 ${tr('Simpanan', 'Saved game')}</h3>
       <p style="font-size:13px">${tr('Simpan cadangan ke file agar progres aman, atau pindahkan ke perangkat lain.', 'Keep a backup file so progress is safe, or move it to another device.')}</p>
       <h3>🏝️ ${tr('BabyMo Craft Lengkap', 'Full BabyMo Craft')}</h3>
@@ -2119,9 +2121,13 @@ export class UI {
   }
 
   quiz() {
-    const g = this.g, have = g.stats.letters;
+    const g = this.g, have = g.stats.letters.filter(i => LETTERS[i]);
+    if (!have.length) return; // (no letter found yet: nothing to ask; also when the quiz reopens itself after that changed)
     const ans = have[Math.floor(Math.random() * have.length)];
     const pool = new Set<number>([ans]);
+    // the other choices: letters already found (so a child isn't asked about ones not met yet), else any
+    const known = have.filter(i => i !== ans).sort(() => Math.random() - 0.5);
+    for (const i of known) { if (pool.size >= 3) break; pool.add(i); }
     while (pool.size < 3) pool.add(Math.floor(Math.random() * 28));
     const opts = [...pool].sort(() => Math.random() - 0.5);
     const L = LETTERS[ans];
@@ -2134,15 +2140,22 @@ export class UI {
     $('#qSay', el).onclick = say;
     $('#qClose', el).onclick = () => close();
     let done = false;
+    // the answer shown right in the card (a toast would wait until the quiz closes)
+    const fb = (msg: string, ok: boolean) => { let f = el.querySelector<HTMLElement>('.qfb'); if (!f) { f = h('<p class="qfb"></p>'); el.querySelector('.quizOpts')!.after(f); } f.textContent = msg; f.className = 'qfb ' + (ok ? 'ok' : 'no'); };
     el.querySelectorAll<HTMLElement>('[data-o]').forEach(b => (b.onclick = () => {
       if (done) return;
       const o = +b.dataset.o!;
       if (o === ans) {
         done = true; b.classList.add('right'); SFX.letter(); g.stats.quiz++; g.kid.reward('quiz'); g.amal('learn'); this.confetti(14); g.checkQuests();
         g.praiseStreak(++this.quizStreak); // (3 right in a row: Masya Allah… 9: Allahu Akbar)
-        this.toast(tr(`Benar! Itu huruf ${L.name} ⭐`, `Correct! That's ${L.name} ⭐`));
-        setTimeout(() => { close(); this.quiz(); }, 1100);
-      } else { b.classList.add('wrong'); SFX.error(); this.quizStreak = 0; this.toast(tr('Hampir! Coba lagi ya 😊', 'Almost! Try again 😊')); }
+        fb(tr(`Benar! Itu huruf ${L.name} ⭐`, `Correct! That's ${L.name} ⭐`), true);
+        setTimeout(() => { close(); this.quiz(); }, 1300);
+      } else {
+        // a miss: say which letter that was, then the one we're looking for again
+        b.classList.add('wrong'); SFX.error(); this.quizStreak = 0;
+        const W = LETTERS[o]; fb(tr(`Itu ${W.name}. Dengarkan lagi 👂`, `That's ${W.name}. Listen again 👂`), false);
+        setTimeout(say, 900);
+      }
     }));
   }
   /** right answers in a row in the letter quiz */

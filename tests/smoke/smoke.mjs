@@ -30,7 +30,7 @@ async function run(name) {
   const ctx = await browser.newContext(PROFILES[name]);
   const p = await ctx.newPage();
   const errors = [];
-  p.on('pageerror', e => errors.push('pageerror: ' + e.message));
+  p.on('pageerror', e => errors.push('pageerror: ' + e.message + ' @ ' + (e.stack || '').split('\n').slice(1, 4).join(' | ')));
   p.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   const steps = [];
   const step = async (label, fn) => {
@@ -49,9 +49,9 @@ async function run(name) {
     await step('start a new world', async () => {
       touch ? await p.tap('#sPlay') : await p.click('#sPlay');
       await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
-      // (a new world follows the real clock; the steps below set the game's hour themselves, so they use a game day)
-      const realClock = await g(() => { const G = __game, was = G.settings.dayMinutes; G.settings.dayMinutes = 24; return was; });
-      if (realClock !== 0) throw new Error('a new world should follow the real clock, dayMinutes=' + realClock);
+      // (a new world has a game day of its own; prayer moments come at the real times)
+      const day = await g(() => __game.settings.dayMinutes);
+      if (day !== 24) throw new Error('a new world should have a 24-minute game day, dayMinutes=' + day);
       await p.waitForTimeout(1500);
       return await g(() => ({ chunks: __game.world.chunks.size, animals: __game.ents.animals.length, npcs: __game.ents.npcs?.length }));
     });
@@ -331,7 +331,7 @@ async function run(name) {
       return r;
     });
     await step('pray together: villagers wait, the prayer starts in your place, coins at the end, then shop', async () => {
-      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 46, -12.5); G.hour = G.schedule.dhuhr - 0.002; G.lastHour = G.hour; });
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 46, -12.5); G.gameEvent = null; (p => { const G = __game, past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past; G.realTimes[p] = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick(); })('dhuhr'); });
       await p.waitForFunction(() => !!__game.gameEvent || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
       const before = await g(() => ({ coins: __game.stats.coins || 0, jamaah: __game.stats.jamaah }));
       // the prayer waits for you
@@ -839,7 +839,7 @@ async function run(name) {
       const state = () => g(() => { const G = __game, ev = G.gameEvent, P = G.player.pos; return JSON.stringify({ ev: ev && { p: ev.p, prayed: ev.prayed }, btn: !document.querySelector('#bMasjid').classList.contains('hidden'), open: G.ui.isOpen(), book: document.querySelector('#vBook')?.classList.contains('on'), modals: G.ui.modals.length, site: G.siteAt(P)?.id, riding: !!G.fun.riding, jam: !!G.jamaah, pos: [P.x.toFixed(1), P.y.toFixed(1), P.z.toFixed(1)], row: G.sites.find(x => x.id === 'grand')?.row(false).player.toArray(), paused: G.paused, locked: G.ui.locked, speed: G.player.speed }); });
       const wait = (what, fn, arg, ms) => p.waitForFunction(fn, arg, { timeout: ms, polling: 200 }).catch(async e => { throw new Error(what + ': ' + (await state())); });
       // far from any masjid when Asr comes: the 🕌 button and the golden arrow point the way
-      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(30.5, 70, 30.5); G.player.vel.set(0, 0, 0); G.gameEvent = null; G.hour = G.schedule.asr - 0.002; G.lastHour = G.hour; });
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(30.5, 70, 30.5); G.player.vel.set(0, 0, 0); G.gameEvent = null; (p => { const G = __game, past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past; G.realTimes[p] = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick(); })('asr'); });
       for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
       await wait('🕌 button', () => !document.querySelector('#bMasjid').classList.contains('hidden') || (__game.ui.closeAllModals(), __game.ui.closeBook(), false), null, 15000);
       const arrow = await g(() => __game.compass()?.masjid === true);
@@ -1299,6 +1299,30 @@ async function run(name) {
       });
       if (!/Masya Allah/.test(r.streak.say) || !/مَا شَاءَ/.test(r.streak.ar) || !/Barakallahu fik/.test(r.deed.say) || !/بَارَكَ/.test(r.deed.ar)) throw new Error(JSON.stringify(r));
       return r;
+    });
+    await step('prayer at the real time: the game day runs on its own, a real prayer time brings the prayer and the sky matches it; no iftar outside Ramadan', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.endPrayerTime?.(); G.gameEvent = null; G.settings.dayMinutes = 24; G.hour = 9; G.lastHour = 9;
+        G.ramadhan = { ...G.ramadhan, inRamadhan: false };
+        const past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past;
+        // nothing due: the game clock passing the island's Asr doesn't bring a prayer any more
+        G.hour = G.schedule.asr - 0.01; G.lastHour = G.hour;
+        return { asr: G.schedule.asr };
+      });
+      await p.waitForTimeout(1500);
+      const none = await g(() => !!__game.gameEvent);
+      if (none) throw new Error('the game clock passing Asr should not start a prayer');
+      const m = await g(() => {
+        const G = __game; G.hour = 9; G.lastHour = 9;
+        G.realTimes.maghrib = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick();
+        return { ev: G.gameEvent?.p, hour: +G.hour.toFixed(2), sky: +G.schedule.maghrib.toFixed(2), picnic: G.picnicToMasjid, said: document.querySelector('#bubbleTxt').textContent, quests: G.activeQuests().map(q => q.id) };
+      });
+      await p.waitForTimeout(1500);
+      const frozen = await g(() => +__game.hour.toFixed(2));
+      const pill = await g(() => document.querySelector('#clockP').textContent);
+      if (m.ev !== 'maghrib' || Math.abs(m.hour - m.sky) > 0.05 || m.picnic !== -1 || /iftar|berbuka/i.test(m.said) || m.quests.some(q => ['iftar', 'sahur', 'takjil'].includes(q)) || frozen !== m.hour) throw new Error(JSON.stringify({ m, frozen }));
+      await g(() => { const G = __game; G.endPrayerTime(); G.hour = 9; G.lastHour = 9; G.refreshTimes(); });
+      return { ...r, ...m, frozen, pill };
     });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));

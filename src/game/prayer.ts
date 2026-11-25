@@ -192,7 +192,7 @@ function ramadhanOn(now: Date): RStatus {
 }
 
 // ---- location ----------------------------------------------------------------
-export interface Loc { name: string; lat: number; lng: number; /** its time zone (IANA), when known */ tz?: string; /** its country (ISO code): picks the calculation method */ cc?: string; /** a GPS spot: the nearest town */ near?: string }
+export interface Loc { name: string; lat: number; lng: number; /** its time zone (IANA), when known */ tz?: string; /** its country (ISO code): picks the calculation method */ cc?: string; /** a GPS spot: the nearest town */ near?: string; /** not chosen: a first guess from the device's time zone ('unknown': a zone the quick list doesn't have) */ guess?: 'zone' | 'unknown' }
 export function loadLocation(): Loc {
   // shared with the Baby Mo hub's prayer tab when served from the same site
   try {
@@ -219,8 +219,12 @@ const ZONE_CITY: Record<string, string> = {
   'Australia/Melbourne': 'Sydney', 'Australia/Canberra': 'Sydney',
 };
 export function guessCity(zone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })()): Loc {
-  const c = CITIES.find(x => x.n === ZONE_CITY[zone]) ?? CITIES[0];
-  return { name: c.n, lat: c.lat, lng: c.lng, tz: c.tz, cc: c.cc };
+  const c = CITIES.find(x => x.n === ZONE_CITY[zone]);
+  if (c) return { name: c.n, lat: c.lat, lng: c.lng, tz: c.tz, cc: c.cc, guess: 'zone' };
+  // a zone the quick list doesn't know: Jakarta's place for now, on the device's own clock, until the game
+  // finds the biggest town in that zone (main.ts guessTownFromZone)
+  const j = CITIES[0];
+  return { name: j.n, lat: j.lat, lng: j.lng, tz: zone || j.tz, cc: j.cc, guess: 'unknown' };
 }
 export function saveLocation(l: Loc) {
   try { localStorage.setItem('bmic_loc', JSON.stringify(l)); } catch { /* ignore */ }

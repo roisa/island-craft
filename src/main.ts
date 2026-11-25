@@ -38,7 +38,8 @@ import { heldModel } from './game/held';
 import { SFX, Music, Speech, audioState, haptic, adhan, clipFor } from './game/audio';
 import * as Save from './game/save';
 import { SAVE_VERSION, chooseSave, cleanEdits, makeExport, parseExport, type SaveMeta, type Edits } from './game/persist';
-import { timesFor, hoursOf, placeHour, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
+import { loadTowns, townLoc } from './game/cities';
+import { timesFor, hoursOf, placeHour, placeOffset, DayTimes, PRAYERS, Prayer, prayerName, fmtTime, loadLocation, saveLocation, Loc, ramadhanStatus, MethodId } from './game/prayer';
 import { QUESTS, Stats, newStats, DUAS, CALENDAR, letterReward } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
@@ -84,7 +85,7 @@ import { GuideArrow } from './game/guide';
 export interface Settings {
   sfx: boolean; music: boolean; moVoice: boolean; english?: boolean; cam: 'first' | 'third'; dist: number; dayMinutes: number; sens: number;
   mode: 'adventure' | 'creative'; avatar: 'boy' | 'girl'; reminders: boolean; method: MethodId;
-  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; adhan?: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean; clockV2?: boolean; methodV2?: boolean;
+  protectVillage: boolean; outfit?: Outfit; playLimit: number; lowGfx: boolean; adhan?: boolean; outfitV2?: boolean; outfitV3?: boolean; limitV2?: boolean; clockV2?: boolean; clockV3?: boolean; methodV2?: boolean;
   /** minutes of play between water breaks (0 = off) */
   water: number;
   /** naughty beetles at dusk (parents can turn them off) */
@@ -111,6 +112,8 @@ const LOG_LEAF: Record<number, number> = { [B.OAK_LOG]: B.OAK_LEAVES, [B.PINE_LO
 
 interface Sapling { x: number; y: number; z: number; id: number; t: number }
 
+const RAMADAN_QUESTS = new Set(['takjil', 'iftar', 'sahur']);
+
 export class Game {
   renderer: THREE.WebGLRenderer;
   scene = new THREE.Scene();
@@ -119,7 +122,7 @@ export class Game {
   gen!: Generator; world!: World; sky!: Sky; ents!: Entities; fx: FX; player!: Player;
   input: Input; inv = new Inventory(); ui: UI;
   settings: Settings = {
-    sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 0, sens: 1,
+    sfx: true, music: true, moVoice: true, cam: 'third', dist: isTouch ? 4 : 6, dayMinutes: 24, sens: 1,
     mode: 'adventure', avatar: 'boy', reminders: true, method: 'auto', protectVillage: true, playLimit: 60, water: 20,
     // older/low-memory phones start in light graphics mode
     lowGfx: ((navigator as any).deviceMemory ?? 4) <= 3 || (navigator.hardwareConcurrency ?? 8) <= 4,
@@ -272,14 +275,13 @@ export class Game {
   placeRot = 0;
   private blockGhost!: THREE.Group;
   private aimDeco: ReturnType<Decor['raycast']> = null;
-  gameEvent: { p: Prayer; until: number; attended: boolean; prayed?: boolean } | null = null;
+  gameEvent: { p: Prayer; /** when the villagers stop waiting (real ms) */ untilMs: number; attended: boolean; prayed?: boolean } | null = null;
   /** the prayer together in progress (everyone moves as one) */
   jamaah: Jamaah | null = null;
   private rowStill = 0;
   private stepAcc = 0; private stepPrev: THREE.Vector3 | null = null; private stepPrevD = 0;
   private rowMark: THREE.Mesh | null = null;
   private lastHour = 0;
-  private remindersShown = new Set<string>();
   private timers = { hud: 0, slow: 0, save: 0, tip: 60, real: 0 };
   private lastJumpTap = 0;
   private iftarDay = -1;
@@ -291,6 +293,7 @@ export class Game {
   private loadedFrom: 'main' | 'backup' | 'none' = 'none';
   private backupEdits: unknown;
   private prayingPose = false;
+  /** the Ramadan iftar picnic: when everyone walks on to the masjid (real ms), -1 when not */
   private picnicToMasjid = -1;
   /** last thing placed, so a mis-tap can be undone for a few seconds */
   undo: { cells: [number, number, number, number][]; refund: [number, number][]; until: number } | null = null;
@@ -365,7 +368,11 @@ export class Game {
     if (meta?.settings) Object.assign(this.settings, meta.settings);
     // the island now follows the real clock of the player's city by default (prayer times as in real life);
     // older saves move over once (a grown-up can still pick a fast 12/24/48-minute day in the settings)
-    if (!this.settings.clockV2) { this.settings.dayMinutes = 0; this.settings.clockV2 = true; }
+    this.settings.clockV2 = true;
+    // the island's day runs at its own speed again (lively days, weather, races); the PRAYER moments follow the
+    // real prayer times of the player's town (realPrayerTick). Saves moved to the real clock by the version
+    // before this go back once; a grown-up can still choose "Real clock of your town" in the settings.
+    if (!this.settings.clockV3) { if (this.settings.dayMinutes === 0) this.settings.dayMinutes = 24; this.settings.clockV3 = true; }
     // the method now follows the place's country by default (as in the Baby Mo app): the old default (Kemenag) becomes
     // automatic, which is still Kemenag in Indonesia; a method a grown-up chose elsewhere is kept
     if (!this.settings.methodV2) { const m = this.settings.method as string; this.settings.method = m === 'kemenag' ? 'auto' : m === 'ummalqura' ? 'umm' : this.settings.method; this.settings.methodV2 = true; }
@@ -522,8 +529,14 @@ export class Game {
     this.ui.updateHud();
     this.running = true;
     // on the real clock, opening the game just after a prayer time (up to 20 minutes) still brings that prayer
-    if (!this.settings.dayMinutes) this.hour = placeHour(new Date(), this.loc.lng, this.loc.tz);
-    this.lastHour = this.settings.dayMinutes ? this.hour : (this.hour - 1 / 3 + 24) % 24;
+    if (!this.settings.dayMinutes) {
+      this.hour = placeHour(new Date(), this.loc.lng, this.loc.tz);
+      // on the real clock a new day starts with each new date in the town, even between sessions
+      const today = this.townDate(); if (this.stats.clockDate && this.stats.clockDate !== today) this.day++; this.stats.clockDate = today;
+    }
+    this.lastHour = this.hour;
+    setTimeout(() => this.realPrayerTick(), 4000); // (a prayer time that began just before the game was opened)
+    if (this.loc.guess === 'unknown') this.guessTownFromZone();
     Music.setEnabled(this.settings.music);
     this.kid.start(!meta);
     // players who found all 28 letters before the hero suits came: show them once
@@ -608,17 +621,21 @@ export class Game {
   /** the date the prayer times were last worked out on */
   private timesDay = '';
   refreshTimes() {
-    const now = new Date(); this.timesDay = now.toDateString();
-    this.realTimes = timesFor(this.loc.lat, this.loc.lng, now, this.settings.method, this.loc.cc);
+    const now = new Date(); this.timesDay = this.townDate(now);
+    // (the town's own calendar day: a town ahead of or behind the device may already be on another date)
+    const [Y, M, D] = this.timesDay.split('-').map(Number);
+    this.realTimes = timesFor(this.loc.lat, this.loc.lng, new Date(Y, M - 1, D, 12), this.settings.method, this.loc.cc);
     // the in-game day uses the same shape. Keep it sane for far-north places.
     const hs = hoursOf(this.realTimes, this.loc.lng, this.loc.tz);
+    // (far north in summer Isha can come after midnight: it is still right; the island's sky keeps it just before midnight)
+    if (hs.isha < hs.maghrib) hs.isha = Math.min(23.9, hs.maghrib + 1.2);
     const ok = hs.fajr < hs.sunrise && hs.sunrise < hs.dhuhr && hs.dhuhr < hs.asr && hs.asr < hs.maghrib && hs.maghrib < hs.isha;
     this.schedule = ok ? hs : { fajr: 4.6, sunrise: 5.9, dhuhr: 12, asr: 15.2, maghrib: 18, isha: 19.2 };
     this.ramadhan = ramadhanStatus(now);
     this.sky?.setMoonPhase(moonPhase(now));
     this.eid?.refresh();
   }
-  setLocation(l: Loc) { this.loc = l; saveLocation(l); this.refreshTimes(); this.remindersShown.clear(); this.saveSoon(); }
+  setLocation(l: Loc) { this.loc = l; saveLocation(l); this.refreshTimes(); this.saveSoon(); }
 
   // ---------- helpers for UI ----------
   pause(on: boolean) {
@@ -626,6 +643,11 @@ export class Game {
     if (on) { this.input.reset(); document.exitPointerLock?.(); } // a pop-up opening mid-touch must not leave anything held down
   }
   toggleCamera() { this.settings.cam = this.settings.cam === 'third' ? 'first' : 'third'; this.saveSoon(); }
+  /** the next REAL prayer in the town (after Isha: tomorrow's Fajr, about a day later) */
+  nextRealPrayer(now = new Date()): { p: Prayer; at: Date } {
+    for (const p of PRAYERS) if (this.realTimes[p] > now) return { p, at: this.realTimes[p] };
+    return { p: 'fajr', at: new Date(+this.realTimes.fajr + 86_400_000) };
+  }
   nextGamePrayer(): { p: Prayer; h: number } {
     for (const p of PRAYERS) if (this.schedule[p] > this.hour) return { p, h: this.schedule[p] };
     return { p: 'fajr', h: this.schedule.fajr };
@@ -671,7 +693,8 @@ export class Game {
     }
     return best;
   }
-  activeQuests() { return QUESTS.filter(q => !this.questsDone.has(q.id)).slice(0, 3); }
+  /** the next 3 quests not done yet (the iftar, suhoor and takjil quests only in Ramadan) */
+  activeQuests() { const ram = this.ramadhan?.inRamadhan; return QUESTS.filter(q => !this.questsDone.has(q.id) && (ram || !RAMADAN_QUESTS.has(q.id))).slice(0, 3); }
   stations(): Set<Station> {
     const s = new Set<Station>(); const p = this.player.pos;
     for (let x = -4; x <= 4; x++) for (let y = -2; y <= 3; y++) for (let z = -4; z <= 4; z++) {
@@ -1448,8 +1471,8 @@ export class Game {
     }
 
     // time of day
-    if (this.settings.dayMinutes > 0) { if (!this.jamaah?.joined) this.hour += dt * 24 / (this.settings.dayMinutes * 60); } // time waits while you pray
-    else { const n = new Date(), was = this.hour; this.hour = placeHour(n, this.loc.lng, this.loc.tz) + n.getUTCSeconds() / 3600; if (this.hour < was - 12) this.day++; } // (following the real clock of the chosen city, the same clock as its prayer times: midnight starts a new game day)
+    if (this.settings.dayMinutes > 0) { if (!this.jamaah?.joined && !(this.gameEvent && !this.gameEvent.prayed)) this.hour += dt * 24 / (this.settings.dayMinutes * 60); } // time waits while the villagers pray
+    else { const n = new Date(), was = this.hour; this.hour = placeHour(n, this.loc.lng, this.loc.tz) + n.getUTCSeconds() / 3600; if (this.hour < was - 12) { this.day++; this.stats.clockDate = this.townDate(n); } } // (following the real clock of the chosen city, the same clock as its prayer times: midnight starts a new game day)
     if (this.hour >= 24) { this.hour -= 24; this.day++; }
     this.gameTimeEvents();
 
@@ -1459,7 +1482,7 @@ export class Game {
     if (this.timers.slow <= 0) { this.timers.slow = 1; this.slowChecks(); }
     if (this.timers.save <= 0) { this.timers.save = 20; this.save(); }
     if (this.timers.tip <= 0) { this.timers.tip = 80 + Math.random() * 60; this.moTip(); }
-    if (this.timers.real <= 0) { this.timers.real = 15; this.realReminders(); }
+    if (this.timers.real <= 0) { this.timers.real = 5; this.realPrayerTick(); }
     this.mineAnim = Math.max(0, this.mineAnim - dt);
     this.kid.update(dt, t);
     this.ui.updateMoHi(); this.ui.updatePray();
@@ -1921,8 +1944,9 @@ export class Game {
     this.inv.useHeld();
     this.stats.ate++; this.amal('bismillah');
     SFX.pickup(); this.fx.hearts(this.player.pos.x, this.player.pos.y + 1.8, this.player.pos.z, 2);
-    const isIftar = h >= s.maghrib && h < s.maghrib + 1.5;
-    const isSahur = h >= s.fajr - 2 && h < s.fajr;
+    const ram = this.ramadhan.inRamadhan; // (iftar and suhoor are for Ramadan)
+    const isIftar = ram && h >= s.maghrib && h < s.maghrib + 1.5;
+    const isSahur = ram && h >= s.fajr - 2 && h < s.fajr;
     if (isIftar) {
       this.stats.iftar++; this.kid.reward('iftar');
       if (this.iftarDay !== this.day) { this.iftarDay = this.day; this.ui.duaCard(DUAS.iftar, tr('🌇 Doa berbuka puasa', '🌇 Du’a for breaking the fast')); }
@@ -2103,35 +2127,84 @@ export class Game {
     const a = this.lastHour, b = this.hour;
     return a <= b ? h > a && h <= b : h > a || h <= b;
   }
+  /**
+   * The prayer moments come at the REAL prayer times of the player's town (not the island's faster day): the
+   * bedug, the villagers walking to the masjid, praying together. If the game was opened up to 20 minutes after
+   * a prayer time, that prayer still comes. The island's sky moves to match the prayer (dawn for Fajr, sunset for
+   * Maghrib…) and its clock waits while the villagers pray. Iftar and suhoor only in real Ramadan.
+   */
+  private prayerSeen = new Set<string>();
+  realPrayerTick() {
+    if (!this.running || !this.realTimes) return;
+    const now = new Date();
+    if (this.townDate() !== this.timesDay) this.refreshTimes();
+    if (this.ramadhan.inRamadhan) {
+      const toFajr = (+this.realTimes.fajr - +now) / 60000, key = this.timesDay + 'sahur';
+      if (toFajr > 0 && toFajr < 60 && !this.prayerSeen.has(key)) { this.prayerSeen.add(key); this.ui.say(tr('Psst… sebentar lagi Subuh. Ayo makan sahur! 🍚', 'Psst… Fajr is coming soon. Time for suhoor! 🍚'), 'idea', 6000); }
+    }
+    if (this.gameEvent || this.jamaah || this.prayingTogether) return;
+    if (this.race?.active || this.playing || this.ui.locked) return; // (a game or bedtime: it comes when that ends, if still within the 20 minutes)
+    for (const p of PRAYERS) {
+      const t = this.realTimes[p], key = this.timesDay + p, late = (+now - +t) / 60000;
+      if (late < 0 || late > 20 || this.prayerSeen.has(key)) continue;
+      this.prayerSeen.add(key);
+      if (!this.settings.reminders) return;
+      this.startPrayerTime(p);
+      return;
+    }
+  }
+  /** the island's own day jumps to the prayer's moment, so the sky looks right (on the real clock it already is) */
+  private matchSky(p: Prayer) {
+    if (!this.settings.dayMinutes) return;
+    const h = (this.schedule[p] + 0.02) % 24;
+    if (h < this.hour - 0.01) this.day++;
+    this.hour = h; this.lastHour = h;
+  }
+  private startPrayerTime(p: Prayer) {
+    this.matchSky(p);
+    const ramadan = this.ramadhan.inRamadhan;
+    // the villagers wait in the row until you join (12 minutes; longer while you're on your way)
+    this.gameEvent = { p, untilMs: Date.now() + 12 * 60_000, attended: false };
+    this.stats.prayersSeen++;
+    // the bedug calls to prayer (a soft chime if a parent turned it off)
+    if (this.settings.adhan !== false && adhan() > 0) this.ui.toast(tr(`🥁 Dug… dug… dug! Waktunya sholat ${prayerName(p)}!`, `🥁 Dum… dum… dum! It’s time for ${prayerName(p)}!`), 6000);
+    else { SFX.drum(3); setTimeout(() => SFX.chime(), 1400); }
+    if (p === 'maghrib' && ramadan) {
+      // Ramadan: iftar first, everyone sits down together on the plaza, then goes to pray
+      this.festive.setPicnic(true);
+      this.ents.npcs.forEach((n, i) => n.goPray(true, this.festive.seat(i), 'picnic', PICNIC));
+      this.picnicToMasjid = Date.now() + 40_000;
+    } else this.ents.npcs.forEach((n, i) => n.goPray(true, this.rowSpot(n.id, i)));
+    const lines: Record<Prayer, [string, string]> = {
+      fajr: ['Sudah Subuh! Langit mulai terang. Warga berangkat ke masjid 🕌', 'It’s Fajr! The sky is getting lighter. The villagers are heading to the masjid 🕌'],
+      dhuhr: ['Waktunya Dzuhur ☀️ Yuk ikut ke masjid!', 'Dhuhr time ☀️ Let’s go to the masjid!'],
+      asr: ['Sudah Ashar 🌤️ Ayo sholat berjamaah!', 'It’s Asr 🌤️ Let’s pray together!'],
+      maghrib: ramadan ? ['Waktunya Maghrib & berbuka puasa! 🌇 Makan kurma yuk!', 'Maghrib: time for iftar! 🌇 Let’s eat some dates!'] : ['Matahari terbenam, waktunya Maghrib 🌇 Ayo ke masjid!', 'The sun has set: it’s Maghrib 🌇 Let’s go to the masjid!'],
+      isha: ['Sudah Isya 🌙 Ayo sholat berjamaah!', 'It’s Isha 🌙 Let’s pray together!'],
+    };
+    this.ui.say(tr(lines[p][0], lines[p][1]), p === 'maghrib' ? 'alright' : 'idea', 7000);
+  }
+  /**
+   * No town chosen and a time zone the quick list doesn't know (e.g. America/New_York): take the biggest town in
+   * the device's time zone from the world list, so the prayer times are right (a grown-up can change it).
+   */
+  private guessTownFromZone() {
+    const zone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })();
+    if (!zone) return;
+    loadTowns().then(list => {
+      if (this.loc.guess !== 'unknown') return; // (a town was chosen meanwhile)
+      const t = list.find(c => c.tz === zone); // (the list is biggest first)
+      if (t) { this.setLocation(townLoc(t)); this.ui.toast(`📍 ${tr('Waktu sholat untuk', 'Prayer times for')} ${townLoc(t).name}`, 4000); }
+    }).catch(() => { /* offline: keep the first guess */ });
+  }
+  /** the calendar date in the player's town (prayer times are for that day) */
+  townDate(d = new Date()) {
+    const off = placeOffset(this.loc.lng, this.loc.tz, d), t = new Date(+d + off * 3_600_000);
+    return `${t.getUTCFullYear()}-${t.getUTCMonth() + 1}-${t.getUTCDate()}`;
+  }
   private gameTimeEvents() {
     const s = this.schedule;
-    for (const p of PRAYERS) {
-      // (on the real clock, coming back to the game hours later doesn't start a prayer time long gone)
-      if (this.crossed(s[p]) && (this.settings.dayMinutes > 0 || (this.hour - s[p] + 24) % 24 < 0.5)) {
-        // the villagers wait in the row until you join (or until shortly before the next prayer)
-        const next = PRAYERS.map(q => s[q]).filter(h => h > s[p]).sort((a, b) => a - b)[0] ?? s.fajr + 24;
-        this.gameEvent = { p, until: Math.min(s[p] + 3, next - 0.15) % 24, attended: false };
-        this.stats.prayersSeen++;
-        // the bedug calls to prayer (a soft chime if a parent turned it off)
-        if (this.settings.adhan !== false && adhan() > 0) this.ui.toast(tr(`🥁 Dug… dug… dug! Waktunya sholat ${prayerName(p)}!`, `🥁 Dum… dum… dum! It’s time for ${prayerName(p)}!`), 6000);
-        else { SFX.drum(3); setTimeout(() => SFX.chime(), 1400); }
-        if (p === 'maghrib') {
-          // iftar first: everyone sits down together on the plaza, then goes to pray
-          this.festive.setPicnic(true);
-          this.ents.npcs.forEach((n, i) => n.goPray(true, this.festive.seat(i), 'picnic', PICNIC));
-          this.picnicToMasjid = (s[p] + 0.35) % 24;
-        } else this.ents.npcs.forEach((n, i) => n.goPray(true, this.rowSpot(n.id, i)));
-        const lines: Record<Prayer, [string, string]> = {
-          fajr: ['Sudah Subuh! Langit mulai terang. Warga berangkat ke masjid 🕌', 'It’s Fajr! The sky is getting lighter. The villagers are heading to the masjid 🕌'],
-          dhuhr: ['Waktunya Dzuhur — matahari sedang tinggi ☀️ Yuk ikut ke masjid!', 'Dhuhr time — the sun is high ☀️ Let’s go to the masjid!'],
-          asr: ['Sudah Ashar 🌤️ Bayangan mulai panjang. Ayo sholat berjamaah!', 'It’s Asr 🌤️ Shadows are getting longer. Let’s pray together!'],
-          maghrib: ['Matahari terbenam — waktunya Maghrib & berbuka puasa! 🌇 Makan kurma yuk!', 'The sun has set — time for Maghrib and iftar! 🌇 Let’s eat some dates!'],
-          isha: ['Sudah Isya 🌙 Setelah sholat Isya, ada tarawih di bulan Ramadhan.', 'It’s Isha 🌙 In Ramadan, tarawih prayer comes after Isha.'],
-        };
-        this.ui.say(tr(lines[p][0], lines[p][1]), p === 'maghrib' ? 'alright' : 'idea', 7000);
-      }
-    }
-    if (this.crossed((s.fajr - 1.2 + 24) % 24)) this.ui.say(tr('Psst… sebentar lagi Subuh. Ayo makan sahur! 🍚', 'Psst… Fajr is coming soon. Time for suhoor! 🍚'), 'idea', 6000);
+
     if (this.gameEvent) {
       const ev = this.gameEvent;
       const p = this.player.pos;
@@ -2141,7 +2214,7 @@ export class Game {
         SFX.chime();
         this.ui.say(tr(`Warga menunggumu! Berwudhu dulu 💧, lalu berdiri di tempatmu di barisan (tanda yang bersinar ✨) atau tekan 🤲 Sholat bersama — sholat ${prayerName(ev.p)} dimulai bersama-sama.`, `The villagers are waiting for you! Make wudu 💧, then stand in your place in the row (the glowing mark ✨) or press 🤲 Pray together — then ${prayerName(ev.p)} prayer starts together.`), 'alright', 8000);
       }
-      if (this.picnicToMasjid >= 0 && this.crossed(this.picnicToMasjid)) {
+      if (this.picnicToMasjid >= 0 && Date.now() >= this.picnicToMasjid) {
         this.picnicToMasjid = -1;
         this.ents.npcs.forEach((n, i) => n.goPray(true, this.rowSpot(n.id, i)));
       }
@@ -2149,8 +2222,8 @@ export class Game {
       const prayingNow = this.picnicToMasjid < 0;
       this.ents.mo.prayAt = here && (prayingNow || here.id !== 'village') ? (this.jamaah ? this.jamaahSite : here).row(this.girl).mo : null;
       // still on your way to the masjid: they wait a little longer
-      if (this.crossed(ev.until) && !this.jamaah && this.sites.some(s => p.distanceTo(s.spot) < 30)) ev.until = (this.hour + 0.25) % 24;
-      else if (this.crossed(ev.until) && !this.jamaah) this.endPrayerTime();
+      if (Date.now() >= ev.untilMs && !this.jamaah && this.sites.some(s => p.distanceTo(s.spot) < 30)) ev.untilMs = Date.now() + 90_000;
+      else if (Date.now() >= ev.untilMs && !this.jamaah) this.endPrayerTime();
     }
     this.lastHour = this.hour;
   }
@@ -2238,11 +2311,11 @@ export class Game {
       this.addCoins(100, from => this.ui.coinPop(100, from));
       SFX.fanfare(); this.ui.confetti(40);
       this.ents.mo.celebrate = 2;
-this.goodWord('prayed', true);
-            this.ui.say(tr('Taqabbalallahu minna wa minkum 🤲 Semoga Allah menerima sholat kita. Kamu dapat 100 koin! 🪙', 'Taqabbalallahu minna wa minkum 🤲 May Allah accept our prayer. You earned 100 coins! 🪙'), 'alright', 7000);
+      this.goodWord('prayed', true);
+      this.ui.say(tr('Taqabbalallahu minna wa minkum 🤲 Semoga Allah menerima sholat kita. Kamu dapat 100 koin! 🪙', 'Taqabbalallahu minna wa minkum 🤲 May Allah accept our prayer. You earned 100 coins! 🪙'), 'alright', 7000);
       this.checkQuests(); this.saveSoon();
     }
-    if (ev) { ev.prayed = true; ev.until = (this.hour + 0.15) % 24; }
+    if (ev) { ev.prayed = true; ev.untilMs = Date.now() + 40_000; }
     rowPose.pose = 'qiyam'; rowPose.head = 0;
   }
   /** the stroke button: try the next swimming style */
@@ -2266,22 +2339,7 @@ this.goodWord('prayed', true);
     return true;
   }
 
-  private realReminders() {
-    if (!this.settings.reminders) return;
-    if (!this.settings.dayMinutes) return; // (on the real clock the island's own prayer time is the reminder: no second pop-up)
-    const now = new Date();
-    if (now.toDateString() !== this.timesDay) this.refreshTimes(); // (by the day they were worked out for: the city's time zone can differ from the device's)
-    for (const p of PRAYERS) {
-      const t = this.realTimes[p];
-      const k = now.toDateString() + p;
-      const diff = (+now - +t) / 60000;
-      if (diff >= 0 && diff < 10 && !this.remindersShown.has(k)) {
-        this.remindersShown.add(k);
-        if (!this.ui.isOpen()) { if (this.settings.adhan === false || !adhan()) SFX.chime(); this.ui.reminder(prayerName(p), fmtTime(t, this.loc.lng, this.loc.tz), this.loc.name); }
-        return;
-      }
-    }
-  }
+
 
   /** walking close to a landmark for the first time: a discovery card with a fun fact */
   private checkDiscoveries() {

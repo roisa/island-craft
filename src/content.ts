@@ -44,6 +44,8 @@ export interface Stats {
   kites?: number; kiteHigh?: boolean;
   /** flown with a cape once (Baby Mo explains it the first time); mud traps sprung */
   flown?: boolean; mudTraps?: number;
+  /** the town's date when the real clock last counted a day */
+  clockDate?: string;
   /** treasure map pieces found (the places they came from), and the great treasure dug up */
   mapPieces?: string[]; greatTreasure?: boolean;
   /** mangrove seedlings planted in shallow water */

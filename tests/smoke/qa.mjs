@@ -180,7 +180,7 @@ for (const name of profiles) {
     return { times: a.slice(0, 6).join(' '), changed: a.join() !== b.join() };
   });
   await check('prayer time in the game: villagers go to the masjid, pray together', async () => {
-    await g(() => { const G = __game; const h = G.schedule.dhuhr; G.hour = h - 0.05; G.lastHour = G.hour; G.settings.dayMinutes = 1; G.player.pos.set(0.5, 46, -14.5); });
+    await g(() => { const G = __game; G.player.pos.set(0.5, 46, -14.5); G.gameEvent = null; (p => { const G = __game, past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past; G.realTimes[p] = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick(); })('dhuhr'); });
     try { await p.waitForFunction(() => !!__game.gameEvent, null, { timeout: 30000 }); } catch (e) { throw new Error('prayer time did not come: ' + JSON.stringify(await g(() => { const G = __game; return { hour: G.hour, dhuhr: G.schedule.dhuhr, paused: G.paused, open: G.ui.isOpen(), modals: G.ui.modals.length, q: G.ui.modalQueue.length, who: [...document.querySelectorAll('.veil.on .who, .veil.on h2')].map(e => e.textContent).slice(0, 4), book: document.querySelector('#vBook').className }; }))); }
     await g(() => { const G = __game; G.settings.dayMinutes = 600; for (const n of G.ents.npcs) if (n.target) { n.pos.copy(n.target); n.target = null; } });
     await p.waitForTimeout(800);
@@ -195,7 +195,7 @@ for (const name of profiles) {
     return { ...r, buttonShown: btn };
   });
   await check('Maghrib: iftar picnic on the plaza', async () => {
-    await g(() => { const G = __game; G.gameEvent = null; const h = G.schedule.maghrib; G.hour = h - 0.05; G.lastHour = G.hour; G.settings.dayMinutes = 1; });
+    await g(() => { const G = __game; G.gameEvent = null; G.ramadhan = { ...G.ramadhan, inRamadhan: true, day: 5 }; (p => { const G = __game, past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past; G.realTimes[p] = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick(); })('maghrib'); });
     await p.waitForFunction(() => __game.gameEvent?.p === 'maghrib', null, { timeout: 30000 });
     await g(() => { __game.settings.dayMinutes = 600; });
     const r = await g(() => ({ picnic: __game.festive.picnicOn, villagersAtPicnic: __game.ents.npcs.filter(n => n.activity === 'picnic').length }));

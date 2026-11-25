@@ -5,6 +5,49 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Real prayer times, a playful game day (audit fixes)
+
+The real-clock change made the whole island follow the town's clock. The audit
+found that this left evening players in the dark, froze the day counter, blocked
+quests, and broke prayer times far north. Now the two are split:
+- **The island's day runs at its own speed again** (24 minutes, as before), so
+  sun, weather, races, villagers and sleeping in a bed all follow the game day.
+  A grown-up can still choose "Real clock of your town".
+- **Prayer moments come only at the real prayer times of the town**
+  (`realPrayerTick`, every 5 s), never from the game clock. When a prayer time
+  arrives, the bedug sounds and the villagers walk to the masjid. The island's
+  sky moves to match the prayer (dawn for Fajr, sunset for Maghrib…) and its
+  clock waits while the villagers pray, up to 12 minutes, longer while you're on
+  your way. A prayer that began up to 20 minutes before the game was opened (or
+  during a race or game) still comes.
+- **The clock pill shows the real next prayer**, e.g. "Asr in 25 min", or its
+  time when it's more than 90 minutes away.
+- **Iftar and suhoor only in real Ramadan**: the iftar picnic, the iftar du'a and
+  "Happy iftar" on eating, the suhoor reminder (an hour before real Fajr), and
+  the takjil/iftar/suhoor quests, which no longer block the quest list.
+- **Unknown time zones**: a device in a zone the quick list doesn't know (New
+  York, Berlin…) keeps its own clock and gets the biggest town in its zone from
+  the world list (a toast names it), instead of Jakarta.
+- **Far north in summer**: Isha after midnight no longer throws away the real
+  schedule, so the sky keeps the town's real sunset.
+- **Prayer times are for the town's own date**, not the device's.
+- **Real-clock mode: a new day with each new date in the town**, also between
+  sessions. Before, a day only passed if midnight came during play.
+- **Letter quiz**: "Correct!" / "That's Ba. Listen again 👂" now appear inside
+  the quiz card (they used to wait until it closed), a miss says which letter
+  was tapped and replays the sound, and wrong-answer options are letters already
+  found. Fixed a crash when the quiz reopened with no letters found.
+- **Parents panel** no longer says "no purchases / no timers": "No ads and no
+  chat, with one optional purchase… only the daily play limit you choose".
+- The prayer settings' wording explains this. The "Prayer reminders" toggle is
+  now "Prayer times on the island (real times)".
+- Tested: tsc, vitest 295/295 (new: an unknown zone keeps the device's clock and
+  is marked to find a town), and a new smoke step: the game clock passing Asr
+  starts nothing; a real Maghrib starts Maghrib with the sky at sunset and the
+  clock waiting; outside Ramadan there's no picnic, no iftar line and no
+  Ramadan quests; the pill shows "… in 13 min". Prayer smoke and QA steps now
+  start prayers through the real times.
+
 ### Good words from Nur Connect: Barakallahu fik, Taqabbalallahu minna wa minkum, Tawakkaltu ‘alallah, praise that grows
 
 From the Islamic wording of Nur Connect (roisa/app-ayah, the Baby Mo puzzle):

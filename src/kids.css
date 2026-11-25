@@ -145,3 +145,8 @@
 .citySheet .cityRow small { margin-left: auto; font-size: 12px; font-weight: 800; color: #6B7280; }
 .citySheet .cityHint { padding: 14px; text-align: center; font-weight: 800; color: #6B7280; font-size: 13.5px; }
 .citySheet .cityCredit { font-size: 11px !important; margin-top: 8px; text-align: center; opacity: .7; }
+
+/* the letter quiz: the answer said right in the card */
+.qfb { margin-top: 10px; text-align: center; font: 900 16px var(--ui, Nunito), sans-serif; padding: 8px 12px; border-radius: 14px; }
+.qfb.ok { background: #E3F8E9; color: #137A3A; }
+.qfb.no { background: #FFF1E0; color: #B25B00; }
