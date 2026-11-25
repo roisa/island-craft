@@ -150,3 +150,6 @@
 .qfb { margin-top: 10px; text-align: center; font: 900 16px var(--ui, Nunito), sans-serif; padding: 8px 12px; border-radius: 14px; }
 .qfb.ok { background: #E3F8E9; color: #137A3A; }
 .qfb.no { background: #FFF1E0; color: #B25B00; }
+
+/* a new good deed: a longer chip (tap it for the hadith card) instead of a card in the middle of play */
+.amalChip.new { animation-duration: 3.4s !important; white-space: normal; max-width: min(92vw, 520px); text-align: center; line-height: 1.3; }

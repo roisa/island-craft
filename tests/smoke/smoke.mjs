@@ -1338,6 +1338,27 @@ async function run(name) {
       if (!r.landmark || r.lockedQuest) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('audit batch 3: a new good deed is a chip (no card mid-play), the quiz asks missed letters more, far animals rest', async () => {
+      const r = await g(async () => {
+        const G = __game, sleep = ms => new Promise(r => setTimeout(r, ms));
+        G.ui.closeAllModals();
+        // a first-time good deed: a chip, and no pop-up opens
+        const log = G.stats.amal; G.stats.amal = undefined; G.amal('plant'); await sleep(200);
+        const chip = document.querySelector('.amalChip.new')?.textContent || '', modal = G.ui.isOpen();
+        G.stats.amal = log; document.querySelectorAll('.amalChip').forEach(e => e.remove()); G.ui.closeAllModals();
+        // missed letters: a letter missed 5 times is asked far more often than the others
+        const keep = G.stats.letters, miss = G.stats.quizMiss; G.stats.letters = [0, 1, 2, 3, 4, 5, 6]; G.stats.quizMiss = { 4: 5 };
+        let n4 = 0; const rnd = Math.random;
+        for (let i = 0; i < 60; i++) { G.ui.quiz(); document.querySelector('.veil.on #qSay').click(); const said = window.__said; if (said === 'جِيم') n4++; G.ui.closeAllModals(); }
+        G.stats.letters = keep; G.stats.quizMiss = miss;
+        // animals far beyond the view rest and aren't drawn
+        const far = G.ents.animals.filter(a => !a.follow && a.pos.distanceTo(G.player.pos) > G.ents.viewDist);
+        const hidden = far.every(a => !a.rig.root.visible);
+        return { chip, modal, n4, far: far.length, hidden };
+      });
+      if (!/Amal|good deed/i.test(r.chip) || r.modal || r.n4 < 15 || !r.hidden) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
     if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
   } catch { failed++; }

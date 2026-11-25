@@ -557,10 +557,17 @@ export class Entities {
   /** game clock, set by the game each frame: drives villagers' days and the animals' bedtime */
   clock = { hour: 8, isha: 19.3, fajr: 4.6, night: false };
   private routineT = 0;
+  /** how far animals are drawn and move (set by the game from the view distance) */
+  viewDist = 90;
   update(dt: number, t: number, center: THREE.Vector3, playerSpeed = 0) {
+    const far = this.viewDist * this.viewDist;
     for (const a of this.animals) {
       const d2 = a.pos.distanceToSquared(center);
-      if (d2 > 90 * 90 && !a.follow) continue; // friends who follow you always catch up, even after a long jump home
+      // beyond what you can see (in the fog): not drawn and not moving, to save battery; friends who follow you
+      // always catch up, even after a long jump home
+      const away = d2 > far && !a.follow;
+      if (a.rig.root.visible === away) a.rig.root.visible = !away;
+      if (away) continue;
       a.sleeping = this.clock.night;
       if (d2 < 36 && a.sense(center, playerSpeed)) this.onStartle?.(a);
       a.update(dt, t);

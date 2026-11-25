@@ -376,7 +376,8 @@ export class UI {
     const wi = el.querySelector('.wi')!;
     if (w.item !== undefined) wi.innerHTML = `<img src="${iconURL(w.item)}" alt="">`; else wi.textContent = w.icon;
     el.querySelector('.we')!.textContent = w.en;
-    el.querySelector('.wid')!.textContent = w.id;
+    // (the Indonesian meaning helps a child playing in Indonesian; in English it would only confuse, so it's left out)
+    const wid = el.querySelector<HTMLElement>('.wid')!; wid.textContent = getLang() === 'en' ? '' : w.id; wid.style.display = getLang() === 'en' ? 'none' : '';
     el.classList.remove('hidden', 'pop'); void (el as HTMLElement).offsetWidth; el.classList.add('pop');
     clearTimeout(this.wordT); this.wordT = window.setTimeout(() => el.classList.add('hidden'), 4200);
     this.placeWordCard();
@@ -566,8 +567,9 @@ export class UI {
   private amalQ: { d: Deed; first: boolean }[] = []; private amalBusy = false;
   /** a small "✨ Praying together ×27" chip; the first time, a card with what Rasulullah ﷺ said */
   amalPop(d: Deed, first: boolean) {
-    // the first time: a card with the hadith, shown after whatever the deed itself opens (the letter card, a dialog…)
-    if (first) { setTimeout(() => this.amalCard(d), 60); return; }
+    // (the first time used to open a card with the hadith in the middle of play — a lot of reading for a child:
+    // now a slightly longer chip says it's new in the Amal Book, where the hadith is, read aloud on a tap)
+    if (first) { this.amalQ.unshift({ d, first }); if (!this.amalBusy) this.nextAmal(); return; }
     if (this.amalQ.length < 4) this.amalQ.push({ d, first });
     if (!this.amalBusy) this.nextAmal();
   }
@@ -583,10 +585,14 @@ export class UI {
   private nextAmal() {
     const it = this.amalQ.shift(); if (!it) { this.amalBusy = false; return; }
     this.amalBusy = true;
-    const el = document.createElement('div'); el.className = 'amalChip';
-    el.innerHTML = `✨ ${it.d.icon} ${esc(t2(it.d.name))}${it.d.times ? ` <b>×${it.d.times}</b>` : ''}`;
-    document.body.appendChild(el); SFX.pop(6);
-    setTimeout(() => { el.remove(); this.nextAmal(); }, 1900);
+    const el = document.createElement('div'); el.className = 'amalChip' + (it.first ? ' new' : '');
+    el.innerHTML = it.first
+      ? `✨ ${it.d.icon} <b>${tr('Amal baru', 'New good deed')}:</b> ${esc(t2(it.d.name))} · 📖 ${tr('lihat di Buku Amal', 'see your Amal Book')}`
+      : `✨ ${it.d.icon} ${esc(t2(it.d.name))}${it.d.times ? ` <b>×${it.d.times}</b>` : ''}`;
+    // a tap on a new deed's chip opens its card with the hadith
+    if (it.first) { el.style.pointerEvents = 'auto'; el.style.cursor = 'pointer'; el.onclick = () => { el.remove(); this.amalCard(it.d); }; }
+    document.body.appendChild(el); it.first ? SFX.chime() : SFX.pop(6);
+    setTimeout(() => { el.remove(); this.nextAmal(); }, it.first ? 3400 : 1900);
   }
   /** a tasbih: tap 33 times */
   tasbih() {
@@ -1969,7 +1975,7 @@ export class UI {
   }
 
   /** Dad's Iqro exam for a stage: 5 listening questions; `done` gets how many were right first time */
-  iqroExam(stage: number, pool: { ar: string; lat: string }[], done: (right: number) => void) {
+  iqroExam(stage: number, pool: { ar: string; lat: string }[], done: (right: number, missed?: { ar: string; lat: string }[]) => void) {
     let q = 0, right = 0, miss = false, finished = false;
     const order = [...pool].sort(() => Math.random() - 0.5).slice(0, 5);
     const wide = stage >= 4;
@@ -1978,8 +1984,9 @@ export class UI {
     const body = $('#iqBody', el);
     $('#iqX', el).onclick = () => close();
     const show = (x: { ar: string }) => wide ? `<span class="ar exa" lang="ar" dir="rtl">${x.ar}</span>` : arImg(x.ar, { size: 40, w: 76, h: 68 });
+    const missedList: { ar: string; lat: string }[] = [];
     const ask = () => {
-      if (q >= order.length) { finished = true; close(); done(right); return; }
+      if (q >= order.length) { finished = true; close(); done(right, missedList); return; }
       const want = order[q], opts = choices(pool, want, Math.random); miss = false;
       body.innerHTML = `<p class="iqQ">${tr('Soal', 'Question')} ${q + 1}/${order.length}</p><button class="btn gold iqHear" id="iqHear">🔊 ${tr('Dengar', 'Listen')}</button>
         <div class="iqOpts${wide ? ' col' : ''}">${opts.map((o, k) => `<button class="iqO" data-k="${k}" data-ar="${esc(o.ar)}">${show(o)}</button>`).join('')}</div>`;
@@ -1988,7 +1995,7 @@ export class UI {
       el.querySelectorAll<HTMLElement>('.iqO').forEach(b => (b.onclick = () => {
         const o = opts[+b.dataset.k!];
         if (o.ar === want.ar) { b.classList.add('ok'); SFX.chime(); if (!miss) right++; q++; setTimeout(ask, 700); }
-        else { b.classList.add('no'); SFX.error(); miss = true; setTimeout(() => b.classList.remove('no'), 500); play(); }
+        else { b.classList.add('no'); SFX.error(); if (!miss) missedList.push(want); miss = true; setTimeout(() => b.classList.remove('no'), 500); play(); }
       }));
     };
     ask();
@@ -2123,7 +2130,10 @@ export class UI {
   quiz() {
     const g = this.g, have = g.stats.letters.filter(i => LETTERS[i]);
     if (!have.length) return; // (no letter found yet: nothing to ask; also when the quiz reopens itself after that changed)
-    const ans = have[Math.floor(Math.random() * have.length)];
+    // letters missed before come up more often (each miss counts 3 times more, a right answer takes one away)
+    const miss = (g.stats.quizMiss ??= {}), wts = have.map(i => 1 + 3 * (miss[i] || 0)), sum = wts.reduce((a, b) => a + b, 0);
+    let r = Math.random() * sum, ans = have[have.length - 1];
+    for (let k = 0; k < have.length; k++) { r -= wts[k]; if (r < 0) { ans = have[k]; break; } }
     const pool = new Set<number>([ans]);
     // the other choices: letters already found (so a child isn't asked about ones not met yet), else any
     const known = have.filter(i => i !== ans).sort(() => Math.random() - 0.5);
@@ -2148,11 +2158,12 @@ export class UI {
       if (o === ans) {
         done = true; b.classList.add('right'); SFX.letter(); g.stats.quiz++; g.kid.reward('quiz'); g.amal('learn'); this.confetti(14); g.checkQuests();
         g.praiseStreak(++this.quizStreak); // (3 right in a row: Masya Allah… 9: Allahu Akbar)
+        if (miss[ans]) miss[ans]--;
         fb(tr(`Benar! Itu huruf ${L.name} ⭐`, `Correct! That's ${L.name} ⭐`), true);
         setTimeout(() => { close(); this.quiz(); }, 1300);
       } else {
         // a miss: say which letter that was, then the one we're looking for again
-        b.classList.add('wrong'); SFX.error(); this.quizStreak = 0;
+        b.classList.add('wrong'); SFX.error(); this.quizStreak = 0; miss[ans] = Math.min(5, (miss[ans] || 0) + 1);
         const W = LETTERS[o]; fb(tr(`Itu ${W.name}. Dengarkan lagi 👂`, `That's ${W.name}. Listen again 👂`), false);
         setTimeout(say, 900);
       }

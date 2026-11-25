@@ -1286,6 +1286,7 @@ export class Game {
     if (this.ui.locked && !this.paused) this.pause(true); // the play-time lock holds, whatever else opens or closes
     if (!this.paused) this.tick(dt, t);
     this.watchFps(dt);
+    this.ents.viewDist = (this.world.radius + 1) * 16; // (animals past the visible world rest and aren't drawn)
     this.ents.update(this.paused ? 0 : dt, t, this.player.pos, this.fun?.riding ? 0 : this.player.speed);
     this.fx.update(dt);
     this.updateAvatar(dt, t);
@@ -2085,14 +2086,21 @@ export class Game {
   /** Dad's Iqro exams: for each finished stage not passed yet, an exam and a certificate */
   iqroExam(stage: number) {
     if (!this.can('exam')) return;
-    this.ui.iqroExam(stage, examPool(stage), right => {
+    this.ui.iqroExam(stage, examPool(stage), (right, missed = []) => {
       if (right < 0) return;
       if (right >= EXAM_PASS) {
         const ex = ((this.stats.iqro ??= { n: 0 }).exams ??= []); if (!ex.includes(stage)) ex.push(stage);
         this.addCoins(100, from => this.ui.coinPop(100, from));
         this.goodWord('big_win', true); this.kid.reward('quest');
         this.ui.iqroCertificate(stage, this.stats.kidName || tr('Sahabat Baby Mo', 'Baby Mo’s friend'), n => { this.stats.kidName = n; this.saveSoon(); });
-      } else this.ui.dialog({ face: 'img/ibrahim-face.webp', img: true, who: tr('Ayah Ibrahim', 'Dad'), text: tr(`<b>${right} dari 5</b> benar. Hampir! Latih lagi pelajarannya di buku huruf, lalu coba ujian lagi ya. Insya Allah bisa! 💪`, `<b>${right} of 5</b> right. Nearly! Practise the lessons again in the letter book, then try the exam again. Insha Allah you can! 💪`) });
+      } else {
+        // which sounds were missed, so the child knows what to practise (and can hear them again)
+        const miss = missed.slice(0, 3), list = miss.map(m => `<b lang="ar" dir="rtl" style="font-size:1.4em">${m.ar}</b> (${m.lat})`).join(' · ');
+        let k = 0; const hear = () => { if (k < miss.length) { Speech.say(miss[k].ar, miss[k].lat); k++; setTimeout(hear, 1400); } };
+        this.ui.dialog({ face: 'img/ibrahim-face.webp', img: true, who: tr('Ayah Ibrahim', 'Dad'),
+          text: tr(`<b>${right} dari 5</b> benar. Hampir! 💪`, `<b>${right} of 5</b> right. Nearly! 💪`) + (list ? '<br>' + tr('Latih lagi yang ini: ', 'Practise these again: ') + list : '') + '<br>' + tr('Lalu coba ujian lagi ya. Insya Allah bisa!', 'Then try the exam again. Insha Allah you can!'),
+          buttons: [...(miss.length ? [{ label: '🔊 ' + tr('Dengar lagi', 'Hear them'), cls: 'gold', fn: () => { k = 0; hear(); } }] : []), { label: tr('Oke, Ayah', 'Okay, Dad'), cls: miss.length ? 'ghost' : 'gold' }] });
+      }
       this.saveSoon();
     });
   }

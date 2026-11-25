@@ -48,6 +48,8 @@ export interface Stats {
   clockDate?: string;
   /** the 7 free letters found (Baby Mo said so once) */
   freeLettersDone?: boolean;
+  /** letters missed in the letter quiz (asked more often until they're right) */
+  quizMiss?: Record<number, number>;
   /** treasure map pieces found (the places they came from), and the great treasure dug up */
   mapPieces?: string[]; greatTreasure?: boolean;
   /** mangrove seedlings planted in shallow water */

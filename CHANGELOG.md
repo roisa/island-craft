@@ -5,6 +5,34 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Audit batch 3: learning loops, calmer good deeds, a leaner download, battery
+
+- **The letter quiz asks missed letters more often.** Each miss makes that
+  letter 3× more likely (up to 5 misses), and each right answer takes one miss
+  away (`stats.quizMiss`).
+- **A first good deed is a chip, not a card mid-play.** It shows "✨ 🌱 New good
+  deed: Planting trees · 📖 see your Amal Book" for a little longer, and a tap
+  opens the hadith card. Before, a full hadith card opened in the middle of
+  play.
+- **Dad's exam names what to practise.** A failed exam lists the missed sounds
+  in Arabic with their reading (up to 3), with a "🔊 Hear them" button.
+- **English word cards in English mode** no longer show the Indonesian meaning.
+- **Offline cache**:
+  - Each fresh page removes old game builds (`index-*` / `three-*`) from the
+    cache, so it doesn't grow with every update.
+  - Audio and video range requests are left to the browser (cached whole files
+    can fail to play on iOS), and only full answers are cached.
+  - Emoji pictures are fetched fresh, then kept for offline. The cache is now
+    `babymo-craft-v3`.
+- **Smaller downloads for updates**: three.js is its own file (533 KB, 136 KB
+  gzip) that rarely changes, so after an update only the game file is fetched
+  again (889 KB, 323 KB gzip; it was one 1.43 MB file).
+- **Animals beyond the visible world rest and aren't drawn** (view distance + 1
+  chunk), to save battery.
+- Tested: tsc, vitest 295/295, and the desktop smoke run with a new step: a
+  first good deed shows the chip and no pop-up; a letter missed 5 times was
+  asked 48 of 60 times; the 10 animals beyond the view were hidden.
+
 ### App Store kit: screenshots of the latest version
 
 - All 60 screenshots (iPhone 6.9″, iPhone Duo, iPad 13″ × English and
