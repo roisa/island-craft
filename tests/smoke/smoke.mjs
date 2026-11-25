@@ -1223,14 +1223,15 @@ async function run(name) {
     });
     await step('play time: the sun by the clock shows the minutes left from the start, turns to a moon near bedtime, and a tap makes Baby Mo say it', async () => {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; });
-      await p.waitForFunction(() => !document.querySelector('#playT').classList.contains('hidden') && document.querySelector('#playM').textContent === '60', null, { timeout: 5000, polling: 100 });
+      // (a pop-up that comes up meanwhile pauses the game, and the sun isn't updated: close it)
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); return !document.querySelector('#playT').classList.contains('hidden') && document.querySelector('#playM').textContent === '60'; }, null, { timeout: 5000, polling: 100 });
       const start = await g(() => ({ icon: document.querySelector('#playI').textContent, min: document.querySelector('#playM').textContent, line: __game.playLeftLine(true) }));
       await g(() => { __game.stats.play.sec = 60 * 60 - 300; });
-      await p.waitForFunction(() => document.querySelector('#playI').textContent === '🌙', null, { timeout: 5000, polling: 100 });
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); return document.querySelector('#playI').textContent === '🌙'; }, null, { timeout: 5000, polling: 100 });
       const said = await g(() => { document.querySelector('#playT').click(); return document.querySelector('#bubbleTxt').textContent; });
       if (!/5/.test(said)) throw new Error('Mo said: ' + said);
       await g(() => { const G = __game; G.settings.playLimit = 0; });
-      await p.waitForFunction(() => document.querySelector('#playT').classList.contains('hidden'), null, { timeout: 5000, polling: 100 });
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); return document.querySelector('#playT').classList.contains('hidden'); }, null, { timeout: 5000, polling: 100 });
       await g(() => { const G = __game; G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; G.bedtime.reset?.(); G.ui.dusk?.(0); });
       return { ...start, said };
     });
@@ -1313,14 +1314,14 @@ async function run(name) {
         window.__pos0 = G.player.pos.toArray();
         G.realTimes.maghrib = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick();
         await sleep(300);
-        const scene = G.prayScene?.site.id, inMasjid = !!G.prayScene && G.prayScene.site.inside(G.player.pos), mo = !!G.ents.mo.prayAt;
+        const scene = G.prayScene?.site.id, inMasjid = !!G.prayScene && G.prayScene.site.inside(G.player.pos), moRow = !!G.ents.mo.prayAt;
         const card = document.querySelector('.veil.on .prayHold'), btn = document.querySelector('#phOk');
         const sec0 = G.stats.play.sec, left0 = G.playLeft(); await sleep(1500);
         return { card: !!card, title: card?.querySelector('h2')?.textContent, mo: card?.querySelector('.phMo')?.getAttribute('src'), disabled: btn?.disabled, wait: document.querySelector('#phWait')?.textContent,
-          paused: G.paused, timerStill: G.stats.play.sec === sec0 && G.playLeft() === left0, left0, scene, inMasjid, mo };
+          paused: G.paused, timerStill: G.stats.play.sec === sec0 && G.playLeft() === left0, left0, scene, inMasjid, moRow };
       });
       // behind the card: inside a masjid (the village one or the Grand Masjid), praying in the row with Baby Mo
-      if (!/^(village|grand)$/.test(a.scene) || !a.inMasjid || !a.mo) throw new Error('no prayer scene: ' + JSON.stringify(a));
+      if (!/^(village|grand)$/.test(a.scene) || !a.inMasjid || !a.moRow) throw new Error('no prayer scene: ' + JSON.stringify(a));
       if (!a.card || !/Maghrib/.test(a.title) || !/poses\/s0/.test(a.mo) || !a.disabled || !/\d:\d\d/.test(a.wait) || !a.paused || !a.timerStill) throw new Error(JSON.stringify(a));
       // closed some other way, it comes back until the child has prayed
       await g(() => __game.ui.closeAllModals());
