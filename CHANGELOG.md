@@ -5,6 +5,14 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### App icon: just Baby Mo
+
+- The icon is now only blocky Baby Mo, waving as he walks, on the teal sky,
+  with no "Mo Craft" text (the app's name shows under the icon anyway). He fills
+  the icon and stays inside the circle Android crops to. Web icons, the iOS icon
+  and the favicon, all from `node tools/icon/make-icon.mjs`.
+- Tested: the 512, 180 and 60 px icons and the round Android crop checked by eye.
+
 ### App Store kit: the prayer pause; the masjid scene framed for every screen
 
 - Screenshot 04 is now the prayer pause ("Stops for the real prayer times"):
