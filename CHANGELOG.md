@@ -5,6 +5,18 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### App Store kit: screenshots of the latest version
+
+- All 60 screenshots (iPhone 6.9″, iPhone Duo, iPad 13″ × English and
+  Indonesian) taken again from the game as it is now: the candy buttons and
+  frosted sheets, the play-time sun and the real next prayer in the clock pill,
+  the letter balloons in the race, and a new **02 letters** picture showing the
+  celebrating "New letter!" card with the coloured vowel cards and the pointing
+  finger. Thumbnails and both download zips were rebuilt.
+- The screenshot setup now sets the place to Jakarta (with its time zone), so
+  the clock pill shows Jakarta's real prayer time (e.g. "Maghrib 17:55") rather
+  than the screenshot machine's UTC.
+
 ### Audit batch 2: the free part's last letter, shorter lines, battery, archery memory
 
 - **After the 7 free letters**, the golden compass no longer leads to locked
