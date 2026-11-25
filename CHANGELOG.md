@@ -5,6 +5,20 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Blocky Baby Mo on the opening page and the app icon
+
+- The opening page shows the new blocky **Baby Mo** (green outfit, waving as
+  he walks in) with a gentle bounce; it stays still with reduced motion. A
+  player with a saved world still sees their own face there, as before.
+- The **app icon** is the new Baby Mo waving over "Mo Craft" on the same teal
+  sky: web icons, the maskable Android icon (kept inside the safe circle), the
+  iOS icon and the favicon. `node tools/icon/make-icon.mjs` remakes them all.
+- The family renders are kept in `art/reference/` for future use (Baby Mo, the
+  girl in the pink hijab, the dad, the boy in the blue hoodie, and the three
+  together), cleaned of the specks left by the background removal.
+- Tested: screenshots of the opening page on an iPhone in portrait and
+  landscape; the icons checked by eye.
+
 ### Buttons like the Baby Mo app; glass pop-up windows
 
 - **Buttons** now match the Baby Mo app's own "Main lagi / Play again" button
