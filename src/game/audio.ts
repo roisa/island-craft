@@ -329,7 +329,7 @@ import CLIPS from './voice-manifest.json';
 import GAME_CLIPS from './voice-manifest.game.json'; // (clips made for the game itself: tools/voice/cloudshell.sh)
 import REC_CLIPS from './voice-manifest.rec.json'; // (real-voice recordings from the recording page, rekam/: they win)
 import FIX_CLIPS from './voice-manifest.fix.json'; // (the app's letter clips with their silence cut; "" = a broken near-silent clip)
-import { voiceKey, trKey, spellings, mergeClips } from './voicekey';
+import { voiceKey, trKey, spellings, mergeClips, sentences } from './voicekey';
 const CLIP = mergeClips(GAME_CLIPS as Record<string, string>, CLIPS as Record<string, string>, FIX_CLIPS as Record<string, string>, REC_CLIPS as Record<string, string>);
 /** the clip for a line said in `lang` (Arabic text finds the Arabic clip), or for an Arabic word's Latin name */
 export function clipFor(text: string, lang: string, latin?: string): string | null {
@@ -340,11 +340,12 @@ export function clipFor(text: string, lang: string, latin?: string): string | nu
 }
 let player: HTMLAudioElement | null = null;
 /** play a clip (one at a time); `fail` runs if it can't be played (then the device reads the line) */
-function playClip(url: string, fail: () => void) {
+function playClip(url: string, fail: () => void, ended?: () => void) {
   if (typeof Audio === 'undefined') { fail(); return; }
   const a = player ??= new Audio();
   let failed = false; const no = () => { if (!failed) { failed = true; fail(); } };
   a.onerror = no;
+  a.onended = ended ? () => { a.onended = null; ended(); } : null;
   a.src = url;
   a.play().catch(no);
 }
@@ -393,6 +394,15 @@ export const Speech = {
     // a line with Baby Mo's recorded voice plays that (even on a device with no voice in this language)
     const url = clipFor(text.replace(/<[^>]+>/g, ' '), lang);
     if (url) { this.stop(); this.mark(prio, text); (window as unknown as { __clip?: string }).__clip = url; playClip(url, () => this.talkTts(text, lang, force, prio)); return; }
+    // recorded sentence by sentence (the recording page's "Mo's guidance"): played one after another, when every
+    // sentence has its recording; otherwise the device reads the line as before
+    const parts = sentences(text, lang), urls = parts.map(x => clipFor(x, lang));
+    if (parts.length > 1 && urls.every(Boolean)) {
+      this.stop(); this.mark(prio, text);
+      const seq = this.seq;
+      const next = (k: number) => { if (k >= urls.length || seq !== this.seq) return; (window as unknown as { __clip?: string }).__clip = urls[k]!; playClip(urls[k]!, () => this.talkTts(parts.slice(k).join(' '), lang, force, prio), () => next(k + 1)); };
+      next(0); return;
+    }
     this.talkTts(text, lang, force, prio);
   },
   talkTts(text: string, lang: 'id' | 'en', force = false, prio = 0) {

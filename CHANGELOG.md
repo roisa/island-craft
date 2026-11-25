@@ -5,6 +5,27 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Baby Mo's guidance on the recording page: record it in your own voice
+
+- **A new part of the recording page (`rekam/`): Mo's guidance.** The page's
+  builder (`tools/voice/build-rekam-data.mjs`) now scans the game for every line
+  Baby Mo says with fixed wording: the tutorial steps (touch and keyboard), the
+  prayer-time lines, the game instructions, bedtime, flying and so on. It lists
+  each sentence that has no recording yet in the Mo · ID and Mo · EN tabs. The
+  tutorial comes first ("Tutorial · record first", 18 sentences), then 400+
+  more. New lines join the list automatically whenever the page data is rebuilt.
+- **Mo speaks a line from recordings, sentence by sentence.** When every
+  sentence of a line has a recording, Mo plays them one after another in that
+  voice. Otherwise the device reads the line, as before. So a family can record
+  bit by bit, and each finished line starts using their voice on its own.
+- The workflow is unchanged: record on the page, Download ZIP,
+  `bash tools/voice/import-recordings.sh <zip>`, push (or send the zip).
+- Tested: vitest (the sentence split; the tutorial listed first in both
+  languages; every new row keyed exactly as the game looks it up; only lines
+  without a clip listed), and the recording page opened in a browser: the Mo ·
+  ID tab starts with "Geser joystick untuk berjalan ke Baby Mo", with no page
+  errors.
+
 ### Audit batch 3: learning loops, calmer good deeds, a leaner download, battery
 
 - **The letter quiz asks missed letters more often.** Each miss makes that

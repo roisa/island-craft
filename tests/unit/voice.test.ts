@@ -69,3 +69,24 @@ describe('cleaned-up letter clips (voice-manifest.fix.json)', () => {
     expect(m).toEqual({ a: 'app-a', b: 'g-b', c: 'fix-c', d: 'rec-d' });
   });
 });
+
+describe("Baby Mo's guidance on the recording page, played sentence by sentence", async () => {
+  const { sentences } = await import('../../src/game/voicekey');
+  const vm = await import('vm');
+  const win: any = {}; vm.runInNewContext(fs.readFileSync('rekam/rekam-data.js', 'utf8'), { window: win });
+  const mo = (win.REKAM as any[]).filter(r => r.id.startsWith('mo-'));
+  it('splits a line into its sentences (tags out, emoji-only bits dropped)', () => {
+    expect(sentences('Kolam Pancing! 🎣 Ketuk ✋ untuk melempar, lalu tunggu.', 'id')).toEqual(['Kolam Pancing!', '🎣 Ketuk ✋ untuk melempar, lalu tunggu.']);
+    expect(sentences('5 menit lagi tidur 😴 Ketuk <b>Tidur sekarang</b> ⭐', 'id')).toEqual(['5 menit lagi tidur 😴 Ketuk  Tidur sekarang  ⭐']);
+    expect(sentences('🎉', 'en')).toEqual([]);
+  });
+  it('lists the tutorial first, in both languages, each sentence keyed as the game looks it up', () => {
+    const tut = mo.filter(r => r.g.startsWith('Tutorial'));
+    expect(tut.length).toBeGreaterThanOrEqual(16);
+    expect(tut.some(r => r.l === 'id') && tut.some(r => r.l === 'en')).toBe(true);
+    for (const r of mo) { expect(r.ks).toEqual([voiceKey(r.t, r.l)]); expect(sentences(r.t, r.l)).toEqual([r.t]); }
+  });
+  it('only lines without a clip yet are listed', () => {
+    for (const r of mo) expect(M[r.ks[0]]).toBeUndefined();
+  });
+});

@@ -8,7 +8,7 @@
 //       (voice/<id>.mp3), ks: the manifest keys}
 import fs from 'fs';
 import crypto from 'crypto';
-import { voiceKey, mergeClips } from '../../src/game/voicekey';
+import { voiceKey, mergeClips, sentences } from '../../src/game/voicekey';
 import { LETTERS } from '../../src/world/blocks';
 import { SURAHS, WORDS } from '../../src/game/iqro';
 import { DUAS } from '../../src/content';
@@ -63,8 +63,32 @@ for (const r of missing) {
   const w = what.get(r.key) ?? { s: r.kind.startsWith('ayah') ? 'quran' : r.kind.startsWith('dua') ? 'doa' : 'kata', g: r.kind, h: r.latin };
   rows.push({ id, s: w.s, g: w.g + ' · belum ada suara / no clip yet', t: r.arabic, h: r.latin || w.h, l: 'ar', f: 'voice/' + id + '.mp3', ks: [r.key] });
 }
+// Baby Mo's guidance: every line he says with fixed wording (the tutorial steps, prayer times, game instructions…),
+// sentence by sentence, in Indonesian and English, that has no recording yet. A line plays from the recordings
+// once all its sentences have one (audio.ts talk), so a family can record them bit by bit.
+{
+  const files = [];
+  const walk = d => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = d + '/' + f.name; if (f.isDirectory()) walk(p); else if (/\.ts$/.test(f.name)) files.push(p); } };
+  walk('src');
+  const STR = "'((?:[^'\\\\]|\\\\.)*)'";
+  const PAIR = new RegExp('tr\\(\\s*' + STR + '\\s*,\\s*' + STR + '\\s*\\)', 'g');
+  const STEP = new RegExp('\\[\\s*' + STR + '\\s*,\\s*' + STR + '\\s*\\]', 'g'); // (each step's [id, en] text: touch and keyboard versions)
+  const unesc = x => x.replace(/\\(.)/g, '$1');
+  const seen = new Set(), lines = [];
+  const add = (idT, enT, g) => { for (const [lang, txt] of [['id', idT], ['en', enT]]) for (const t of sentences(unesc(txt), lang)) { const k = voiceKey(t, lang); if (k.startsWith('ar|') || ALL[k] || seen.has(k)) continue; seen.add(k); lines.push({ lang, t, k, g }); } };
+  for (const f of files) {
+    const src = fs.readFileSync(f, 'utf8');
+    if (f.endsWith('game/kid.ts')) { const a = src.indexOf('const STEPS'), b = src.indexOf('];', a); for (const m of src.slice(a, b).matchAll(STEP)) add(m[1], m[2], 'Tutorial · rekam dulu / record first'); }
+    for (const line of src.split('\n')) if (/\bsay\(/.test(line) && !/Speech\.say\(/.test(line.replace(/\.ui\.say\(|\bg\.ui\.say\(/g, ''))) for (const m of line.matchAll(PAIR)) add(m[1], m[2], 'Panduan Mo · Mo’s guidance');
+  }
+  for (const L of lines) {
+    const id = 'mo-' + crypto.createHash('sha1').update(L.k).digest('hex').slice(0, 8);
+    rows.push({ id, s: L.lang, g: L.g, t: L.t, h: '', l: L.lang, f: 'voice/' + id + '.mp3', ks: [L.k] });
+  }
+}
 const order = Object.fromEntries(SECTIONS.map((s, i) => [s.s, i]));
-rows.sort((a, b) => order[a.s] - order[b.s] || a.g.localeCompare(b.g) || a.t.localeCompare(b.t));
+const gRank = g => (g.startsWith('Tutorial') ? 0 : g.startsWith('Panduan Mo') ? 1 : 2); // (Mo's tutorial first: the lines a new player hears)
+rows.sort((a, b) => order[a.s] - order[b.s] || gRank(a.g) - gRank(b.g) || a.g.localeCompare(b.g) || a.t.localeCompare(b.t));
 // the page reads the current clip of a row from MC_CLIPS (its ?v= says whether it's a recording)
 const clips = {};
 for (const [k, f] of Object.entries(ALL)) clips[k] = f + (f.includes('?') ? '' : f.startsWith('rec-') ? '?v=rec' : '?v=algenib');

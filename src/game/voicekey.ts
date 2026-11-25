@@ -57,3 +57,12 @@ export function mergeClips(game: Record<string, string>, app: Record<string, str
   }
   return Object.assign(out, rec);
 }
+
+/**
+ * Baby Mo's spoken lines, sentence by sentence (as listed on the recording page): HTML tags removed, split after
+ * . ! ? … and dropped when nothing is left to say (only an emoji). A line plays from recordings when every one
+ * of its sentences has one (see audio.ts talk).
+ */
+export function sentences(text: string, lang: string): string[] {
+  return String(text ?? '').replace(/<[^>]+>/g, ' ').split(/(?<=[.!?\u2026])\s+/).map(x => x.trim()).filter(x => normText(x, lang).length > 1);
+}
