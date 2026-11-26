@@ -44,6 +44,8 @@ try {
 
 // (Mo's lines as written, for the rows of lines that already have a clip: the key alone is lower-cased)
 const MO_TEXT = new Map(moLines().map(L => [L.k, L.t]));
+// (and their group: a tutorial line keeps "Tutorial · record first" once it has a clip, so it stays first on the page)
+const MO_GROUP = new Map(moLines().map(L => [L.k, L.g]));
 const byFile = new Map();
 for (const [k, file] of Object.entries(ALL)) { const f = file.split('?')[0]; if (!byFile.has(f)) byFile.set(f, []); byFile.get(f).push(k); }
 const rows = [];
@@ -58,7 +60,7 @@ for (const [file, keys] of byFile) {
   const ks = keys.sort((a, b) => (a.startsWith('tr|') ? 1 : 0) - (b.startsWith('tr|') ? 1 : 0)), k = ks[0];
   const l = k.slice(0, 2), id = file.replace(/\.mp3$/, '').replace(/^rec-(.*)-\d+$/, '$1');
   if (l === 'tr') continue; // (only a Latin name: always with its Arabic)
-  const g = l === 'ar' ? groupOf(k, file) : { s: l, g: file.startsWith('app-') ? 'Baby Mo app' : file.startsWith('game-') || /^rec-mo-/.test(file) ? 'Panduan Mo · Mo’s guidance' : 'Pulau Hijaiyah', h: '' };
+  const g = l === 'ar' ? groupOf(k, file) : { s: l, g: file.startsWith('app-') ? 'Baby Mo app' : file.startsWith('game-') || /^rec-mo-/.test(file) ? (MO_GROUP.get(k) ?? 'Panduan Mo · Mo’s guidance') : 'Pulau Hijaiyah', h: '' };
   rows.push({ id, s: g.s, g: g.g, t: MO_TEXT.get(k) ?? k.slice(3), h: g.h, l, f: 'voice/' + id + '.mp3', ks });
 }
 for (const r of missing) {

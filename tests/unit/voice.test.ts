@@ -81,9 +81,11 @@ describe("Baby Mo's guidance on the recording page, played sentence by sentence"
     expect(sentences('🎉', 'en')).toEqual([]);
   });
   it('lists the tutorial first, in both languages, each sentence keyed as the game looks it up', () => {
-    const tut = mo.filter(r => r.g.startsWith('Tutorial'));
+    // (the tutorial's sentences, with a clip or still to record, keep their group so they come first)
+    const tut = (win.REKAM as any[]).filter(r => r.l !== 'ar' && r.g.startsWith('Tutorial'));
     expect(tut.length).toBeGreaterThanOrEqual(16);
     expect(tut.some(r => r.l === 'id') && tut.some(r => r.l === 'en')).toBe(true);
+    for (const r of tut) expect(sentences(r.t, r.l)).toEqual([r.t]);
     for (const r of mo) { expect(r.ks).toEqual([voiceKey(r.t, r.l)]); expect(sentences(r.t, r.l)).toEqual([r.t]); }
   });
   it('only lines without a clip yet are listed', () => {

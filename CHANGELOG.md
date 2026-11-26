@@ -5,6 +5,23 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Baby Mo's voice: 300 new clips from Cloud Shell
+
+- Merged `voice-clips-20261126-0805`: 300 clips in the Baby Mo app's voice
+  (Chirp3-HD Algenib) — the Arabic the game still read with the device voice,
+  and Baby Mo's guidance in Indonesian and English (the tutorial, prayer times,
+  instructions). Every clip in the list is there.
+- Left without a clip: 4 lines (the syllable "si" and "Look!", which came out
+  silent, and the two new prayer-pause lines "Alhamdulillah, may Allah accept
+  your prayer…"). They play with the device voice until the next Cloud Shell run
+  or a recording on the recording page.
+- The recording page's list is rebuilt for the new clips (a line with a clip is
+  listed to re-record; the 4 above are still listed as new). The tutorial's
+  sentences keep their "Tutorial · record first" group once they have a clip,
+  so they stay first on the page; the unit test checks it that way.
+- Tested: every clip in the list exists; unit tests and the iPhone smoke run
+  (Baby Mo's recorded voice step included).
+
 ### Cloud Shell voice script: a silent clip no longer stops the upload
 
 - `tools/voice/cloudshell.sh` stopped right after making the clips when any of
