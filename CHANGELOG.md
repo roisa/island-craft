@@ -5,6 +5,13 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Cloud Shell voice script: a silent clip no longer stops the upload
+
+- `tools/voice/cloudshell.sh` stopped right after making the clips when any of
+  them came out silent (`gen.py` reports that as an error), so the good clips
+  were never committed or pushed. It now carries on: the good clips are pushed
+  to a new branch and the silent ones stay on the recording page to record.
+
 ### "Hi!" over Baby Mo is a small speech bubble
 
 - The "say hi" button over Baby Mo was a big orange blob floating well above

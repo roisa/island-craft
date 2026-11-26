@@ -15,7 +15,9 @@ command -v ffmpeg >/dev/null || { echo "▶ Installing ffmpeg for the silence ch
 python3 tools/voice/gen.py --dry-run "${ARGS[@]}"
 python3 tools/voice/gen.py --test "${ARGS[@]}"
 echo "▶ Making the clips: Arabic, and Baby Mo’s guidance in Indonesian & English (about 10 minutes)…"
-python3 tools/voice/gen.py "${ARGS[@]}"
+# (a clip that comes out silent is not a reason to stop: the good ones are still pushed, and the silent ones stay on
+# the recording page to record)
+python3 tools/voice/gen.py "${ARGS[@]}" || echo "  (the clips that gave no sound are left to record on the recording page)"
 BR="voice-clips-$(date +%Y%m%d-%H%M)"; git checkout -q -b "$BR"
 git add public/voice/game-*.mp3 src/game/voice-manifest.game.json
 git -c user.name="${GIT_NAME:-babymo}" -c user.email="${GIT_EMAIL:-babymo@users.noreply.github.com}" commit -q -m "Voice: the game's missing clips, Arabic and Baby Mo's guidance (${VOICE:-Chirp3-HD Algenib})"
