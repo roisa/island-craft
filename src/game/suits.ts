@@ -22,7 +22,7 @@ export interface SuitDef {
   /** Baby Ais: the hijab's colour with this suit */
   hijab: number;
 }
-export type SuitEmblem = 'star' | 'crescent' | 'bolt' | 'leaf' | 'drop' | 'cloud' | 'gem' | 'heart' | 'snowflake';
+export type SuitEmblem = 'star' | 'crescent' | 'bolt' | 'leaf' | 'drop' | 'cloud' | 'gem' | 'heart' | 'snowflake' | 'spider';
 /** a cape's power: it lets you fly (tap jump twice) */
 export const CAPE_PERK: T2 = ['Bisa terbang! Ketuk ⬆️ lompat 2× cepat', 'You can fly! Tap ⬆️ jump twice, quickly'];
 const ALL_LETTERS = (s: Stats) => (s.letters?.length ?? 0) >= 28;
@@ -52,4 +52,16 @@ export const EMBLEMS: Record<SuitEmblem, string[]> = {
   gem:       ['00100', '01110', '11111', '01110', '00100'],
   heart:     ['01010', '11111', '11111', '01110', '00100'],
   snowflake: ['10101', '01110', '11111', '01110', '10101'],
+  spider:    ['10001', '01110', '11111', '01110', '10001'],
+};
+
+/** the Spider Warrior's powers: climb any wall, and a web rope (🕸️) to swing across and to catch the naughty beetles */
+export const SPIDER_PERK: T2 = ['Bisa memanjat dinding dan menembak jaring 🕸️', 'Climb any wall and shoot a web 🕸️'];
+/**
+ * Pendekar Laba-laba (Spider Warrior): our own hero, not anyone else's — teal and orange with sticky orange gloves
+ * and a little spider on the chest. Open from the start (it isn't one of the 10 suits for the 28 letters).
+ */
+export const SPIDER_SUIT: OutfitItem = {
+  id: 'su_spider', slot: 'suit', name: ['Pendekar Laba-laba', 'Spider Warrior'], icon: '🕷️', level: 1, color: 0x17a398, perk: SPIDER_PERK,
+  suit: { pants: 0x1b4f63, belt: 0xf28c28, boots: 0xf28c28, gloves: 0xf28c28, mask: 0x12807a, emblem: 'spider', emblemColor: 0x1d1f22, emblemBack: 0xf28c28, hijab: 0x17a398 },
 };

@@ -5,6 +5,27 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Pendekar Laba-laba (Spider Warrior): climb walls, swing on a web, catch beetles
+
+Ibra loved the cape, so here's a new hero suit with spider powers — our own hero,
+not anyone else's (teal and orange, sticky orange gloves, a small spider on the
+chest; Baby Ais wears it with a teal hijab). Open from the start in 👕 Outfits →
+Suit, next to the 10 suits for the 28 letters.
+
+- **Climb any wall:** in the suit, walking into any wall, rock or building climbs
+  it, the way trees already could. ⬆️ Jump lets go and pushes off.
+- **Web rope (🕸️ button, G on a keyboard):** shoots a web where you look, up to
+  24 steps. It sticks to a block or a tree and swings you over in an arc; jump
+  lets go early and keeps the swing's speed. A white strand shows from your hand.
+- **Catch naughty beetles:** a web at a beetle wraps it up at once (no taps
+  needed) and it flies home with its gift, as with the toy sword. The web helps
+  aim at a beetle near where you look, but not through a wall.
+- Not while riding, racing or in a game. Baby Mo explains it the first time.
+- Tests: a unit test (our own name and look, open from the start, apart from the
+  10 suits); a smoke step: the button comes with the suit, a wall is climbed,
+  the rope swings you over and lets go, a beetle is caught with one web, and
+  taking the suit off removes the powers. Screenshots of the suit checked.
+
 ### Baby Mo's voice: 300 new clips from Cloud Shell
 
 - Merged `voice-clips-20261126-0805`: 300 clips in the Baby Mo app's voice

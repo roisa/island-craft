@@ -117,6 +117,7 @@ export class UI {
     <button class="abtn pill" id="bMine">${ic('pickaxe')}<span></span></button>
     <button class="abtn pill" id="bUse">${ic('hand')}<span></span></button>
     <button class="abtn pill hidden" id="bDown">${ic('down')}</button>
+    <button class="abtn pill hidden" id="bWeb" aria-label="Web">🕸️<span>${tr('JARING', 'WEB')}</span></button>
   </div>
 </div>
 <div id="underwater"></div>
@@ -160,6 +161,7 @@ export class UI {
     $('#tutSay').onclick = () => Speech.talk($('#tutTxt').textContent || '', getLang(), true, 1);
     $('#tutSkip').onclick = () => { SFX.click(); if (this.g.fishCoach?.active) this.g.fishCoach.stop(); else this.g.kid.skipStep(); };
     $('#moHi').onclick = e => { e.stopPropagation(); this.g.useEntity(this.g.ents.mo); };
+    { const w = $('#bWeb'); const shoot = (e: Event) => { e.preventDefault(); e.stopPropagation(); this.g.shootWeb(); }; w.addEventListener('pointerdown', shoot); }
     $('#bPray').onclick = e => { e.stopPropagation(); this.g.prayTogether(); };
     $('#bRot').onclick = e => { e.stopPropagation(); this.g.rotatePlacement(); const b = e.currentTarget as HTMLElement; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); };
     $('#bLetters').onclick = () => this.openBook('letters');
@@ -177,8 +179,8 @@ export class UI {
     $('#bMine span').textContent = tr('GALI', 'MINE');
     $('#bUndo span').textContent = tr('Batal pasang', 'Undo');
     $('#bUse span').textContent = tr('PAKAI', 'USE');
-    $('#desktopHint').textContent = tr('WASD jalan · Spasi lompat · Klik kiri gali · Klik kanan pakai/pasang · E tas · R buat · M peta · V kamera',
-      'WASD move · Space jump · Left click mine · Right click use/place · E bag · R craft · M map · V camera');
+    $('#desktopHint').textContent = tr('WASD jalan · Spasi lompat · Klik kiri gali · Klik kanan pakai/pasang · E tas · R buat · M peta · V kamera · G jaring 🕸️',
+      'WASD move · Space jump · Left click mine · Right click use/place · E bag · R craft · M map · V camera · G web 🕸️');
   }
 
   // ---------- small HUD helpers ----------
@@ -214,6 +216,7 @@ export class UI {
   showUndo(on: boolean) { $('#bUndo').classList.toggle('hidden', !on); }
   showHud(on: boolean) { $('#hud').classList.toggle('hidden', !on); }
   setFlying(on: boolean) { $('#bDown').classList.toggle('hidden', !on); }
+  setWeb(on: boolean) { const b = $('#bWeb'); if (b.classList.contains('hidden') === on) b.classList.toggle('hidden', !on); }
   underwater(on: boolean) { $('#underwater').style.display = on ? 'block' : 'none'; }
   sleepFade(on: boolean) { $('#sleepFade').style.opacity = on ? '1' : '0'; }
   private ringP = -1;

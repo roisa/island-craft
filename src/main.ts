@@ -43,7 +43,7 @@ import { timesFor, hoursOf, placeHour, placeOffset, DayTimes, PRAYERS, Prayer, p
 import { QUESTS, Stats, newStats, DUAS, CALENDAR, letterReward } from './content';
 import { UI } from './ui';
 import { Kid } from './game/kid';
-import { Fun, Outfit, defaultOutfit, outfitItem, dressUp, HAT_GIFTS, wearsCape } from './game/fun';
+import { Fun, Outfit, defaultOutfit, outfitItem, dressUp, HAT_GIFTS, wearsCape, wearsSpider } from './game/fun';
 const shadeHex = (c: number, k: number) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
 import { Festive, PICNIC } from './game/festive';
 import { Places } from './game/places';
@@ -958,11 +958,12 @@ export class Game {
   /** what a held sword adds (tier 0 = bare hands) */
   private swordTier() { const it = ITEMS.get(this.inv.held()?.id ?? -1); return it?.tool?.kind === 'sword' ? it.tool.tier : 0; }
   /** tap a beetle: it loses some energy; when it gives up it flies home and leaves a gift */
-  attackBug(b: Bug) {
-    if (this.attackCd > 0 || b.caught) return;
+  attackBug(b: Bug, power?: number) {
+    if ((this.attackCd > 0 && power === undefined) || b.caught) return;
     this.attackCd = 0.32;
     const tier = this.swordTier(), lv = this.skillLv('sword');
-    const caught = b.hit(hitPower(tier, lv), this.player.pos);
+    // (the web wraps it up at once; a tap or the sword takes a few)
+    const caught = b.hit(power ?? hitPower(tier, lv), this.player.pos);
     this.anim.play('build'); this.mineAnim = 0.2;
     SFX.hitMat(tier ? 'metal' : 'wool'); haptic(6);
     this.fx.sparkle(b.pos.x, b.pos.y + 0.3, b.pos.z, 6, 0xffffff, 1.4);
@@ -1187,6 +1188,7 @@ export class Game {
     if (code === 'KeyV' || code === 'F5') this.toggleCamera();
     if (code === 'KeyZ' && this.undo) this.doUndo();
     if (code === 'KeyF' && this.canFly()) this.toggleFly();
+    if (code === 'KeyG' && this.canWeb()) this.shootWeb();
     if (code === 'Space') this.jumpTap();
   }
   private jumpTap() {
@@ -1254,6 +1256,67 @@ export class Game {
   canFly() {
     if (this.inv.creative) return true;
     return wearsCape(this.settings.outfit) && !this.fun?.riding && !this.race?.active && !this.tennis?.active && !this.playing;
+  }
+  /** the Spider Warrior's powers (not while riding, racing or in a game) */
+  canWeb() { return wearsSpider(this.settings.outfit) && !this.fun?.riding && !this.race?.active && !this.tennis?.active && !this.playing; }
+  /** the web strand from your hand to where it stuck (or to a beetle, for a moment): a thin white bar, so it shows */
+  private webLine: THREE.Mesh | null = null;
+  private webTo: THREE.Vector3 | null = null;
+  private webTtl = 0;
+  private webShow(to: THREE.Vector3, ttl: number) {
+    if (!this.webLine) {
+      const geo = new THREE.BoxGeometry(0.06, 0.06, 1); geo.translate(0, 0, 0.5);
+      this.webLine = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 }));
+      this.webLine.frustumCulled = false; this.scene.add(this.webLine);
+    }
+    this.webTo = to.clone(); this.webTtl = ttl; this.webLine.visible = true; this.webLineTick(0);
+  }
+  private webEnd() { this.webTtl = 0; if (this.webLine) this.webLine.visible = false; }
+  private webLineTick(dt: number) {
+    if (!this.webLine?.visible || !this.webTo) return;
+    if (!this.player.rope && (this.webTtl -= dt) <= 0) { this.webEnd(); return; }
+    const p = this.player.pos, from = this.webFrom.set(p.x, p.y + 1.15, p.z), len = from.distanceTo(this.webTo);
+    this.webLine.position.copy(from); this.webLine.scale.set(1, 1, Math.max(0.01, len)); this.webLine.lookAt(this.webTo);
+  }
+  private webFrom = new THREE.Vector3();
+  /**
+   * 🕸️ The Spider Warrior's web: aimed where you look (the middle of the screen). A naughty beetle on the way is
+   * caught at once, wrapped up gently, and flies home; a block or a tree up to 24 steps away holds the rope and you
+   * swing over to it (jump lets go early, with the swing's speed).
+   */
+  shootWeb() {
+    if (!this.canWeb() || this.player.rope) return;
+    const p = this.player, cp = this.camera.position;
+    let eye = p.eye(), dir = p.look();
+    if (this.settings.cam === 'third') { const d2 = eye.clone().addScaledVector(dir, 10).sub(cp).normalize(); eye = cp.clone().addScaledVector(d2, Math.max(0, eye.clone().sub(cp).dot(d2))); dir = d2; }
+    const reach = 24, hit = this.world.raycast(eye, dir, reach);
+    // (a little help aiming: the nearest beetle within a narrow cone of where you look, not behind a wall)
+    let bh = this.bugs.raycast(eye, dir, reach, 0.5);
+    if (!bh) {
+      let best = 0.96;
+      for (const b of this.bugs.bugs) {
+        if (b.caught) continue;
+        const to = this.webFrom.set(b.pos.x, b.pos.y + 0.3, b.pos.z).sub(eye), d = to.length();
+        if (d > 18 || d < 0.5) continue;
+        const cos = to.dot(dir) / d;
+        if (cos > best && (!hit || d < hit.dist + 0.5)) { best = cos; bh = { bug: b, dist: d }; }
+      }
+    }
+    SFX.pop(2); haptic(8);
+    this.stats.webs = (this.stats.webs || 0) + 1;
+    if (bh && (!hit || bh.dist < hit.dist + 0.3)) {
+      const b = bh.bug, at = new THREE.Vector3(b.pos.x, b.pos.y + 0.3, b.pos.z);
+      this.webShow(at, 0.45);
+      this.fx.sparkle(at.x, at.y, at.z, 14, 0xffffff, 1.6);
+      this.attackBug(b, 999);
+      return;
+    }
+    if (!hit) { this.webShow(eye.clone().addScaledVector(dir, 10), 0.25); return; } // (into the sky: nothing to hold it)
+    const at = eye.clone().addScaledVector(dir, Math.max(0, hit.dist - 0.05));
+    this.webShow(at, 1);
+    this.fx.sparkle(at.x, at.y, at.z, 10, 0xffffff, 1.2);
+    p.flying = false; p.rope = at; p.ropeT = 0;
+    p.onRopeEnd = () => this.webEnd();
   }
   private toggleFly() {
     const p = this.player;
@@ -1408,6 +1471,16 @@ export class Game {
     if (act) { const tap = !!inp.tapAt; inp.tapAt = null; if (inp.takeUse() || tap) act.tap(); }
     if (!this.race?.step(dt) && !this.tennis?.step(dt) && !act?.step(dt, performance.now() / 1000) && !this.fun.rideStep(dt)) p.step(dt, { fx: ax.fx, fz: ax.fz, jump: inp.jump(), down: inp.down(), sprint: inp.sprinting() });
     if (p.flying && !this.canFly()) p.flying = false; // (the cape came off, or a game started: you glide down)
+    // the Spider Warrior suit: climb any wall, and the 🕸️ web button
+    const web = this.canWeb();
+    p.wallClimb = web;
+    if (!web && p.rope) { p.rope = null; this.webEnd(); }
+    this.ui.setWeb(web);
+    if (web && !this.stats.webTip && !this.ui.isOpen()) {
+      this.stats.webTip = 1;
+      this.ui.say(tr('Pendekar Laba-laba! 🕷️ Jalan ke dinding untuk memanjat, ketuk ⬆️ untuk melompat turun. Ketuk 🕸️ untuk menembak jaring: berayun ke sana, atau tangkap kumbang nakal!', 'Spider Warrior! 🕷️ Walk into a wall to climb it, tap ⬆️ to jump off. Tap 🕸️ to shoot a web: swing over there, or catch a naughty beetle!'), 'idea', 9000);
+    }
+    this.webLineTick(dt);
     this.mudTrap(dt);
     this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }

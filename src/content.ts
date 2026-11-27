@@ -26,7 +26,9 @@ export interface Stats {
   discovered?: string[];
   /** practice points per skill (sword, fishing, cooking, climbing) */
   skills?: Record<string, number>;
-  bugs?: number; fish?: number; cooked?: number; perfectCooks?: number;
+  bugs?: number; fish?: number;
+  /** webs shot in the Spider Warrior suit, and whether Baby Mo explained it */
+  webs?: number; webTip?: number; cooked?: number; perfectCooks?: number;
   /** treetops reached (keys of ~4-block areas, so each tree counts once) */
   treetops?: string[];
   /** power hats whose matching item was already given */

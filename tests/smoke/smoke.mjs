@@ -1189,6 +1189,47 @@ async function run(name) {
       await p.waitForFunction(() => { const t = __trap; if (__game.ui.isOpen()) __game.ui.closeAllModals(); return __game.world.get(t.x, t.y, t.z) === 0 && __game.player.pos.y < t.y; }, null, { timeout: 15000, polling: 100 });
       return await g(() => ({ fellTo: +__game.player.pos.y.toFixed(2), top: __trap.y, mudBack: __game.inv.count?.(70) ?? null, before: __trap.mud }));
     });
+    await step('Spider Warrior: the 🕸️ button with the suit; climb any wall; the web rope swings you over; the web catches a beetle at once', async () => {
+      const r = await g(async () => {
+        const G = __game, P = G.player, sleep = ms => new Promise(r => setTimeout(r, ms)), out = {};
+        const close = () => { if (G.ui.isOpen()) G.ui.closeAllModals(); };
+        close(); const keep = { ...G.settings.outfit }, cam = G.settings.cam, tip = G.stats.webTip;
+        out.offBefore = document.querySelector('#bWeb').classList.contains('hidden');
+        G.stats.webTip = 1; G.settings.outfit.suit = 'su_spider'; G.buildAvatar(); G.settings.cam = 'third';
+        await sleep(300); out.btn = !document.querySelector('#bWeb').classList.contains('hidden');
+        // a stone wall right in front: walk into it and you climb it
+        P.pos.set(0.5, 47, 3.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0;
+        for (let dy = 0; dy < 8; dy++) for (let dx = -2; dx <= 2; dx++) G.world.set(dx, 47 + dy, 1, 1);
+        G.world.update(0, 3, 50); await sleep(200);
+        const y0 = P.pos.y; G.input.keys.add('KeyW');
+        for (let i = 0; i < 40 && P.pos.y < y0 + 1.5; i++) { close(); await sleep(100); }
+        G.input.keys.delete('KeyW'); out.climbed = +(P.pos.y - y0).toFixed(1);
+        // the web rope: aimed at the wall from further away, it pulls you over
+        P.pos.set(0.5, 47, 14.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0.25; await sleep(300); close();
+        const z0 = P.pos.z; G.shootWeb(); out.rope = !!P.rope;
+        for (let i = 0; i < 20 && z0 - P.pos.z < 3; i++) { close(); await sleep(100); }
+        out.swung = +(z0 - P.pos.z).toFixed(1);
+        for (let i = 0; i < 30 && P.rope; i++) await sleep(100);
+        out.letGo = !P.rope;
+        // a naughty beetle out in the fields: one web and it's caught (no taps)
+        const hx = 70, hz = 70; P.pos.set(hx + 0.5, G.world.heightAt(hx, hz) + 1, hz + 0.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0;
+        for (let i = 0; i < 30; i++) G.world.update(hx, hz, 40);
+        await sleep(300);
+        let b = null; for (let k = 0; k < 40 && !b; k++) b = G.bugs.spawn(P.pos);
+        if (b) {
+          const d = P.look(); b.pos.set(P.pos.x + d.x * 6, P.pos.y + 0.6, P.pos.z + d.z * 6); b.target = null;
+          const n0 = G.stats.bugs || 0; close(); G.shootWeb(); await sleep(200);
+          out.caught = b.caught && (G.stats.bugs || 0) === n0 + 1;
+        } else out.caught = 'no beetle spawned';
+        // take it off: the button goes, and walls are only for trees again
+        G.settings.outfit = keep; G.buildAvatar(); G.settings.cam = cam; G.stats.webTip = tip; await sleep(300);
+        out.offAfter = document.querySelector('#bWeb').classList.contains('hidden') && !P.wallClimb;
+        P.pos.set(0.5, 47, 3.5); P.vel.set(0, 0, 0);
+        return out;
+      });
+      if (!r.offBefore || !r.btn || r.climbed < 1.5 || !r.rope || r.swung < 3 || !r.letGo || r.caught === false || !r.offAfter) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('a cape lets you fly: tap jump twice and you lift off; take it off and you land', async () => {
       const r = await g(() => {
         const G = __game, p = G.player; G.ui.closeAllModals();

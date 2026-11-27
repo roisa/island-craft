@@ -261,3 +261,8 @@ html.prayScene #hud, html.prayScene #hotbarWrap, html.prayScene .moHost, html.pr
 #moHi.covered { opacity: 0; pointer-events: none !important; }
 @keyframes hiBob2 { 0%, 100% { transform: translate(-50%, calc(-100% - 4px)); } 50% { transform: translate(-50%, calc(-100% - 8px)); } }
 @media (prefers-reduced-motion: reduce) { #moHi { animation: none !important; } }
+
+/* ---------- the Spider Warrior's 🕸️ web button, to the left of the mine button ---------- */
+#bWeb { width: 58px; height: 58px; right: 160px; bottom: 104px; font-size: 26px; }
+#bWeb span { font-size: 9.5px !important; }
+@media (orientation: portrait) and (max-width: 600px) { #bWeb { right: 150px; bottom: 110px; width: 54px; height: 54px; } }

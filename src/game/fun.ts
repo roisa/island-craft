@@ -15,7 +15,7 @@ import type { Stats } from '../content';
 
 // ======================= outfits =======================
 export type { OutfitSlot, OutfitItem, SuitDef, SuitEmblem } from './suits';
-import { SUITS, EMBLEMS, CAPE_PERK, type OutfitItem, type SuitDef } from './suits';
+import { SUITS, SPIDER_SUIT, EMBLEMS, CAPE_PERK, type OutfitItem, type SuitDef } from './suits';
 export { SUITS };
 /** hats with a power: anyone can wear them, even over a hijab */
 export const PERK_HATS = new Set(['hat_straw', 'hat_fisher', 'hat_miner', 'hat_chef', 'hat_diver', 'crown', 'explorer']);
@@ -54,7 +54,10 @@ export const OUTFITS: OutfitItem[] = [
   { id: 'c_star', slot: 'cape', name: ['Jubah Bintang', 'Star Cape'], icon: '🌟', level: 7, color: 0x6b4fc8, perk: CAPE_PERK },
   { id: 'su_none', slot: 'suit', name: ['Tanpa Kostum', 'No Suit'], icon: '🙂', level: 1 },
   ...SUITS,
+  SPIDER_SUIT,
 ];
+/** wearing the Spider Warrior suit: wall climbing and the web rope */
+export function wearsSpider(o: Outfit | undefined) { return o?.suit === SPIDER_SUIT.id; }
 /** wearing a cape (its own, or a hero suit's): it lets you fly */
 export function wearsCape(o: Outfit | undefined) {
   if (!o) return false;

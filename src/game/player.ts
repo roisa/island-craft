@@ -54,21 +54,34 @@ export class Player {
       z >= Math.floor(this.pos.z - PW) && z <= Math.floor(this.pos.z + PW - 1e-4);
   }
 
-  /** true while climbing a tree */
+  /** true while climbing a tree (or, in the Spider Warrior suit, any wall) */
   climbing = false;
   private wasClimbing = false;
+  /** the Spider Warrior suit: any solid block can be climbed, not only trees */
+  wallClimb = false;
+  /** a moment after letting go of a wall (jump), so you don't stick to it again at once */
+  private unstick = 0;
+  /** the web rope: where it's stuck; you swing towards it, then let go */
+  rope: THREE.Vector3 | null = null;
+  ropeT = 0;
+  /** called when the rope lets go (arrived, or let go with jump, or it ran out) */
+  onRopeEnd?: () => void;
+  private climbable(x: number, y: number, z: number) {
+    if (CLIMBABLE.has(this.world.get(x, y, z))) return true;
+    return this.wallClimb && this.unstick <= 0 && this.world.solidAt(x, y, z);
+  }
   /** the trunk / canopy top just below in front: we can pull ourselves up onto it */
   private ledgeAhead(wx: number, wz: number) {
     const d = Math.hypot(wx, wz); if (d < 0.01) return false;
     const p = this.pos, ax = p.x + wx / d * 0.55, az = p.z + wz / d * 0.55;
-    return CLIMBABLE.has(this.world.get(Math.floor(ax), Math.floor(p.y - 0.3), Math.floor(az)));
+    return this.climbable(Math.floor(ax), Math.floor(p.y - 0.3), Math.floor(az));
   }
   /** is there a trunk or leaves right in front, in the direction we're pushing? */
   private canClimb(wx: number, wz: number, len: number) {
     if (len < 0.3) return false;
     const d = Math.hypot(wx, wz); if (d < 0.01) return false;
     const p = this.pos, ax = p.x + wx / d * 0.55, az = p.z + wz / d * 0.55;
-    for (const dy of [0.3, 1.2]) if (CLIMBABLE.has(this.world.get(Math.floor(ax), Math.floor(p.y + dy), Math.floor(az)))) return true;
+    for (const dy of [0.3, 1.2]) if (this.climbable(Math.floor(ax), Math.floor(p.y + dy), Math.floor(az))) return true;
     return false;
   }
   /** the top of the water above the feet, or null */
@@ -95,7 +108,21 @@ export class Player {
     v.x += (wx - v.x) * Math.min(1, dt * accel);
     v.z += (wz - v.z) * Math.min(1, dt * accel);
 
-    if (this.flying) {
+    if (this.unstick > 0) this.unstick -= dt;
+    if (this.rope) {
+      // swinging on the web rope: pulled towards where it's stuck, in an arc (a little lift on the way)
+      const r = this.rope, dx = r.x - p.x, dy = r.y - (p.y + 1), dz = r.z - p.z, d = Math.hypot(dx, dy, dz);
+      this.ropeT += dt;
+      if (d < 1.5 || this.ropeT > 2.4 || (inp.jump && this.ropeT > 0.3)) {
+        // let go: keep the swing's speed (a fling), with a little hop
+        this.rope = null; if (v.y < 4) v.y = 4; this.onRopeEnd?.();
+      } else {
+        const sp = Math.min(18, 9 + d * 0.7), lift = d > 3 ? 2.2 : 0;
+        const k = Math.min(1, dt * 6);
+        v.x += (dx / d * sp - v.x) * k; v.z += (dz / d * sp - v.z) * k; v.y += (dy / d * sp + lift - v.y) * k;
+      }
+      this.onGround = false;
+    } else if (this.flying) {
       const target = inp.jump ? 6 : inp.down ? -6 : 0;
       v.y += (target - v.y) * Math.min(1, dt * 8);
     } else if (this.inWater) {
@@ -110,6 +137,11 @@ export class Player {
     } else if ((this.climbing = this.canClimb(wx, wz, len)) || (this.wasClimbing && len > 0.3 && !inp.down && this.ledgeAhead(wx, wz))) {
       // walking into a tree trunk (or its leaves) climbs it; "down" climbs back down
       v.y = inp.down ? -2.5 : 3.2;
+      // on a wall (Spider Warrior): jump lets go and pushes off, backwards
+      if (this.wallClimb && inp.jump && this.climbing) {
+        const d = Math.hypot(wx, wz) || 1;
+        v.y = 6.5; v.x = -wx / d * 4.5; v.z = -wz / d * 4.5; this.unstick = 0.45; this.climbing = false;
+      }
       // reached the top: a little hop up and over onto it
       if (!this.climbing) { v.y = 6.5; this.climbing = false; }
       this.onGround = false;
