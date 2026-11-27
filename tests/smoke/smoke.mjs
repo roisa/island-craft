@@ -955,7 +955,8 @@ async function run(name) {
         G.stats.letters = before; G.stats.suitsShown = shown;
         return { locked, open, worn, off, girl: G.settings.avatar === 'girl' };
       });
-      if (r.locked !== 10 || r.open !== 11 || r.worn.suit !== 'su_night' || !r.worn.emblem || (!r.worn.mask && !r.girl) || !r.worn.cape || r.off.suit || r.off.emblem) throw new Error(JSON.stringify(r));
+      // (open: the 10 suits, "No suit", and the Spider Warrior, which is open from the start)
+      if (r.locked !== 10 || r.open !== 12 || r.worn.suit !== 'su_night' || !r.worn.emblem || (!r.worn.mask && !r.girl) || !r.worn.cape || r.off.suit || r.off.emblem) throw new Error(JSON.stringify(r));
       return r;
     });
     await step('in a game the screen is clean; a race started from another game stops that game; nothing piles up race after race', async () => {
