@@ -1202,11 +1202,11 @@ async function run(name) {
         await sleep(300); out.btn = !document.querySelector('#bWeb').classList.contains('hidden');
         // a practice ground of our own, high in the sky outside the village (the same every run, whatever the world):
         // a flat stone floor, and a stone wall at its far end
-        const ax = 60, az = 60, ay = 120;
+        const ax = 60, az = 60, ay = 100; // (the world is 112 blocks high)
         P.rope = null; P.pos.set(ax + 0.5, ay, az + 10.5); P.vel.set(0, 0, 0); P.flying = true;
         for (let i = 0; i < 60 && G.world.update(ax, az, 40) > 0; i++) await sleep(50);
-        for (let x = -20; x <= 20; x++) for (let z = -20; z <= 20; z++) G.world.set(ax + x, ay - 1, az + z, 1);
-        for (let y = 0; y < 8; y++) for (let x = -2; x <= 2; x++) G.world.set(ax + x, ay + y, az - 2, 1);
+        for (let x = -20; x <= 20; x++) for (let z = -20; z <= 20; z++) { G.world.set(ax + x, ay - 1, az + z, 1); for (let y = 0; y < 10; y++) G.world.set(ax + x, ay + y, az + z, 0); }
+        for (let y = 0; y < 7; y++) for (let x = -2; x <= 2; x++) G.world.set(ax + x, ay + y, az - 2, 1);
         for (let i = 0; i < 20 && G.world.update(ax, az, 40) > 0; i++) await sleep(50);
         P.flying = false;
         // walk into the wall: you climb it
