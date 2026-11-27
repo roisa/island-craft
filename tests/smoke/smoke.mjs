@@ -550,7 +550,7 @@ async function run(name) {
           const y0 = R.y + 1.3; for (let i = 0; i < 60 && L.fly >= 0; i++) { if (G.ui.isOpen()) G.ui.closeAllModals(); if (L.mesh.position.y > y0 + 0.6) res.flew = true; await wait(100); } // (a card popping up would pause the race)
           res.popped = L.fly === -1 && !L.mesh.visible;
           res.read = R.read; res.set = R.set.slice(); res.said = window.__said; res.letters = R.letters.length;
-          R.total = R.laps * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 0.6;
+          R.total = R.laps * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 1.5; // (a step and a half back: the next frame carries you over the line, whether the kart rolls on or not)
           for (let i = 0; i < 40 && R.phase !== 'done'; i++) { if (G.ui.isOpen() && R.phase !== 'done') G.ui.closeAllModals(); await wait(100); } // (a card popping up would pause the race)
           res.done = R.phase === 'done';
           res.dialog = (document.querySelector('.veil.on .who')?.textContent || '').slice(0, 40);
