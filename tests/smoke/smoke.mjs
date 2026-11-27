@@ -1213,7 +1213,8 @@ async function run(name) {
         // walk into the wall: you climb it
         P.pos.set(ax + 0.5, ay, az + 0.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0; await running();
         const y0 = P.pos.y; G.input.keys.add('KeyW');
-        for (let i = 0; i < 40 && P.pos.y < y0 + 1.5; i++) { close(); await sleep(100); }
+        // (a pop-up clears the keys held down: keep holding forward)
+        for (let i = 0; i < 40 && P.pos.y < y0 + 1.5; i++) { close(); G.input.keys.add('KeyW'); await sleep(100); }
         G.input.keys.delete('KeyW'); out.climbed = +(P.pos.y - y0).toFixed(1);
         // the web rope: aimed at the wall from further back, it pulls you over, then lets go
         P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0; await running(); // (straight ahead, at the wall)
