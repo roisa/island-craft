@@ -1226,7 +1226,8 @@ async function run(name) {
         let b = null; for (let k = 0; k < 40 && !b; k++) b = G.bugs.spawn(P.pos);
         if (b) {
           // (placed right in front, then the web at once: a beetle flies about on its own)
-          const n0 = G.stats.bugs || 0; await running();
+          // (and the camera has glided back behind you after the trip: the web aims along it)
+          const n0 = G.stats.bugs || 0; await running(); await sleep(900); await running();
           const d = P.look(); b.pos.set(P.pos.x + d.x * 5, P.pos.y + 0.6, P.pos.z + d.z * 5); b.target = null; b.wait = 5;
           const rope0 = !!P.rope; G.shootWeb(); await sleep(200);
           out.caught = b.caught && (G.stats.bugs || 0) === n0 + 1;
