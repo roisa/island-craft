@@ -1225,9 +1225,12 @@ async function run(name) {
         P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0; await running();
         let b = null; for (let k = 0; k < 40 && !b; k++) b = G.bugs.spawn(P.pos);
         if (b) {
-          const d = P.look(); b.pos.set(P.pos.x + d.x * 5, P.pos.y + 0.6, P.pos.z + d.z * 5); b.target = null;
-          const n0 = G.stats.bugs || 0; await running(); G.shootWeb(); await sleep(200);
+          // (placed right in front, then the web at once: a beetle flies about on its own)
+          const n0 = G.stats.bugs || 0; await running();
+          const d = P.look(); b.pos.set(P.pos.x + d.x * 5, P.pos.y + 0.6, P.pos.z + d.z * 5); b.target = null; b.wait = 5;
+          const rope0 = !!P.rope; G.shootWeb(); await sleep(200);
           out.caught = b.caught && (G.stats.bugs || 0) === n0 + 1;
+          if (!out.caught) out.why = { caught: b.caught, n: (G.stats.bugs || 0) - n0, rope0, can: G.canWeb(), d: +b.pos.distanceTo(P.pos).toFixed(1) };
         } else out.caught = 'no beetle spawned';
         // take it off: the button goes, and only trees can be climbed again
         G.settings.outfit = keep; G.buildAvatar(); G.settings.cam = cam; G.stats.webTip = tip; await running(); await sleep(200);
