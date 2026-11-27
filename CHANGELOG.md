@@ -21,6 +21,8 @@ Suit, next to the 10 suits for the 28 letters.
   needed) and it flies home with its gift, as with the toy sword. The web helps
   aim at a beetle near where you look, but not through a wall.
 - Not while riding, racing or in a game. Baby Mo explains it the first time.
+  If you're moved somewhere else with the rope still out (a trip on the map),
+  it lets go instead of pulling you back.
 - Tests: a unit test (our own name and look, open from the start, apart from the
   10 suits); a smoke step: the button comes with the suit, a wall is climbed,
   the rope swings you over and lets go, a beetle is caught with one web, and

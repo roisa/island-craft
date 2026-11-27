@@ -113,7 +113,8 @@ export class Player {
       // swinging on the web rope: pulled towards where it's stuck, in an arc (a little lift on the way)
       const r = this.rope, dx = r.x - p.x, dy = r.y - (p.y + 1), dz = r.z - p.z, d = Math.hypot(dx, dy, dz);
       this.ropeT += dt;
-      if (d < 1.5 || this.ropeT > 2.4 || (inp.jump && this.ropeT > 0.3)) {
+      // (and if you were moved somewhere else meanwhile, a trip on the map, the rope lets go)
+      if (d < 1.5 || d > 40 || this.ropeT > 2.4 || (inp.jump && this.ropeT > 0.3)) {
         // let go: keep the swing's speed (a fling), with a little hop
         this.rope = null; if (v.y < 4) v.y = 4; this.onRopeEnd?.();
       } else {

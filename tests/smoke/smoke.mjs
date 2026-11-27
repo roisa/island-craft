@@ -1213,13 +1213,16 @@ async function run(name) {
         for (let i = 0; i < 30 && P.rope; i++) await sleep(100);
         out.letGo = !P.rope;
         // a naughty beetle out in the fields: one web and it's caught (no taps)
-        const hx = 70, hz = 70; P.pos.set(hx + 0.5, G.world.heightAt(hx, hz) + 1, hz + 0.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0;
+        P.rope = null; const hx = 70, hz = 70; P.pos.set(hx + 0.5, G.world.heightAt(hx, hz) + 1, hz + 0.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0;
         for (let i = 0; i < 30; i++) G.world.update(hx, hz, 40);
         await sleep(300);
         let b = null; for (let k = 0; k < 40 && !b; k++) b = G.bugs.spawn(P.pos);
         if (b) {
           const d = P.look(); b.pos.set(P.pos.x + d.x * 6, P.pos.y + 0.6, P.pos.z + d.z * 6); b.target = null;
-          const n0 = G.stats.bugs || 0; close(); G.shootWeb(); await sleep(200);
+          const n0 = G.stats.bugs || 0; close(); await sleep(250);
+          const e = P.eye(), dl = P.look(), wh = G.world.raycast(e, dl, 24);
+          out.why = { bugD: +b.pos.distanceTo(P.pos).toFixed(1), wall: wh ? +wh.dist.toFixed(1) : null };
+          G.shootWeb(); await sleep(200);
           out.caught = b.caught && (G.stats.bugs || 0) === n0 + 1;
         } else out.caught = 'no beetle spawned';
         // take it off: the button goes, and walls are only for trees again
