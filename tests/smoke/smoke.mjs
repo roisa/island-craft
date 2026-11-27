@@ -797,7 +797,8 @@ async function run(name) {
       // closed with ✕ on the star screen (not "Done"): the lesson still counts, and the next book can open
       await g(() => document.querySelector('.veil.on #iqX').click());
       const r = await g(c0 => ({ step: __game.iqro.step, gained: __game.stats.coins - c0, stone: __game.stats.iqro.stone, open: __game.iqro.opened }), c0);
-      await p.waitForFunction(() => !!__game.iqro.stone, null, { timeout: 20000 });
+      // (a pop-up that comes up meanwhile pauses the game, and the next book isn't placed: close it)
+      await p.waitForFunction(() => !!__game.iqro.stone || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 200 });
       await g(() => { __game.ui.closeAllModals(); __game.ui.openBook('letters'); });
       const path = await g(() => document.querySelectorAll('#vBook .iqStage').length);
       await g(keep => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.stats.letters = keep; G.player.pos.set(0.5, 47, 3.5); }, keep);
