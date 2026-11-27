@@ -1191,7 +1191,7 @@ async function run(name) {
       await p.waitForFunction(() => { const t = __trap; if (__game.ui.isOpen()) __game.ui.closeAllModals(); return __game.world.get(t.x, t.y, t.z) === 0 && __game.player.pos.y < t.y; }, null, { timeout: 15000, polling: 100 });
       return await g(() => ({ fellTo: +__game.player.pos.y.toFixed(2), top: __trap.y, mudBack: __game.inv.count?.(70) ?? null, before: __trap.mud }));
     });
-    await step('Spider Warrior: the 🕸️ button with the suit; climb any wall; the web rope swings you over; the web catches a beetle at once', async () => {
+    await step('Spider Warrior: the 🕸️ button with the suit; climb any wall; the web rope swings you over; the web catches a beetle at once and pulls in a mushroom', async () => {
       const r = await g(async () => {
         const G = __game, P = G.player, sleep = ms => new Promise(r => setTimeout(r, ms)), out = {};
         const close = () => { if (G.ui.isOpen()) G.ui.closeAllModals(); };
@@ -1235,13 +1235,18 @@ async function run(name) {
           out.caught = b.caught && (G.stats.bugs || 0) === n0 + 1;
           if (!out.caught) out.why = { caught: b.caught, n: (G.stats.bugs || 0) - n0, rope0, can: G.canWeb(), d: +b.pos.distanceTo(P.pos).toFixed(1) };
         } else out.caught = 'no beetle spawned';
+        // a glowing mushroom on the practice ground: the web snaps it up and pulls it into the bag
+        P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12;
+        G.world.set(ax, ay, az + 8, 71); G.world.update(ax, az, 40); await running(); await sleep(900); await running();
+        const m0 = G.inv.count(71); G.shootWeb(); await sleep(300);
+        out.mushroom = G.world.get(ax, ay, az + 8) !== 71 && G.inv.count(71) === m0 + 1;
         // take it off: the button goes, and only trees can be climbed again
         G.settings.outfit = keep; G.buildAvatar(); G.settings.cam = cam; G.stats.webTip = tip; await running(); await sleep(200);
         out.offAfter = document.querySelector('#bWeb').classList.contains('hidden') && !P.wallClimb;
         P.rope = null; P.pos.set(0.5, 47, 3.5); P.vel.set(0, 0, 0);
         return out;
       });
-      if (!r.offBefore || !r.btn || r.climbed < 1.5 || !r.rope || r.swung < 3 || !r.letGo || r.caught !== true || !r.offAfter) throw new Error(JSON.stringify(r));
+      if (!r.offBefore || !r.btn || r.climbed < 1.5 || !r.rope || r.swung < 3 || !r.letGo || r.caught !== true || !r.mushroom || !r.offAfter) throw new Error(JSON.stringify(r));
       return r;
     });
     await step('a cape lets you fly: tap jump twice and you lift off; take it off and you land', async () => {

@@ -5,6 +5,19 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The web pulls in fruit and mushrooms too
+
+- Ibra's idea: in the Spider Warrior suit, a 🕸️ web aimed at fruit on a tree
+  (mango, banana, orange, coconut, papaya, rambutan, apple), a watermelon or a
+  glowing mushroom snaps it off and pulls it into the bag, up to 24 steps away.
+  It's picked just as by hand: the fruit grows back on the tree, and its English
+  word card shows ("Mango!"). The web helps aim (within a block of where you
+  look), but never through a wall.
+- Only those, beetles, and the rope: the web never pulls blocks, animals or
+  villagers. A trunk or a wall still gives the rope swing.
+- Tested: a mango pulled from the orchard (into the bag, with its word card);
+  the smoke step now also webs a glowing mushroom on its practice ground.
+
 ### Pendekar Laba-laba (Spider Warrior): climb walls, swing on a web, catch beetles
 
 Ibra loved the cape, so here's a new hero suit with spider powers — our own hero,

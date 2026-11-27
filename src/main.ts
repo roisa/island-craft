@@ -1311,12 +1311,39 @@ export class Game {
       this.attackBug(b, 999);
       return;
     }
+    // fruit on a tree or a mushroom near where you look (before any wall): the web snaps it off and pulls it to you
+    const fr = this.webPickable(eye, dir, hit ? hit.dist + 0.6 : reach);
+    if (fr) {
+      const at = new THREE.Vector3(fr[0] + 0.5, fr[1] + 0.5, fr[2] + 0.5);
+      this.webShow(at, 0.4);
+      this.fx.sparkle(at.x, at.y, at.z, 10, 0xffffff, 1.2);
+      this.breakBlock(fr[0], fr[1], fr[2], fr[3]); // (its fruit flies to your bag, grows back on the tree, and its English word shows)
+      return;
+    }
     if (!hit) { this.webShow(eye.clone().addScaledVector(dir, 10), 0.25); return; } // (into the sky: nothing to hold it)
     const at = eye.clone().addScaledVector(dir, Math.max(0, hit.dist - 0.05));
     this.webShow(at, 1);
     this.fx.sparkle(at.x, at.y, at.z, 10, 0xffffff, 1.2);
     p.flying = false; p.rope = at; p.ropeT = 0;
     p.onRopeEnd = () => this.webEnd();
+  }
+  /** what the web pulls in: fruit on the orchard's trees, the watermelon, and the glowing mushrooms */
+  private static WEB_PICK = new Set<number>([B.FRUIT_MANGO, B.FRUIT_BANANA, B.FRUIT_ORANGE, B.FRUIT_COCONUT, B.FRUIT_PAPAYA, B.FRUIT_RAMBUTAN, B.FRUIT_APPLE, B.WATERMELON, B.GLOW_MUSHROOM]);
+  /** the first fruit or mushroom along the aim (within a block of it, so a child needn't aim exactly), up to `max` */
+  private webPickable(eye: THREE.Vector3, dir: THREE.Vector3, max: number): [number, number, number, number] | null {
+    const w = this.world;
+    for (let t = 0.8; t <= max; t += 0.5) {
+      const px = eye.x + dir.x * t, py = eye.y + dir.y * t, pz = eye.z + dir.z * t;
+      let best: [number, number, number, number] | null = null, bd = 9;
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) {
+        const x = Math.floor(px) + a, y = Math.floor(py) + b, z = Math.floor(pz) + c, id = w.get(x, y, z);
+        if (!Game.WEB_PICK.has(id)) continue;
+        const d = (x + 0.5 - px) ** 2 + (y + 0.5 - py) ** 2 + (z + 0.5 - pz) ** 2;
+        if (d < bd) { bd = d; best = [x, y, z, id]; }
+      }
+      if (best) return best;
+    }
+    return null;
   }
   private toggleFly() {
     const p = this.player;
