@@ -1215,7 +1215,7 @@ async function run(name) {
         for (let i = 0; i < 40 && P.pos.y < y0 + 1.5; i++) { close(); await sleep(100); }
         G.input.keys.delete('KeyW'); out.climbed = +(P.pos.y - y0).toFixed(1);
         // the web rope: aimed at the wall from further back, it pulls you over, then lets go
-        P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0.2; await running();
+        P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0; await running(); // (straight ahead, at the wall)
         const z0 = P.pos.z; G.shootWeb(); out.rope = !!P.rope;
         for (let i = 0; i < 30 && z0 - P.pos.z < 3; i++) { close(); await sleep(100); }
         out.swung = +(z0 - P.pos.z).toFixed(1);
