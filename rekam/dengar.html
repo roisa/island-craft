@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="id"><head>
+<meta charset="utf-8">
+<script>/* moved to babymo.id: the old address forwards to the same page there */if(location.hostname==="roisa.github.io")location.replace("https://babymo.id"+location.pathname+location.search+location.hash)</script>
+<script>
+/* Web-only developer tool (voice clips). In the iOS / Android app (Capacitor) it never runs: the microphone is
+   never requested and the page only says "Hanya di web / Web only". (tools/build-app.js does not copy tools/ into
+   the app either.) */
+(function(){try{
+  var C=window.Capacitor,app=window.MC_APP_BUILD||(C?(typeof C.isNativePlatform!=='function'||!!C.isNativePlatform()):/^(capacitor|ionic):$/.test(location.protocol));
+  if(!app)return;
+  window.MC_WEB_ONLY=true;
+  try{var md=navigator.mediaDevices;if(md)Object.defineProperty(md,'getUserMedia',{value:function(){return Promise.reject(new Error('web only'));},configurable:true});}catch(e){}
+  /* swallow the rest of the page as inert text: none of its scripts run */
+  document.write('<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><plaintext hidden>');
+  var show=function(){
+    document.body.innerHTML='<div style="display:flex!important;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:24px;text-align:center;font:800 20px/1.3 Nunito,system-ui,sans-serif">'+
+      '<div style="font-size:44px">🌐</div><div>Hanya di web</div><div style="font-size:16px;opacity:.7">Web only</div></div>';};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',show);else show();
+}catch(e){}})();
+</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><title>Dengar Suara · Mo Craft</title>
+<link rel="icon" href="../img/icon-192.png" type="image/png"><link rel="stylesheet" href="fonts/fonts.css">
+<script>/* theme before first paint: ?theme= → this page's choice → the game's setting (mocraft_none) → the phone's */
+(function(){try{var q=new URLSearchParams(location.search).get('theme'),r=JSON.parse(localStorage.getItem('mocraft_rekam_theme')||'null'),g=(JSON.parse(localStorage.getItem('mocraft_none')||'{}').theme)||'auto',m=q||r||g;
+document.documentElement.setAttribute('data-theme',m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');}catch(e){}})();</script>
+<style>
+:root{--ink:#152230;--ink2:#5A6878;--ink3:#6B7787;--glass:rgba(255,255,255,.66);--hair:rgba(21,34,48,.08);--tint:#12A15A;--tintl:rgba(18,161,90,.12);--tintd:#0B8A4A;
+ --go:linear-gradient(120deg,#10A765 0%,#0A9488 52%,#0A7FB0 100%);--ar:'Scheherazade New','Amiri','Noto Naskh Arabic',serif;--bg:#F2F6FC;
+ --blobs:radial-gradient(ellipse 70% 45% at 0% 0%,rgba(120,200,255,.45),transparent 70%),radial-gradient(ellipse 60% 40% at 100% 8%,rgba(255,180,210,.40),transparent 70%),radial-gradient(ellipse 70% 45% at 0% 100%,rgba(130,230,180,.38),transparent 70%);color-scheme:light}
+:root[data-theme="dark"]{--ink:#F2F5FA;--ink2:#AEB8C7;--ink3:#8794A6;--glass:rgba(30,36,72,.6);--hair:rgba(255,255,255,.08);--tint:#22C06E;--tintl:rgba(34,192,110,.18);--tintd:#7EE2A8;--bg:#0B1020;
+ --blobs:radial-gradient(ellipse 70% 45% at 0% 0%,rgba(56,120,255,.30),transparent 70%),radial-gradient(ellipse 60% 40% at 100% 8%,rgba(190,90,220,.24),transparent 70%),radial-gradient(ellipse 70% 45% at 0% 100%,rgba(20,184,166,.22),transparent 70%);color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Nunito',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--blobs)}
+.app{max-width:640px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(30px + env(safe-area-inset-bottom))}
+.top{display:flex;gap:8px;align-items:center}
+.top .sp{flex:1}
+a.back,.tb{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 14px;border-radius:22px;background:var(--glass);border:1px solid var(--hair);color:var(--ink);text-decoration:none;font:800 14px 'Nunito',sans-serif;
+ -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);cursor:pointer}
+h1{font:600 28px/1.15 'Fredoka',sans-serif;margin:14px 2px 4px;background:var(--go);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--ink2);font-size:14.5px;line-height:1.45;margin:0 2px 12px}
+.seg{display:grid;gap:4px;padding:4px;border-radius:16px;background:rgba(118,118,128,.14);margin-bottom:10px}
+.seg button{border:0;background:none;padding:9px 3px;border-radius:12px;font:800 13px/1.2 'Nunito',sans-serif;color:var(--ink2);overflow-wrap:anywhere;cursor:pointer}
+.seg button small{display:block;font-size:11px;font-weight:800;color:var(--ink3)}
+.seg button.on{background:var(--glass);color:var(--ink);box-shadow:0 3px 10px -3px rgba(0,0,0,.15)}
+.all{width:100%;height:50px;border:0;border-radius:25px;background:var(--go);color:#fff;font:900 16px 'Nunito',sans-serif;margin:4px 0 14px;cursor:pointer}
+h2{font:800 13px 'Nunito',sans-serif;color:var(--ink3);margin:16px 4px 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.grid.lines{grid-template-columns:1fr}
+.c{position:relative;border:1px solid var(--hair);background:var(--glass);border-radius:18px;padding:10px 8px 8px;text-align:center;cursor:pointer;color:var(--ink);font-family:inherit;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 16px -14px rgba(0,0,0,.4);transition:transform .2s}
+.c:active{transform:scale(.96)}
+.c .a{font-family:var(--ar);direction:rtl;font-size:32px;line-height:1.6}
+.c .a.lat{font:700 16px/1.35 'Nunito',sans-serif;direction:ltr;padding:2px 0 3px}
+.lines .c{text-align:left;padding:10px 12px 8px}
+.c .h{font-size:11.5px;font-weight:800;color:var(--ink3);line-height:1.25;overflow-wrap:anywhere}
+.c.play{outline:3px solid #F5B400;outline-offset:1px}
+.c.flag::after{content:'⚑';position:absolute;top:4px;left:7px;color:#E5484D;font-size:15px}
+.c.rec::before{content:attr(data-rec);position:absolute;top:5px;right:7px;font:900 9.5px 'Nunito',sans-serif;padding:3px 5px;border-radius:6px;background:var(--tintl);color:var(--tintd)}
+.c.none{opacity:.45;cursor:default;padding-top:20px}
+.c.none::before{content:attr(data-none);position:absolute;top:4px;right:7px;font-size:10px;font-weight:900;color:var(--ink3)}
+.note{color:var(--ink3);font-size:13px;line-height:1.45;margin-top:16px}
+.empty{color:var(--ink2);font-size:14px;line-height:1.5;padding:14px 4px}
+.empty code{font:600 12.5px/1.4 ui-monospace,Menlo,monospace;background:rgba(118,118,128,.14);padding:2px 6px;border-radius:6px;overflow-wrap:anywhere}
+</style></head><body><div class="app">
+<div class="top"><a class="back" href="index.html" id="back"></a><span class="sp"></span><button class="tb" id="theme">☾</button><button class="tb" id="lang">EN</button></div>
+<h1 id="ttl"></h1>
+<p class="lead" id="lead"></p>
+<div class="seg" id="seg"></div>
+<button class="all" id="all"></button>
+<div id="list"></div>
+<p class="note" id="flags"></p>
+</div>
+<script src="rekam-data.js"></script>
+<script>
+/* Listening page for the voice clips: every row of rekam-data.js and its file from the manifests (audio/huruf/voice.js,
+   audio/extra/voice.js, audio/lines/voice.js). Rows without a clip yet are greyed; real-voice takes (?v=rec…) are marked. */
+const store={get(k,d){try{const v=localStorage.getItem('mocraft_rekam_'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('mocraft_rekam_'+k,JSON.stringify(v));}catch(e){}}};
+let EN=false; try{ EN=(new URLSearchParams(location.search).get('lang')||store.get('lang',null)||(JSON.parse(localStorage.getItem('mocraft_none')||'{}').lang))==='en'; }catch(e){}
+const L=(id,en)=>EN?en:id;
+const D=window.REKAM||[], SECS=window.REKAM_SECTIONS||[];
+const MAN={V:['MC_CLIPS','']};
+D.forEach(x=>{ const m=MAN[x.m||'V'], f=m&&(x.ks||[x.key]).map(k=>(window[m[0]]||{})[k]).find(Boolean); x.url=f?'../voice/'+f:null; x.tag=f?((f.match(/[?&]v=([^&#]*)/)||[])[1]||''):''; });
+let sec='huruf', seq=0, au=new Audio(), flags=new Set();
+try{ flags=new Set(JSON.parse(localStorage.getItem('mocraft_voice_flags')||'[]')); }catch(e){}
+try{ const q=new URLSearchParams(location.search).get('s'); if(SECS.some(s=>s.s===q)) sec=q; }catch(e){}
+const seg=document.getElementById('seg'); seg.style.gridTemplateColumns='repeat('+SECS.length+',1fr)';
+function texts(){
+  document.documentElement.lang=EN?'en':'id';
+  document.title=L('Dengar Suara','Listen to the Voices')+' · Mo Craft';
+  document.getElementById('back').textContent='‹ '+L('Rekam','Record');
+  document.getElementById('lang').textContent=EN?'ID':'EN';
+  document.getElementById('ttl').textContent=L('Dengar Suara','Listen to the Voices');
+  document.getElementById('lead').textContent=L('Ketuk kartu untuk mendengar clip yang diputar game. Tekan lama (atau klik kanan) untuk menandai ⚑ suara yang terdengar kurang tepat, lalu beri tahu Claude kartu yang ditandai. ASLI = rekaman suara asli.',
+    'Tap a card to hear the clip the game plays. Long-press (or right-click) to flag ⚑ a clip that sounds wrong, then tell Claude which cards you flagged. REAL = a real-voice recording.');
+  document.getElementById('all').textContent='▶ '+L('Putar semua di bagian ini','Play everything in this section');
+  seg.innerHTML='';
+  SECS.forEach(o=>{ const b=document.createElement('button'); b.dataset.s=o.s; const n=D.filter(x=>x.s===o.s), has=n.filter(x=>x.url).length;
+    b.innerHTML='<span></span><small></small>'; b.firstChild.textContent=o.ic+' '+(EN?o.en:o.id); b.lastChild.textContent=has+' / '+n.length;
+    b.onclick=()=>{sec=o.s;seq++;au.pause();render();}; seg.appendChild(b); });
+}
+function render(){const Lst=document.getElementById('list');Lst.innerHTML='';let g=null,grid;
+ document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x.dataset.s===sec));
+ const rows=D.filter(x=>x.s===sec);
+ if(!rows.some(x=>x.url)){ const p=document.createElement('p'); p.className='empty';
+   p.innerHTML=L('Belum ada clip di bagian ini (game memakai suara HP). Buat dengan Google TTS: <code>bash tools/voice/cloudshell.sh</code> (di Google Cloud Shell), atau rekam suara asli di halaman Rekam.',
+     'No clips in this section yet (the game uses the phone\'s voice). Make them with Google TTS: <code>bash tools/voice/cloudshell.sh</code> (in Google Cloud Shell), or record a real voice on the Record page.'); Lst.appendChild(p); }
+ rows.forEach(x=>{if(x.g!==g){g=x.g;const h=document.createElement('h2');h.textContent=g;Lst.appendChild(h);grid=document.createElement('div');grid.className='grid'+(x.l!=='ar'?' lines':'');Lst.appendChild(grid);}
+  const b=document.createElement('button');b.className='c'+(flags.has(x.id)?' flag':'')+(x.url?'':' none')+(/^rec/.test(x.tag)?' rec':'');b.dataset.id=x.id;
+  if(/^rec/.test(x.tag))b.dataset.rec=L('ASLI','REAL');if(!x.url)b.dataset.none=L('belum ada','not yet');
+  b.innerHTML='<div class="a"></div><div class="h"></div>';if(x.l!=='ar')b.firstChild.className='a lat';b.firstChild.textContent=x.t;b.lastChild.textContent=(x.h||'')+(x.l==='ar'?'':' · '+x.id);
+  b.onclick=()=>{if(!x.url)return;seq++;play(b,x)};let t;b.oncontextmenu=e=>{e.preventDefault();flag(b)};b.ontouchstart=()=>{t=setTimeout(()=>flag(b),550)};b.ontouchend=b.ontouchmove=()=>clearTimeout(t);grid.appendChild(b);});
+ showFlags();}
+function play(b,x,done){document.querySelectorAll('.c.play').forEach(y=>y.classList.remove('play'));b.classList.add('play');b.scrollIntoView({block:'nearest',behavior:'smooth'});
+ au.pause();au=new Audio(x.url);au.onended=()=>{b.classList.remove('play');done&&done()};au.onerror=()=>{b.classList.remove('play');done&&done()};au.play().catch(()=>done&&done());}
+function flag(b){const f=b.dataset.id;flags.has(f)?flags.delete(f):flags.add(f);b.classList.toggle('flag');try{localStorage.setItem('mocraft_voice_flags',JSON.stringify([...flags]));}catch(e){}showFlags();}
+function showFlags(){const n=D.filter(x=>flags.has(x.id));document.getElementById('flags').textContent=n.length?(L('Ditandai: ','Flagged: ')+n.map(x=>x.t+' ('+x.id+')').join(' · ')):'';}
+document.getElementById('all').onclick=()=>{const my=++seq,rows=D.filter(x=>x.s===sec&&x.url),cards=[...document.querySelectorAll('.c:not(.none)')];let i=0;const nx=()=>{if(my!==seq||i>=cards.length)return;const x=rows[i];play(cards[i++],x,()=>setTimeout(nx,350));};nx();};
+document.getElementById('lang').onclick=()=>{EN=!EN;store.set('lang',EN?'en':'id');texts();render();};
+function paintTheme(){document.getElementById('theme').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+document.getElementById('theme').onclick=()=>{const d=document.documentElement.getAttribute('data-theme')!=='dark';document.documentElement.setAttribute('data-theme',d?'dark':'light');store.set('theme',d?'dark':'light');paintTheme();};
+paintTheme(); texts(); render();
+</script></body></html>
