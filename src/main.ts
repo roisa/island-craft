@@ -94,6 +94,7 @@ export interface Settings {
   /** naughty beetles at dusk (parents can turn them off) */
   beetles?: boolean;
   /** the glass arrow in front of you that points to the mission (on unless switched off) */
+  /** the glass guide arrow to the mission: off unless turned on in Settings (the island looks nicer without it) */
   guide?: boolean;
   /** colours picked from a photo (the photo itself is never kept) */
   look?: { hair: number; skin: number; shirt: number; pants: number };
@@ -2508,7 +2509,7 @@ export class Game {
     if (tt) { dir = Math.atan2(tt.x - p.x, tt.z - p.z); dist = Math.hypot(tt.x - p.x, tt.z - p.z) + 2.5; }
     else if (tt === undefined) { const c = this.compass(); if (c) { dir = c.ta; dist = c.dist; } }
     const busy = !!this.playing || !!this.race?.active || !!this.tennis?.active || !!this.fun?.riding || !!this.jamaah || this.ui.isOpen();
-    const on = this.settings.guide !== false && dir !== null && dist > 5 && !busy;
+    const on = this.settings.guide === true && dir !== null && dist > 5 && !busy;
     const portrait = innerHeight > innerWidth;
     this.guide.update(dt, p, this.player.yaw, dir, on, portrait);
   }

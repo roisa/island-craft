@@ -5,6 +5,14 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### The guide arrow is off by default
+
+- The island looks nicer without it: the glass arrow to the mission now shows
+  only when it's turned on in ⚙️ Settings → "Guide arrow to the mission". The
+  compass at the top still points the way. (A game that turned it on keeps it.)
+- Tested: the smoke step checks it's off at first, then on and off from
+  Settings; the tutorial arrow check turns it on for itself.
+
 ### Kota Langit (Sky City): swing on the web from tower to tower
 
 - Ibra's idea: a city to swing through with the web. Kota Langit stands on open

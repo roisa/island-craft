@@ -91,22 +91,23 @@ async function run(name) {
       if (r.full || r.stored === '1' || !r.field) throw new Error(JSON.stringify(r));
       return r;
     });
-    await step('guide arrow: a glass arrow ahead of you points like the compass, and Settings can turn it off', async () => {
+    await step('guide arrow: off by default; turned on in Settings, a glass arrow ahead of you points like the compass, and it can be turned off again', async () => {
       const r = await p.evaluate(async () => {
         const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
-        const tut0 = G.stats.tut; G.stats.tut = 99; // (after the tutorial: the arrow follows the compass)
+        const tut0 = G.stats.tut, g0 = G.settings.guide; G.stats.tut = 99; // (after the tutorial: the arrow follows the compass)
         const c = G.compass(); if (!c || c.dist <= 5) { G.stats.tut = tut0; return { skip: true }; }
-        await wait(1200);
+        await wait(600); const offByDefault = g0 === undefined && !(G.guide && G.guide.obj.visible);
+        G.settings.guide = true; await wait(1200);
         const a = G.guide; const on = !!a && a.obj.visible;
         const diff = a ? Math.abs(Math.atan2(Math.sin(a.obj.rotation.y - G.compass().ta), Math.cos(a.obj.rotation.y - G.compass().ta))) : 9;
         G.settings.guide = false;
         for (let i = 0; i < 40 && a.obj.visible; i++) await wait(150);
         const off = !a.obj.visible;
-        G.settings.guide = true; G.stats.tut = tut0;
-        return { on, off, diff };
+        G.settings.guide = g0; G.stats.tut = tut0;
+        return { offByDefault, on, off, diff };
       });
       if (r.skip) return r;
-      if (!r.on || !r.off || r.diff > 0.3) throw new Error(JSON.stringify(r));
+      if (!r.offByDefault || !r.on || !r.off || r.diff > 0.3) throw new Error(JSON.stringify(r));
       return r;
     });
     await step('touch controls shown only on touch devices', async () => {
@@ -1134,6 +1135,7 @@ async function run(name) {
     await step('during the tutorial the guide arrow points to the tutorial step (Baby Mo), not the letter', async () => {
       const r = await p.evaluate(async () => {
         const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
+        const g0 = G.settings.guide; G.settings.guide = true; // (the arrow is off by default: turned on for this check)
         const tut0 = G.stats.tut, w0 = G.kid.walked; G.kid.walked = 0; G.stats.tut = 0; G.ui.closeAllModals(); // step 1 "walk to Baby Mo", not yet done
         G.gameEvent = null; G.ents.mo.prayAt = null; G.hour = 9; G.lastHour = 9; // (outside prayer time: then Baby Mo is in his place in the row, not following you)
         const mo = G.ents.mo, pp = G.player.pos;
@@ -1145,7 +1147,7 @@ async function run(name) {
           const want = Math.atan2(mo.pos.x - pp.x, mo.pos.z - pp.z), got = G.guide.obj.rotation.y;
           res.push({ vis: G.guide.obj.visible, diff: Math.abs(Math.atan2(Math.sin(got - want), Math.cos(got - want))) });
         }
-        G.stats.tut = tut0; G.kid.walked = w0; G.ui.tutorial(null);
+        G.stats.tut = tut0; G.kid.walked = w0; G.ui.tutorial(null); G.settings.guide = g0;
         return res[res.length - 1];
       });
       if (!r.vis || r.diff > 0.35) throw new Error(JSON.stringify(r));
