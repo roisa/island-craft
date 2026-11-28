@@ -1170,8 +1170,8 @@ async function run(name) {
       await p.fill('.gateScr #pgIn', String(ans)); await g(() => document.querySelector('.gateScr #pgOk').click());
       await g(() => document.querySelector('.lockScr [data-add="15"]').click());
       await p.waitForTimeout(600);
-      await g(() => __game.ui.closeAllModals()); // a reward pop-up from earlier play may open once the lock lifts
-      await p.waitForTimeout(200);
+      // a reward pop-up from earlier play may open once the lock lifts (and pauses the game): close it until play goes on
+      await p.waitForFunction(() => { const G = __game; if (G.ui.isOpen()) G.ui.closeAllModals(); return !G.paused && !document.querySelector('.lockScr'); }, null, { timeout: 4000, polling: 200 }).catch(() => {});
       const woke = await g(() => ({ lock: !!document.querySelector('.lockScr'), mo: __game.ents.mo.sleeping, slept: __game.stats.play.slept, phase: __game.bedtime.phase, paused: __game.paused }));
       if (woke.lock || woke.mo || woke.slept || woke.paused || woke.phase !== 0) throw new Error(JSON.stringify(woke));
       await g(() => { __game.stats.play.sec = 0; __game.stats.play.extra = 0; });
@@ -1239,7 +1239,10 @@ async function run(name) {
         } else out.caught = 'no beetle spawned';
         // a glowing mushroom on the practice ground: the web snaps it up and pulls it into the bag
         P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12;
+        // (the ground there must be loaded before the mushroom can be put down: a slow phone may still be loading it)
+        for (let k = 0; k < 100 && !G.world.chunkAt(ax, az + 8); k++) { G.world.update(ax, az, 40); await sleep(50); }
         G.world.set(ax, ay, az + 8, 71); G.world.update(ax, az, 40); await running(); await sleep(900); await running();
+        out.mushroomPut = G.world.get(ax, ay, az + 8) === 71;
         // (a slow phone's camera can still be gliding back: aim again and try once more, as a child would)
         const m0 = G.inv.count(71);
         for (let k = 0; k < 3 && G.world.get(ax, ay, az + 8) === 71; k++) { if (k) { G.ui.closeAllModals(); P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12; await running(); await sleep(600); } G.shootWeb(); await sleep(300); }
