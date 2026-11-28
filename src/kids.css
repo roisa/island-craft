@@ -1,0 +1,268 @@
+/* ================= Kids UI: the Baby Mo app’s buttons, iOS-style sheets, a celebrating letter card =================
+   Loaded last (after ios.css), so these win. Big enough for small fingers, never stretched across a whole sheet. */
+
+/* ---------- buttons: the Baby Mo app's own "Main lagi / Play again" button ----------
+   The same capsule as the app's games (babymo-puzzle, hijaiyah, memory match, kata baik): the main button is a
+   green -> teal -> blue capsule with a glossy top half and a slow shine sweeping across; the smaller choices are
+   white pills; a press springs in a little. Big enough for small fingers, sized to its label. */
+.btn { position: relative; isolation: isolate; overflow: hidden; min-height: 54px; padding: 0 22px; font: 800 17px/1.15 'Nunito', system-ui, sans-serif !important;
+  border-radius: 999px !important; border: 1px solid rgba(255,255,255,.22) !important;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; -webkit-tap-highlight-color: transparent; cursor: pointer;
+  transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), box-shadow .18s ease !important; }
+/* the glossy top half */
+.btn::before { content: ''; position: absolute; left: 3%; right: 3%; top: 1px; height: 50%; border-radius: 999px 999px 40% 40%; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0)); }
+/* the shine that sweeps across now and then */
+.btn::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -40%; width: 28%; z-index: -1; pointer-events: none; transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.24), transparent); animation: bmBtnShine 7s ease-in-out 1.5s infinite; }
+@keyframes bmBtnShine { 0%, 62% { left: -40%; } 82%, 100% { left: 125%; } }
+.btn:not(.gold):not(.ghost) { color: #fff !important; background: linear-gradient(120deg, #16B46A 0%, #0A9C8C 52%, #0A84B8 100%) !important;
+  text-shadow: 0 1px 1px rgba(0, 70, 45, .22) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0, 60, 70, .18), 0 10px 22px -12px rgba(10, 143, 160, .55) !important; }
+.btn.gold { color: #3A2400 !important; background: linear-gradient(120deg, #FFD95A 0%, #FFC233 52%, #FFA41F 100%) !important; text-shadow: 0 1px 0 rgba(255,255,255,.35) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(150, 90, 0, .2), 0 10px 22px -12px rgba(230, 150, 10, .6) !important; }
+/* the smaller choices: soft tinted pills with a teal outline and a raised edge underneath, so they read as buttons
+   even on a pale sheet (a white pill on a white card didn't); the edge presses down when tapped. One line, no shine. */
+.btn.ghost { color: #0B6E7A !important; background: linear-gradient(180deg, #FFFFFF 0%, #E9F8F6 100%) !important;
+  border: 1.5px solid rgba(10, 143, 160, .38) !important; text-shadow: none !important; white-space: nowrap;
+  font-size: 15.5px !important; min-height: 46px; padding: 0 16px;
+  box-shadow: 0 3px 0 rgba(10, 120, 140, .28), 0 8px 16px -10px rgba(10, 80, 100, .45) !important; }
+.btn.ghost svg, .btn.ghost .ic { color: #0A9C8C; }
+.btn.ghost::before, .btn.ghost::after, .btn.small::after { display: none; }
+.btn:active { transform: scale(.96) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 14px -10px rgba(10, 143, 160, .5) !important; }
+.btn.ghost:active { transform: translateY(3px) scale(.98) !important; box-shadow: 0 0 0 rgba(10, 120, 140, .28), 0 3px 8px -6px rgba(10, 80, 100, .4) !important; }
+.btn.small { min-height: 44px; padding: 0 16px; font-size: 15px !important; }
+.btn.big { min-height: 60px; font-size: 20px !important; }
+/* in a sheet: as wide as it needs to be (comfortable), never a long bar across the whole sheet */
+.panel .btn { width: auto; max-width: 100%; }
+.panel > .btn:not(.small), .panel > div > .btn:not(.small):only-child, .panel .btn.wide { display: flex; width: min(100%, 340px); margin-left: auto; margin-right: auto; }
+.panel .row { justify-content: center; flex-wrap: wrap; }
+.panel .row > .btn { flex: 1 1 0; min-width: 132px; max-width: 260px; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none !important; } .btn::after { animation: none; display: none; } }
+
+/* ---------- sheets: iOS Liquid Glass, springing in ----------
+   See-through glass over a lightly dimmed island: the game's colours glow through, blurred and saturated; a bright
+   rim, a soft sheen across the top and an inner glow give it depth. Text stays dark and readable. */
+.veil { background: radial-gradient(120% 90% at 50% 40%, rgba(10, 25, 45, .08), rgba(5, 15, 30, .3)) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(120%) !important; backdrop-filter: blur(3px) saturate(120%) !important; }
+.panel { border-radius: 36px !important; padding: 20px 20px 22px !important;
+  background: linear-gradient(160deg, rgba(255,255,255,.74) 0%, rgba(255,255,255,.56) 45%, rgba(246,250,255,.62) 100%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(210%) brightness(1.06) !important; backdrop-filter: blur(30px) saturate(210%) brightness(1.06) !important;
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.55), inset 0 -24px 48px -36px rgba(255,255,255,.9),
+    inset 0 30px 60px -50px rgba(120, 180, 255, .35), 0 40px 90px -30px rgba(0, 20, 50, .5), 0 2px 8px rgba(0, 20, 50, .08) !important; }
+/* the glass sheen: a soft light across the top of the sheet (it doesn't take taps) */
+.veil.on > .panel::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 140px; border-radius: 36px 36px 0 0; pointer-events: none;
+  background: radial-gradient(120% 100% at 30% -20%, rgba(255,255,255,.65), rgba(255,255,255,0) 60%); z-index: 0; }
+.veil.on > .panel > * { position: relative; z-index: 1; }
+.veil.on > .panel > .x { position: absolute; z-index: 2; }
+/* cards inside a sheet: lighter glass too */
+.panel .recipe, .panel .qcard, .panel .prow, .panel .report div, .panel .wd, .panel .day, .panel .adv, .panel .jr, .panel .set {
+  background: rgba(255,255,255,.5) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.panel .set { border-radius: 16px; padding-left: 10px; padding-right: 10px; margin-bottom: 6px; border-bottom: 0 !important; }
+.panel .prow.next { background: rgba(52, 199, 89, .16) !important; }
+@media (prefers-reduced-transparency: reduce) { .panel { background: #f7f9fc !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } .veil.on > .panel::after { display: none; } }
+.veil.on > .panel { animation: sheetIn .42s cubic-bezier(.2, 1.25, .35, 1) both !important; }
+@keyframes sheetIn { 0% { transform: translateY(26px) scale(.9); opacity: 0; filter: blur(4px); } 60% { opacity: 1; filter: blur(0); } 100% { transform: none; opacity: 1; } }
+.panel h2 { font-size: 23px; letter-spacing: -.02em; }
+.panel p { color: #4B5563; }
+/* the close button: a round glass ✕ */
+.x { width: 40px !important; height: 40px !important; top: 14px !important; right: 14px !important; border-radius: 50% !important;
+  background: rgba(120,120,128,.14) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.6); transition: transform .1s; }
+.x:active { transform: scale(.9); background: rgba(120,120,128,.26) !important; }
+@media (prefers-reduced-motion: reduce) { .veil.on > .panel { animation: none !important; } }
+
+/* ---------- the letter card ---------- */
+.lcard .lnew { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 2px; }
+.lcard .rib { display: inline-block; padding: 6px 16px; border-radius: 999px; font: 900 14px/1 var(--ui, Nunito), sans-serif; letter-spacing: .04em; color: #4A2E00;
+  background: linear-gradient(180deg, #FFE680, #FFC52E); box-shadow: 0 3px 0 #D99A00, 0 8px 14px -8px rgba(220,150,0,.8); animation: ribIn .5s .1s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes ribIn { from { transform: translateY(-14px) scale(.6); opacity: 0; } }
+.lcard .lprog { position: relative; width: 150px; height: 16px; border-radius: 999px; background: rgba(20,60,40,.1); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.1); }
+.lcard .lprog i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #34C759, #7EE08F); animation: progIn 1s .3s ease-out both; }
+@keyframes progIn { from { width: 0; } }
+.lcard .lprog b { position: relative; display: block; text-align: center; font: 900 11px/16px var(--ui, Nunito), sans-serif; color: #0B5A2E; }
+
+.lstage { position: relative; display: grid; place-items: center; width: 190px; height: 176px; margin: 4px auto 2px; }
+.lstage .rays { position: absolute; inset: -30px; border-radius: 50%; pointer-events: none; opacity: .75;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 200, 40, .55) 0deg 9deg, rgba(255, 200, 40, 0) 9deg 24deg);
+  -webkit-mask: radial-gradient(circle, #000 25%, transparent 68%); mask: radial-gradient(circle, #000 25%, transparent 68%);
+  animation: raysSpin 14s linear infinite, raysIn .6s ease-out both; }
+@keyframes raysSpin { to { transform: rotate(360deg); } }
+@keyframes raysIn { from { opacity: 0; transform: scale(.4); } }
+.tile3d { position: relative; z-index: 1; width: 162px; height: 150px; border: 0; padding: 0; cursor: pointer; display: grid !important; place-items: center;
+  border-radius: 34px; background: linear-gradient(180deg, #FFFFFF 0%, #FFF7E2 100%);
+  box-shadow: 0 7px 0 #E9B53C, 0 0 0 4px #FFD35A, 0 22px 34px -14px rgba(160, 100, 0, .55), inset 0 -8px 16px -10px rgba(220, 160, 40, .5) !important; }
+.tile3d:active { transform: translateY(4px); box-shadow: 0 3px 0 #E9B53C, 0 0 0 4px #FFD35A !important; }
+.tile3d .arimg { width: 140px; height: auto; }
+/* a new letter: pops out of nowhere with a wobble, then gently floats */
+.isNew .tile3d { animation: letterPop .9s cubic-bezier(.2, 1, .3, 1) both, letterFloat 3s 1s ease-in-out infinite; }
+@keyframes letterPop {
+  0% { transform: scale(.15) rotate(-25deg); opacity: 0; }
+  45% { transform: scale(1.22) rotate(8deg); opacity: 1; }
+  60% { transform: scale(.95) rotate(-7deg); }
+  72% { transform: scale(1.06) rotate(5deg); }
+  84% { transform: scale(.99) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes letterFloat { 50% { transform: translateY(-6px) rotate(1.5deg); } }
+.hit.tile3d, .vc.hit { animation: tapBounce .45s cubic-bezier(.2, 1.5, .4, 1) !important; }
+@keyframes tapBounce { 0% { transform: scale(1); } 30% { transform: scale(.88) rotate(-4deg); } 65% { transform: scale(1.1) rotate(3deg); } 100% { transform: scale(1); } }
+.lstage .spk { position: absolute; z-index: 2; color: #FFC21A; font-size: 22px; text-shadow: 0 0 10px rgba(255, 200, 40, .9); pointer-events: none; animation: twinkle 1.6s ease-in-out infinite both; }
+.lstage .k1 { top: 4px; left: 6px; } .lstage .k2 { top: 14px; right: 2px; font-size: 16px; animation-delay: .4s; }
+.lstage .k3 { bottom: 10px; left: 0; font-size: 15px; animation-delay: .8s; } .lstage .k4 { bottom: 0; right: 10px; animation-delay: 1.2s; }
+@keyframes twinkle { 0%, 100% { transform: scale(.4) rotate(0); opacity: .2; } 50% { transform: scale(1.15) rotate(45deg); opacity: 1; } }
+.lcard .lname { font-size: 26px !important; margin-top: 6px !important; }
+
+/* the vowel cards: chunky, colourful, clearly something to tap (a 🔊 badge, a press-down shadow, a pointing finger) */
+.lcard .vhint { font-size: 14px; font-weight: 900; color: #4B5563; margin: 4px 0 2px; }
+.harakat.vcards { position: relative; gap: 12px; padding-bottom: 30px; margin-top: 6px; }
+.harakat .vc { position: relative; width: 96px; border: 0 !important; border-radius: 22px !important; padding: 8px 4px 10px !important; cursor: pointer;
+  transition: transform .09s ease-out, box-shadow .09s ease-out; -webkit-tap-highlight-color: transparent; }
+.harakat .vc.v0 { background: linear-gradient(180deg, #FFF3E6, #FFE2C2) !important; box-shadow: 0 6px 0 #F2A65A, inset 0 0 0 3px #FFB870, 0 14px 20px -12px rgba(230, 120, 20, .6) !important; }
+.harakat .vc.v1 { background: linear-gradient(180deg, #EAF4FF, #D3E8FF) !important; box-shadow: 0 6px 0 #6FA8E8, inset 0 0 0 3px #8DBDF5, 0 14px 20px -12px rgba(40, 110, 220, .6) !important; }
+.harakat .vc.v2 { background: linear-gradient(180deg, #EAFBEF, #D2F4DC) !important; box-shadow: 0 6px 0 #5DBE7B, inset 0 0 0 3px #84D69D, 0 14px 20px -12px rgba(30, 150, 70, .6) !important; }
+.harakat .vc:active { transform: translateY(5px); }
+.harakat .vc.v0:active { box-shadow: 0 1px 0 #F2A65A, inset 0 0 0 3px #FFB870 !important; }
+.harakat .vc.v1:active { box-shadow: 0 1px 0 #6FA8E8, inset 0 0 0 3px #8DBDF5 !important; }
+.harakat .vc.v2:active { box-shadow: 0 1px 0 #5DBE7B, inset 0 0 0 3px #84D69D !important; }
+.harakat .vc small { font-size: 18px !important; }
+.harakat .vc.v0 small { color: #C25E00 !important; } .harakat .vc.v1 small { color: #1D5FB4 !important; } .harakat .vc.v2 small { color: #13803A !important; }
+.harakat .vc small.hn { font-size: 11px !important; opacity: .8; }
+.harakat .vc .vspk { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 14px;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+.harakat .vc.hit .hg { animation: glyphWiggle .5s ease-in-out; }
+@keyframes glyphWiggle { 25% { transform: rotate(-10deg) scale(1.08); } 50% { transform: rotate(8deg) scale(1.12); } 75% { transform: rotate(-4deg); } }
+.harakat.small.vcards { padding-bottom: 6px; }
+.harakat.small .vc { width: 82px; }
+.harakat .finger { position: absolute; z-index: 3; left: 50%; top: 100%; font-size: 34px; line-height: 1; pointer-events: none; transform: translateX(-30%);
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,.25)); transition: left .35s cubic-bezier(.3, 1.3, .5, 1), opacity .3s; animation: fingerTap 1.1s ease-in-out infinite; }
+.harakat .finger.gone { opacity: 0; }
+@keyframes fingerTap { 0%, 100% { translate: 0 6px; } 50% { translate: 0 -4px; } }
+.lcard .adv { border-radius: 18px !important; background: rgba(120,120,128,.08) !important; padding: 8px 12px !important; }
+.lcard .lbtns { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) {
+  .isNew .tile3d, .lstage .rays, .lstage .spk, .harakat .finger, .lcard .rib, .lcard .lprog i { animation: none !important; }
+}
+/* phones held sideways: the card is two columns, keep the stage compact */
+@media (max-height: 500px) {
+  .lstage { width: 150px; height: 128px; }
+  .tile3d { width: 124px; height: 112px; border-radius: 28px; }
+  .tile3d .arimg { width: 104px; }
+  .lcard .lname { font-size: 21px !important; margin-top: 2px !important; }
+  .harakat .vc { width: 84px; }
+  .harakat.vcards { padding-bottom: 26px; gap: 10px; }
+  .harakat .finger { font-size: 28px; }
+  .lcard .rib { font-size: 12px; padding: 5px 12px; }
+  .lcard .vhint { margin: 0; }
+}
+
+/* quiz answers and other big choice tiles: pressable too */
+.quizOpts button { border: 0 !important; border-radius: 22px !important; background: linear-gradient(180deg, #FFFDF6, #FFF1C9) !important;
+  box-shadow: 0 6px 0 #E3B341, inset 0 0 0 3px #FFD35A, 0 14px 20px -12px rgba(200, 140, 0, .55) !important; transition: transform .09s ease-out, box-shadow .09s ease-out; }
+.quizOpts button:active { transform: translateY(5px); box-shadow: 0 1px 0 #E3B341, inset 0 0 0 3px #FFD35A !important; }
+
+/* where the prayer times are for: the town search */
+.citySheet h2 { padding-right: 48px; }
+.citySheet #cityQ { width: 100%; margin: 10px 0 8px; padding: 13px 16px; font: 800 16px var(--ui, Nunito), sans-serif; border-radius: 16px; border: 0;
+  background: rgba(120,120,128,.12); outline: none; -webkit-appearance: none; appearance: none; }
+.citySheet #cityQ:focus { box-shadow: 0 0 0 3px rgba(10,132,255,.35); background: #fff; }
+.citySheet .cityList { margin-top: 10px; max-height: min(46vh, 360px); overflow: auto; border-radius: 18px; background: rgba(120,120,128,.07); padding: 4px; }
+.citySheet .cityRow { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; border-radius: 14px; background: transparent; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.citySheet .cityRow:active, .citySheet .cityRow:hover { background: rgba(10,132,255,.1); }
+.citySheet .cityRow .cf { font-size: 22px; line-height: 1; }
+.citySheet .cityRow b { font-size: 15.5px; font-weight: 900; }
+.citySheet .cityRow small { margin-left: auto; font-size: 12px; font-weight: 800; color: #6B7280; }
+.citySheet .cityHint { padding: 14px; text-align: center; font-weight: 800; color: #6B7280; font-size: 13.5px; }
+.citySheet .cityCredit { font-size: 11px !important; margin-top: 8px; text-align: center; opacity: .7; }
+
+/* the letter quiz: the answer said right in the card */
+.qfb { margin-top: 10px; text-align: center; font: 900 16px var(--ui, Nunito), sans-serif; padding: 8px 12px; border-radius: 14px; }
+.qfb.ok { background: #E3F8E9; color: #137A3A; }
+.qfb.no { background: #FFF1E0; color: #B25B00; }
+
+/* a new good deed: a longer chip (tap it for the hadith card) instead of a card in the middle of play */
+.amalChip.new { animation-duration: 3.4s !important; white-space: normal; max-width: min(92vw, 520px); text-align: center; line-height: 1.3; }
+
+/* ---------- the opening page: blocky Baby Mo walking in, with a gentle bounce ---------- */
+#start .logo.mo { width: auto; height: 150px; margin: -6px auto 0; filter: drop-shadow(0 12px 14px rgba(30, 60, 110, .28)); animation: moHop 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes moHop { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
+@media (max-height: 500px) { #start .logo.mo { height: 64px; width: auto; } }
+@media (prefers-reduced-motion: reduce) { #start .logo.mo { animation: none; } }
+
+/* ---------- prayer pause: the game waits while the child prays ---------- */
+.prayHold { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding-top: 4px; }
+.prayHold .phTag { background: linear-gradient(120deg, #16B46A, #0A9C8C); color: #fff; font-weight: 900; font-size: 15px; padding: 6px 16px; border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 6px 14px -8px rgba(10, 143, 160, .6); }
+.prayHold .phMo { height: 150px; width: auto; margin: 2px 0 -4px; filter: drop-shadow(0 10px 12px rgba(30, 60, 110, .25)); transition: transform .4s; }
+.prayHold .phMo.done { animation: phPop .6s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes phPop { 0% { transform: scale(.85); } 100% { transform: scale(1); } }
+.prayHold .phAr { font-family: var(--ar); font-size: 34px; line-height: 1.5; color: #0B8A4A; }
+.prayHold h2 { margin: 0; font-size: 24px; color: #C26A00; line-height: 1.15; }
+.prayHold .phTxt { margin: 4px 0 0; font-size: 16px; line-height: 1.45; color: #4A3A2A; max-width: 34ch; }
+.prayHold .phWait { margin: 6px 0 4px; font-weight: 900; color: #0B8A4A; font-variant-numeric: tabular-nums; min-height: 1.3em; }
+.prayHold .btn[disabled] { filter: grayscale(.55) opacity(.6); pointer-events: none; }
+.prayHold .btn[disabled]::after { display: none; }
+@media (max-height: 520px) { .prayHold .phMo { height: 84px; } .prayHold .phAr { font-size: 26px; } .prayHold h2 { font-size: 20px; } .prayHold .phTxt { font-size: 14px; } }
+
+/* the prayer scene shows through: no blur over the masjid, the card sits low, the game buttons step aside */
+.veil.prayVeil { place-items: end center !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  background: linear-gradient(180deg, rgba(5, 15, 30, 0) 30%, rgba(5, 15, 30, .35) 100%) !important; }
+.veil.prayVeil > .panel { margin-bottom: max(14px, env(safe-area-inset-bottom)); max-height: 66vh; }
+.veil.prayVeil > .panel::before { display: none; }
+.veil.prayVeil .prayHold { gap: 2px; }
+.veil.prayVeil .prayHold .phMo { height: 64px; margin: 0 0 -4px; }
+.veil.prayVeil .prayHold .phAr { font-size: 23px; line-height: 1.3; }
+.veil.prayVeil .prayHold h2 { font-size: 20px; }
+.veil.prayVeil .prayHold .phTag { font-size: 13.5px; padding: 4px 13px; }
+.veil.prayVeil > .panel { padding-top: 12px; padding-bottom: 12px; }
+.veil.prayVeil .prayHold .phTxt { font-size: 14px; line-height: 1.35; margin-top: 2px; }
+.veil.prayVeil .prayHold .phWait { margin: 4px 0 2px; }
+/* (display, not visibility: the item pictures in the bar set their own visibility and would still show) */
+html.prayScene #hud, html.prayScene #hotbarWrap, html.prayScene .moHost, html.prayScene #dzikir, html.prayScene .amalChip { display: none !important; }
+@media (max-height: 520px) { .veil.prayVeil { place-items: center end !important; } .veil.prayVeil > .panel { max-height: 92vh; width: min(380px, 50vw); margin: 0 12px 0 0; } }
+
+/* ---------- the top bar: every pill the same height, nothing squeezed ----------
+   Landscape: one row, all 46 px tall, the compass's label cut with "…" when long. Portrait: the five status pills on
+   the first row, and the compass gets a row of its own underneath (with the play-time sun on the right) instead of
+   being squeezed to a sliver behind the stars; Baby Mo's speech bubble starts below both rows. */
+#topbar { align-items: center; }
+#topbar > .pill, #topbar > .ibtn { height: 46px; box-sizing: border-box; flex: 0 0 auto; }
+#topbar > #compass { flex: 0 1 auto; min-width: 0; max-width: 300px; }
+#compassText { min-width: 0; }
+#compassText small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#coins { padding: 0 13px 0 10px; } #coins b { font-size: 15px; }
+#thirst { padding: 0 11px; }
+/* (Baby Mo leaning over his speech bubble stays below the top bar) */
+#bubble { top: calc(72px + var(--safe-t)); }
+@media (orientation: portrait) and (max-width: 600px) {
+  #topbar { flex-wrap: wrap; row-gap: 6px; }
+  #topbar > .pill, #topbar > .ibtn { height: 40px; }
+  #topbar > #compass { order: 10; max-width: calc(100% - 118px); height: 40px; }
+  #compass small { display: block; font-size: 10.5px; }
+  #compassText { line-height: 1.1; }
+  #coins { padding: 0 9px 0 7px; } #coins b { font-size: 13.5px; }
+  #thirst { padding: 0 7px; }
+  #clock { margin-left: auto; }
+  /* the play-time sun: under the clock, on the compass's row */
+  #playT { top: calc(100% + 6px); height: 40px; box-sizing: border-box; padding: 0 10px; }
+  #bubble { top: calc(102px + var(--safe-t)); }
+  #sideBtns, body.playOn #sideBtns { top: calc(104px + var(--safe-t)); }
+}
+
+/* ---------- "Hi!" over Baby Mo: a small speech bubble pointing at him (not a big orange blob floating above) ---------- */
+#moHi { transform: translate(-50%, calc(-100% - 4px)) !important; border: 1.5px solid rgba(10, 143, 160, .4) !important; border-radius: 999px !important;
+  background: linear-gradient(180deg, #FFFFFF, #EAF8F5) !important; color: #0B6E7A !important; font: 900 16px/1 Nunito, system-ui, sans-serif !important;
+  padding: 0 14px 0 10px !important; min-height: 40px !important; display: inline-flex; align-items: center; gap: 5px;
+  box-shadow: 0 3px 0 rgba(10, 120, 140, .25), 0 8px 18px -8px rgba(10, 60, 80, .5) !important;
+  animation: hiBob2 1.6s ease-in-out infinite !important; transition: opacity .25s; }
+#moHi span { font-size: 16px !important; }
+#moHi::after { bottom: -9px !important; border-width: 8px 7px 0 !important; border-style: solid !important; border-color: #EAF8F5 transparent transparent !important;
+  filter: drop-shadow(0 1.5px 0 rgba(10, 143, 160, .4)); }
+#moHi:active { transform: translate(-50%, calc(-100% - 2px)) scale(.96) !important; }
+#moHi.covered { opacity: 0; pointer-events: none !important; }
+@keyframes hiBob2 { 0%, 100% { transform: translate(-50%, calc(-100% - 4px)); } 50% { transform: translate(-50%, calc(-100% - 8px)); } }
+@media (prefers-reduced-motion: reduce) { #moHi { animation: none !important; } }
+
+/* ---------- the Spider Warrior's 🕸️ web button, to the left of the mine button ---------- */
+#bWeb { width: 58px; height: 58px; right: 160px; bottom: 104px; font-size: 26px; }
+#bWeb span { font-size: 9.5px !important; }
+@media (orientation: portrait) and (max-width: 600px) { #bWeb { right: 150px; bottom: 110px; width: 54px; height: 54px; } }

@@ -1,0 +1,3544 @@
+# Changelog
+
+All notable changes to Baby Mo Island Craft. V2 work follows the plan in
+[`docs/V2_PLAN.md`](docs/V2_PLAN.md). Each entry says what was tested and how.
+
+## V2 — The Living Island (in progress)
+
+### The guide arrow is off by default
+
+- The island looks nicer without it: the glass arrow to the mission now shows
+  only when it's turned on in ⚙️ Settings → "Guide arrow to the mission". The
+  compass at the top still points the way. (A game that turned it on keeps it.)
+- Tested: the smoke step checks it's off at first, then on and off from
+  Settings; the tutorial arrow check turns it on for itself.
+
+### Kota Langit (Sky City): swing on the web from tower to tower
+
+- Ibra's idea: a city to swing through with the web. Kota Langit stands on open
+  land a good walk from home: 12 tall towers (22 to 46 blocks) in white marble,
+  sandstone, brick, stone and bright wool, with glass windows, glowing lantern
+  bands, and roofs with a fruit tree, glowing mushrooms or a water tower. Cobble
+  streets with lamps, a marble square with a bench, flowers and a chest, and a
+  small masjid with a gold dome and a minaret (to look at; prayer gatherings stay
+  at the village masjid and the Grand Masjid).
+- **12 golden rings** hang between the towers, round the city. Fly through one
+  (web rope, cape, or a jump off a roof) and it turns green with a ⭐ and a chime;
+  all 12 gives a bonus, fireworks and "Allahu Akbar!", then they light up again.
+- On the 🗺️ map's quick travel. Part of Full BabyMo Craft: the family code
+  already opens it on the website. Without Full, the city is there but a ring
+  shows the unlock card.
+- Tested: the smoke run checks the city and its 12 rings, the map entry, a ring
+  giving a star with Full, and staying gold without it; screenshots of the
+  streets and the view from above.
+
+### The web pulls in fruit and mushrooms too
+
+- Ibra's idea: in the Spider Warrior suit, a 🕸️ web aimed at fruit on a tree
+  (mango, banana, orange, coconut, papaya, rambutan, apple), a watermelon or a
+  glowing mushroom snaps it off and pulls it into the bag, up to 24 steps away.
+  It's picked just as by hand: the fruit grows back on the tree, and its English
+  word card shows ("Mango!"). The web helps aim (within a block of where you
+  look), but never through a wall.
+- Only those, beetles, and the rope: the web never pulls blocks, animals or
+  villagers. A trunk or a wall still gives the rope swing.
+- Tested: a mango pulled from the orchard (into the bag, with its word card);
+  the smoke step now also webs a glowing mushroom on its practice ground.
+
+### Pendekar Laba-laba (Spider Warrior): climb walls, swing on a web, catch beetles
+
+Ibra loved the cape, so here's a new hero suit with spider powers — our own hero,
+not anyone else's (teal and orange, sticky orange gloves, a small spider on the
+chest; Baby Ais wears it with a teal hijab). Open from the start in 👕 Outfits →
+Suit, next to the 10 suits for the 28 letters.
+
+- **Climb any wall:** in the suit, walking into any wall, rock or building climbs
+  it, the way trees already could. ⬆️ Jump lets go and pushes off.
+- **Web rope (🕸️ button, G on a keyboard):** shoots a web where you look, up to
+  24 steps. It sticks to a block or a tree and swings you over in an arc; jump
+  lets go early and keeps the swing's speed. A white strand shows from your hand.
+- **Catch naughty beetles:** a web at a beetle wraps it up at once (no taps
+  needed) and it flies home with its gift, as with the toy sword. The web helps
+  aim at a beetle near where you look, but not through a wall.
+- Not while riding, racing or in a game. Baby Mo explains it the first time.
+  If you're moved somewhere else with the rope still out (a trip on the map),
+  it lets go instead of pulling you back.
+- Tests: a unit test (our own name and look, open from the start, apart from the
+  10 suits); a smoke step: the button comes with the suit, a wall is climbed,
+  the rope swings you over and lets go, a beetle is caught with one web, and
+  taking the suit off removes the powers. Screenshots of the suit checked.
+
+### Baby Mo's voice: 300 new clips from Cloud Shell
+
+- Merged `voice-clips-20261126-0805`: 300 clips in the Baby Mo app's voice
+  (Chirp3-HD Algenib) — the Arabic the game still read with the device voice,
+  and Baby Mo's guidance in Indonesian and English (the tutorial, prayer times,
+  instructions). Every clip in the list is there.
+- Left without a clip: 4 lines (the syllable "si" and "Look!", which came out
+  silent, and the two new prayer-pause lines "Alhamdulillah, may Allah accept
+  your prayer…"). They play with the device voice until the next Cloud Shell run
+  or a recording on the recording page.
+- The recording page's list is rebuilt for the new clips (a line with a clip is
+  listed to re-record; the 4 above are still listed as new). The tutorial's
+  sentences keep their "Tutorial · record first" group once they have a clip,
+  so they stay first on the page; the unit test checks it that way.
+- Tested: every clip in the list exists; unit tests and the iPhone smoke run
+  (Baby Mo's recorded voice step included).
+
+### Cloud Shell voice script: a silent clip no longer stops the upload
+
+- `tools/voice/cloudshell.sh` stopped right after making the clips when any of
+  them came out silent (`gen.py` reports that as an error), so the good clips
+  were never committed or pushed. It now carries on: the good clips are pushed
+  to a new branch and the silent ones stay on the recording page to record.
+
+### "Hi!" over Baby Mo is a small speech bubble
+
+- The "say hi" button over Baby Mo was a big orange blob floating well above
+  him, which on a phone landed on his speech bubble and the tutorial card. It
+  is now a small white speech bubble with teal text and a tail pointing down at
+  his name tag, like the other buttons, bobbing gently. While it would sit on
+  his speech bubble, the tutorial card or the top bar, it fades out until
+  there's room again.
+- Tested: screenshots on an iPhone (with and without the cards); unit tests
+  and the desktop and iPhone smoke runs.
+
+### A tidier top bar
+
+- Landscape: every pill in the top bar is the same height on one line, and
+  the compass's label ends with "…" when it's long instead of being cut off
+  mid-word. Baby Mo leaning over his speech bubble no longer covers the stars.
+- Portrait: the compass was squeezed to a sliver behind the stars; it now has
+  its own row under the status pills, with the play-time sun on the right of
+  that row, and the speech bubble and side buttons start below both rows.
+- Tested: screenshots on an iPhone in portrait and landscape; unit tests and
+  the desktop and iPhone smoke runs.
+
+### The smaller buttons look like buttons
+
+- The secondary buttons (Hero & mode, New world, Use code, Save to a file…)
+  were white pills on a white card and didn't look tappable. They now have a
+  soft teal fill, a teal outline and a raised edge underneath that presses
+  down when tapped, with teal text and icons, and stay on one line.
+- "Change hero / mode" is now "Hero & mode" ("Tokoh & mode"), so it fits on
+  one line next to "New world".
+- Tested: screenshots of the start screen (with a saved world) and the
+  parents panel on an iPhone; unit tests and the desktop and iPhone smoke runs.
+
+### App icon: just Baby Mo
+
+- The icon is now only blocky Baby Mo, waving as he walks, on the teal sky,
+  with no "Mo Craft" text (the app's name shows under the icon anyway). He fills
+  the icon and stays inside the circle Android crops to. Web icons, the iOS icon
+  and the favicon, all from `node tools/icon/make-icon.mjs`.
+- Tested: the 512, 180 and 60 px icons and the round Android crop checked by eye.
+- The App Store screenshots carry the new icon above each caption (all 60,
+  EN/ID, iPhone, iPhone Duo and iPad), with the zips and thumbnails redone.
+
+### App Store kit: the prayer pause; the masjid scene framed for every screen
+
+- Screenshot 04 is now the prayer pause ("Stops for the real prayer times"):
+  Baby Mo's card over the Grand Masjid, everyone praying in rows. The other
+  shots are re-taken with the new buttons, glass windows and race circuits.
+- The description (EN/ID) has a line on the prayer pause, and the promo text
+  leads with it. The in-app purchase review screenshot shows the new card.
+- Behind the prayer card the item bar is hidden for real (its pictures set
+  their own visibility, so the bar is now taken out of the layout), and on a
+  wide screen the camera frames the whole village row beside the card and
+  looks across the Grand Masjid instead of down at its carpet.
+
+### Racing: real circuits, one thing at a time
+
+- **Real circuit shapes instead of ovals.** Each track is now built from
+  straights and bends of a set radius (`src/game/track.ts`), solved so the lap
+  closes exactly: the big circuit has a sweeper into a hairpin, a chicane under
+  the rainbow arches, a kink into a long right-hander and a kink before the
+  line; the Snow track a left flick into an icy hairpin, esses and a two-part
+  final bend; the Desert track long straights, a hairpin and kinks. Every track
+  stays on the same ground as before (nothing else in a world moves), its
+  parts never come closer than 20 m, and no bend is tighter than 9 m.
+- **Fewer laps:** 3 on the big circuit and the Desert, 4 on the Snow track
+  (was 4 / 5 / 4), about 45 seconds a race.
+- **Letters well apart:** each of the race's four letters once a lap (was about
+  11 letters a lap, one every 1.3 s), 30–60 m apart, near the middle of the
+  track, never on a box row, the ramp, ice or sand.
+- **Less at once:** 2 coin groups a lap (was 6) and 2 box rows (was 3), placed
+  as far as possible from the letters and each other; the sum is said shortly
+  ("3 plus 2 makes 5!") and not at all when a letter was just read out. One
+  message in the middle at a time (a letter wins over a sum, a sum over a
+  cheer). The start says one line during the countdown and today's letters
+  once you're driving (the Arabic letters no longer flash over the countdown).
+  The top bar shows just the lap, your place and the coins (the time and the
+  letters read are on the finish card).
+- Scenery follows the new shapes: arches and the lantern tunnel stand where
+  the track goes, and the infield decorations (and the Desert's pyramid) only
+  go where the track leaves room.
+- Tested: unit tests (285; new: every track closes, stays on its ground and off
+  the grandstand, bends of different sizes and some left-handers, one of each
+  letter a lap, things spread round the lap, nothing built on the road, the
+  pyramid is there), desktop smoke (all race steps; the treasure-map step fails
+  the same way before this change), and pictures of the three tracks and a race.
+### Behind the prayer card: everyone praying at the masjid
+
+- While the prayer card waits, the game behind it is no longer where you were
+  playing: the camera goes **inside a masjid**, where Baby Mo, the villagers and
+  you pray together in rows, through the real movements of the prayer
+  (takbir, ruku, sujud, sitting, salam), over and over while the card waits.
+- It takes turns: sometimes the **village masjid** (Dad Ibrahim leading, Bu
+  Aminah, Kakek Yusuf, you and Baby Mo in one row, seen from a back corner so
+  everyone fits on a phone), sometimes the **Grand Masjid** with its full
+  congregation. Friday's Dhuhr (Jumu'ah) is always at the Grand Masjid.
+- The card sits lower and is more compact, with no blur over the masjid, and
+  the game buttons and the item bar step aside.
+- When the card closes you're back exactly where you were (and a save made
+  meanwhile keeps that place, not the masjid).
+- Tests: the prayer-pause smoke step also checks the scene (inside a masjid,
+  Baby Mo in the row) and that you're back in your place afterwards.
+  Screenshots of both masjids on an iPhone checked by eye.
+- CI: the browser smoke test (desktop, phone, tablet, Android) now takes about
+  21 minutes, past its 20-minute limit while every step was passing; the limit
+  is 32 minutes (the whole job 50).
+
+### The game pauses for prayer (as in the Baby Mo app's games)
+
+- When a real prayer time comes in the player's town, the game now **pauses on
+  a card**: "It is time for Maghrib", حَيَّ عَلَى الصَّلَاةِ, and Baby Mo on his
+  prayer mat (standing, then raising his hands for the takbir). "I have prayed
+  Maghrib" stays closed for 5½ minutes, with a countdown, so there is time to
+  make wudu and pray. Then Baby Mo sits for his du'a, the button opens, and a
+  tap lets play go on: "Alhamdulillah, may Allah accept your prayer".
+- While the card is open the game **and the play timer** stop, so praying
+  doesn't use up play time: play goes on with the same minutes left.
+- The card can't be skipped: if it is closed any other way, or the page is
+  reloaded, it comes back with the same countdown until the child has prayed.
+- In Ramadan, Maghrib's card says to break the fast first (a drink and some
+  dates), then pray. The villagers still gather at the masjid as before, and
+  the child can join them after the card, without a second stop.
+- Parents can turn it off ("Pause play at prayer times", next to "Prayer times
+  on the island"). The learning report counts the prayers prayed this way.
+- Tests: a new smoke step brings a real Maghrib, checks the card, the paused
+  game and the stopped play timer, closes it and sees it come back, then opens
+  the button and checks play goes on with the same time left. The other smoke
+  steps turn the pause off, so a real prayer time during a run doesn't get in
+  their way. Screenshots of the card in English and Indonesian on an iPhone,
+  before and after the wait.
+
+### Blocky Baby Mo on the opening page and the app icon
+
+- The opening page shows the new blocky **Baby Mo** (green outfit, waving as
+  he walks in) with a gentle bounce; it stays still with reduced motion. A
+  player with a saved world still sees their own face there, as before.
+- The start page's **Adam** and **Baby Ais** faces are the new blocky
+  renders too (head crops from `art/reference`, remade by
+  `python3 tools/icon/make-faces.py`).
+- The **app icon** is the new Baby Mo waving over "Mo Craft" on the same teal
+  sky: web icons, the maskable Android icon (kept inside the safe circle), the
+  iOS icon and the favicon. `node tools/icon/make-icon.mjs` remakes them all.
+- The family renders are kept in `art/reference/` for future use (Baby Mo, Baby
+  Ais, Ibrahim, Adam's front/side/back sheet, and Ibrahim, Mo and Ais
+  together), cleaned of the specks left by the background removal.
+- Tested: screenshots of the opening page on an iPhone in portrait and
+  landscape; the icons checked by eye.
+
+### Buttons like the Baby Mo app; glass pop-up windows
+
+- **Buttons** now match the Baby Mo app's own "Main lagi / Play again" button
+  (the same capsule as its puzzle, hijaiyah, memory-match and kata-baik games).
+  The main button is a green, teal and blue capsule with a glossy top half and
+  a slow shine sweeping across now and then; gold buttons share the same shape
+  in gold; the smaller choices are white pills with no shine. A press springs
+  in a little. The shine stops when the device asks for reduced motion.
+- **Pop-up windows** are frosted glass: the game shows softly blurred through
+  the sheet, with a light rim and sheen, and the cards inside are glass too.
+  With "Reduce transparency" on, they are solid.
+- The parents panel's Done button is centred and full size.
+- A new good deed's chip shows right away: an ordinary chip on screen makes
+  way for it (before, it could wait behind it for two seconds).
+- A device set to UTC (or another `Etc/` zone) no longer counts as a known
+  place: the game asks for the town, as it does when the zone is unknown.
+- Tests: `guessCity('UTC')` and `Etc/GMT+3` unit checks. The smoke real-clock
+  step waits for Jakarta's hour the same way it waits for Makassar's, closing
+  any pop-up that would pause the game. Screenshots of the start screen, the
+  letter card and the parents panel on an iPhone checked by eye; 298 unit
+  tests and the desktop and iPhone smoke runs pass.
+
+### Cloud Shell makes Baby Mo's guidance too (Indonesian & English)
+
+- `bash tools/voice/cloudshell.sh` now also makes **Baby Mo's guidance**: the
+  ~260 sentences of the recording page's Mo · ID / Mo · EN tabs. It uses the
+  same voice as the Baby Mo app in each language (`id-ID-Chirp3-HD-Algenib`,
+  `en-US-Chirp3-HD-Algenib`), next to the Arabic (`ar-XA-Chirp3-HD-Algenib`).
+  This run has 302 lines: the 17 near-silent syllables, the long-vowel / tanwin
+  forms, "Tawakkaltu ‘alallah" and Mo's 261 sentences (about 10 minutes).
+- One list of Mo's lines (`tools/voice/molines.mjs`) feeds both the recording
+  page and the generator, so they always agree. Generated lines show on the
+  recording page under "Mo's guidance" with their real wording, and a recording
+  made there still replaces them.
+- Tested: the generator's dry run lists the 302 lines, and each line picks the
+  right voice for its language; vitest voice tests pass.
+
+### Buttons in the latest iOS style (Liquid Glass)
+
+- Buttons are now iOS "Liquid Glass" capsules, replacing the chunky candy
+  shadow:
+  - **Main** (blue): tinted glass with a soft specular sheen along the top and a
+    gentle coloured glow.
+  - **Gold**: warm tinted glass.
+  - **Secondary**: clear frosted glass with blue text (a light grey glass inside
+    sheets).
+  - **Pressing** shrinks the button a little with a springy bounce and brightens
+    it, as on iOS.
+- Sizes stay big for small fingers (52 px tall, 42 px for small ones), sized to
+  their label. The letter tile, vowel cards and quiz tiles keep their playful 3D
+  look.
+- Checked by screenshot on iPad: start screen, letter card, letter quiz, unlock
+  card, parents panel.
+
+### Baby Mo's guidance on the recording page: record it in your own voice
+
+- **A new part of the recording page (`rekam/`): Mo's guidance.** The page's
+  builder (`tools/voice/build-rekam-data.mjs`) now scans the game for every line
+  Baby Mo says with fixed wording: the tutorial steps (touch and keyboard), the
+  prayer-time lines, the game instructions, bedtime, flying and so on. It lists
+  each sentence that has no recording yet in the Mo · ID and Mo · EN tabs. The
+  tutorial comes first ("Tutorial · record first", 18 sentences), then about 240
+  more. New lines join the list automatically whenever the page data is rebuilt.
+- **Mo speaks a line from recordings, sentence by sentence.** When every
+  sentence of a line has a recording, Mo plays them one after another in that
+  voice. Otherwise the device reads the line, as before. So a family can record
+  bit by bit, and each finished line starts using their voice on its own.
+- The workflow is unchanged: record on the page, Download ZIP,
+  `bash tools/voice/import-recordings.sh <zip>`, push (or send the zip).
+- Tested: vitest (the sentence split; the tutorial listed first in both
+  languages; every new row keyed exactly as the game looks it up; only lines
+  without a clip listed), and the recording page opened in a browser: the Mo ·
+  ID tab starts with "Geser joystick untuk berjalan ke Baby Mo", with no page
+  errors.
+
+### Audit batch 3: learning loops, calmer good deeds, a leaner download, battery
+
+- **The letter quiz asks missed letters more often.** Each miss makes that
+  letter 3× more likely (up to 5 misses), and each right answer takes one miss
+  away (`stats.quizMiss`).
+- **A first good deed is a chip, not a card mid-play.** It shows "✨ 🌱 New good
+  deed: Planting trees · 📖 see your Amal Book" for a little longer, and a tap
+  opens the hadith card. Before, a full hadith card opened in the middle of
+  play.
+- **Dad's exam names what to practise.** A failed exam lists the missed sounds
+  in Arabic with their reading (up to 3), with a "🔊 Hear them" button.
+- **English word cards in English mode** no longer show the Indonesian meaning.
+- **Offline cache**:
+  - Each fresh page removes old game builds (`index-*` / `three-*`) from the
+    cache, so it doesn't grow with every update.
+  - Audio and video range requests are left to the browser (cached whole files
+    can fail to play on iOS), and only full answers are cached.
+  - Emoji pictures are fetched fresh, then kept for offline. The cache is now
+    `babymo-craft-v3`.
+- **Smaller downloads for updates**: three.js is its own file (533 KB, 136 KB
+  gzip) that rarely changes, so after an update only the game file is fetched
+  again (889 KB, 323 KB gzip; it was one 1.43 MB file).
+- **Animals beyond the visible world rest and aren't drawn** (view distance + 1
+  chunk), to save battery.
+- Tested: tsc, vitest 295/295, and the desktop smoke run with a new step: a
+  first good deed shows the chip and no pop-up; a letter missed 5 times was
+  asked 48 of 60 times; the 10 animals beyond the view were hidden.
+
+### App Store kit: screenshots of the latest version
+
+- All 60 screenshots (iPhone 6.9″, iPhone Duo, iPad 13″ × English and
+  Indonesian) taken again from the game as it is now: the candy buttons and
+  frosted sheets, the play-time sun and the real next prayer in the clock pill,
+  the letter balloons in the race, and a new **02 letters** picture showing the
+  celebrating "New letter!" card with the coloured vowel cards and the pointing
+  finger. Thumbnails and both download zips were rebuilt.
+- The screenshot setup now sets the place to Jakarta (with its time zone), so
+  the clock pill shows Jakarta's real prayer time (e.g. "Maghrib 17:55") rather
+  than the screenshot machine's UTC.
+
+### Audit batch 2: the free part's last letter, shorter lines, battery, archery memory
+
+- **After the 7 free letters**, the golden compass no longer leads to locked
+  shrines. It shows the nearest free place not visited yet. The "10 letters" and
+  "28 letters" quests are left out of the quest list in the free part. Baby Mo
+  says once: "You found the first 7 letters! 🎉 Let's practise them in the letter
+  quiz" (with a quiz button), and that the rest are in Full BabyMo Craft. Dad
+  talks about the first 7 letters (not 28) in the free part, and offers the
+  quiz from the first letter (it used to start at 3, though he asked from 1).
+- **Shorter lines for a 7-year-old**, one instruction each, at most about 12–15
+  words: basketball, penalties, the goalkeeper, the stadium aim, archery levels
+  and wind, tennis drill, horse jumps, the fishing pond, flying, the masjid
+  "villagers are waiting", the 5-minute bedtime, the hero suits.
+- **The "what's next" line after the tutorial** waits until the pop-ups from
+  the last step are closed (it used to be hidden behind them and not spoken),
+  then today's gift. Skipping the tutorial now gives the same hand-off.
+- **Battery and heat**: the game draws at most ~60 frames a second (a 120 Hz
+  iPad drew 120), and about 12 a second while paused behind a pop-up.
+- **Archery** frees each arrow and target when it's removed. Before, every shot
+  and round left their geometry, materials and ring picture in memory.
+- Tested: tsc, vitest 295/295, and the desktop smoke run with a new step (free
+  part with 7 letters: the compass points to a free place, the 🎣 pond, and no
+  locked-letter quests).
+
+### Real prayer times, a playful game day (audit fixes)
+
+The real-clock change made the whole island follow the town's clock. The audit
+found that this left evening players in the dark, froze the day counter, blocked
+quests, and broke prayer times far north. Now the two are split:
+- **The island's day runs at its own speed again** (24 minutes, as before), so
+  sun, weather, races, villagers and sleeping in a bed all follow the game day.
+  A grown-up can still choose "Real clock of your town".
+- **Prayer moments come only at the real prayer times of the town**
+  (`realPrayerTick`, every 5 s), never from the game clock. When a prayer time
+  arrives, the bedug sounds and the villagers walk to the masjid. The island's
+  sky moves to match the prayer (dawn for Fajr, sunset for Maghrib…) and its
+  clock waits while the villagers pray, up to 12 minutes, longer while you're on
+  your way. A prayer that began up to 20 minutes before the game was opened (or
+  during a race or game) still comes.
+- **The clock pill shows the real next prayer**, e.g. "Asr in 25 min", or its
+  time when it's more than 90 minutes away.
+- **Iftar and suhoor only in real Ramadan**: the iftar picnic, the iftar du'a and
+  "Happy iftar" on eating, the suhoor reminder (an hour before real Fajr), and
+  the takjil/iftar/suhoor quests, which no longer block the quest list.
+- **Unknown time zones**: a device in a zone the quick list doesn't know (New
+  York, Berlin…) keeps its own clock and gets the biggest town in its zone from
+  the world list (a toast names it), instead of Jakarta.
+- **Far north in summer**: Isha after midnight no longer throws away the real
+  schedule, so the sky keeps the town's real sunset.
+- **Prayer times are for the town's own date**, not the device's.
+- **Real-clock mode: a new day with each new date in the town**, also between
+  sessions. Before, a day only passed if midnight came during play.
+- **Letter quiz**: "Correct!" / "That's Ba. Listen again 👂" now appear inside
+  the quiz card (they used to wait until it closed), a miss says which letter
+  was tapped and replays the sound, and wrong-answer options are letters already
+  found. Fixed a crash when the quiz reopened with no letters found.
+- **Parents panel** no longer says "no purchases / no timers": "No ads and no
+  chat, with one optional purchase… only the daily play limit you choose".
+- The prayer settings' wording explains this. The "Prayer reminders" toggle is
+  now "Prayer times on the island (real times)".
+- Tested: tsc, vitest 295/295 (new: an unknown zone keeps the device's clock and
+  is marked to find a town), and a new smoke step: the game clock passing Asr
+  starts nothing; a real Maghrib starts Maghrib with the sky at sunset and the
+  clock waiting; outside Ramadan there's no picnic, no iftar line and no
+  Ramadan quests; the pill shows "… in 13 min". Prayer smoke and QA steps now
+  start prayers through the real times.
+
+### Good words from Nur Connect: Barakallahu fik, Taqabbalallahu minna wa minkum, Tawakkaltu ‘alallah, praise that grows
+
+From the Islamic wording of Nur Connect (roisa/app-ayah, the Baby Mo puzzle):
+- **Three new good words**, each shown in the pill in Arabic with a reading and
+  meaning, and said by Baby Mo:
+  - **Barakallahu fik** ("May Allah bless you") after a kind deed: sharing,
+    planting, caring for animals, clearing the path, giving water or charity.
+  - **Taqabbalallahu minna wa minkum** after praying together.
+  - **Tawakkaltu ‘alallah** ("I put my trust in Allah") as Dad's Iqro exam
+    begins. It's shown without sound, so his questions aren't talked over.
+- **Praise that grows with a streak**, as in Nur Connect: in the letter quiz, 3
+  right in a row bring "Masya Allah", 5 "Subhanallah", 7 "Barakallahu fik", 9
+  "Allahu Akbar" (then every 3).
+- **Full harakat** on every good word (بِسْمِ اللهِ, الْحَمْدُ لِلَّهِ …), as in the
+  Baby Mo apps. Baby Mo now says them in his recorded Arabic voice (the app's
+  clips) instead of the device reading the Latin. He never talks over a letter, a
+  du'a or a game's own read-out (like the archery sums): then the word is only
+  shown.
+- "Tawakkaltu ‘alallah" has no clip yet: it's listed in
+  `tools/voice/missing.tsv` for the next Cloud Shell run.
+- App Store kit: the description's prayer lines now mention real prayer times
+  for your own town and the fuller list of good words, ready for the next
+  version.
+- Tested: vitest (the streak words 3/5/7/9/12/15; every word has harakat; the
+  new moments) and a smoke step: three right answers in a row show "Masya Allah"
+  with مَا شَاءَ, and planting shows "Barakallahu fik" with بَارَكَ.
+
+### Real prayer times: the island follows the real clock of your town, anywhere in the world
+
+- **The real clock is now the default.** The sun, the sky and the prayer times
+  (the bedug, the villagers walking to the masjid, praying together) follow the
+  real local time of the chosen city, so the island's Dhuhr is the real Dhuhr.
+  Older saves switch over once. A grown-up can still choose a fast 12/24/48-minute
+  game day in Settings ("Real clock of your city" is the first choice).
+- **Each city keeps its own clock.** Cities now carry their time zone, including
+  summer time. Before, a device set to Jakarta time showed Makassar's prayers
+  on Jakarta's clock. Pontianak, Manado, Ambon and Jayapura were added, so all
+  three Indonesian time zones are covered. "Use my location" uses the device's
+  time zone.
+- **A better first guess of the city.** With nothing chosen, the city comes from
+  the device's time zone (e.g. Asia/Makassar → Makassar), with no location
+  permission needed; it was always Jakarta before.
+- **Opening the game just after a prayer time** (up to 20 minutes) still starts
+  that prayer moment. Coming back hours later doesn't start one that's long gone.
+  On the real clock the island's own prayer moment is the reminder, so the
+  separate real-time reminder pop-up doesn't fire as well.
+- **Going to bed in the game at real night is real bedtime.** After the du'a,
+  Baby Mo says goodnight. With a play limit set, it ends the day like "Sleep now"
+  (with its on-time reward). No skipping to the morning: the island stays on the
+  real clock.
+- **Any town in the world, as in the Baby Mo app.** The prayer settings have a
+  town search instead of a short city list. It uses the app's own offline list:
+  27,139 towns from GeoNames, CC BY 4.0, credited in the sheet. It loads only when
+  the search opens, finds names the way families type them ("mekah" → Makkah,
+  "tangsel" → South Tangerang), and each town brings its country and time zone.
+  "Use my location" (behind the grown-up check) names the spot after the nearest
+  town and learns its country.
+- **The calculation method follows the country, as in the app.** New option
+  "Automatic: <method>", now the default: Kemenag for Indonesia, JAKIM for
+  Malaysia, MUIS for Singapore, Umm al-Qura for Saudi Arabia (Isha 2 h after
+  Maghrib in Ramadan), Diyanet for Turkey, Egypt, Karachi, ISNA and so on, with
+  Muslim World League elsewhere. Hanafi Asr in Pakistan, India, Bangladesh,
+  Afghanistan and Central Asia. Far north and south use the app's "angle based"
+  rule, and on days without a sunset or sunrise, the nearest normal day's times.
+  Twenty methods can be chosen by hand. Old saves on the old default (Kemenag)
+  switch to Automatic, which is still Kemenag in Indonesia.
+- **Checked against the app's engine.** In Kuala Lumpur, Makkah, Istanbul, London,
+  Karachi, New York, Cairo and Dubai the times match the app to within a minute.
+  In Indonesia the game keeps Kemenag's ihtiyat (+2 min, Dhuhr +3), as in the
+  schedules Kemenag publishes; the app doesn't add these.
+- Tested: tsc, vitest 292/292 (new: the method by country; Hanafi Asr; the town
+  list loads with a time zone for every town; searching "bekasi", "mekah",
+  "tangsel", "makassar", "london"; naming a GPS spot; Tromsø at midsummer). New
+  smoke step: searching Bekasi and Makkah in the sheet sets the town, time zone
+  and country, and Makkah's Isha comes 90 minutes after Maghrib. Earlier
+  checks: vitest 286/286 (every city's time zone; Jakarta / Makassar /
+  Denpasar / Jayapura hours; London summer time; the fall-back to longitude;
+  guessing the city from the device's time zone; Makassar's Dhuhr on its own
+  clock), and a new smoke step: the island's hour matches the city's real time,
+  its Dhuhr matches the computed real Dhuhr, and Makassar runs an hour ahead of
+  Jakarta. The other smoke steps set the hour themselves, so they now use a game
+  day.
+
+### A celebrating letter card, tappable vowel cards, clearer letter sounds, kid-friendly buttons and sheets
+
+- **Finding a letter is a celebration.** The letter pops out on a gold 3D tile with
+  a wobble, then gently floats, with light rays turning and sparkles twinkling
+  behind it. A gold "NEW LETTER!" ribbon has a progress bar (n/28), and confetti
+  falls. Tapping the big letter says its name.
+- **Vowel cards look tappable.** They're chunky, pressable cards (orange a, blue
+  i, green u) with a 🔊 badge. A bobbing 👆 finger points at the next card not
+  heard yet, a tapped card bounces and its letter wiggles. The long-vowel and
+  tanwin cards match.
+- **Letter sounds fixed.** The letter and syllable clips from the Baby Mo app were
+  made by a text-to-speech voice one syllable at a time:
+  - Many started with up to a second of silence (Alif's "a" spoke only after
+    0.95 s), so taps felt late and quick taps overlapped. `tools/voice/fix-clips.mjs`
+    cuts that silence and evens the loudness: 150 clips (e.g. "a" is now 0.36 s
+    and starts at once).
+  - 17 were near-silent blips (تِ تُ دِ رِ نَ نِ هَ هِ كِ مِ …), so those buttons
+    played almost nothing. They're no longer played: the device reads them for
+    now. They're listed in `tools/voice/missing.tsv` (with the long-vowel and
+    tanwin forms), so the next `tools/voice/cloudshell.sh` run makes them, and a
+    recording on the rekam page always wins.
+  - A new layer, `voice-manifest.fix.json`, sits between the app's clips and
+    recordings.
+- **Buttons for small fingers.** Every button is a pressable 3D "candy" button:
+  rounded, at least 52 px tall, with a press-down shadow. Inside sheets, buttons
+  are sized to their label instead of stretched across the sheet (up to 340 px;
+  side-by-side buttons 132–260 px each). Quiz answer tiles press down too.
+- **iOS-style sheets.** Frosted-glass sheets that spring in, a softer blurred
+  backdrop, larger corners and a round glass close button.
+- Tested: tsc, vitest 281/281 (new: the fix layer's merge order; every trimmed
+  clip exists; broken clips never play and are listed to be made), and the
+  smoke tests with a new letter-card step (pop-in, three tappable cards, the
+  finger moving on after a tap, the trimmed clip playing). Screenshots checked
+  on iPad and phone: letter card, parents panel, book, quiz, unlock card,
+  discovery, water break, daily gift, start screen.
+
+### Play time you can see: a sun by the clock
+
+- With a daily play limit set, a **play-time sun** sits in the clock pill from the
+  start: the minutes left and a bar that slowly empties. The sun sinks as time
+  goes by: ☀️ while there's plenty left, 🌤️ around half, 🌇 when it's getting
+  late, and 🌙 in the last 10 minutes, when the evening, Baby Mo's yawns and
+  the "Bedtime in … · Sleep now" pill begin. The ending is unchanged: a sleepy
+  Mo and the goodnight card.
+- Baby Mo says it when a session starts ("Today we can play for 60 minutes ☀️
+  Watch the sun by the clock: when it turns into a moon 🌙, it's time to
+  rest"). New players hear it after the tutorial. A tap on the sun makes him say
+  how much time is left.
+- On narrow portrait phones the sun is its own little pill under the clock, and
+  the side buttons move down.
+- Tested: tsc, vitest 278/278, and a new smoke step (the sun at the start, the
+  moon near bedtime, Mo's line on a tap, hidden with no limit). Screenshots
+  checked on desktop, iPhone landscape, iPad and phone portrait.
+
+### Ibra's feedback: mud traps, flying capes, fish in the water
+
+- **Mud traps work.** Mud laid over a hole holds you for a moment, wobbles, then
+  gives way and you drop in. Mud joined to it over the same hole falls too, and
+  the mud goes back in the bag. The first time, Baby Mo explains it. (Mud resting
+  on ground is unchanged.)
+- **Capes fly.** The Hero Cape, the Star Cape and the hero suits that have a cape
+  let you fly in Adventure mode, not only in Creative: tap jump twice. While
+  flying, ⬆️ goes up and ⬇️ goes down, and touching the ground lands you.
+  Forward flight uses a hero pose (one fist out front), and the cape streams
+  behind. The wardrobe card and a toast name the power. Flying stops when the
+  cape comes off or a game starts.
+- **Land animals don't swim.** A sheep, cow or other animal following you now
+  waits on the shore instead of swimming after you, and only catches up onto dry
+  ground. An animal that ends up in the water climbs out to the nearest dry spot.
+- **Fish in the water.** Little schools of coloured fish circle in water near
+  you, dart away when you come close, and now and then one leaps out with a
+  splash. They also show in low-graphics mode (one small draw call). Water is a
+  little clearer so they can be seen.
+- Tested: tsc, vitest 278/278, and the Playwright smoke on desktop, iPhone,
+  iPad and Android, with three new steps: the mud trap, cape flying, and water
+  life (fish appear; a sheep put in the water climbs out). Also checked by
+  screenshot.
+
+### New home: babymo.id/island-craft/
+
+- The whole site (game, marketing page, privacy, support, App Store kit,
+  recording page) is now at **https://babymo.id/island-craft/**: babymo-web
+  copies this repo's published site into `/island-craft/` on every deploy and
+  refreshes it hourly. babymo-web's service worker leaves `/island-craft/` and
+  its caches to the game.
+- The old https://roisa.github.io/island-craft/… addresses forward to the same
+  page at babymo.id (a line at the top of each page that only acts on the old
+  address; the iOS app and babymo.id are unaffected).
+- App Store kit: Privacy, Support and Marketing URLs now point at babymo.id.
+- Tested: forwarding in a browser (old privacy, kit, marketing and game links
+  land on the same babymo.id page; nothing moves elsewhere); unit tests (278);
+  desktop smoke.
+
+### Updated pictures show right away
+
+- Why the kit still showed the old screenshots: the offline cache took every
+  picture from its stored copy first, and the new screenshots kept their file
+  names. Now pages and pictures are fetched fresh when online (the stored copy
+  is the offline fallback); only files whose names change with their content
+  (the built game, voice clips, emoji) come from the cache first. The cache is
+  renamed (`babymo-craft-v2`), so everyone's old copies are dropped once.
+- Tested in a browser: the cache fills, a picture comes from the network when
+  online, and with the network off the game still starts and pictures show.
+
+### Ready for babymo.id/island-craft/
+
+- The offline cache (`sw.js`) now clears only its own old caches
+  (`babymo-craft-…`): on babymo.id the rest of the Baby Mo site shares the same
+  browser storage and keeps its own caches. (babymo-web's service worker gets
+  the matching change and leaves `/island-craft/` to the game.)
+
+### App Store kit: fresh screenshots
+
+- All 60 screenshots (10 per device, iPhone, iPhone Duo and iPad, English and
+  Indonesian) rendered again from the game as it is now: the balloon letters
+  and the clean race screen, the new guide arrow, no reward pop-ups. Zips
+  rebuilt (30 files each). Same file names, so the kit page is unchanged.
+- Tested: every image checked by eye on contact sheets; every file the kit page
+  links to exists.
+
+### Marketing page: new screenshots
+
+- Fresh renders of the game as it is now (balloon letters, the new guide arrow,
+  the clean screen in games), English and Indonesian: 6 feature cards (from
+  the iPad shots) and a 10-picture gallery (from the phone shots). The gallery
+  swaps archery for the snow race, the Mini Stadium and the hero suits.
+- Text: the race card tells about the snow and desert tracks, letters and
+  mystery boxes; "a whole island" adds football and the hero suits; the Iqro
+  card says everything is read aloud; Full BabyMo Craft lists the new tracks,
+  the stadium and the suits; "12 fun places" (was 9).
+- The screenshot script clears confetti and coin pop-ups before each picture.
+- Tested: every picture the page uses exists in both languages; each new
+  picture checked by eye.
+
+### Privacy and support pages: the marketing page's look
+
+- `privacy.html` and `support.html` now look like the marketing page: the
+  island sky, liquid-glass cards, rounded headings, the EN / ID switch (one
+  language at a time, remembered with the marketing page's choice), light and
+  dark mode. Shared style in `public/legal.css` and `legal.js`.
+- **Privacy:** the policy's wording is unchanged (same date); the Indonesian
+  version now has every section the English one has.
+- **Support:** the free / Full BabyMo Craft lists match the game today (Full
+  adds the Snow & Desert tracks, the Mini Stadium and the hero suits too); the
+  questions open and close; a big email button.
+- Tested: both pages at desktop and phone size, light and dark, EN and ID: no
+  errors, no missing files, no sideways scrolling.
+
+### Every Arabic line in Baby Mo's voice
+
+- Merged the 50 clips made in Cloud Shell (`voice-clips-20261117-0855`,
+  Chirp3-HD Algenib): the long-vowel syllables, the last 2 Iqro words, 2 du'a
+  and the 24 ayat. Checked: all 50 have real sound (no silent clips).
+- **Now:** Iqro syllables 168/168, words 12/12, ayat 28/28, du'a 6/6;
+  `tools/voice/missing.tsv` is empty. A reciter's recording made on the
+  recording page still replaces any ayah.
+- Smoke: the clean-screen step waits for the next frame (the screen mode
+  follows a frame later; under load 200–300 ms wasn't always enough).
+- Tested: unit tests (278), desktop smoke three times in a row.
+
+### Mo Craft recording page, and the ayat in Cloud Shell
+
+- **Recording page** at `/island-craft/rekam/` (website only, not in the iOS
+  app), the same page as Pulau Hijaiyah's (from the Baby Mo app): 678 lines in
+  six sections (letters & harakat, Iqro, du'a, Qur'an ayat for a reciter, Mo's
+  Indonesian and English lines), record, hear, approve, download a ZIP. Takes
+  stay on that device. `rekam/dengar.html` plays every clip to check them.
+- `bash tools/voice/import-recordings.sh <zip>` turns the approved takes into
+  `public/voice/rec-<id>-<n>.mp3` and `voice-manifest.rec.json`: **a recording
+  always wins** over the app's and the generated clips, and re-importing or
+  regenerating never touches it. `build-rekam-data.mjs` refreshes the list.
+- **Cloud Shell:** `cloudshell.sh` now makes the 24 ayat too (50 lines in
+  all), until a reciter's recording replaces them.
+- Tested: unit tests (278), desktop smoke, the page in a browser (desktop and
+  phone size: no errors, lists, current clips play), and an import of a test
+  ZIP (a take becomes rec-…-1, the next one rec-…-2 replacing it; the ayah then
+  plays it). The test files were removed afterwards.
+
+### Making the last clips in Cloud Shell
+
+- `tools/voice/cloudshell.sh` (with `gen.py`) makes the Arabic lines that
+  still have no clip in Baby Mo's voice (Chirp3-HD Algenib), like the
+  Pulau Hijaiyah script: it retries a silent syllable, says a lone tanwin
+  syllable as its sound, then pushes a `voice-clips-…` branch. Qur'an ayat are
+  never generated (murottal only).
+- The new clips go to `public/voice/game-*.mp3` and
+  `src/game/voice-manifest.game.json`; re-importing the app's clips keeps them.
+- The du'a on waking up now plays the Baby Mo app's clip (the same words,
+  "ba'da ma" written apart). Left to make: 22 long-vowel syllables, 2 words,
+  2 du'a (26 lines).
+- Tested: unit tests (278), desktop smoke; the script lists its work without
+  credentials and stops with a clear message when it has none.
+
+### More of Baby Mo's voice: the Pulau Hijaiyah clips
+
+- The clips from Pulau Hijaiyah (`hijaiyah` repo: the same voice, Algenib) come
+  in too: 628 clips, 3.4 MB. `tools/voice/import.mjs` takes both checkouts.
+- Fathatan is looked up the way the recordings spell it (بًا for the game's
+  بً), and a lone alif with a vowel mark with its hamza above or below (أٍ /
+  إٍ). Only for that one syllable: in words they can differ.
+- **Now:** Iqro syllables 146 of 168 (were 88), Iqro words 10 of 12 (were 0).
+  Still without a clip (`tools/voice/missing.tsv`, 51 lines): 22 long-vowel
+  syllables, 2 words, 24 ayat (best from a reciter) and 3 du'a.
+- Tested: unit tests (278), smoke on desktop and iPhone.
+
+### Baby Mo's recorded voice (from the Baby Mo app)
+
+- The game now uses the clips made for the Baby Mo app (one Google voice in
+  Arabic, English and Indonesian), found by their text the same way as the app
+  (`src/game/voicekey.ts`, the same rules as the app's `bm-voice.js`).
+- **Covered:** all 28 letter names, every letter with fathah, kasrah and
+  dhammah (ba, bi, bu), 88 of the 168 Iqro syllables, 3 of the 6 du'a, the
+  dhikr and good words (Bismillah, Masya Allah…), and about 85 English and
+  Indonesian lines the game shares with the app (most English word cards).
+  413 clips, 2.4 MB, in `public/voice/`.
+- Anything without a clip is read by the device, as before. A clip also plays
+  on a device with no Arabic or Indonesian voice at all.
+- `tools/voice/import.mjs` brings the clips in again from a `babymo-ios`
+  checkout; `tools/voice/missing.tsv` lists the 119 Arabic lines still without
+  a clip (tanwin and long-vowel syllables, the Iqro words, ayat, 3 du'a).
+- Tested: unit tests (278; new: the key rules, every clip file exists, all
+  letter names and ba/bi/bu have clips), smoke on desktop and iPhone (a letter,
+  a vowel mark and an English word play their clips; a line without one uses
+  the device voice).
+
+### Audit fix batch: no more getting stuck, a clean screen in games
+
+From a full audit (QA on every device, play screenshots, and a code review).
+
+**Getting stuck or losing progress**
+- **Iqro:** closing a lesson on its star screen (✕, Escape, bedtime) lost
+  the lesson and the book never opened again until a restart. It now counts
+  however it's closed.
+- **Prayer:** praying Maghrib somewhere else before the iftar picnic moved to the
+  masjid left the village masjid closed for prayer until the next Maghrib.
+- **A new day is noticed while the app stays open or asleep:** yesterday's
+  bedtime screen goes by itself, play time starts again, the daily gift comes,
+  and the prayer times / Ramadhan day / moon are worked out for today.
+- **"Follow the real clock":** midnight now starts a new game day (once-a-day
+  things like good deeds and the iftar du'a come back).
+- **Iqro book:** only placed on open ground you can stand on (not a roof, a
+  treetop or a lake floor); a book already in such a spot moves.
+- **Previous world:** if bringing it back can't be saved, the game carries on
+  (it froze) and the previous world is kept (it was deleted).
+- **Wudu before prayer:** closing it with Escape no longer stops the prayer from
+  asking again. Baby Mo's bubble never shows `<b>` tags.
+
+**Games**
+- Starting a race (or travelling on the map) from another game stops that game
+  first; on a boat at sea you're asked to reach land.
+- Football: the first tap after Penalty school or the Skills show is no longer
+  swallowed; you can't dive after Baby Mo has already kicked.
+- Leaving a race no longer reads out a coin sum. Baby Mo's race tips are short
+  lines (how to race, then today's letters).
+
+**Buying**
+- A purchase that finishes after the 45-second wait (slow sign-in, Face ID…)
+  still opens everything, with the celebration. Buy and Restore can't be
+  tapped twice; a Restore with no answer says so (not "nothing bought").
+
+**A clean screen in games**
+- In a race, the stadium, tennis, archery and the other games, only the game's
+  own buttons show: no compass, goals, tutorial card, bag bar, side buttons or
+  Mine. In a race the ✋ button (which left the race) and Jump are hidden
+  next to the power-up button. The Bismillah card moves to the bottom.
+- New places found during a game are celebrated after it, not in the middle.
+
+**Memory and speed**
+- Races no longer leave karts, drivers, boxes and the ramp in memory (30–40
+  shapes a race before); the stadium's crowd is made once.
+- Prayer times were recalculated every 15 s when the city and the device's time
+  zone differ; Ramadhan's start is worked out once a day.
+
+Tested: unit tests (273, new: late purchase, restore timeout, Ramadhan cache),
+smoke on desktop, iPhone, iPad and Android (new steps: clean screen in games,
+race over another game, nothing left behind after races, a new day lifts the
+bedtime screen; the Iqro step now closes with ✕ on the star screen).
+
+### The ⛵ button only where a boat can go in
+
+- **Bug (found by CI on iPhone):** the ⛵ Sail button showed next to any
+  water, even a one-block puddle or a thin stream, but a boat needs open water.
+  Tapping it there only said "There isn't enough water near here" (and the
+  boat test timed out). The button now uses the same check as launching, so
+  when you see ⛵, the boat goes in.
+- Tested: unit tests (270), iPhone and desktop smoke.
+
+### Guide arrow: the compass's navigation arrow
+
+- The glass guide arrow now has the same shape as the arrow in the golden
+  compass (top left): a pointed arrowhead with a notch in its back. Same
+  frosted grey glass and white edge as before, nothing around it.
+- The race smoke step closes any card while a hit letter flies away (a card
+  pauses the race, and with it the balloon).
+- Tested: unit tests (270), desktop smoke twice in a row, checked by eye.
+
+### Race letters: balloon boxes that fly away
+
+- **No more dark spots:** the letter tiles' rounded corners were see-through
+  in the picture but drawn as black on the tile's edges. The letter face is
+  now painted edge to edge (a gold frame round a green square).
+- **Letter boxes on balloons:** each letter is a green box with the letter on
+  all four sides, hanging from a balloon (red, blue, yellow or purple, one
+  colour per letter of the race). It bobs and sways in the wind.
+- **Hit one and it flies away:** the box floats up into the sky, spinning
+  faster and faster, then the balloon pops in a puff of colour. You still
+  hear the letter and get the green turbo.
+- Tested: unit tests (270); the desktop smoke test now also checks that a
+  letter you hit rises and then pops; checked by eye in game renders.
+
+### App Store kit: new screenshots
+
+- **10 screenshots per device** (Apple's most), English and Indonesian, for
+  iPhone, iPhone Duo and iPad: the island, letters, Iqro, prayer, a **snow kart
+  race** with letters and mystery boxes, the **football stadium** (Baby Mo
+  diving for a corner shot), the **hero suits**, horse jumping, English words
+  and the parent area. The old archery picture is gone (archery is still in the
+  text).
+- **Text:** the promotional text and description now mention the snow and
+  desert tracks, the stadium and the hero suits. Lengths re-checked (promo
+  152/140 of 170).
+- Tested: the shots were rendered from the real game, checked by eye, and the
+  zips hold 30 files each.
+
+### The unlock card never waits for ever
+
+Reported by a parent on TestFlight: "Talking to the App Store…" and then
+nothing happened.
+- **The cause is on Apple's side:** the card's button showed no price, so the
+  App Store didn't know the in-app purchase yet. Usually the Paid Apps
+  agreement isn't Active yet, or the purchase isn't ready in App Store Connect.
+- **The card no longer waits for ever:** buying gives up after 45 seconds and
+  restoring after 30. It then says "The App Store didn't answer. Check the
+  internet is on, then try again". When Apple doesn't know the product, a small
+  note tells the developer what to check, with Apple's own error text.
+- **iOS 17 and newer:** the purchase sheet is tied to the app's window scene
+  (`purchase(confirmIn:)`), as Apple asks for apps with scenes.
+- Tested: 270 unit tests (new: waiting gives up after the time limit); smoke on
+  desktop. The Swift change is compiled by Xcode on the Mac (there's no Swift
+  compiler here).
+
+### The unlock card lists everything in Full BabyMo Craft
+
+- The "Open the whole island!" card now also lists the Mini Stadium, racing on
+  the Snow & Desert tracks, and the 10 hero suits. Before, it only listed the
+  letters, Iqro and the older sports.
+- Tested: screenshots on an upright and a sideways phone (the card still fits);
+  269 unit tests; smoke on desktop and iPhone.
+
+### Test fix: the big-race notice check
+
+- The online test run failed once on Android: the "big race" step checks that
+  the race notice doesn't open a card, but it treated **any** open card as
+  failure.
+  - Since a level-up card now waits until a game ends, a card earned in the
+    archery step just before can come up right then.
+  - Reproduced locally: an unrelated card (a discovery) was open at that
+    moment.
+- The step now checks for the race's own card and lists any others it sees.
+  The game itself is unchanged.
+- Tested: the reproduction fails the old check and passes the new one; smoke
+  on Android and desktop passes.
+
+### Fix: getting stuck at wudu before the prayer 💧
+
+Reported by a parent: the prayer felt stuck because it wasn't clear how to
+finish wudu.
+- **The "Done!" button now works.** After the last step the water button turns
+  into "Done!", but tapping it did nothing: outside prayer time the card
+  stayed open until the small "Close" button, and before a prayer it only
+  closed by itself after a pause. Now "Done!" closes the card at once and the
+  prayer starts.
+- **A nudge when nothing happens:** after 4 seconds without a tap the big
+  water button bounces and glows, and the card says "Tap the big water
+  button! 👆" (or "Tap Done! to carry on").
+- **Progress you can see:** 💧 7 / 21, since most steps are done 3 times.
+- **"✓ I still have wudu"** before a prayer: if your wudu hasn't been broken
+  (no sleep, no toilet…), you can pray with it, as in real life. It counts as
+  wudu and the prayer starts. Hidden once the steps are finished.
+- Tested:
+  - In the prayer smoke step, "Done!" closes the card at once and the prayer
+    starts.
+  - At the well, "Done!" closes the card.
+  - "I still have wudu" counts as wudu and continues to the prayer.
+  - Screenshots of the nudge and the finished card.
+
+### Hero suits: the reward for all 28 letters 🦸
+
+Asked by a parent: a costume choice when all hijaiyah letters are found, 10
+outfits in colours like superheroes, without breaking any trademark.
+- **10 hero suits**, opened by finding all 28 hijaiyah letters:
+  - Helper Star ⭐ (blue, red, gold star, red cape)
+  - Night Watcher 🌙 (charcoal, gold crescent, dark cape, mask)
+  - Lightning Runner ⚡ (red and gold, bolt, mask)
+  - Forest Guardian 🍃 (green and black, leaf)
+  - Wave Rider 🌊 (orange and green, water drop)
+  - Sky Guardian ☁️ (blue and silver, cloud, red cape)
+  - Mighty Green 💪 (green and purple, heart)
+  - Golden Armour 🛡️ (red and gold, gem, mask)
+  - Purple Shadow 🔮 (black and purple, purple cape, mask)
+  - Snow Hero ❄️ (white and ice blue, snowflake, cape)
+- **Each suit** colours the whole outfit (top, trousers, belt, boots, cuffs)
+  and adds a small pixel-art chest symbol. Most also add a cape and a domino
+  eye mask that leaves the eyes open.
+  - With Baby Ais the hijab takes the suit's colour, the symbol sits below the
+    drape, and there's no mask.
+- **Trademarks:** every name is our own, and every chest symbol is a plain
+  shape (star, crescent, bolt, leaf, drop, cloud, gem, heart, snowflake),
+  never a studio's logo. A unit test checks that no suit name uses well-known
+  hero brand words (and "Brave Star" became "Helper Star" because of an old
+  cartoon).
+- **In the wardrobe:** a new "🦸 Hero suits" section shows the progress
+  (🔤 n/28 letters) until they open. Putting a suit on gives confetti and
+  sparkles, and "No suit" goes back to normal clothes.
+- **The reward:** when the 28th letter is found, a card names all ten suits
+  ("A real hero loves to help others!") with a "Try them on!" button.
+  Players who had already found all 28 get the card once when they next play.
+- Fixed before release: the white circle behind some chest symbols was made in
+  a way that would have crashed the game when choosing those suits; caught by
+  the screenshot check.
+- Tested:
+  - 269 unit tests. New: ten suits with their own names, opened at 28 letters
+    and not by level, no brand words, each chest symbol a 5×5 picture.
+  - New smoke step: locked before 28, open after; wearing one gives the
+    symbol, mask and cape; "No suit" takes them off.
+  - Screenshots of all ten on Adam and on Baby Ais.
+
+### The Mini Stadium ⚽🏟️
+
+Asked by a parent: a mini football stadium where Ibra can be the goalkeeper or
+the kicker in a penalty game. It should be as fun as possible and teach
+something, with Baby Mo showing cool dribbling and a live penalty tutorial,
+and motion that works well.
+- **The stadium**, a new place in every world (added at the end, so nothing
+  else moves):
+  - a striped pitch with all its lines (centre circle, boxes, penalty spots);
+  - two goals with **nets that billow** when the ball goes in;
+  - red and blue **stands with a crowd** that jumps and cheers;
+  - floodlights;
+  - a **live scoreboard** that shows the score and ● ○ for each shootout kick.
+- **🎓 Penalty school:** a little film with Baby Mo in 7 steps, with set
+  camera shots and slow motion:
+  1. Ball on the spot (11 m on a big pitch).
+  2. Pick a corner: bottom corners are hardest to save.
+  3. Step back, stay calm, Bismillah.
+  4. Run up and plant your foot beside the ball.
+  5. Kick with the inside of your foot and follow through (GOAL!).
+  6. How a goalkeeper gets ready and dives.
+  7. Your turn: 3 practice kicks.
+
+  Tapping skips ahead.
+- **⚽ Take penalties:**
+  1. A yellow aim moves round the goal in a figure of eight, or the joystick
+     steers it. Tap to pick the spot.
+  2. Tap the power bar in the green. Too hard flies over the bar; too soft is
+     slow and easy to save.
+  3. Ibra runs up and kicks. Baby Mo dives. The last part goes into slow
+     motion with the camera following the ball.
+
+  Results: goal (net billows, crowd, confetti, camera shake), saved, off the
+  post, wide or over.
+- **🧤 Be the goalkeeper:**
+  - Baby Mo walks back and runs up, and **his body leans the way he'll
+    shoot**: a real keeper's tip.
+  - In the first games an arrow over his head shows the lean.
+  - Dive with the big ⬅️ / 🧤 / ➡️ buttons (or the joystick, or A/D). The
+    ball comes in slow motion.
+- **🏆 Shootout against Baby Mo:** 5 kicks each, kick then keep. It ends early
+  when one side can't catch up, with sudden death if it's level.
+- **✨ Skills show:** Baby Mo dribbles through cones with small touches, does
+  a step-over, and does 10 keepy-uppies counted out loud. Then Ibra tries
+  **keepy-uppy**: tap when the ring turns green as the ball comes down, and
+  each touch is counted (in Indonesian, with the English word too). Best score
+  is saved.
+- **Learning:**
+  - football facts between kicks and on the result card (11 players, only
+    the keeper uses hands, 2 × 45 minutes, inside of the foot, fair play,
+    Bismillah and Alhamdulillah, drink water, …);
+  - counting the keepy-uppies;
+  - fair play when Baby Mo wins ("let's shake hands").
+- **Coins:** 10 a goal or a save, 50 extra for winning a shootout, 2 per
+  keepy-uppy.
+- The stadium is in Full BabyMo Craft, like the sports park.
+- While playing a game, the crosshair, the block name, the 👋 Hi! button and
+  the English sentence card stay out of the way.
+- Tested:
+  - 266 unit tests. New: where a penalty goes (aim, power, over, wide, post),
+    when Baby Mo or you save it, when a shootout is decided, and the facts in
+    both languages. The stadium is in every test world.
+  - New smoke step: the ⚽ button; a full penalty; Baby Mo's kick saved by
+    diving the right way; the school played through to the practice kicks;
+    3 keepy-uppies; everything cleaned up after.
+  - Screenshots of every mode, with the camera shots fixed where something
+    was in the way.
+
+### Fix: pick-ups and bananas on slow phones 🍌
+
+- The online test run failed once on the Snow track: a racer drove right past
+  a banana without spinning.
+  - **Cause:** on a slow device the game moves in bigger steps, and a racer
+    could jump over the banana between two frames.
+  - The same could happen to coins, letters and mystery boxes when going fast
+    on a slow phone.
+- **Fix:** every pick-up and the banana check now reach as far as the kart
+  drove that frame, so nothing is skipped.
+- **Tested:** with the browser slowed down 8× (3–5 frames a second):
+  - the old code missed the banana 2 out of 4 times;
+  - the fixed code hit it 12 out of 12.
+- **Test change:** the smoke step now drops the banana just ahead of the racer
+  and closes any card that pops up while it waits. The full desktop smoke run
+  passes twice, and the 257 unit tests pass.
+
+### Hijaiyah letters on the race tracks 🔤🏎️
+
+Asked by a parent: hijaiyah letters with their sound on the race track, going
+round the alphabet race by race, with a boost when you get one, and longer
+races.
+- **Letters on every track:** each race has four letters, ا ب ت ث in the first
+  race. There are about 9–12 big green letter tiles a lap, at different spots
+  every lap. Each of the four comes up again and again.
+- **Drive through a letter:** Baby Mo says it (a recording if one is added,
+  otherwise the device voice, as on the letter cards). The letter shows big
+  ("ب Ba") and the kart gets a **green turbo**.
+- **Round the alphabet:** the next race brings the next four (ج ح خ د, then
+  ذ ر ز س …), and after ي it starts again from ا. This carries on across all
+  three tracks and is saved. In the free part it loops through the first seven
+  letters.
+- Baby Mo names the race's letters at the start, and they show on screen.
+- The HUD counts letters read (🔤). The finish card shows how many of each,
+  and the next race's letters.
+- **Longer races, about a minute each:** 4 laps on the big circuit, 5 on the
+  Snow track, 4 on the Desert track.
+- A level-up card no longer pops up in the middle of a race (or a game); it
+  waits until it's over.
+- Tested: 257 unit tests (new: the alphabet loop, round again after ي, the
+  free part's seven letters, letter spots on the track and off the
+  boxes/ramp/start line, race length). The race smoke step now also drives
+  through a letter and checks the next race moves on to the next four. Smoke
+  passes on desktop, iPhone, iPad and Android.
+
+### Racing upgrade: 3 laps, Snow and Desert tracks, mystery boxes 🏎️❄️🌵
+
+Asked by a parent: longer races, snow and desert racing, and mystery boxes,
+boosters and more to make racing exciting.
+- **Longer races:** 3 laps instead of 2 on every track. The big circuit keeps
+  its shape, so saved worlds stay the same.
+- **Two new tracks** in every world, added at the end of the list so no
+  existing place moves:
+  - **Snow Track ❄️:** a round circuit with **icy bends where the kart
+    slides**, ice arches, pine trees and snowmen.
+  - **Desert Track 🌵:** long straights, **soft sand on the bends that slows
+    you down**, **tumbleweeds rolling across the road**, cacti, palms and a
+    little pyramid.
+  - Both are in Full BabyMo Craft. The big circuit stays free.
+- **Mystery boxes ❓** in rows of three, three rows a lap. Drive through one,
+  it spins, and out comes a power-up. Tap the big round button (or Space / F)
+  to use it:
+  - 🚀 **Rocket boost:** a burst of speed with flames.
+  - ⭐ **Star power:** faster, rainbow colours, nothing slows you, and racers
+    you touch do a little spin.
+  - 🫧 **Bubble shield:** ice, sand, tumbleweeds and walls don't slow you.
+  - 🧲 **Coin magnet:** pulls in the coins near you.
+  - 🍌 **Banana peel:** drop it behind you; a racer who drives over it spins
+    round. It's a harmless cartoon spin, and the other racers never throw
+    anything at you.
+  - Drivers further back get rockets and stars more often, so a child who
+    falls behind can catch up. The other racers pick up little turbos from the
+    boxes too.
+- **Jump ramp** on each track (after a boost pad: zoom, then fly), and more
+  boost pads on the new tracks.
+- **"LAP 2" and "FINAL LAP!"** banners, and a cheer when you move up a place.
+- The finish card names the track and counts wins per track.
+- Fixed: closing the finish card any other way than its buttons (e.g. Escape)
+  now ends the race properly. Baby Mo's 👋 Hi! button is hidden while racing.
+- Tested: 253 unit tests:
+  - new: all three track shapes; boxes and ramps never sit on a hazard or a
+    boost pad; the mystery-box odds favour drivers at the back;
+  - both new tracks are in every test world with their road, patches and boost
+    pads.
+
+  New smoke step on the Snow and Desert tracks: a box gives a power-up, a
+  banana spins a racer, the hazard is there, and three laps reach the finish.
+  Smoke passes on desktop, iPhone, iPad and Android, and `npm run qa` on all
+  five profiles.
+
+### iOS privacy manifest 🔒
+
+- Added `ios/App/App/PrivacyInfo.xcprivacy`, included in the app bundle. It
+  declares no tracking, no tracking domains and no collected data. The app's
+  own native code uses none of the APIs Apple asks apps to give a reason for,
+  and Capacitor brings its own manifest. This matches the "Data Not Collected"
+  privacy label and the Kids Category answers for App Review.
+- Tested: the manifest parses as a property list; the Xcode project lists it
+  under Resources, and the project file's brackets still balance. It can only be
+  built in Xcode on a Mac.
+
+### Baby Mo leans out from behind the text boxes 👦
+
+Asked by a parent: Baby Mo's pictures should feel more alive, upper body only
+where it suits, with Mo partly behind the text box (the pictures are
+transparent).
+- New waist-up pictures of Baby Mo for his five poses (`baby-mo-*-up.webp`).
+- **Speech bubble:** he leans over the bubble's top-left corner, with his head
+  and hands above the edge and the rest of him fading behind the frosted glass.
+  He pops up with a little bounce each time he says something new, then sways
+  gently.
+- **Dialogs where Baby Mo talks** (bedtime, water bottle, fishing tips…): he
+  leans over the top of the sheet instead of sitting in a small square.
+- **"Say it" phrase card:** the same peek, smaller.
+- Full-body poses stay where he stands on his own: start screen, loading and
+  "Try again".
+- No motion with "reduce motion" switched on.
+- The word card (e.g. Cat / Kucing) no longer covers Baby Mo's speech bubble:
+  while he talks it sits just under it.
+- A smoke test step (Eid bazaar) is steadier: a card that pops up first is
+  closed before waiting for the stall.
+- The QA check "prayer time in the game" now says what it saw if prayer time
+  doesn't arrive (it failed once under heavy load, then passed on every profile).
+- Tested: 243 unit tests; smoke on desktop, iPhone, iPad and Android; `npm run qa`
+  on desktop and iPhone; screenshots of the bubble and dialogs on phone (both
+  ways) and desktop.
+
+### Release fixes from the audit 🛠️
+
+- **The name is BabyMo Craft everywhere**: start screen, browser tab, home-screen
+  name, the iPhone/iPad app name, the web app, privacy and support pages, the
+  marketing page and the App Store kit. The unlock is "Full BabyMo Craft" /
+  "BabyMo Craft Lengkap".
+- **Saving can't silently stop on iPhone**: when iOS drops the storage
+  connection after the app was in the background, the game reconnects and
+  saves again. If saving keeps failing, a grown-up sees a notice; if storage
+  can't be used at all, the game says progress will be lost on close.
+- **A world is never thrown away**:
+  - Starting a new world keeps the old one as "Previous world", also from the
+    start screen.
+  - A world this version can't open (e.g. made by a newer version) shows a
+    notice and is kept whole, including what was built, so it can be brought
+    back after updating.
+- **Grown-ups check** before sharing a photo (AirDrop, Messages…), using the
+  device location for prayer times, choosing a photo for the outfit colours,
+  and the "More Baby Mo games" link on the website.
+- **Guide arrow**: during the tutorial it points to the tutorial step (e.g.
+  Baby Mo, a tree), and it hides on steps with no place to go. On tall portrait
+  screens it is smaller.
+- **No more stuck screens**: if the game can't start, or iOS takes the 3D view
+  away under memory pressure, a friendly "Try again" screen appears; progress
+  is saved first.
+- **Purchases**: the App Store is asked as soon as the app opens and again when
+  you come back to it, so an Ask to Buy approval shows up right away; an
+  approval that arrives while the game is still loading is kept until the game
+  listens; an unverified purchase shows a message instead of looking cancelled.
+- **Start screen on landscape phones**: everything fits without scrolling, and
+  the not-chosen buttons are clearly visible.
+- Tested: 243 unit tests (new: storage reconnect and the memory fallback, the
+  website unlock); new smoke steps for the newer-version save, the grown-ups
+  check, and the arrow during the tutorial; smoke on desktop, iPhone, iPad and
+  Android profiles and `npm run qa` all pass.
+
+### Glass guide arrow to the mission ➡️
+
+Asked by a parent: Ibra was not always sure where the mission is.
+- A frosted grey glass arrow now floats a few steps ahead of you and turns
+  to point at what the golden compass shows (the next letter, the Iqro
+  book, the masjid at prayer time, or a place you chose to visit). It bobs
+  and glows softly, fades out when you are close (under 5 m), and hides
+  while you play a game, ride, pray or have a window open.
+- Settings has a new switch, "Guide arrow to the mission", to turn it off.
+  It is on by default; old saves keep working.
+- Tested: 237 unit tests; a new smoke step checks that the arrow shows,
+  points the same way as the compass and hides when switched off (all 5
+  device profiles via `npm run qa`).
+
+### Emoji in a modern 3D style 😊
+
+Asked by a parent: keep the friendly emoji (not boxed icons), but make
+them look more modern; the 3D look was chosen from samples.
+
+- Every emoji the game shows (headings, buttons, the wudu steps,
+  blueprints, hats and outfits, places, quests, Baby Mo's speech bubble,
+  toasts) is drawn as its **Fluent Emoji 3D** picture by Microsoft (MIT
+  licence, credited on the support page; `public/emoji/LICENSE.txt`), so
+  it looks soft, modern and the same on every device.
+- 263 small pictures in `public/emoji/` (about 1.1 MB), made by
+  `scripts/emoji3d.py` (run it again after adding new emoji). Flags and a
+  few emoji without a 3D picture stay as they are.
+- `src/emoji3d.ts` swaps them in as the page changes; the emoji character
+  stays in the page (only made transparent over its picture), so reading
+  aloud, copying and the tests still see it. Arabic text, inputs and
+  drop-down lists are left alone.
+- The icon tiles added to headings and buttons in the icon update are back
+  to emoji (💧 wudu, 🕌 prayer, 📿 tasbih…), now in 3D; the round glass
+  buttons keep their symbols.
+- Smoke test fix: the desktop walk step walks again, longer, if a slow CI
+  machine (a few frames a second) moved the player too little the first
+  time (CI failed with 0.39 blocks; the frame rate is the same with and
+  without the emoji pictures, measured).
+- Tested: unit tests, smoke on desktop and iPhone, the layout checks, and
+  phone screenshots of the wudu, the prayer guide, the Good Deeds Book,
+  blueprints, outfits, quests, the map and the game screen.
+
+### Icons in the style of the latest iOS ✨
+
+Asked by a parent: update the old icons to modern ones inspired by the
+latest iOS, checking everything in batches.
+
+- **Two-tone symbols** (iOS “hierarchical” style): every closed shape in an
+  icon gets a soft fill of its own colour behind the outline, done once for
+  the whole icon set; slightly bolder lines.
+- **Clearer liquid glass** on the round buttons, the action buttons and the
+  top cards: more see-through, a bright rim and a gloss highlight; each
+  round button has its own colour (home blue, bag orange, letters green,
+  camera purple). The book's tabs are a glass capsule with the chosen tab
+  as a lens.
+- **New symbols** that replace emoji on buttons: masjid, tennis, archery
+  target, race flag, basketball, football, horse, skates, kite, compass,
+  tasbih beads, sprout, photo, scroll, building.
+- **Icon tiles instead of emoji** in headings (Tasbih, my look from a
+  photo, fun places, Explorer’s Journal, Treasure Map, the Iqro journey,
+  today’s goals, learning report, Full Mo Craft, water break, goodnight,
+  village projects, Good Deeds Book) and icons in their buttons.
+- Pictures that are content (blueprints, hats, items, quest pictures, the
+  wudu body parts) stay as they are.
+- Checked on an icon sheet (every icon on glass, on a tile and as an
+  outline; horse, masjid and tasbih were redrawn after the first look) and
+  on phone screenshots of the game screen and every book tab. Tests: unit,
+  smoke on desktop and iPhone, the layout checks.
+
+### Shorter prayer, a lively wudu, and Baby Mo free in the prayer guide 💧
+
+Asked by a parent: the prayer took too long; wudu should make a child want
+to tap; Baby Mo in the prayer guide should look more alive.
+
+- **Praying together is about half as long**: every movement is still
+  there (all rakaat, two sujud each, salam to both sides) but quicker:
+  Subuh ~19 s (was ~33), Maghrib ~27 s, Isya ~34 s (was ~61).
+- **Wudu**: Baby Mo's wudu pose stands in a little pool of water with drops
+  falling and light moving through the water. A big glowing water button
+  (or the pool, or the glowing step) does each step with a splash, a ripple
+  and Baby Mo bobbing; steps done 3 times take 3 splashes, counted as
+  drops. Step chips show ✓ when done; the English word is said on the first
+  splash. Still closes by itself before praying.
+- **Prayer guide**: no white box; Baby Mo floats with a soft halo,
+  twinkles and a shadow on the floor, bigger than before; a modern icon
+  tile in the heading. Motion is off for “reduce motion”.
+- Tested: unit tests (prayer under 35 s), smoke on desktop (wudu before
+  praying, the English wudu words, the Amal Book wudu), phone screenshots
+  in landscape and portrait.
+
+### Free to try, one-time unlock: Full Mo Craft 🔓
+
+Asked by a parent: people should buy the app; chosen together: a free
+download with one in-app purchase, and the website as the same free part.
+
+- **Free**: the island, Baby Mo, the first 7 hijaiyah letters, wudu and
+  prayer, the masjids, kart races, fishing, the orchard and the camp,
+  building, cooking and pets. Worship basics are never locked.
+- **Full Mo Craft** (one purchase, non-consumable
+  `com.babymo.islandcraft.full`): letters 8–28, the Iqro journey and Dad's
+  exams, tennis, archery, basketball & penalties, horse riding and ice
+  skating. Letters already found are kept.
+- **Unlock card** when a child reaches a locked part (🔒 on those buttons
+  and in the map's fun places), with what it opens, the App Store price,
+  **Grown-ups: unlock** behind the grown-up check, **Restore purchase**, and
+  Ask to Buy handled (the island opens once a parent approves). Also in
+  the parent area. On the website the card says Full Mo Craft is in the
+  app.
+- **Family code** (website only): a grown-up enters it in the parent area
+  and Full Mo Craft opens in that browser, so a family that already plays on
+  the website keeps the whole island until the app is out. Only the code's
+  SHA-256 is in the source. In the app, Apple allows only the purchase.
+  Tested: a unit test for the code check, a smoke step (a wrong code is
+  refused) and the real code in a fresh browser.
+- **Our own StoreKit 2 plugin** (`ios/App/App/StoreKitPlugin.swift`,
+  registered by `MainViewController.swift`): no outside service, so the
+  app still collects no data. The answer is remembered for offline starts.
+- Marketing page: “Try it free”, a Free vs Full Mo Craft section and an
+  updated FAQ; privacy and support pages, the store description, the
+  reviewer notes, the kit (in-app purchase fields and review screenshot)
+  and docs/IOS.md (App Store Connect setup and TestFlight testing).
+- Tested: 236 unit tests (3 new for the rules), build, smoke on all five
+  device profiles with a new step for the free part (letter 8, Iqro and
+  archery show the card; the free places stay open). The native purchase
+  itself can only be tried on a device (TestFlight).
+
+### Mo Craft marketing page 📣
+
+Asked by a parent: a page that introduces the app in a fun, useful way,
+in the style of the latest iOS.
+
+- **`/mocraft/`** on the website: a hero with the app icon and the village
+  scene, what children learn (hijaiyah, Iqro to short surahs, wudu and
+  prayer, English, maths, a whole island to play in), a day on the island,
+  swipeable screenshots in device frames, what parents get (no ads, no data
+  collected, play-time limit, learning report, grown-up check), FAQ, and
+  links to play, privacy and support.
+- Translucent “liquid glass” panels, large rounded headings, a floating
+  menu bar, a night-sky dark mode, and an English/Indonesian switch that
+  also swaps the screenshots.
+- Like the App Store kit, it is copied in only when the website is
+  published, so it isn't in the iOS app.
+- Tested: desktop and phone widths in light and dark, no sideways
+  scrolling, every image loads, the play buttons lead to the game.
+
+### A sharper “Mo Craft” icon, and more of a real iPhone app 📱
+
+Asked by a parent: a sharper App Store icon with “Craft” on it, and less risk
+of the app being turned down as “just a website” (Apple guideline 4.2).
+
+- **New icon**: made at 1024×1024 from the full-size Baby Mo logo (it was the
+  512 web icon enlarged): Baby Mo's head with “Mo Craft” on one line, in
+  the logo's lettering. Used for the app, its launch screen and the website
+  icons.
+- **The iOS share sheet** for the Photo button and the parent area's “Save to
+  a file”: these were browser downloads, which do nothing inside the app.
+  The website still downloads them.
+- **Haptics** in the app: a light tap when placing or breaking blocks, a happy
+  buzz for letters, quests, crafting and fanfares, a nudge on mistakes.
+- Plugins (`@capacitor/haptics`, `share`, `filesystem`) load only inside the
+  app; the photo permission text for saving to Photos is added.
+- Smoke test fix: the big race test helps the game clock past 9:45 and closes
+  stray pop-ups (the clock stops while one is open), which failed on CI.
+- Smoke test fix: the village shop check counts coins right around the tap
+  (a reward arriving while the shop opened made it fail on the iPad on CI).
+- Tested: 233 unit tests, build, smoke on desktop and iPhone.
+
+### App Store kit 🛍️
+
+Asked by a parent: everything needed for the App Store submission.
+
+- **Privacy policy** (`privacy.html`) and **support page** (`support.html`)
+  in English and Indonesian, published with the game. The support page's
+  contact address is still a placeholder (`CONTACT_EMAIL`).
+- **No links out inside the iOS app**: the “More Baby Mo games” link in
+  the settings is hidden in the app (Apple's Kids rules); it stays on the
+  website.
+- **The kit online** at `/appstore/` on the website: screenshots for
+  App Store Connect's “iPhone with Dynamic Island (medium display)” slot
+  (2622 × 1206; the 6.9″ files were refused there), “iPhone Duo”
+  (2034 × 1398) and iPad 13″ in both languages, plus the Header image
+  (3840 × 1646) and the Search Results image (3840 × 2560) (previews, full-size files
+  and one zip per language), the listing text with copy buttons, and the
+  privacy, age-rating, review and checklist answers. The `appstore/` folder
+  is copied in only when the website is published, so it isn't in the
+  iOS app.
+- Tested: 233 unit tests, build (both pages in `dist/`), desktop smoke.
+
+### The iPhone/iPad app (Xcode project) 📱
+
+Asked by a parent: build the game for iOS with Xcode.
+
+- **Capacitor 8** wraps the same web game in a native iOS app. `ios/` is a
+  ready Xcode project (Swift Package Manager, iOS 15+, no CocoaPods).
+  `npm run ios` builds the game and copies it in; `npm run ios:open` opens
+  Xcode. Step-by-step guide: [`docs/IOS.md`](docs/IOS.md) (run on your
+  device, TestFlight, App Store).
+- Home Screen name **Baby Mo**, the Baby Mo icon (1024×1024) and a
+  sky-blue launch screen; full screen with no status bar; portrait and
+  landscape; iPad full screen.
+- Permission messages iOS requires, in Indonesian and English: location
+  (prayer times where you are), camera and photos (avatar colours from a
+  photo). Export compliance: no non-exempt encryption.
+- Inside the app: no offline service worker and no “Add to Home Screen”
+  hint (`isNativeApp()` in `src/install.ts`). The website is unchanged.
+- Tested: unit tests and the desktop smoke test (the website still works);
+  the Xcode project was generated and the game copied in; the Info.plist
+  checked. Building and signing need a Mac with Xcode.
+
+### The Iqro journey in the rest of the game 🎓🕌🌙
+
+The second batch: what you learn on the Iqro journey now shows up in the
+rest of the game.
+
+- **Dad’s exam and certificate**: when every lesson of a stage is done,
+  Dad (Ayah Ibrahim) offers 📝 Iqro exam N: five listening questions from
+  the whole stage (syllables, words, or ayat). Four right first time
+  passes: 100 coins and a **Syahadah (certificate)** with your name (tap
+  it to write your name; it’s remembered) and “Barakallahu fik”. Not yet?
+  Dad says to practise in the letter book and try again.
+- **The imam reads what you learned**: in the first two rakaat of praying
+  together, after Al-Fatihah the imam reads a surah you have learned on the
+  journey; the prayer bar shows it (“Al-Fatihah + Al-Ikhlas”) and a note
+  says to recite quietly along.
+- **The three Quls at bedtime**: the Prophet ﷺ recited Al-Ikhlas,
+  Al-Falaq and An-Nas before sleeping. Once you have learned them, Baby
+  Mo’s bedtime question offers “Recite the 3 Quls first”: read them
+  together (🎙️ all of them with Baby Mo, each ayah lighting up), then
+  sleep.
+- **Parent report**: Iqro lessons done (and the certificates), and the
+  short surahs learned.
+- Tested:
+  - Unit tests: which surahs you’ve learned, when a stage is done (so the
+    exam opens), and that each exam has enough questions and a fair pass
+    mark.
+  - Looked at in the game: Dad’s exam button, a question, the
+    certificate, the bedtime question and the three Quls.
+  - Smoke test on all four devices: the exam button, passing the exam and
+    the certificate, the imam reading a learned surah, and the three Quls
+    at bedtime. (The test hears which sound was played and picks it.)
+
+### After the 28 letters: the Iqro journey 📖
+
+Asked by a parent: what comes after all the letters are found? Rather than
+hunting the same letters again, the game now follows the path children take
+in TPA (Iqro / Qaida), from letters to reading the Qur’an:
+
+- **Iqro 1 · the 28 letters** (the shrines, as before) ✓
+- **Iqro 2 · vowel marks** (12 lessons): every letter with fathah, kasrah
+  and dhammah — ba, bi, bu — seven letters a lesson.
+- **Iqro 3 · tanwin and long vowels** (12 lessons): ban, bin, bun and baa,
+  bii, buu.
+- **Iqro 4 · reading words** (4 lessons, 12 words): read each syllable from
+  the right (the next one glows), then hear the whole word with its meaning
+  and a picture: أَكَلَ a-ka-la = ate, كَتَبَ, جَلَسَ, ذَهَبَ, فَتَحَ, خَلَقَ,
+  شَرِبَ, سَمِعَ, عَمِلَ, رَجَعَ, حَسُنَ, كَرُمَ.
+- **Iqro 5 · short surahs** (6 lessons): Al-Kautsar, Al-Ikhlas, Al-‘Asr,
+  Al-Falaq, An-Nas, and Al-Fatihah. Each ayah in Arabic with
+  transliteration and meaning (Indonesian and English); tap one to hear it,
+  🎙️ recite them all with Baby Mo (each ayah lights up in turn), then put
+  the ayat in order.
+- **Then round and round**: review lessons keep coming, so it never just
+  stops.
+- **In the world**: each lesson waits as a glowing open book with a beam of
+  light, 18–35 blocks away; the golden compass points to it (📖). Walk into
+  it to open the lesson (close it, step away and back to open it again).
+- **Each lesson**: listen to each sound, then 3 listening questions (hear
+  it, pick it); 1–3 stars, 10 + 5 coins a star. Finishing a stage: 50 coins,
+  fireworks, and what’s next.
+- **Letters tab → 📖 The Iqro journey**: the five stages with progress
+  bars and stars; tap any lesson you’ve done to practise it again.
+- Recitations: if recordings are added at `public/audio/surah/<id>-<n>.mp3`
+  (for example `ikhlas-1.mp3`) they are played; otherwise the device reads
+  the ayah (with an Arabic voice when it has one).
+- Tested:
+  - Unit tests: the stages in order; every letter with each of fathah,
+    kasrah and dhammah; the syllables written and read right; each word
+    made of its syllables; every surah with its number of ayat, each ayah
+    with Arabic, reading and meaning; the review loop; stage ends and coins;
+    the listening choices.
+  - Looked at in the game: the book, a syllable lesson and its quiz, the
+    stars, a word, a surah, the ayat order game, and the journey in the
+    Letters tab.
+  - Smoke test on all four devices: with all 28 letters a book appears, the
+    compass points to it, a lesson and its quiz give coins and move on, the
+    next book appears, and the journey shows in the Letters tab.
+
+### Archery, the big race, basketball & penalties, a horse farm, an ice rink, and good words 🏹🏁🏀⚽🐴⛸️🤲
+
+Requested by a parent: an archery range with levels and rewards and easy
+sums; races at set times with villagers watching and more racers; a
+basketball court and mini football; a horse farm with a riding course; an
+ice rink where you rent or buy skates; and the good words of Islam said at
+the right moments.
+
+- **Places to play** (new `src/game/activity.ts`): each new place shows its
+  own button when you're there (🏹, 🏀, ⚽, 🐴, ⛸️/🎟️), a bar at the top
+  with the score and Exit, and can point the camera and pose you and Baby
+  Mo. All are in the map’s fun places. (New landmarks, added last, so no
+  world’s places move.)
+- **The archery range** (`archery.ts`): a long lane with distance flags.
+  - A little red circle (your aim) wanders over the target; tap ✋ when
+    it’s over the middle. The camera looks over your shoulder, zoomed in.
+  - Rings score 10, 20, 50 and 100 (with the numbers painted on), added
+    up out loud: “50 + 20 = 70”.
+  - 5 levels, 5 arrows each: closer and big → further and smaller →
+    faster → a moving target → wind. Pass a level to win a new arrow:
+    big, golden (sparkles), rainbow, star; then the Archery Champion
+    trophy. Better arrows land a little nearer the middle.
+  - Every 10 points is 1 coin, shown as a sum (“250 ÷ 10 = 25”).
+- **The big race** (`race.ts`): at 10:00 and 16:00 (game time), a quarter
+  of an hour before, Baby Mo tells you and a 🏁 “Race at 10:00 — join!”
+  button appears: it takes you there and starts it. It never stops the
+  game (an early pop-up version could block a prayer gathering, which the
+  layout checks caught), and goes away once the time has passed. Villagers fill the grandstand around race time and cheer while you
+  race. Six karts now (two more racers: Pak Budi and Kak Sari), and the
+  big race pays double.
+- **The sports park** (`sports.ts`): a basketball court (wooden floor,
+  red key, three-point arc, a hoop with a net on a glass backboard) and a
+  mini football pitch with a goal and penalty spot.
+  - **Basketball**: 5 shots from 5 spots, closer to further. Tap when the
+    marker on the bar is in the green (it gets narrower further out); in
+    = 2 points, 3 from outside the arc, added up out loud. Off the rim,
+    short or long otherwise. Baby Mo passes the ball back.
+  - **Penalties**: 5 kicks with Baby Mo in goal. Your aim slides across
+    the goal; tap to kick. Baby Mo dives one way — score where he isn’t!
+    Each goal is 10 coins (10 + 10 + 10 = 30).
+  - Shooting and kicking motions (both arms up; the kicking leg swings
+    through), and Baby Mo dives.
+- **The horse farm** (`horses.ts`): a red barn, a paddock where three
+  horses graze and wander (brown, white, black), a water trough, and a
+  riding track round it. Walk up to a horse and tap 🐴 Ride: two laps
+  following Baby Mo on his pony; tap ✋ just before each of the 6 jumps to
+  leap over. Clear, or the pole falls. 5 coins a clear jump, +30 for a
+  clear round. You sit astride with the reins; the camera follows.
+- **The ice rink** (`skating.ts`), in a snowy place: ice inside blue and
+  white boards, and a ticket booth. Rent skates for today (10 coins) or
+  buy your own (60), with the sum shown (“150 − 10 = 140”). Ice is
+  slippery: push and glide, bounce off the boards, jump to spin. Collect
+  the 8 snowflakes for 20 coins. Baby Mo skates circles; both of you
+  skate with a pushing stride and swinging arms.
+- **Good words for the moment** (`phrases.ts`): a small pill shows the
+  word in Arabic and Latin with what it means, and Baby Mo says it (never
+  more than one every few seconds):
+  - **Alhamdulillah** after eating, catching a fish, a gift, finishing,
+    winning; **Subhanallah** on finding a beautiful place, all the
+    snowflakes; **Masya Allah** for a bullseye, a basket, a goal, a clear
+    jump, levelling up, when someone else wins; **Astaghfirullah** after
+    bumping the kart into the wall or knocking a pole; **Bismillah** when
+    a race, a ride or a game begins; **Insya Allah** after a miss (next
+    time!); **Allahu Akbar** at the volcano and for a clear round.
+- Tested:
+  - Unit tests: archery rings, levels, wind and better arrows, sums;
+    basketball green zone and results; penalty results and aim; the horse
+    course (a smooth closed lap, jumps on the straights, jump height);
+    skating glide and the boards; the big race times and the crowd; the
+    good words for each moment and how often; every world has the four
+    new places built.
+  - Looked at in the game: each place, aiming and shooting, a basket and a
+    goal, the ride with jumps, skating, the race notice and the crowd.
+  - Smoke test on all four devices: an arrow scores and is added up (and
+    Bismillah shows); the race notice and the crowd; a basket and a kick;
+    finding a horse and clearing a jump; renting skates (with the sum),
+    gliding and collecting a snowflake. The race tests now expect 6 karts.
+
+### A real tennis court: drill, serve practice and a game 🎾
+
+Requested by a parent: a tennis court like a real one with the correct
+lines, where the player can drill, serve and play a simple game, with
+natural forehand and backhand motions.
+
+- **A real-size court** (`src/game/court.ts`): 24 × 13 blocks, close to a
+  real court (23.8 × 11 m). All the lines: baselines, singles and doubles
+  sidelines (with the tramlines between), service lines, the centre
+  service line and the centre marks. A see-through net between two posts,
+  an umpire’s tall chair, benches, lights at the corners and a chest. It
+  needed more room, so it moved to a new spot (in the map’s fun places);
+  the old spot stays reserved, so no other place moves.
+- **Tap 🎾 and choose**:
+  - **Forehand & backhand drill**: Baby Mo sends 10 balls, forehand and
+    backhand in turn. Tap ✋ as the ball reaches you; each good shot shows
+    and says “Forehand!” or “Backhand!”.
+  - **Serve practice**: 6 serves, from the right (deuce) and left (ad)
+    side in turn. Tap to toss the ball, tap again at the top to hit it into
+    the service box across the net (it glows yellow, with a bobbing arrow).
+    Too early hits the net, too late goes long.
+  - **Play a game**: you serve one game with real tennis scoring: love,
+    15, 30, 40, deuce, advantage, game (the umpire calls it in English).
+    Two tries at each serve (fault, second serve, double fault), then rally.
+  - Coins for each, and Again / Something else / Done at the end.
+- **Natural strokes** (`src/game/tennispose.ts`) for you and Baby Mo, both
+  right-handed: the **forehand** turns the shoulders, takes the racket
+  back and swings low to high across the front to finish over the other
+  shoulder; the **two-handed backhand** turns the other way and swings
+  across to finish high; the **serve** lifts the ball with the other hand
+  while the racket goes up behind the head, then hits high and comes down
+  across the body; between shots a ready stance. You slide to the ball so
+  it comes to your forehand or backhand side.
+- The ball is a little bigger and has a shadow, so you can judge where it is.
+- Tested:
+  - Unit tests: the court lines (each kind in the right place, sizes close
+    to a real court), a serve aimed at a spot bounces there, serve timing
+    (in, net, long), the scoring (15–0, 30–40, deuce, advantage, game), and
+    the shape of each stroke (forehand and backhand swing opposite ways,
+    two hands on the backhand, the serve goes up and over).
+  - Looked at in the game: the court, the yellow target, Baby Mo’s
+    forehand, backhand and serve from the front and the side, and yours
+    from behind.
+  - Smoke test on all four devices: the menu; a drill ball hit back on
+    time (with a forehand or backhand); a serve tossed and hit at the top
+    goes in; a game starts at 0–0 and can be left.
+
+### The big race circuit, with coins to add up 🏎️➕
+
+Requested by a parent: a wider, longer and more interesting circuit, with
+simple maths: pick up one coin and another, and hear “now you have two”.
+
+- **A bigger circuit** (`TRACK` is now 52 m straights, 14 m bends and
+  9 m wide; a lap is about 190 m, was 141 m). It needed more room, so it
+  moved to a new, roomy spot (still in the map’s fun places; every world
+  has one). The old spot stays reserved, so **no other place moves** in
+  existing worlds and the treasure stays where it was.
+- **More interesting**: five **rainbow arches** over the back straight,
+  a row of **lantern posts** round the east bend, **yellow boost pads**
+  on both straights (drive over them to zoom: 1.5× speed for a moment),
+  palm trees and flowers in the infield, a longer grandstand, and the
+  start gantry with its lights.
+- **Coins to add up**: little groups of 1–3 gold coins sit on the track
+  in different lanes, so you steer to catch them (a new set each lap,
+  about 11 a lap). After each group the sum shows big in gold and is
+  said out loud: “🪙 3 + 2 = 5 — 3 plus 2 makes 5. Now you have 5 coins!”
+  (in Indonesian: “3 tambah 2 sama dengan 5. Sekarang koinmu 5!”). The
+  very first one says “One coin!”. The race bar shows 🪙 too, and the
+  coins you collect are added to your prize at the finish.
+- **Baby Mo’s sentence of the day** is now a small card above the hotbar
+  (🔊, ⭐ I said it!, ✕) instead of a pop-up, so it never stops the game
+  or hides other pop-ups (it could block a prayer gathering or the water
+  break). Word cards wait while it’s showing; it goes away by itself.
+- Tested:
+  - Unit tests: the circuit is bigger, coin groups (1–3 coins, always on
+    the track, away from the start line), the sums (“3 + 2 = 5” and the
+    sentences in both languages), the boost pads; in every test world the
+    circuit is built (track and boost pad) with no other place inside it.
+  - In the game: the circuit, the coins, picking up 1 and then 2 coins
+    shows and says “1 + 2 = 3”.
+  - Smoke test on all four devices; layout checks.
+
+### The go-karts wait on the start line 🏎️
+
+Ibra found the race track but not the cars: the karts only appeared after
+tapping 🏁 Race!.
+
+- Now the four go-karts (your red one, Baby Mo’s green one, and the two
+  racers’ blue and yellow ones) wait on the start line under the start
+  lights whenever you’re at the track.
+- Walk up to the red kart to get in and start a race (or tap 🏁 Race!
+  as before).
+- The first time you come to the track, Baby Mo says where the karts are.
+- Tested: smoke test on all four devices (the karts are there, walking
+  to the red kart starts the race and the parked karts make way for the
+  racing ones); unit tests.
+
+### The bedug at prayer time 🥁
+
+Requested by a parent: the sung adhan still sounded odd, so prayer time is
+now announced with the bedug, like the big drum at Indonesian masjids.
+
+- At prayer time (and with the 🔊 try button in the grown-ups’ settings,
+  now called **Bedug drum at prayer time**), the bedug is beaten in the
+  traditional *tabuh bedug* way: three slow, heavy beats, a roll that
+  speeds up, then three strong beats to finish (about 14 seconds). The
+  toast says “🥁 Dum… dum… dum! It’s time for Asr!”.
+- Each beat is made like a real bedug: a deep buffalo-hide boom that
+  drops in pitch, with the overtones of a round drum head, the slap of
+  the stick, the hollow wooden shell, and the echo of the masjid’s
+  veranda. Its knock comes through on phone and tablet speakers too.
+- The village bedug you can tap uses the same sound.
+- The sung adhan is gone. The on/off setting is the same one, so a
+  parent who turned it off keeps it off.
+- Tested: a unit test for the beat pattern (slow, faster, strong end);
+  the sound rendered to a file and checked (no clipping, the boom near
+  59 Hz with its knock above it); in the game at Asr the bedug plays
+  with its toast and no errors.
+
+### The adhan: “Allāhu Akbar” four times 🕌
+
+Requested by a parent: the adhan sound should be only “Allāhu Akbar”, four times.
+
+- The adhan at prayer time (and the 🔊 try button in the grown-ups’ settings)
+  now sings the opening of the adhan only: **Allāhu Akbar ×4**, in two
+  pairs with a breath between them, the last one held a little longer
+  (about 17 seconds; it was two before).
+- The voice is softer and warmer (the buzzy top is filtered off).
+- Tested: unit tests; in the game at Asr time the adhan plays with its
+  toast and no errors.
+
+### More English while playing: colours, numbers, wudu, weather, actions, things, Baby Mo’s sentence, greetings 🇬🇧
+
+Requested by a parent (suggestions 1–7 and 9 from the last batch).
+
+- **Colours**: placing coloured wool or a flower shows its colour (“Blue!
+  Biru”), at most every 4 minutes per colour.
+- **Numbers**: counting things as they come into your bag, from 2 to 10
+  (“Three apples!”, “Four eggs!”, “Five logs!”): fruit, dates, eggs,
+  fish, logs, stones and pearls. Picking fruit counts it too.
+- **Wudu body parts**: each wudu step shows its English word (Hands,
+  Mouth, Nose, Face, Arms, Head, Ears, Feet), and Baby Mo says it when
+  you tap the step (“Hands! Wash your hands.”).
+- **Weather and time of day**: the weather of the day (“It’s sunny!”,
+  “It’s windy!”…), “It’s raining!” or “It’s snowing!”, and Good morning
+  / afternoon / evening / night as the day goes by.
+- **Action words**: Jump!, Swim!, Climb!, Ride!, Dig! when you do them
+  (the first five times each, a few minutes apart).
+- **English names of things**: the first time something new comes into
+  your bag, a card shows its picture with its English and Indonesian
+  name.
+- **Baby Mo’s sentence of the day**: once a day Baby Mo teaches a short
+  sentence (“I am happy.”, “Thank you!”, “Let’s go!”… 20 in all).
+  🔊 Listen again; ⭐ I said it! gives 10 coins.
+- **Saying hello in English**: Dad, Bu Aminah and Grandpa have a
+  🇬🇧 Say hello in English button. They greet you for the time of day
+  (“Good morning! How are you?”) and you pick an answer (“I’m fine,
+  thank you!”, “I’m happy!”, “I’m hungry!”); they answer back.
+  5 coins the first time each day with each of them.
+- **My English Words** now has sections for all of these, including
+  things with their pictures.
+- Tested:
+  - Unit tests: counting words, a body word for every wudu step, the
+    colour of wool and flowers, the time-of-day greetings, the sentence
+    of the day (the same all day, changes each day).
+  - Smoke test on all four devices: a colour card, “Four eggs!”, the
+    wudu words, the sentence of the day with its coins, and a hello in
+    English with Grandpa.
+
+### English words while playing, and the Fruit Orchard 🍎📘
+
+Requested by a parent: more praise words so Ibra learns English while
+playing, the names of animals as you pass them, and more kinds of fruit
+trees that tell you their names.
+
+- **English word cards** (new `src/game/english.ts`): a small card shows
+  the English word in big letters with its Indonesian meaning, and Baby
+  Mo says it in English (tap 🔊 to hear it again).
+  - **Praise words** (15: Awesome!, Great job!, Well done!, Fantastic!,
+    Brilliant!, Amazing!, Excellent!, Super!, Wonderful!, You did it!,
+    Keep it up!, Nice work!, Perfect!, Way to go!, Good thinking!) come
+    with your stars now and then (at most one every 25 seconds, never the
+    same twice in a row).
+  - **Animals**: walk close to a chicken, sheep, cow, camel, goat or cat
+    and hear its name with a little sentence (“Cow! The cow says moo.”),
+    at most every 2 minutes per animal.
+  - Cards wait while a menu, a race, tennis, a prayer or the tutorial is
+    on, and come at most every 6 seconds.
+  - **📘 My English Words** in the Letters tab lists every word you met,
+    by animals, fruits and praise; tap one to hear it.
+  - Settings: **English word cards** on/off.
+- **The Fruit Orchard (Kebun Buah)**, a new place 60–150 blocks from the
+  village, in the map’s fun places. Eight named trees along gravel paths
+  inside a low hedge: **apple, mango, orange, rambutan** (leafy trees),
+  **banana, coconut** (palms), **papaya** (a thin trunk with a small
+  crown) and a **watermelon** patch on the ground.
+  - Stand by a tree and Baby Mo says “This is a mango tree. Mango!”.
+  - Tap a fruit to pick it: you get it, its word card comes up, and it
+    grows back after 3 minutes (watermelons give 3 slices).
+  - New blocks and food items: mango, banana, orange, coconut, papaya,
+    rambutan, watermelon slice, with their own pictures.
+- Tested:
+  - Unit tests: the word lists; the orchard is in every world (60/60
+    seeds checked) with all eight trees carrying their fruit; the tree
+    sentences.
+  - Smoke test on all four devices: go to the orchard from the map, the
+    mango card comes up by the mango tree, pick an orange (you get it,
+    the Orange card shows, it grows back), and both words are in My
+    English Words.
+  - Old worlds keep all their places (the orchard is added last).
+
+### The Tennis Court: play tennis with Baby Mo 🎾
+
+Requested by a parent: a tennis court where Baby Mo plays tennis, and the
+player tries some tennis movements too.
+
+- **The Tennis Court (Lapangan Tenis)** is a new place 45–140 blocks from
+  the village.
+  - A short blue court (16 blocks, so Baby Mo and the ball are easy to
+    see from your end) with white lines, and a see-through net between
+    posts.
+  - Green surrounds, a bench, four lantern posts and a chest.
+  - It’s in the map’s fun places.
+- **Tennis** (new `src/game/tennis.ts`):
+  - Tap **🎾 Play tennis**. You stand at your baseline and Baby Mo at
+    his, each with a racket (yours red, his green).
+  - **Serve** with ✋ (or a tap on the screen). The ball flies over the
+    net, bounces once on Baby Mo’s side, and he swings and sends it
+    back.
+  - **Hit it back:** you glide sideways to the ball by yourself, so only
+    the timing matters. Tap as it reaches you. The window is kind: from
+    about half a second before until a moment after. The big TAP! cue
+    and the glowing ✋ show when.
+  - **Swings:** both you and Baby Mo swing your racket arms.
+  - **Rallies:** Baby Mo returns most balls but misses a few more in
+    long rallies. The balls get a little faster as a rally goes on.
+  - **Scoring:** first to 3 points. At the top: the score and the
+    current rally, with **Exit**. The end card shows who won, the
+    longest rally and coins (50 for a win, 20 for a good try), and
+    **Play again**.
+  - The discovery card reminds you that the strong believer is more
+    beloved to Allah (HR. Muslim 2664): sport keeps you healthy.
+- **Every world has its pond again:** the Fishing Pond was missing in
+  about 1 world in 70 (hilly ones, with nothing low enough near the
+  village). Places every world must have now try any free dry land a
+  little further out as a last resort. This only happens where the place
+  would otherwise be missing, so no place in a saved world moves.
+- **Tested:**
+  - Unit tests: the ball starts and ends at the rackets, bounces past
+    the net and clears it; the hit window; Baby Mo’s returns; first to
+    3.
+  - Smoke:
+    - from the map to the court;
+    - the 🎾 button;
+    - serve, then hitting Baby Mo’s return in the window, which starts
+      a rally;
+    - Exit puts the rackets away.
+  - Screenshots of a rally and a point.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
+### The Waterfall Camp: tents and a campfire to grill on 🏕️🔥
+
+Requested by a parent: tents and a campfire to grill fish and meat, near a
+river and the waterfall.
+
+- **The Waterfall Camp (Perkemahan Air Terjun)** is a new place, built
+  right in front of the Waterfall Valley.
+  - A new `near` setting tries spots around the waterfall in turn. In 56
+    of 60 test worlds it’s by the waterfall; otherwise it stands on its
+    own.
+  - **A little stream** runs from the waterfall’s pool past the camp
+    (the camp has its own if it stands alone), with a wooden footbridge.
+    You can fish in it.
+  - **Three tents** (red, blue and green A-frames, open at the front),
+    each with a bed inside, so you can sleep there at night.
+  - **A campfire** in a ring of stones, with log benches, a pile of
+    firewood, lantern posts, and a chest with meat, fish and dates.
+- **The campfire** (a new block):
+  - It glows at night. Flames, sparks and a little smoke rise from it
+    while you’re near (not on low graphics).
+  - **Tap it to grill:** it opens the cooking list. It counts as a
+    furnace, so grilled fish and steak can be made there with the usual
+    cooking game.
+  - The discovery card reminds you of the manners of eating: Bismillah
+    before, Alhamdulillah after, and share.
+- **Fun places in the map** now include the camp.
+- **Tested:**
+  - Unit tests: the camp stands in front of the waterfall in most
+    worlds, with the campfire and water in the stream.
+  - Smoke:
+    - from the map to the camp;
+    - the campfire is there and counts as a furnace;
+    - the stream has water;
+    - tapping the fire opens cooking.
+  - Screenshots of the camp, the tents and stream from above, and the
+    campfire at night.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
+### The Race Track: go-kart races with Baby Mo 🏎️🏁
+
+Requested by a parent: a racing area where the player and some racers can
+drive a fun lap.
+
+- **The Race Track (Sirkuit Balap)** is a new place in every world.
+  - The search starts close to the village (80 blocks) and moves out,
+    since a place this big needs free room. That’s often 150–250
+    blocks away.
+  - So it’s one tap away: **✨ Fun places — go there** at the top of the
+    map lists the Fishing Pond and the Race Track (and the Camp and
+    Tennis Court when they exist). Tapping one takes you there with
+    Baby Mo.
+  - An oval track (two straights and two bends, 7 blocks wide) with red
+    and white kerbs, a red and white tyre wall round the outside (with a
+    gap to walk in), and a chequered start line under a gantry with
+    start lights.
+  - A four-step grandstand with blue seats, and a pit area in the
+    middle with a chest.
+  - It needs more room than other places, so a new `clear` setting
+    keeps other places that far away. Existing places don’t move.
+- **The shape** (new `src/game/track.ts`): one shared description of
+  the oval for the builder and the race.
+  - Each cell is track, kerb, wall or grass.
+  - For any point on the track, it gives how far round the lap it is,
+    and which way to drive there.
+- **Racing** (new `src/game/race.ts`):
+  - Tap **🏁 Race!** at the track. Four karts line up behind the start
+    line: you (red) and Baby Mo (green) in front, Kak Dina (blue) and
+    Bang Rizal (yellow) behind. Then a big 3 · 2 · 1 · GO!
+  - Easy to drive: after GO your kart goes by itself, you only steer
+    (pull the joystick back to brake). A gentle helper keeps you
+    pointing along the track, and you slow down on the grass. The tyre
+    wall bounces you back.
+  - The others follow the racing line. Anyone far ahead eases off and
+    anyone far behind speeds up, so the race stays close.
+  - Two laps. At the top: the lap, your place, and the time. **Exit**
+    (or ✋) leaves at any time.
+  - At the finish: your place and time, your best time, coins (100 /
+    60 / 40 / 30), confetti and a cheering Baby Mo. A message about good
+    sportsmanship, and **Race again**.
+- **Tested:**
+  - Unit tests for the track shape: every point on the line and the
+    lanes is on the track, the distance round the lap matches the
+    point, headings point forward, and the finishing order.
+  - A browser check: steering, the countdown, and a whole race to the
+    finish.
+  - Smoke: the 🏁 button, the countdown, the kart getting round the
+    track, then Exit, which removes the karts and frees Baby Mo.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
+### Thirst comes much less often 💧
+
+Requested by a parent: the thirsty reminder came too often; about every
+20 real minutes is enough.
+
+- **You and Baby Mo get thirsty after about 20 real minutes of busy
+  play** (walking, digging, building, swimming), and after about an hour
+  of quiet play. Before, it was about 7½ minutes.
+- **Baby Mo asks for a drink once** when he gets thirsty, then at most
+  every 10 minutes if he’s still thirsty. Before, he asked every 90
+  seconds.
+- A drink still works the same (a sip brings back 40%), and the gentle
+  slow-down only starts when you’re actually thirsty.
+- The separate real-life water break (a parent setting, every 20
+  minutes by default) is unchanged.
+- **Tested:**
+  - Unit tests: not thirsty at 19 minutes, thirsty at 20; resting is
+    slower; Mo waits at least 10 minutes between asks.
+  - The smoke suite on four profiles, and the QA suite.
+
+### The Fishing Pond, near the village 🎣🏞️
+
+Requested by a parent: a pond close to the masjid where villagers also
+fish, so fishing is easy for Ibra.
+
+- **The Fishing Pond (Kolam Pancing)** is a new place in every world,
+  just past the village’s edge, 42–72 blocks from the middle. The search
+  starts on the masjid’s side, north of the village, and only goes
+  round to another side if nothing fits there. It’s added last, so
+  existing worlds keep their other places and gain the pond.
+  - An oval pond two blocks deep, with a sandy rim and reeds and
+    flowers.
+  - A wooden pier out to the middle, with lanterns where it meets the
+    bank.
+  - A shady hut with a chest (a fishing rod and two fish), a bench, and
+    lantern posts all round for the evening.
+- **Villagers fishing** (new `src/game/fishers.ts`):
+  - Pak Harun and Raka sit on the pier and Bu Salma on the bank, each
+    with a bamboo rod, a line and a red float on the water.
+  - Every 9–21 seconds a float dips, someone lifts a fish with a splash
+    and says “🐟 Alhamdulillah!”.
+  - When you come by, one of them shares a tip, such as “Throw, wait,
+    then tap when the float dips”.
+  - They’re there in the daytime, and go to the masjid at prayer time
+    like everyone else.
+- **Easier fishing at the pond:**
+  - Fish bite after 1½–4 seconds (instead of the usual wait), and you
+    get 1.2 seconds more to tap.
+- **Getting there:**
+  - **🏞️ To the Fishing Pond** in the fishing guide (🎣❓) takes you
+    to the end of the pier, looking out over the water, with Baby Mo.
+    If you have no rod, Pak Harun lends you one for keeps, and it’s put
+    in your hand.
+  - The fishing practice with Baby Mo goes to the pond too, when the
+    water is far.
+  - The pond is in the discoveries journal, so the golden arrow can
+    lead there.
+- **Tested:**
+  - Unit tests:
+    - every world has the pond, 40–110 blocks out, on the masjid side
+      in most worlds;
+    - from the pier spot there’s water three blocks straight ahead.
+  - Smoke:
+    - from the guide to the pier;
+    - three villagers fishing;
+    - a cast, a bite, and a fish caught.
+  - Screenshots of the pier with the villagers, and the pond from
+    above.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
+### Wudu before praying, an adhan at prayer time, and a 2-hour play limit 💧🕌
+
+Requested by a parent: Ibra went straight into the prayer without wudu;
+add 90 and 120 minute timers; and a little adhan so prayer time is easy to
+notice.
+
+- **Wudu before the prayer:**
+  - Standing in your place in the row, or pressing 🤲 Pray together,
+    without wudu: Baby Mo says “Wait — wudu first before we pray! 💧”
+    and the wudu pop-up opens, titled **Wudu before we pray**. It has
+    the picture for each step.
+  - Tap the 9 steps in order. The pop-up shows the du’a and closes by
+    itself, and the prayer starts.
+  - Closed it early, or went to watch the picture guide? Baby Mo asks
+    again a few seconds later if you’re still in your place.
+  - Wudu made at the village well or fountain beforehand counts too. A
+    fresh wudu is asked for each prayer.
+  - The Grand Masjid’s two wudu places (the men’s basin by the west
+    door, the women’s pool in the courtyard) now open the wudu pop-up
+    too.
+  - The villagers’ “we’re waiting for you” message now says to make wudu
+    first.
+- **The adhan at prayer time** (`adhan()` in `src/game/audio.ts`):
+  - A short, gentle “Allāhu Akbar, Allāhu Akbar” in the style of the
+    adhan, about 8 seconds, with a big “🕌 Allāhu Akbar… It’s time for
+    Dhuhr!” message.
+  - It’s made in code: a synthesized voice with vowel shaping,
+    vibrato, a little melisma and a hall echo. No recording is used.
+  - The background music goes quiet while it plays.
+  - It plays when a prayer time comes in the game, and with the
+    real-time prayer reminders.
+  - **For grown-ups:** an **Adhan sound at prayer time** switch with a
+    🔊 preview. When it’s off, the old drum and chime play instead.
+- **Daily play limit:** now 20, 30, 45, 60, 90 or **120 minutes** (90
+  was already there).
+- **Tested:**
+  - Smoke:
+    - standing in the row without wudu opens the wudu pop-up and the
+      prayer waits;
+    - after the 9 steps, the pop-up closes and the prayer starts.
+  - The Grand Masjid smoke step and the QA prayer check now make wudu
+    first, since they test other things.
+  - The adhan plays without errors in the headless browser. Listening
+    to it needs a real device.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
+### Fishing practice with Baby Mo 🎣🧸
+
+Requested by a parent: a live practice catch where Baby Mo walks Ibra
+through fishing, step by step.
+
+- **New `src/game/fishcoach.ts`.** Baby Mo coaches on the card at the
+  bottom of the screen (“Step 3 of 6”), and reads each step aloud. A step
+  only moves on once you’ve done it:
+  1. **Hold the rod:** the rod’s box in the bar at the bottom glows. If
+     you don’t have a rod, Baby Mo gives you one (yours to keep), and
+     puts it in the bar if it was only in the bag.
+  2. **Go to the water:** a trail of golden sparkles leads to the
+     nearest sea, river or pond. If none is close, Baby Mo offers to take
+     you to the beach.
+  3. **Throw:** “Look at the water, then tap ✋ Use” (on a computer,
+     right-click), and the ✋ button glows.
+  4. **Wait:** “Watch the red float. Don’t tap yet!”
+  5. **Tap now:** when the float dips, the card says NOW!, next to the
+     big TAP! cue.
+  6. **Caught it!** Confetti, Baby Mo cheers, and +50 coins: “You’re a
+     real fisher now. Remember: throw, wait, then tap when the float
+     dips.”
+- **Forgiving:**
+  - The practice fish bites after 3½ seconds and stays on for 3.2
+    seconds (more time than a beginner normally gets).
+  - Tapping too early just says “Oops, too early, let’s throw again”.
+  - A fish that gets away just means waiting for the next one.
+- **Starting it:**
+  - **🧸 Practise with Baby Mo** in the fishing guide (🎣❓) starts it
+    any time.
+  - The first time, **Let’s go fishing!** starts it too.
+  - **Skip** on the card stops it.
+  - The guide’s two buttons now sit right under the title, so they’re
+    always in view on a phone held sideways.
+- **Less clutter:** during practice, the ⛵ and 🎣❓ buttons are hidden so
+  they don’t cover the card.
+- **Taken to real open water:**
+  - The trip to the beach skips frozen shores. Where it’s snowy, the sea
+    surface is ice.
+  - Once the ground has loaded, Baby Mo steps you right to the water’s
+    edge, facing the water, so the first throw lands on water.
+- **Pets hop the fence:**
+  - A following animal stuck at a fence or wall while you’re outside now
+    hops over to you after a moment.
+  - Since the last fix, followers no longer walk through walls, so a
+    rescued animal could get stuck at the sanctuary fence.
+  - Inside buildings and upstairs they still wait for you.
+- **Smoke tests:**
+  - The boat step skips frozen shores too, and looks further for one.
+  - The bedtime step closes a leftover reward pop-up before checking
+    the game has started again.
+- **Tested:**
+  - Unit tests: the steps go in order, an early tap goes back to
+    throwing, a fish that gets away goes back to waiting, and the
+    practice fish is more forgiving.
+  - Smoke: the whole practice, from the guide, the glowing rod slot and
+    the trip to the beach, through an early tap and the first catch.
+  - Screenshots of every step on an 844×390 phone.
+  - The unit tests, the smoke suite on four profiles, and the QA suite.
+
+### The Grand Masjid, the way to the masjid, and masjid lights 🕌✨
+
+Requested by a parent: an easy way for Ibra to get to the nearest masjid on
+time from anywhere, a light that shows where a masjid is, and a bigger
+masjid where more people pray, with separate places for men and women.
+
+- **The Grand Masjid (Masjid Raya)**, a new landmark 58–130 blocks from
+  the village, in every world. It's added last, so existing worlds keep
+  all their other places and gain the new masjid.
+  - **Men’s hall in front:** green and red rows, the mihrab and a
+    minbar, under a big golden dome you can look up into from inside.
+    Men’s doors are on both sides, with a long wudu basin by the west
+    door.
+  - **Women’s hall behind** a wooden screen with a white curtain, all
+    across the hall: purple and blue rows, a small dome, its own door at
+    the back, and its own wudu place in the courtyard behind a little
+    screen.
+  - **Outside:** two minarets with balconies and lanterns, a courtyard
+    with a fountain, flowers and date palms, and a treasure chest.
+  - Walking into each hall shows a short card about it: straight rows
+    (HR. Bukhari 723), and why women have their own hall (as in the
+    Prophet’s ﷺ masjid).
+- **It fills up at prayer time** (new `src/game/masjids.ts`):
+  - An imam, two rows of men (some boys) in caps and robes, and two rows
+    of women in white and pastel mukena. That's 37 people, or 19 on low
+    graphics.
+  - Some sit and wait until the prayer starts. Everyone prays the same
+    movements together, then sits for dhikr afterwards.
+  - Your place in the row glows. Boys join the men’s row (Baby Mo next
+    to them); girls (Ais) join the women’s row.
+  - Praying there counts like the village masjid: ×27 in the Amal Book,
+    100 coins, steps to the masjid.
+  - The village masjid works as before. The prayer checks now work for
+    any masjid (“sites”), not only the village one.
+- **Getting to the masjid on time:**
+  - **🕌 To the masjid button:** a pulsing gold button appears while a
+    prayer is waiting and you’re not in a masjid. It lists both masjids
+    with distances:
+    - **Take me there:** a quick fade, with Baby Mo, to the right door
+      (men’s side door for boys, women’s door for girls). Off the boat
+      or camel first.
+    - **Show me the way:** a trail of little golden lights on the ground
+      leads you there.
+  - **The golden arrow** points to the nearest masjid during prayer time
+    (🕌 and the distance), then goes back to letters.
+  - **Prayer tab:** a **Go to a masjid** button, any time.
+- **Masjid lights:**
+  - A golden beam of light rises over each masjid.
+  - It pulses brightly while a prayer is waiting, glows softly at night,
+    and is off during the day.
+  - A glowing crescent-and-star marker floats above the dome during
+    prayer time, visible from far away.
+- **Pets follow you onto raised places again.**
+  - The “you’re up in a building” check from the last fix now compares
+    your height with the ground just around you, not the natural ground.
+  - Animals follow you onto raised places such as the sanctuary pen and
+    the Grand Masjid platform, but still wait below towers and upper
+    floors.
+  - Found by a smoke test that sometimes failed.
+- **Tested:**
+  - Unit tests:
+    - every world has the Grand Masjid near the village;
+    - the women’s hall is behind the men’s, with the screen and curtain
+      across the whole hall;
+    - boys and girls have different doors and places;
+    - the rows leave your place and Baby Mo’s free;
+    - the arrow picks the nearest masjid.
+  - Smoke:
+    - far away at Asr, the 🕌 button and the arrow appear;
+    - choosing the Grand Masjid takes you there;
+    - standing in your place starts the prayer with a full masjid, and
+      finishing it counts.
+  - Screenshots: the button and picker, the door, inside both halls, the
+    whole row in ruku’, a view from above, and the beams and crescents
+    from far away at evening.
+  - The unit tests, the smoke suite on four profiles, and the QA suite.
+
+### Fixes: animals stay outside, no rain indoors, the boat stays put 🐱🐪⛵🌧️
+
+Reported by a parent after Ibra played.
+
+- **Pets followed you up to the 3rd floor.**
+  - Before: a following pet teleported to you whenever you were 6+
+    blocks higher, and walked straight through walls when blocked.
+  - Now pets (and animals you're bringing to the sanctuary) wait
+    outside while you're indoors (anywhere with a roof: a house, the
+    masjid, a cave) or up in a building (more than 3½ blocks above the
+    ground). They catch up when you come back out.
+  - Pets no longer pass through walls. They still swim after you.
+- **The camel walked into the masjid.**
+  - A camel you ride stops at any doorway with a roof over it. A
+    message says camels wait outside: get off with ✋ and go in.
+  - Animals wandering on their own no longer step indoors either.
+- **Rain, snow and blossom petals inside the masjid.**
+  - Each raindrop, snowflake and petal is checked against the roof
+    above it, so they stop at roofs (and under trees) and never fall
+    inside. You can still see the rain outside through doors and
+    windows.
+  - New `world.roofed(x, y, z)` (is there a roof above this spot?) is
+    shared by all of these fixes.
+- **The boat disappeared when Ibra used it.**
+  - Cause: while riding, any quick tap on the world ended the ride. On
+    a tablet, tapping to look around right after launching put the boat
+    straight back in the bag, with no message.
+  - Now only the ✋ Use button gets you off. Getting off says the boat
+    is back in your bag, and to tap ⛵ at the water to sail again.
+- **Tested:**
+  - A browser check:
+    - the pet stays outside while you're in the masjid hall;
+    - it stays at the bottom while you stand on a 9-block tower, then
+      rejoins you when you come down;
+    - a ridden camel stops at the masjid door;
+    - no rain inside the masjid.
+  - The smoke boat step now taps the world while sailing and checks the
+    ride goes on.
+  - Unit tests, the smoke suite on four profiles, and the QA suite.
+
+### Bedtime instead of a sudden stop 🌙😴
+
+Requested by a parent: Ibra was sad when time ran out in the middle of
+building his house. Now you and Baby Mo get sleepy and go to bed, so the
+end of play feels like a natural goodnight.
+
+- **New `src/game/bedtime.ts`.** This only happens when a daily play
+  limit is set.
+  - **10 minutes before the limit:**
+    - Evening light falls slowly over the island.
+    - Baby Mo yawns (head back, eyes shut) and says: “It’s getting late
+      and I’m sleepy. Let’s finish our building, it’s nearly bedtime!”
+    - A pill at the top counts down: **🌙 Bedtime in 7 min**, with a
+      **😴 Sleep now** button.
+  - **5 minutes before:** Mo reminds you that your house is always saved
+    and you’ll carry on tomorrow. Going to bed on time gets a reward. He
+    yawns more often.
+  - **Sleep now** (after a “Ready for bed?” check):
+    - +20 coins and 3 stars for going to bed on time.
+    - Today’s play ends there.
+  - **At bedtime:**
+    - Baby Mo sits down beside you, facing the camera, closes his eyes
+      and nods off with little Zzz sparkles.
+    - The goodnight card sits to the side (landscape) or at the top
+      (portrait), so you can watch him sleep.
+    - It says your house and everything you built is saved, and shows
+      the du’a before sleeping (Bismika Allahumma amutu wa ahya), which
+      counts in the Amal Book.
+  - **In the middle of building:** if you placed a block in the last 45
+    seconds, Baby Mo waits 2 more minutes so you can finish the last
+    part, once a day.
+  - **Grown-ups:** the card keeps the grown-up gate. Adding time wakes
+    Baby Mo and brings the daylight back.
+- **The older “Time for a break” card** is still there for other callers;
+  bedtime uses the new goodnight card.
+- **Tested:**
+  - Unit tests for the bedtime phases and the evening light.
+  - A smoke step: evening and countdown, Sleep now, the goodnight card
+    with Mo asleep and the game paused, then a grown-up adds time and Mo
+    wakes.
+  - Screenshots on desktop and an 844×390 phone.
+  - The QA play-time lock check, the smoke suite on four profiles, and
+    the QA suite.
+
+### A water bottle: you and Baby Mo need to drink 💧
+
+Requested by a parent: a water bottle, and the player and Baby Mo need to
+drink to keep playing and working.
+
+- **New `src/game/thirst.ts`:**
+  - Your water level and Baby Mo’s drop while you work: walking, digging,
+    building or swimming. From full to empty takes about 10 minutes of
+    busy play, or 30 while resting. Nothing drops while a pop-up is open,
+    the game is paused, or you are praying together.
+- **The water bottle** (a new item):
+  - Baby Mo gives you one the first time, and a new one if it’s ever
+    gone. It holds 4 sips.
+  - Hold it and tap **Use** to drink. A sip brings back 40%, with a
+    reminder of the sunnah: Bismillah, sit, right hand, three breaths.
+    This counts as Bismillah in the Amal Book.
+  - Hold it and tap **Baby Mo** to give him a drink. He drinks from a
+    glass and thanks you.
+  - **Fill it** by using it near the sea, a river, a pond or the village
+    well.
+- **A new good deed in the Amal Book: Giving water.** “Sa’d asked which
+  charity is best. The Prophet ﷺ answered: ‘Water.’” (HR. Abu Dawud
+  1679). It helps build the village’s kindness projects.
+- **Two little water bars in the top bar** (Me and Mo):
+  - They turn orange and pulse when someone is thirsty.
+  - Tap them to see the levels and sips, with **I’ll drink**, **Give Mo
+    a drink** and **Fill the bottle** right there.
+- **Kept gentle:**
+  - When you’re thirsty you only walk and dig a little slower (at worst
+    80% speed). Nothing is lost.
+  - Baby Mo says once when you look thirsty. When he is thirsty himself,
+    he asks for a drink every 90 seconds, with little water drops over
+    his head.
+- **The real-life water break** (drinking a real glass) fills you, Baby
+  Mo and the bottle back to full.
+- **Old saves:** the water levels start full the first time the game
+  loads.
+- **Tested:**
+  - Unit tests: draining, sips, the gentle slow-down, the item and the
+    deed.
+  - Smoke: drinking, giving Mo a drink, the deed, and refilling at the
+    well.
+  - A screenshot of the water bars and Baby Mo drinking.
+  - The unit tests, the smoke suite on four profiles, and the QA suite.
+
+### Picture guides for wudu and sholat 🧒💧🕌
+
+Requested by a parent, with the Baby Mo pose renders from their Drive
+(wudu and sholat folders) to use as a picture tutorial.
+
+- **The pictures:** 37 poses, cropped and resized to 360×360 WebP
+  (about 600 KB in all), in `public/img/poses/`. Steps with several
+  pictures play them in a loop with a soft crossfade, like a little
+  cartoon.
+- **New `src/game/tutorials.ts`:** a short sentence a child can follow, in
+  Indonesian and English, for each of 10 wudu steps and 10 sholat steps
+  (intention, takbir, standing, ruku’, sujud, the first and final
+  sitting, salam right and left, du’a).
+- **Picture guide pop-up:**
+  - Step counter and dots, ◀ ▶ buttons, and play/pause. Each step stays
+    about 7 seconds.
+  - Baby Mo’s voice reads each step aloud, and 🔊 repeats it.
+  - Watching to the end counts as seeking knowledge in the Amal Book.
+- **Where to find it:**
+  - **How to pray** and **How to make wudu** in the Amal Book and on the
+    Prayer tab.
+  - **Watch how** in the wudu pop-up.
+- **The wudu pop-up at the well** now shows the picture for the glowing
+  step, and the du’a picture when you finish.
+- **Praying together:** the prayer pill shows the picture of what the row
+  is doing right now: takbir, standing, ruku’, sujud, sitting, or salam to
+  the right and left.
+- **Short landscape phones:** the picture sits beside the words, so
+  nothing needs scrolling.
+- **Tested:**
+  - Smoke checks that the prayer pill shows a pose picture, the du’a
+    picture appears after wudu, and the sholat guide has 10 steps and
+    moves on with ▶.
+  - Screenshots on desktop and an 844×390 phone.
+  - 146 unit tests, the smoke suite on four profiles, and the QA suite.
+
+### Steadier smoke tests on slow CI machines
+
+- **The problem:** three publish runs failed on GitHub's slower runners.
+  None was a game bug; each was a smoke step that assumed the machine was
+  fast.
+  - **Selling a pearl** clicked the shop while a celebration pop-up was
+    still queued in front of it. The step now waits for the shop and
+    closes anything ahead of it.
+  - **The raft ride** checked after a fixed 1.5 s; at a few frames a second
+    the raft had only moved 0.39. The step now waits up to 20 s for it to
+    move, closing any pop-up that pauses the game.
+  - **The boat** step tried only one shore. It was already fixed in the
+    swimming change (several shores, and water found from a higher
+    bank).
+- **Tested:** the full smoke suite on four profiles.
+
+### An iOS look for buttons, sheets and icons 📱
+
+Requested by a parent: icons and buttons like the latest iOS.
+
+- **A new `src/ios.css`** is loaded last, so it restyles everything without
+  changing any layout.
+- **Font:** the iPhone's rounded system font (SF Pro Rounded) on Apple
+  devices, falling back to Nunito elsewhere.
+- **Buttons:** flat capsules in iOS system colours with a gentle press
+  (scale and dim) instead of the old chunky 3D ledge.
+  - The main action is system blue; the reward or celebrate action is a
+    warm gold.
+  - Secondary buttons are grey fill with blue text.
+- **Glass bars and round buttons:** translucent with blur and a light top
+  edge, like iOS control bars.
+- **Sheets (pop-ups):** large 34 px corners, a frosted background, a grey
+  grabber at the top, and a softer dimmed backdrop.
+- **New line icons** in the game's own iOS-style set (drawn for the game,
+  not Apple's): boat, fish, question mark, swimmer, coin, cart and heart.
+  The coin counter, ⛵ boat, 🎣 fishing help and swim-stroke buttons now
+  use them instead of emoji.
+- **Toasts** are dark glass capsules; the good-deed chip is a light glass
+  capsule; rows, number badges and the ×27 badge use iOS shapes and
+  colours; the grown-ups answer box is an iOS text field.
+- **Tested:** screenshots of the HUD, a dialog, the shop and the settings
+  on an iPhone-sized screen; the smoke suite on 4 profiles and QA on 5
+  (button sizes, centring and fit all still pass).
+
+### Swimming that looks and feels natural, with four strokes 🏊
+
+Requested for Ibra: a more natural swimming motion and more styles.
+
+- **You float now.** The main reason swimming looked odd: water had no
+  buoyancy, so you sank and walked along the bottom unless you held jump.
+  - Now you rise gently to the surface and stay there with your head just
+    above the water.
+  - **⬇️ dives** (the ⬇️ button now shows while swimming; C or Ctrl on a
+    keyboard). Jump still climbs out onto the shore.
+- **Treading water** when you stop: upright, hands sculling, legs
+  treading, a gentle bob.
+- **Four strokes**, chosen with a new stroke button that shows while
+  swimming. Each tap tries the next one:
+  - 🏊 **Freestyle** (front crawl), the fastest: arms reach, pull and swing
+    over one after the other, with a flutter kick. The body rolls and the
+    head turns to breathe.
+  - 🐸 **Breaststroke:** a wide pull and glide with a frog kick, the head
+    lifting to breathe.
+  - 🐶 **Doggy paddle**, the slowest and cosiest: quick little paws, head
+    well up.
+  - 🙃 **Backstroke:** on your back, face up, arms circling backwards.
+- **Underwater:** a streamlined dive with wide arm pulls and a dolphin
+  kick.
+- **Splashes** come off your kicks at the surface.
+- **Switching** between strokes, treading and diving cross-fades smoothly.
+- **New quest:** super swimmer (try all four strokes).
+- **The ⛵ and 🎣? buttons** now also find the water from a higher bank (up
+  to 4 blocks down).
+- **Tested:**
+  - Unit tests: treading when still, swimming when moving, and no joint
+    snapping across all strokes and diving. This test caught a bug where
+    changing speed made the arms flicker; stroke timing now builds up
+    smoothly.
+  - Screenshots of each stroke and treading water.
+  - The smoke suite on four profiles; its boat step now tries several
+    shores.
+  - QA on five profiles.
+
+### A real boat for the sea, lakes and rivers ⛵
+
+Requested by Ibra: he was curious about a boat.
+
+- **A ⛵ button** appears whenever you stand at the water's edge.
+  - With a boat in your bag it says **Sail** and launches the boat on
+    the nearest open water, facing out from the shore.
+  - Without one it shows **?** and a short "Going by boat" guide.
+  - The first time, Kakek Yusuf gives you a boat so you can try at once.
+  - You can still make a boat (5 planks at the workbench) or buy one, and
+    using it while held still works.
+- **The boat is rebuilt:** a hull with a pointed bow, two benches, a mast
+  with a green-and-white striped sail and a little flag, and oars at the
+  sides.
+- **Sailing:**
+  - Move like walking to row; the oars row while you move.
+  - The boat turns smoothly towards where you're going and rocks gently.
+    The sail leans with the speed, and a wake trails behind.
+  - You sit at the back and **Baby Mo sits at the front**.
+  - The camera sits further back on a boat so you can see the sail.
+- **Getting off:** tap ✋ near land; the boat goes back into your bag.
+- **Fixed:** the boat recipe was listed under "decorations"; it is now a
+  tool.
+- **Tested:**
+  - Screenshots on an iPhone-sized landscape screen of the button, the
+    guide, rowing, and sailing to Volcano Island.
+  - A smoke step on four profiles: finds a shore, the button appears, the
+    free boat and guide, sailing with Baby Mo seated, and the boat back in
+    the bag after landing.
+  - QA on five profiles.
+
+### A fishing guide for young players 🎣?
+
+Requested for Ibra: "he wants to try fishing but isn't sure how".
+
+- **A 🎣? button** appears whenever you stand by water or hold a fishing
+  rod. It sits above the action buttons, or beside them on a phone in
+  landscape so it never covers Jump.
+- **It opens "How to fish":** six numbered picture steps in short
+  sentences.
+  1. Get a rod (3 sticks + 1 white wool at a workbench, or Bu Aminah's
+     shop).
+  2. Hold it.
+  3. Stand at the water's edge and tap ✋ Use.
+  4. Wait.
+  5. When the float dips and **TAP!** appears, tap ✋ Use quickly.
+  6. You get a small, big or golden fish to cook or sell.
+- **Friendly extras:** a tip that being too early is OK and that the
+  Fishing Hat helps. Baby Mo reads the steps aloud if voice is on.
+- **The guide opens by itself** the first time you hold a rod.
+- **While a fish bites:** a big bouncing **TAP! 👆** appears and the ✋ Use
+  button glows yellow. Both go away when you reel in, the fish escapes,
+  or you put the rod away.
+- **Tested:** screenshots on an iPhone-sized landscape screen (button,
+  guide and the TAP! cue); the smoke suite on 4 profiles and QA on 5.
+
+### Pop-ups centred
+
+Reported by a parent: pop-up content sat a little to the left.
+
+- **The cause:** the shop, telescope, tasbih, wudu and hadith cards have a
+  maximum width, but nothing centred them inside their panel. Their
+  content sat 18 px from the left edge and 102 px from the right.
+  - They are now centred, and so are the shop's title and coin line.
+- **The book's tab bar** kept room for the ✕ only on its right, so the
+  tabs looked shifted left. It now has the same space on both sides and
+  centres its tabs. Narrow phones still scroll the tabs from the left.
+- **A new QA check** measures every pop-up and fails if its content is
+  more than 12 px off-centre. It runs on all five profiles and passes.
+
+### New good deeds to do in the village 🤲
+
+All of these are recorded in the Amal Book and help the village projects.
+
+- **💧 Wudu** at the village well (or the fountain once it's built).
+  - Tap the steps in order: intention and bismillah, hands ×3, mouth ×3,
+    nose ×3, face ×3, arms to the elbows ×3, head, ears, feet to the
+    ankles ×3.
+  - The next step glows; tapping out of order shows a gentle hint.
+  - At the end, the shahada du'a and "now you're ready to pray".
+  - Also under "How to make wudu" in the Amal Book.
+- **📿 Tasbih:** tap 33 beads while saying "Subhanallahi wa bihamdihi",
+  with the hadith "light on the tongue, heavy on the scale".
+- **🪨 Clear the path:** now and then a stone falls on a village path (at
+  most two at a time). Clearing it is sadaqah (Bukhari 2989, Muslim
+  1009).
+- **💰 The masjid's charity box** (by the masjid door): give 10, 50 or 100
+  coins.
+  - With no coins: "a smile and helping others are charity too".
+  - It quotes "charity never makes your wealth less" (Muslim 2588).
+- **🤝 Honesty:** after buying, Bu Aminah sometimes gives 10 coins too much
+  change. Giving it back is an honesty deed. Keeping it just gets a gentle
+  word, never a punishment.
+- **😊 Smiling:** your first hello to Baby Mo each day.
+- **🌙 Du'a before sleeping** counts when you sleep in a bed.
+- **🕌 Jumu'ah:** on a real Friday, the first visit to the masjid has a
+  short talk for children (one of six lessons, rotating each week).
+- The Amal Book page lists where to find these.
+- **Tested:**
+  - Screenshots of wudu, the tasbih, a path stone, the charity box and the
+    honesty choice.
+  - A smoke step on four profiles: wudu, a full tasbih, a gift to the
+    charity box, and finishing the fountain project, which is then built
+    in the world.
+  - QA on five profiles.
+  - The prayer-and-shop smoke step now turns off the random extra-change
+    event, which has its own check.
+
+### The Amal Book 📖 and village projects (sadaqah jariyah) 🏗️
+
+Requested by a parent: link the game to Islamic values. For example,
+praying together is worth 27 times more.
+
+- **A new "Good deeds" tab: the Amal Book.**
+  - 17 kinds of good deed, each with what Rasulullah ﷺ (or the Qur'an)
+    said about it and the source.
+  - The numbers come from the hadith itself and are shown as his words,
+    not as a score:
+    - **×27** for praying together (Bukhari 645, Muslim 650);
+    - **×10** for each letter of the Qur'an (Tirmidhi 2910).
+  - The page shows today's and all-time counts.
+  - A note on the page and on each card: *"The real reward is with Allah.
+    This book helps us remember how much He loves good deeds. What
+    matters most is doing them for Allah."*
+- **Deeds already in the game now count:**
+  - praying together;
+  - walking to the masjid at prayer time (counted when you arrive, with
+    "each step raises you a degree");
+  - bismillah when eating;
+  - finding a letter of the Qur'an;
+  - the letter quiz and star pictures (seeking knowledge);
+  - planting;
+  - petting, feeding and rescuing animals;
+  - sharing food, iftar together, and salam to each villager once a day.
+- **When you do a deed:**
+  - A small "✨ 🕌 Praying together ×27" chip appears.
+  - The first time, a card shows the hadith, after anything the deed
+    itself shows (such as the letter card). Baby Mo reads it aloud if
+    voice is on.
+- **Village projects (sadaqah jariyah):** so the book has something to
+  grow, good deeds build things for the whole village.
+  - ⛲ **A water fountain for everyone:** 20 deeds of kindness and
+    sharing, with the story of Sa'd ibn 'Ubadah's well.
+  - 🏫 **The village madrasah:** 15 deeds of learning.
+  - 🌳 **The masjid garden:** 15 deeds of worship.
+  - Each project has a progress bar in the book.
+  - When one is complete: a celebration, +150 coins, and the hadith "when
+    a person dies their deeds end except three…" (Muslim 1631).
+  - It is then built in the village and saved with the world.
+  - The villagers start using it: Ayah Ibrahim teaches in the madrasah;
+    Kakek Yusuf waters at the fountain and sits in the garden.
+- **Coin pop-ups** now appear by the coin counter, so they don't cover
+  cards.
+- **Book tabs** are at least 34 px tall now that there are eleven.
+- **Tested:**
+  - Unit tests: every deed has both languages, a source and a project;
+    ×27 and ×10 are set; the log counts per day and in total and spots a
+    new deed; the projects fit inside the village and don't overlap.
+  - Screenshots of the hadith card, the chip, the book and the built
+    fountain.
+  - The smoke suite on 4 profiles and QA on 5 (QA caught the letter card
+    waiting behind a hadith card, and the tab size).
+
+### A reason for everything, and a rewarding 5–10 minutes 📅
+
+- **Audit: every item now has a use.**
+  - A check of every item against recipes, food, tools, decorations and
+    "Use" actions found two things you could collect but not use:
+    - golden fish had no use at all;
+    - pearls only mattered while the Eid bazaar was open.
+  - The village shop now has a **Sell** tab. Bu Aminah buys what you
+    gather: golden fish 100, pearl 40, gold 30, crystal 25, big fish 15,
+    obsidian 12, iron 10, small fish 6, and milk, eggs, wool, apples and
+    dates.
+  - Each row shows the sum, such as "590 + 100 = 690".
+- **Today's three goals:** three small goals each real day, each doable in
+  a few minutes.
+  - The pool: pet 2 animals, collect 5 logs, dig 5 stones, place 10
+    blocks, plant a sapling, give food, pray together, catch a fish, cook,
+    find a letter, eat, or answer 3 letter-quiz questions.
+  - Only what is done today counts.
+  - **+30 coins** for each goal and a **+100 bonus** for all three, with a
+    celebration and "come back tomorrow".
+  - The corner tracker shows "Today 💕🌱✨ 1/3"; the quests tab lists the
+    goals with progress bars.
+  - The letter goal is left out once all 28 letters are found.
+- **Fixed:**
+  - The parents panel now opens at once after the grown-ups check, even
+    when another pop-up is waiting.
+  - The kite smoke step was too strict: CI failed on Android while the
+    kite was just starting to climb. It now checks that the kite rose
+    above where it started.
+- **Tested:**
+  - A unit test for the goals: three different ones, stable per day,
+    today's progress only.
+  - A smoke step on four profiles: all three goals, coins and bonus,
+    selling a pearl.
+  - Screenshots of the goals, the tracker and the Sell tab.
+  - The QA suite on five profiles.
+
+### Animals look right again 🐪🐄🐑🐐🐔🐱
+
+Reported by a parent: "the camel looks weird".
+
+- **The real cause, for every animal:** the draw-call optimisation in M8
+  merged each animal's boxes into one mesh. For a box with a single
+  material it kept only one of the box's six face groups. From most
+  angles the camel showed only its legs, and cows, sheep and hens lost
+  their heads or sides.
+  - The merge now keeps every face.
+  - A new unit test checks that three merged boxes keep all 108 vertices
+    and their full extent.
+- **The camel is rebuilt:**
+  - A round body with a lighter belly and one big hump in steps.
+  - A neck that reaches forward from the chest and then up.
+  - A head with a soft muzzle, nostrils, sleepy eyelids and ears.
+  - Long legs with knobbly knees and wide feet, and a tail.
+  - A red riding blanket.
+  - When you ride, you sit on the blanket in front of the hump, not inside
+    it.
+- **Small details for the others:**
+  - Cow: ears, a tail with a tuft and an udder.
+  - Sheep: a nose and a fluffy tail (it is sheared with the wool).
+  - Goat: floppy ears and a perky tail.
+  - Hen: tail feathers.
+- **Tested:**
+  - Front and side screenshots of all six animals before and after.
+  - All unit tests, and the smoke suite on four profiles, including
+    riding.
+
+### Praying together, properly 🤲 — and coins 🪙
+
+Requested by a parent: the prayer was over by the time the child arrived,
+and they wanted a big-number reward for praying.
+
+- **The villagers wait for you.** At prayer time they walk to the masjid
+  and wait in the row, standing.
+  - They wait until shortly before the next prayer (up to 3 game hours),
+    and a little longer if you are close to the masjid.
+  - A glowing ring marks your place in the row.
+- **The prayer starts when you are in your place.** Stand still on the
+  ring, or tap 🤲 Pray together.
+  - Ayah Ibrahim leads; the villagers, Baby Mo and you move as one.
+  - The real number of rakaat: Fajr 2, Maghrib 3, the others 4. Each
+    rakaat is shortened to about 12 seconds; a whole prayer takes under a
+    minute.
+  - Each rakaat has standing, ruku', i'tidal, two sujud with sitting
+    between, and the first tashahhud after the 2nd rakaat. It ends with
+    the final tashahhud and salam to the right, then to the left.
+  - A pill shows "Rakaat 2/4 · Bowing".
+  - Game time waits while you pray, so the next prayer can't cut it short.
+  - Walking out of the row lets the villagers finish without you.
+- **At the salam:** "Taqabbalallahu minna wa minkum", the jama'ah count,
+  stars, and **+100 coins**.
+- **Coins 🪙:**
+  - A new counter in the top bar counts up to the new total.
+  - Each reward floats up as a big "+100" with the sum written out, such
+    as "250 + 100 = 350".
+  - Finishing any quest gives +50.
+  - Two rewards at once take turns instead of overlapping.
+- **Village shop** (Bu Aminah, or tap the coin counter in the village):
+  dates, milk, saplings, wool, lanterns, a fishing rod, a prayer mat,
+  mangrove seedlings, a kite, fireworks and a boat.
+  - Every item shows the sum "you have 340, 340 − 50 = 290", or how many
+    more coins you need.
+- **Fixed while testing:**
+  - The "time waits" change briefly made the clock jump to the real time.
+  - A second prayer started on its own right after the salam.
+  - The time freeze now only holds while you are in the row.
+  - The prayer pill wrapped badly on phones in portrait.
+- **Tested:**
+  - Unit tests: the rakaat count and sujud per prayer, salam on both
+    sides, under 70 seconds, and the row moving through to the end.
+  - A smoke step on all four profiles: no start without you, the start
+    in your place, +100 coins and the count at the end, no restart, and a
+    purchase.
+  - The QA suite.
+
+### Play-time lock with a grown-ups check 🔒
+
+Requested by a parent: one hour of play by default, then the game stops
+until an adult continues it.
+
+- **Daily play limit** is now 1 hour by default.
+  - Older saves that never chose a limit get 1 hour once.
+  - Parents can still choose 20–90 minutes or no limit in the parents
+    panel.
+- **Before the end:** a reminder at 5 minutes and a toast at 1 minute.
+- **When time is up:** a full-screen card that can't be closed stops the
+  game.
+  - It shows how long was played and says the game is saved.
+  - It stays after a reload, because play time is counted per day and
+    saved.
+  - The game stays paused behind it even if another pop-up opens or
+    closes.
+- **Only a grown-up can continue:** "For grown-ups" asks a multiplication
+  such as 17 × 8 (12–19 × 6–9, answers 72–171).
+  - The answer is typed in, with no choices to guess from.
+  - After 3 wrong tries it asks to fetch a grown-up.
+  - Then they can add 15, 30 or 60 minutes for today.
+- **The same harder check** now protects the parents panel and "new
+  world". It used to be a simple sum like 7 + 6 with three buttons, which
+  a young child could answer.
+- **Tested:**
+  - A unit test for the sum range.
+  - QA on desktop, iPhone landscape and portrait, iPad and Android: a
+    wrong answer keeps the panel shut; the lock appears and keeps the game
+    paused; the right answer and "+15" unlock it.
+  - The smoke suite.
+
+### The Hilltop Masjid 🕌
+
+- **A new landmark** on a high hill: a white marble masjid on a terrace.
+  - **Prayer hall:** green and red prayer rows, a mosaic mihrab, windows,
+    lanterns and a golden dome.
+  - **Courtyard:** a little wudu fountain and flowers.
+  - **Minaret:** a hollow tower with a staircase winding round a pillar,
+    one block per step, up to a balcony with a rail, lanterns and a golden
+    cap.
+- **Secret spot:** the top of the minaret, with a lesson on the adhan and
+  Bilal ibn Rabah, the first muadhin.
+- **The discovery card** gives the hadith about building a masjid for
+  Allah (Bukhari & Muslim).
+- **New quest:** up the minaret.
+- **Tested:**
+  - Unit tests on 4 seeds: the doorways, all 13 steps with headroom, and
+    the balcony.
+  - A smoke step reaches the top on all four profiles.
+  - The full QA suite passes.
+
+### Weather of the day 🌤️
+
+- **Every game day has its own weather,** the same for the same world and
+  day. Rain still comes and goes on its own.
+  - ☀️ **Sunny** (most days).
+  - 🌫️ **Misty morning:** whitish fog from dawn until a couple of hours
+    after sunrise, then it lifts.
+  - 💨 **Windy:** clouds race and kites fly higher (wind now drives the
+    kite height).
+  - 🌸 **Blossom day:** pink petals drift down around you outdoors in the
+    daytime (not in deserts, snow or at sea).
+- **The weather icon** shows next to the clock, and Baby Mo says what kind
+  of day it is when a new day starts. A misty morning comes with a little
+  lesson: mist is a cloud near the ground.
+- **Tested:** a unit test that the weather is stable per day and that all
+  four kinds turn up, with sunny the most common; screenshot checks of
+  mist and petals; the smoke suite on desktop and Android.
+
+### Night glow 🍄
+
+- **Glowing mushrooms** grow in forests, a couple per forest chunk. They
+  give off light and stand out at night.
+  - They only take spots that were empty, so no tree or flower moves in
+    existing worlds.
+  - The first time you are near one at night, Baby Mo explains
+    bioluminescence.
+- **Night sounds outdoors:** soft cricket chirps, and an owl's hoo-hoo in
+  forests now and then. They stay quiet underground and follow the sound
+  setting.
+- **Tested:** a unit test that forest chunks get a few mushrooms (not a
+  carpet) and that they give light; a screenshot check; the smoke suite on
+  desktop and iPhone.
+
+### Mangrove Swamp 🌿
+
+- **A new landmark** at the coast (or a lagoon where there is no beach):
+  shallow water one block deep over mud, with dry mud banks.
+- **Mangrove trees** stand on arching roots in the water, with short trunks
+  and wide canopies.
+- **A boardwalk** with lanterns crosses to a platform with a chest
+  (seedlings, a fish, lanterns), next to an open planting spot.
+- **Crabs** scuttle sideways along the boardwalk, and fireflies glow over
+  the swamp at night.
+- **New blocks:** mangrove log, leaves (sometimes drop a seedling), roots
+  and seedling (both live in water), and mud.
+- **Planting:**
+  - Mangrove seedlings go only in shallow water on mud or sand.
+  - Elsewhere a friendly message explains this, and other plants can no
+    longer be placed into water by mistake. Sea plants still can.
+  - A planted seedling grows into a mangrove tree like other saplings.
+- **The discovery card** explains that Indonesia has the largest mangrove
+  forests in the world, how they protect the coast, and that people are
+  caretakers (khalifah) of the earth.
+- **New quest:** coast keeper (plant 3 mangroves).
+- **Tested:**
+  - Unit tests on 4 seeds: roots, logs, the platform, the planting spot.
+  - Every one of 150 seeds gets a swamp.
+  - A smoke step on all four profiles refuses a seedling on the boardwalk
+    and plants one in the water.
+  - The letter smoke step now closes pending pop-ups first.
+
+### Treasure map 🗺️ and the great treasure
+
+- **Four map pieces** wait as scrolls in the Lighthouse (top platform), the
+  Oasis Camp tent, the Igloo and the Library Ruins.
+  - Each place gets just one extra block; nothing moves in existing
+    worlds.
+- **Tap a scroll** to pick up its piece. A card shows the hand-drawn map,
+  with one quarter revealed for each piece found.
+- **With all four,** the map shows a red ❌ and a dotted line from the
+  village, and the golden arrow points there.
+- **The ❌ on the ground:** a ring of stones around a red wool X, placed
+  far from the village and clear of every other place and the river.
+- **The great treasure** is buried 3 blocks under the middle of the X.
+  - Standing on the X, Baby Mo tells you to dig straight down.
+  - The chest holds gold, crystals, pearls, gold tiles and the new
+    **Treasure Hunter's Crown** 👑, which sparkles as you walk.
+- **The 🧭 Map tab** shows the treasure map with your position and a "show
+  the way to the ❌" button.
+- **New quest:** the treasure map.
+- **Tested:**
+  - Unit tests on 4 seeds: four scrolls, each in its place, and a chest
+    under the X, away from other places.
+  - A smoke step on all four profiles collects the four pieces and opens
+    the great chest.
+  - The saved-positions test confirms no older place moved.
+
+### Kites 🪁 (layang-layang)
+
+- **Three kites** (red, blue and yellow), each made at the workbench from 2
+  sticks + 2 wool.
+- **Flying one:** hold it and tap 👆 Use to let it fly; tap again to reel it
+  in. It has a diamond face, a string to your hand and a fluttering tail
+  of bows.
+- **Height:** the kite climbs higher the higher you stand (beach about 6
+  blocks, a tall hill 13+), and higher still with more wind. Wind will be
+  driven by the weather of the day in a later step.
+- **It is put away** when you change what you hold, ride or swim. It needs
+  open sky.
+- **The first flight:** Baby Mo talks about kite flying in Indonesia.
+- **New quest:** a kite up high (fly it really high on a hill).
+- **Tested:** a unit test for the height rules and recipes; a smoke step
+  on all four profiles makes a kite at a workbench and flies it.
+
+### Animal Sanctuary 🏡 and lost animals
+
+- **A new landmark:** a fenced pen two blocks high with a gate, a shelter
+  with hay, a water trough, a food trough and a chest.
+- **Five lost animals** wait around the world, in the same places for the
+  same world: Kapas the lamb, Belang the cat, Kiki the goat, Pipit the hen
+  and Mochi the cow. Each carries a 🥺 "Lost" tag.
+- **Rescuing one:**
+  - Tap a lost animal: it says it is lost and follows you, and the golden
+    arrow points to the sanctuary.
+  - Walk it into the pen: a welcome-home celebration, and it lives there
+    from then on (it wanders only inside the pen).
+- **Feeding:** tap a rescued animal while holding an apple, dates or milk.
+- **Animal friends list** in the quests page:
+  - Shows who is home, who is following you and who is still lost.
+  - A 🧭 button points the arrow at a lost animal.
+- **New quest:** animal helper (rescue 3).
+- **Fixed:** a following friend, such as your pet, now catches up even
+  after a long jump such as the 🏠 home button. Animals more than 90 blocks
+  away used to stop updating, so a follower was left behind.
+- **Tested:**
+  - Unit tests: the fence, the gate, and five lost spots on dry land away
+    from other places, the same for the same seed.
+  - A smoke step on all four profiles rescues an animal and feeds it.
+
+### Raft River 🛶
+
+- **A new landmark:** a winding river traced through low ground, from a
+  pond inland down to the sea.
+  - It ends in a lake when there is no beach in reach.
+  - Every world gets one: checked on 300 seeds.
+- **The route is planned before anything is built,** so it avoids the
+  village, the letter shrines and the other places.
+- **The banks** are terraced grass with flowers, and lanterns stand along
+  the way.
+- **The dock** at the source has a raft block and a chest (fish, a fishing
+  rod and lanterns).
+- **Tap the raft** and it floats down the whole river by itself.
+  - Baby Mo sits on the raft behind you, with little splashes at the
+    sides.
+  - Tap ✋ to hop off any time; at the end you step onto the bank.
+- **New quest:** down the river.
+- **Tested:**
+  - Unit tests on 4 seeds: water along the whole path, the raft at the
+    dock.
+  - A smoke step that rides the raft, checks it moves, Baby Mo is seated,
+    and the ride ends and counts.
+  - The saved-positions test confirms no older place moved.
+
+### Volcano Island 🌋
+
+- A new landmark far out at sea (12 in total), reached by boat.
+  - In a world with no deep sea in reach, it stands on low land instead.
+- **The island:** a sandy beach, grassy lower slopes and a dark basalt
+  cone.
+- **The crater:** glowing warm magma rock, with a step to climb back out.
+- **Getting up:** a stone path climbs the south side one block at a time.
+- **Smoke** rises from the crater and can be seen from far away; steam
+  rises from two warm springs.
+- **New blocks:** basalt, warm magma rock (glows; not mineable, never
+  hurts) and obsidian (iron pickaxe).
+- **Secret spot:** inside the crater.
+- **Chest:** obsidian, crystals and gold.
+- **New quest:** volcano explorer.
+- **Old worlds keep their places:** a new test with saved positions of
+  every landmark for 8 seeds makes sure new places never move the ones a
+  saved world already has.
+- **Tested:** unit tests for the crater, the path (never more than one
+  block up per step), the springs and the chest; the desktop smoke suite;
+  a screenshot check of the island, path and crater.
+
+### New places: Waterfall Valley, Coral Reef, Stargazing Hill and the Eid bazaar
+
+Three new landmarks in every world (11 in total), placed by the same seed
+rules as the others, plus a market that opens in the village for Eid.
+
+- **Waterfall Valley** 🏞️ (forest, meadow or mountains)
+  - A cliff with a river on top that falls into a pool. There is spray at
+    its foot and a soft rushing sound when you are close.
+  - A rainbow over the pool on sunny afternoons (after Dhuhr, before
+    Maghrib, not raining).
+  - **Secret cave behind the waterfall:** swim through the falling water to
+    find a room with crystal walls and a treasure chest.
+- **Coral Reef** 🪸 (shallow sea or a beach lagoon)
+  - Pink, orange and purple coral, seagrass, coral fans and clams.
+  - A school of fish and two sea turtles swim around the reef.
+  - Clams give a **pearl** about half the time.
+  - **Pearl Cave:** dive down a hole in the sea floor and through a short
+    tunnel, then come up into an air pocket with a dry ledge and a chest.
+  - New sea plants keep the water around them whole, and you swim through
+    them (`aquatic` blocks in the mesher and the player).
+- **Diving Mask** 🤿, a new power hat
+  - Unlocks at level 4, or as soon as you find the reef.
+  - With it you swim almost as fast as you walk and see about twice as far
+    underwater.
+  - It comes with 2 lanterns for the cave.
+- **Stargazing Hill** 🔭 (desert or meadow)
+  - A round hill with a telescope; tapping the telescope opens two pages.
+  - **Tonight's moon:** the real phase for today's date (worked out from
+    the length of a lunar month, accurate to about half a day). It shows
+    how much of the moon is lit and the Hijri date, and explains the hilal
+    with the hadith "fast when you see it". It also gives the days until
+    the next new moon.
+  - **Star pictures:** tap the twinkling stars to join up the Summer
+    Triangle, Orion (Al-Jabbar) and the Big Dipper (Banāt Na‘sh). Each one
+    explains the Arabic origin of its star names.
+  - The moon in the sky now shows the real phase too. Shooting stars cross
+    clear night skies, and they come more often over the hill.
+- **Eid bazaar** 🎉 in the village
+  - A welcome gate with a "Selamat Hari Raya / Eid Mubarak" banner and
+    ketupat, a red carpet, and umbul-umbul flags.
+  - **Four stalls:**
+    - Ketupat & opor, free once a day ("take two: one to share").
+    - Eid cakes: nastar for eggs or dates.
+    - Fireworks for a pearl or apples.
+    - Eid clothes: two new outfits for pearls.
+  - A welcome card explains Eid prayer, forgiving each other and zakat
+    al-fitr, and shows the takbir in Arabic with its meaning.
+  - **Villagers** answer "Minal ‘aidin wal faizin" and give an **Eid
+    envelope** once a day; opening it gives a small gift.
+  - **Fireworks** over the village at night, and ones you can launch
+    yourself.
+  - **When it opens:**
+    - On the real last days of Ramadhan (from the 28th) and the first week
+      of Syawal.
+    - Outside Ramadhan, when the game calendar reaches day 28.
+    - Parents can choose "open now" or "closed" in the parents panel.
+  - The Ramadhan tab shows how close the bazaar is and links to tonight's
+    moon.
+- **New quests:** the waterfall's secret, pearl diver and little astronomer.
+- **Old saves:** the new places are added to existing worlds. The 8 older
+  landmarks keep their positions, because each landmark uses the same
+  random stream as before.
+- **Tested:**
+  - 15 new unit tests: the waterfall's water column and cave, the reef's
+    coral, clams and air pocket, the telescope block, and moon phases on
+    known new and full moon dates. They also check when the bazaar opens.
+  - A new smoke step on desktop, iPhone, iPad and Android finds the Pearl
+    Cave, joins a star picture by tapping, takes food at a stall and gets
+    an Eid envelope.
+  - All 110 unit tests, the smoke suite and the QA suite pass.
+- **Fixed while testing:**
+  - The telescope's star canvas was below the fold on an iPhone in
+    landscape. It now has a compact layout and scrolls into view.
+  - Eid fireworks were switched off completely in light-graphics mode; now
+    they come less often instead.
+  - The bazaar was first placed over a village palm tree and a letter
+    shrine, so it moved to a lane east of the south path.
+
+### Full-screen app on phones (Add to Home Screen)
+
+So the browser bars do not cover the game on iPhone and other phones.
+
+- **Installable app**
+  - `public/manifest.webmanifest`: full-screen display, green theme,
+    Baby Mo icons (192, 512 and a maskable icon).
+  - Apple meta tags in `index.html`: full screen from the Home Screen,
+    a see-through status bar and a 180px touch icon.
+- **Offline cache** (`public/sw.js`)
+  - Pages load from the network first, with the cache as a fallback.
+  - Game files come from the cache first, so an installed game opens fast
+    and still works without internet.
+  - Old caches are cleared when a new version arrives.
+- **Start screen help** (`src/install.ts`, `ui.ts`)
+  - On iPhone/iPad Safari: a card that shows the steps (Share, then
+    "Add to Home Screen"). It can be closed and stays closed.
+  - On Android/Chrome: an "Install as app" button.
+  - On a computer: a "Full screen" button.
+  - Nothing is shown once the game is already opened as an app.
+- **Tested:** 95 unit tests; the smoke suite on desktop, iPhone, iPad and
+  Android profiles. In iPhone emulation the card shows, the manifest loads,
+  the icon is served and the service worker registers. Not tested on a
+  real iPhone, because the sandbox only has Chromium.
+
+### Ibra's ideas (after playtesting)
+
+Requested by Ibra after playing. Each idea is fitted to a young player and to
+the game's "no losing" design.
+
+- **Toy swords that get stronger**
+  - Wooden, stone and iron toy swords, made at the workbench.
+  - Each tap is stronger with a better sword, and the **sword skill** levels
+    up as you use it (+15% per level, up to level 5).
+- **Naughty beetles** (`src/game/bugs.ts`), a gentle "enemy":
+  - **Small green beetles, big red ones, and a rare golden Beetle King**
+    come out at dusk and at night, and in forests by day. Never in the
+    village.
+  - They wander, come over to you and give you a little bump.
+  - They can't hurt you, and there's nothing to lose.
+  - Tap them (bare hands work, a sword works better) and they pop in
+    sparkles and **fly home**, leaving coal, sticks, dates, crystals or (for
+    the King) gold.
+  - Baby Mo explains: "we shoo them gently — we never hurt animals".
+  - Parents can turn beetles off.
+- **Fishing** (`src/game/fishing.ts`):
+  - Craft a rod (sticks + wool) and aim at water.
+  - **Use** casts the float. Wait for the nibbles, and when it dips ("❗
+    Something's biting!") tap to reel in.
+  - Catches: small fish, big fish, a rare **golden fish** or a little
+    treasure.
+  - Tapping early just pulls the float back, and a missed bite just means
+    waiting for the next.
+  - **Fishing skill:** bites come sooner, there's more time to tap and
+    golden fish appear more often.
+- **Cooking** at the furnace is now a little game:
+  - A marker slides along a bar; tap **Flip!** when it's in the green zone,
+    three rounds.
+  - **Perfect** gives an extra portion; anything else still makes the food
+    ("a bit crispy, but still tasty!").
+  - New dishes: grilled fish, fried egg, steak.
+  - **Halal meat** comes from Bu Aminah at the market (3 dates), so nobody
+    harms the friendly village animals.
+  - **Cooking skill** widens the green zone.
+- **Tree climbing:**
+  - Keep walking into a trunk to climb it, hand over hand. You push up
+    through the leaves and hop over onto the top of the canopy.
+  - The first time on each treetop: fruit (apples, dates, or sticks and a
+    pine sapling) and **climbing skill**.
+  - Sometimes a bird's nest, with a short lesson: the Prophet ﷺ taught us
+    not to take baby birds from their mother.
+- **Hats with powers.** Four new hats, and the Explorer hat. **Adam and Ais
+  can both wear them** (on Ais they sit over the hijab). The first time you
+  wear one, its matching item comes with it:
+  - 👒 **Farmer's straw hat:** saplings grow 2× faster (+3 saplings).
+  - 🎣 **Fishing hat:** quicker bites, golden fish twice as likely (+ a
+    fishing rod).
+  - ⛑️ **Miner's helmet:** a warm head lamp in caves and at night, and 35%
+    faster digging (+8 torches).
+  - 👨‍🍳 **Chef's hat:** a wider green zone when cooking (+2 eggs and halal
+    meat).
+- **My look from a photo** (Wardrobe → 📷):
+  - Pick a photo, or take one on a phone. The game finds the main colours
+    and guesses hair, skin, shirt and trousers. Tap a colour, then tap the
+    photo, to change any of them.
+  - **The photo is not sent anywhere and not saved**; only the four colours
+    are kept.
+  - "Back to normal colours" undoes it.
+- **My skills** in the Bag: sword, fishing, cooking and climbing, each with
+  its level and a bar to the next.
+- **New quests:** shoo 5 beetles, go fishing, little chef (cook 3 times),
+  climb a tree.
+- Tests:
+  - 7 unit tests for skills (levels, sword power, fishing odds, cooking
+    zone and quality) and photo colours (a test picture's hair, skin, shirt
+    and trousers come out right).
+  - The smoke test shoos a beetle with a toy sword, plays the cooking game
+    and wears the fishing hat, on all four profiles.
+  - Checked in game:
+    - a big beetle shooed in 4 taps;
+    - a cast, a bite and a catch;
+    - a perfect cook giving 2 grilled fish;
+    - a 7-block climb onto a canopy rewarded;
+    - all four hat gifts;
+    - the head lamp turning on;
+    - the photo colours read correctly.
+
+### M9 · QA pass
+
+- **New full QA suite** (`npm run qa`, `tests/smoke/qa.mjs`). It runs on
+  five profiles: desktop, iPhone landscape, **iPhone portrait**, iPad and
+  Android, and goes through:
+  - boot, and the say-hi tutorial step with its 👋 button;
+  - hijaiyah letters: card, harakat sounds, gift, and the treasure at 4;
+  - letter quiz, and spelling a whole word in the word builder;
+  - du'a card;
+  - all ten book tabs;
+  - Ramadhan calendar;
+  - prayer times, including that changing the method changes them;
+  - prayer time in the game: villagers go to the masjid and you pray
+    together with Baby Mo;
+  - the Maghrib iftar picnic, bedug and bedtime story;
+  - the water break with its "are you sure?" check;
+  - the parents gate and panel;
+  - switching language, the HUD fitting the screen, and no console errors.
+- **Layout checks at every step:** no sideways scrolling, pop-ups fit the
+  screen, buttons at least 30 px, images drawn.
+- **Result:** all checks pass on all five profiles. Full table in
+  `docs/QA_REPORT.md`.
+- **Found and fixed:**
+  - The "?" tiles for letters not yet found had collapsed to 14 px tall on
+    every device.
+  - Small buttons were only 29 px tall on phones ("Back to village",
+    "Photo", map zoom).
+- **Honest limits:** device profiles are emulated in Chromium. Real
+  iPhone/iPad Safari and Android still need a hand check (list in the
+  report).
+
+### M8 · Performance
+
+Measured in headless Chromium with a software GPU, desktop 1100×680, a new
+world after loading (the same script as the V1 baseline in `docs/V2_PLAN.md`).
+
+| | Before M8 | After M8 |
+|---|---|---|
+| Draw calls per frame | 1509 | **209** (−86%) |
+| Scene objects drawn | 1119 | 386 |
+| Geometries in memory | 333 | 115 |
+| Triangles | 33,072 | 30,542 |
+| Load to playable | 2369 ms | 2085 ms |
+
+- **Characters are merged** (`src/game/merge.ts`):
+  - After a character or animal is built, all the little bevelled boxes in
+    each moving part (body, head, each arm and leg, the hand) are baked into
+    **one mesh per material** for that part.
+  - A villager went from 109 meshes to 7; Baby Mo and the player from about
+    115 to 7. Animals from about 10 to 6.
+  - The joints are untouched, so walking, actions, prayer poses, held items,
+    hats and capes all work as before. The animation gallery renders the
+    same.
+  - Blinking now swaps the face picture on the one face material, so it
+    keeps working after merging.
+  - Sheep wool stays its own part (it shrinks when sheared).
+- **No more memory build-up while exploring:**
+  - Animals in an unloaded chunk now have their geometry and name-tag
+    textures freed. Before, every animal ever spawned stayed in GPU memory.
+  - Measured over 12 jumps to far parts of the world: geometries stay at
+    144 and the JS heap at about 21 MB.
+- **Fix:** a camel you're riding (or an animal following you) used to
+  vanish from under you when its home chunk unloaded. It now comes along.
+- **Smoother world loading:**
+  - The chunk mesher reuses one scratch buffer instead of allocating about
+    37 KB per chunk, which means less garbage collection on phones.
+  - On a slow frame (under 30 fps) the game loads half as much world that
+    frame, so moving stays smooth.
+- **Touch input can't get stuck:**
+  - When the app goes to the background, the window loses focus or a
+    pop-up opens mid-touch, every key, button, joystick and finger is
+    released.
+  - iOS can swallow the "touch ended" event at those moments, which could
+    leave the child walking or mining on their own.
+- Tests: 4 unit tests for merging. They check the same shape in world
+  space, one draw call per material per joint, that joints and kept parts
+  still move, and that the face material survives. Checked in game:
+  - The measurements above.
+  - Blinking swaps after merging, and a hat and cape still attach.
+  - A ridden camel is kept when its chunk unloads, while another animal
+    there is removed and freed.
+  - The village morning screenshot looks the same as before.
+
+### M7 · Exploration
+
+- **Eight handcrafted landmarks** (`src/world/landmarks.ts`), placed in
+  every world. Each one is put in a fitting biome, 60–320 blocks from the
+  village, away from the letter shrines and from each other:
+  - 🗼 **Lighthouse** on a beach: red-and-white stripes, a spiral stair
+    round the outside, a lantern room on top.
+  - 🏕️ **Oasis Camp** in the desert: a striped tent, a pool, date palms and
+    a camp stove.
+  - ⛰️ **Mountain Lookout** on a high peak: a wooden platform, lanterns and
+    a flag.
+  - 🏛️ **Library Ruins** in the forest: broken walls, marble pillars, a
+    mosaic floor and old bookshelves.
+  - ⛄ **The Igloo** in the snow: a round snow house with a bed and a
+    lantern.
+  - 🌷 **The Secret Garden**: a ring of flowers in a meadow hides a stair
+    down to a glowing underground garden with crystals.
+  - 🌴 **The Date Farm**: rows of date palms, a fence and a farmer's hut.
+  - ☁️ **The Sky Island**: a floating island with a tree, reached by a
+    spiral of stepping stones (one block up each hop).
+- **Treasure in every landmark:** each hides a treasure chest (one-time
+  loot, as before).
+- **Discoveries:** the first time you come close you get a **"New
+  discovery!"** card.
+  - It has a short fun fact, e.g. the Lighthouse's stars-as-guides (An-Nahl
+    16:16) or the Lookout's "Allahu Akbar going up, Subhanallah going down".
+  - It nudges you to find the treasure and shows "n/8 special places
+    found".
+  - Stars, fireworks, and Baby Mo and you celebrate.
+- **Explorer's Journal** on the 🗺️ Map tab:
+  - Found places show their icon, name and fact, and appear on the map.
+  - Places not found yet show a gentle clue ("Where the sand meets the sea
+    stands a tall striped tower").
+  - **🧭 Show the way** makes the golden compass point to that place, with
+    its icon and distance and a ❓ on the map. Tap again to go back to
+    letters.
+- **New quests:** "True explorer" (find 3) and "Every special place"
+  (find all 8).
+- **Older saves:** the landmarks come from their own random stream, so
+  letter shrines and the rest of each world stay exactly where they were.
+  In an older save the landmarks also appear in places already explored;
+  anything the player built there stays on top.
+- **For teacher review:** the fun facts are in `landmarks.ts`, next to the
+  other religious wording (see the note in `content.ts`).
+- Tests: 4 unit tests over five seeds. They check that all 8 landmarks are
+  placed and deterministic, the distances from the village, shrines and
+  each other, that each has a chest, and that texts exist in both
+  languages. Checked in game:
+  - Every landmark was screenshotted in a generated world.
+  - Walking into the Oasis showed its discovery card and recorded it.
+  - "Show the way" turned the compass to 🗼 with its distance.
+
+### M6 · Building
+
+- **Placement preview:** while you hold a block and aim, a see-through copy
+  shows exactly where it will go. It is tinted in the block's colour, or
+  red when it can't go there: something in the way, a protected village
+  building, or you standing in that spot.
+- **Blocks that face a way:**
+  - The furnace, treasure chest and other blocks with a distinct front now
+    face *you* when placed. Before, they always faced south.
+  - The **rotate button** (or **T** on a keyboard) turns the next one a
+    quarter. The preview shows a gold arrow for the front.
+  - Facing is stored per block, saved with the game and drawn by the mesher.
+- **Furniture & decorations** (`src/game/deco.ts`): 11 new items made at the
+  workbench:
+  - **Prayer mat** (sajadah), **table**, **chair**, **floor cushion**,
+    **potted plant**, **standing lamp** (glowing shade), **bowl of dates**,
+    **ketupat decoration**, **rug**, **book stand** (rehal) with an open
+    book, and a **glowing crescent**.
+  - Each has a pixel icon, a 3D model and a recipe from things the game
+    already gives you.
+  - They sit on top of any block, facing you, with a see-through preview
+    first. The rotate button / T turns the next one.
+  - **Aim at one to select it:** a gold outline shows, with "tap = turn,
+    hold = pick up".
+  - **Use / tap** turns it a quarter. **Hold Mine** picks it back up into
+    the bag.
+  - Breaking the block under one gives it back. Blocks can't be placed
+    into a furniture cell.
+  - Saved with the game, and included in backups and save files. Old
+    saves load with none.
+  - A new quest, **Decorate your home** (place 3), gives a lamp and
+    cushions.
+- **Blueprint feedback:**
+  - Only the cells that are actually in the way turn red; the rest stay
+    green.
+  - The plan bar says *why*: "Too close to the village buildings", "You're
+    standing in it — step back", or "3 red blocks are in the way".
+  - It lists every material as have/need chips (green when you have enough,
+    red when not), and says "Good spot, but you need more materials".
+  - While a blueprint builds itself, a progress bar shows, e.g. "🏠
+    Building Little House… 73%".
+- Fix: the ketupat recipe uses a palm sapling (palm leaves never drop as an
+  item, so a leaves recipe could not be made).
+- Tests: 4 unit tests for furniture. They check that every decoration is an
+  item with a model that fits its cell and a recipe, that it faces the
+  player, place/turn/raycast/remove, and the save cleaning. The smoke test
+  places, turns and picks up a table on all four profiles. Checked in
+  game:
+  - All 11 decorations placed through the normal Use path, and the
+    preview shows while holding one.
+  - A furnace placed from the east faces east, and with one rotate it faces
+    the next way.
+  - Near the masjid the blueprint shows red cells, "Too close to the
+    village buildings" and 0/12, 6/66… chips. On open grass: "Good spot,
+    but you need more materials", then with materials "Looks good!" and
+    "Building Little House… 73%".
+  - Decorations (10) and block facing (2) survive save and reload.
+
+### M5 · Living world
+
+- **Villagers have days** (`src/game/routines.ts`). Each villager walks
+  between real places in the village by the game clock:
+  - **Ayah Ibrahim:** at his door in the morning, chatting on the plaza,
+    reading by the masjid porch, visiting the market, tending the flower bed.
+  - **Bu Aminah:** selling at the market stall, fetching water at the well,
+    chatting on the plaza in the evening.
+  - **Kakek Yusuf:** at the well early, sitting on the plaza, reading at the
+    porch, chatting, then in the garden.
+  - Prayer times and the iftar picnic still come first. After the prayer
+    everyone picks their day up again.
+- **What they do there:**
+  - Reading: holding a book and turning pages.
+  - Fetching water and gardening: bending down now and then.
+  - Sitting on the plaza.
+  - Chatting: friends at the same place face each other and pop little
+    bubbles (💬 😊 👍).
+- **Greetings:** walk up to a villager and they turn to you, wave, chime
+  and say something fitting in a speech bubble ("Fresh dates! Want some?
+  🌴", "Aren't the flowers pretty? 🌷"). Each villager greets you at most
+  once every 40 s.
+- **Night:** from an hour after Isha until Fajr the villagers go home and
+  doze by their beds (eyes closed, 💤).
+- **Animals:**
+  - **They graze**: heads down to the grass. Chickens peck.
+  - **They sleep at night**: settled low, head tucked, slow breathing.
+    Pets stay awake and follow you.
+  - **Your pet spins** with joy when you pet it.
+- **Ambient life** (`src/game/ambient.ts`), each kind one draw call:
+  - Butterflies in six colours flutter around flowers and tall grass by day.
+  - Small flocks of birds glide overhead now and then.
+  - Fireflies glow and blink around you at night.
+  - Nothing appears in rain, underground or underwater. Light graphics mode
+    turns ambient life off.
+- The "Say hi to Baby Mo" quest text now points to the 👋 Hi! button.
+- New animator action: *read*.
+- Tests: 5 unit tests for routines. They check that day plans cover 0–24
+  with no gaps, that everyone sleeps from an hour after Isha until Fajr,
+  the places and the greetings. Checked in game:
+  - At 09:00 Ayah is on the plaza chatting, Bu Aminah is selling at the
+    market and Kakek Yusuf is sitting on the plaza.
+  - Walking up to Bu Aminah gives a wave and a bubble.
+  - By day there were 2 butterflies and a flock of 5 birds.
+  - At 22:00 all three villagers sleep by their beds, 38 of 40 animals
+    sleep, and 16 fireflies are out.
+
+### Feedback batch: water break, saying hi, letter rewards, praying together
+
+Requested after playing V2 M4.
+
+- **Water break with proof**
+  - Every 20 minutes of play (parents can set 15, 20, 30 or 45 minutes, or
+    turn it off), Baby Mo brings a glass of water. The child is asked to drink
+    a real glass and then tap the glass on screen.
+  - An **"Are you sure you drank it?"** check comes first, with "Yes, I drank
+    it!" and "Not yet, I'll go get it". Only "Yes" counts.
+  - Then the glass tips and empties, three gulps play and a happy "ahh", and
+    Baby Mo and the player's avatar both drink in the game world. Baby Mo
+    holds a real glass that empties as he sips.
+  - The reward (+3 stars) comes after the drink, so a level-up can't
+    interrupt it. "Remind me in 5 minutes" is offered.
+  - The daily-limit rest screen has the same drink button.
+  - Glasses drunk are counted in the parents' report.
+- **Saying hi to Baby Mo is easy to find**
+  - A big bouncing **👋 Hi!** button floats over Baby Mo's head until you've
+    greeted him once. Tapping it says hi.
+  - A left click or tap-and-hold on Baby Mo or a villager now greets them
+    too; before, only right-click or the Use button did.
+  - The tutorial text points to the button.
+  - The tutorial card has a **Skip ›** button, so no step can keep it on
+    screen for the rest of the game.
+- **A reward for every hijaiyah letter**
+  - Each letter gives a small gift (dates, lanterns, apples, gold tiles,
+    takjil…). The gift flies from the shrine into the bag and is shown on
+    the letter card.
+  - The card also shows the way to the next treasure chest, e.g.
+    "●●●○ 1 more letter → 🗝️ treasure chest!".
+  - Every 4 letters (4, 8, … 28) a **treasure chest** opens with something
+    special: crystals, a stone pickaxe and torches, lanterns, a boat, an iron
+    pickaxe and more. It comes with extra stars, a fanfare and confetti.
+- **Praying together**
+  - The jama'ah is now a proper row: Ayah Ibrahim leads in front as imam,
+    with Bu Aminah, Kakek Yusuf, a place for you and **Baby Mo** behind him.
+  - When you're in the masjid at prayer time, Baby Mo walks to his place and
+    prays: standing, bowing, prostrating and sitting, in time with the
+    villagers.
+  - A **🤲 Pray together** button appears near the masjid at prayer time. It
+    puts Adam or Ais next to Baby Mo, facing the qibla, and Adam or Ais copy
+    the movements.
+  - While praying together, the camera sits just behind the row so you see
+    yourself and Baby Mo side by side. The tutorial card and crosshair hide.
+    Walking away gives your own camera back.
+- Tests: 3 unit tests for letter rewards; 7 animator actions including the
+  new *drink*. Checked in game on the iPhone profile:
+  - Hi button visible and greeting completes the tutorial step; Skip
+    advances.
+  - Letter 1 gave 3 dates; letter 4 opened the chest (+2 crystals).
+  - Water: the "are you sure" check appears; "Not yet" counts nothing;
+    "Yes" counts 1 and both Baby Mo and the player drink.
+  - Praying together: button shown, camera moved, and Baby Mo, the player
+    and all three villagers pray.
+
+### M4 · Interaction quality
+
+- **Materials** (`src/game/materials.ts`): every block now belongs to one of
+  17 materials: wood, stone, ore, dirt, grass, sand, gravel, snow, ice,
+  glass, leaves, plant, wool, metal, clay, water and the magic hijaiyah
+  letters. The material decides the particles and the sounds.
+- **Material sounds**, still synthesized with no audio files:
+  - Each material has its own hit, break, place and footstep sound: a
+    knock for wood, a click for stone, crunchy snow, rustling leaves,
+    tinkling glass, a bell for gold and a chime for letters.
+  - Footsteps follow the ground under you.
+  - Pitch varies a little so repeated hits don't sound mechanical, and each
+    sound has a minimum gap so many drops at once don't pile up.
+- **Hit feedback:** each strike while mining plays the material's knock,
+  sends a few chips flying off the face you're hitting, gives the crack box
+  a small jolt and a short vibration on phones.
+- **Breaking:** the block bursts into pieces in its own colours. Leaves and
+  snow drift down slowly, stone drops fast, and pieces shrink away instead of
+  popping out.
+- **Items fly into your bag:**
+  - Each drop's icon pops out of the block and arcs to the player, one after
+    another for a burst.
+  - The bag counter, the hotbar bounce and a rising "pop" note play on
+    arrival.
+  - Items are put in the bag immediately, so nothing can be lost to the
+    animation.
+  - This covers mining, felled trees, falling leaves, and milk, eggs and
+    wool from animals.
+- **Placing:** a material sound and a small dust puff around the block's base.
+- **Crafting:** the result's hotbar slot bounces, the avatar does the build
+  motion and sparkles appear in front of you.
+- **Animal reactions:**
+  - Animals notice you: a standing animal turns its head to look at you
+    when you're within 5 blocks.
+  - Sprinting past an animal, or breaking a block right next to it, makes
+    it scurry a few blocks away with a little hop and its voice: cluck,
+    baa, moo, meow.
+  - Pets, ridden animals and camels don't get startled. Each animal waits
+    4 seconds before it can be startled again.
+  - Petted animals do a happy hop and nod.
+- **Cooldowns (fixes reward spamming):**
+  - Tapping the same animal again within 1.5 s shows one heart but gives no
+    extra star or petting count. Before, every tap gave a star.
+  - Baby Mo answers one tap at a time (0.9 s), unless you're giving him
+    food.
+- Light graphics mode skips the flying icons and halves particles, as before.
+  Particles are capped at 400.
+- Tests: 5 unit tests for materials. The smoke test checks that four quick
+  pets count once. Checked in game:
+  - 3 chips while hitting, a 14-piece break burst, the icon in flight with
+    the bag notice shown only on arrival, and a 6-piece placement puff.
+  - The egg flies from the chicken.
+  - A chicken flees a sprint, and an animal is startled by a block breaking
+    next to it.
+  - A cow turns its head 0.89 rad toward the player.
+  - All 17 material sounds and 6 animal voices play with no errors.
+
+### M3 · Animation system
+
+- **New animator** (`src/game/animator.ts`) for every humanoid: the player's
+  avatar, Baby Mo and the villagers. It has two layers.
+  - **Locomotion:** idle (breathing, looking around), walk, run (with a
+    forward lean), jump, fall, land (a short crouch on landing), swim
+    (breaststroke with flutter kicks), ride and fly. Every state change is
+    cross-faded.
+  - **Actions on top:**
+    - *mine*: an overhead strike, shown while the mine button is held.
+    - *chop*: a sideways swing with a body twist. It plays automatically
+      when the target is a tree trunk.
+    - *build*: a reach forward when a block is placed.
+    - *collect*: a scoop when items are picked up away from mining, e.g.
+      milk, eggs, chests and gifts.
+    - *wave*: villagers waving.
+    - *celebrate*: a hop with both arms up. It plays for a new letter, a
+      level-up and a finished blueprint.
+
+    Actions mask the upper body, so the character can chop while walking.
+    Celebrate takes over the whole body.
+- **No foot sliding:** the walk and run cycles advance with the distance
+  actually travelled.
+- **Smooth transitions:** a cross-fade always starts from the pose currently
+  on screen, so an interrupted fade (jump straight into fall) can't snap.
+  The unit tests found that snap in the first version.
+- **Bending at the hip:** leaning (run, collect, swim) pivots at the hip, the
+  same way the prayer poses do. The feet stay planted, and a test checks
+  this.
+- **Prayer poses unchanged:** villagers' jama'ah, the picnic sitting pose and
+  the player praying in the masjid still override the animator, as before.
+- **Honest scope:** the characters are rigid jointed blocks, not skinned
+  meshes. The clips are parametric pose functions, not keyframe files.
+- **Cost:** 1.6 µs per character per frame, measured in Node.
+- Tests: 13 unit tests covering state transitions, a normal hop vs a real
+  fall, joint continuity across every transition, distance-locked cadence,
+  masks, one-shot and looping actions, and hip pivoting. The smoke test now
+  checks the avatar is in the walk or run state while walking, and in the
+  mine action while digging. Checked in game: walking, jumping, chopping the
+  village palm, swimming in a pool, villagers praying in the masjid and
+  waving.
+
+### M2 · Save v2
+
+- **Versioned saves with migrations** (`src/game/persist.ts`). The save is now
+  version 2. Version 1 saves (and older ones with no version field) are
+  migrated on load; nothing is renamed or dropped. Adding a later version
+  is one migration function.
+- **Repair instead of loss.** On load, bad values are fixed one field at a
+  time: a broken clock, day, player position, inventory slot, quest list or
+  settings object. The rest of the save is kept. Bad block-edit entries are
+  dropped one by one.
+- **Atomic writes.** World info (`meta`) and block edits (`edits`) are
+  written in one IndexedDB transaction, so they can no longer get out of
+  step if the tab closes mid-save. A failed write is retried at the next
+  save tick.
+- **Automatic backup and recovery.** At the start of each session the loaded
+  save is copied to `backup`. If the main save can't be read, the game loads
+  the backup and tells the player. The unreadable save is kept under
+  `broken`, never thrown away.
+- **Persistent storage.** The game asks the browser to keep its storage
+  (`navigator.storage.persist()`). This lowers the risk of Safari or Chrome
+  clearing it.
+- **Parents panel → Saved game:**
+  - *Save to a file* downloads the whole save as JSON.
+  - *Open a save file* restores one, on any device.
+  - *Bring back the previous world* appears after "New world" and swaps the
+    old world back in, keeping the current one in its place.
+- **Fixed a V1 bug:** "New world" deleted the save and reloaded, but the
+  page-hide save handler could write the old world straight back. The game
+  now stops before deleting.
+- Tests: 15 unit tests for migration, repair, edit cleaning, backup choice and
+  save files, using the exact V1 save shape. The smoke test covers save
+  and reload in the browser on all four profiles.
+
+### M1 · QA foundation
+
+- **Unit tests** (`npm test`, vitest, `tests/unit/`):
+  - World generation is deterministic per seed.
+  - Every seed gets the village and all 28 letter shrines, with the first
+    four in the village.
+  - Only known block ids are generated.
+  - Inventory stacking, removing, swapping, saving and creative mode.
+  - Every recipe uses real items, and the station rules hold.
+  - Quests have real rewards and progress maths.
+  - Each word-game word is spelled with exactly the letters it lists.
+  - The Ramadhan calendar has 30 days.
+  - Du'a cards are complete.
+  - Prayer times come in the right order for every city and method.
+  - Hijri date and Ramadhan countdown are correct.
+  - Stars and levels maths.
+  - Block-edit serialisation.
+- **Browser smoke test** (`npm run smoke`, `tests/smoke/smoke.mjs`). It plays
+  the built game in headless Chromium on four profiles: desktop, iPhone 13,
+  iPad and Pixel 7. Steps:
+  1. Boot and start a world.
+  2. Check touch controls appear only on touch devices.
+  3. Walk with the keyboard, or with the on-screen stick by real touch events.
+  4. Dig a block by holding mine.
+  5. Place a block.
+  6. Collect a letter.
+  7. Open all ten book tabs.
+  8. Check prayer times are shown.
+  9. Save, reload and check the progress kept.
+  10. Play a few seconds with no console errors.
+- **Publishing is gated.** The GitHub Pages workflow runs the unit tests,
+  the build and the smoke test before it publishes. A failing check leaves
+  the live game as it was.
+- The stars-and-levels maths moved from `kid.ts` to `levels.ts`, so it can be
+  tested without a browser. `kid.ts` re-exports it, and behaviour is
+  unchanged.
+- `docs/V2_PLAN.md` holds the audit, the baseline numbers and the milestone
+  plan.
+
+## V1
+
+The first complete game: voxel world with eight biomes, Baby Mo, Adam and
+Ais, Ayah Ibrahim, 28 hijaiyah letter shrines, quests, crafting,
+blueprints, pets, the Ramadhan calendar and village, prayer times, du'a,
+bedtime stories, the parents panel and bilingual ID/EN. See the git
+history up to commit `8ebfc83`.

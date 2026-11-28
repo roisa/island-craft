@@ -1,0 +1,1514 @@
+// Browser smoke test: plays the built game in headless Chromium and checks the
+// critical paths. Usage: npm run build && npm run smoke
+// Starts `vite preview` itself unless SMOKE_URL is given.
+// Device profiles are emulated in Chromium (size, touch, user agent): this is
+// not real Safari/WebKit and does not replace testing on devices.
+import { chromium, devices } from 'playwright';
+import { preview } from 'vite';
+
+const PROFILES = {
+  desktop: { viewport: { width: 1280, height: 760 } },
+  iphone: { ...devices['iPhone 13 landscape'] },
+  ipad: { ...devices['iPad (gen 7) landscape'] },
+  android: { ...devices['Pixel 7'] },
+};
+const only = process.argv.slice(2);
+const STEP_LIMIT = +(process.env.SMOKE_STEP_LIMIT || 180000);
+const profiles = Object.keys(PROFILES).filter(k => !only.length || only.includes(k));
+
+let server, url = process.env.SMOKE_URL;
+if (!url) {
+  server = await preview({ preview: { port: 4319, strictPort: true, host: '127.0.0.1' }, logLevel: 'warn' });
+  url = server.resolvedUrls.local[0];
+}
+
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const results = [];
+let failed = 0;
+
+async function run(name) {
+  const ctx = await browser.newContext(PROFILES[name]);
+  const p = await ctx.newPage();
+  const errors = [];
+  p.on('pageerror', e => errors.push('pageerror: ' + e.message + ' @ ' + (e.stack || '').split('\n').slice(1, 4).join(' | ')));
+  p.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  const steps = [];
+  const step = async (label, fn) => {
+    const t = Date.now();
+    // every step has a hard limit, and progress is printed live (useful in CI logs)
+    const limit = new Promise((_, rej) => setTimeout(() => rej(new Error(`step timed out after ${STEP_LIMIT / 1000}s`)), STEP_LIMIT));
+    try { const info = await Promise.race([fn(), limit]); steps.push({ label, ok: true, ms: Date.now() - t, info }); console.log(`[${name}] ✓ ${label} (${Date.now() - t} ms)`); }
+    catch (e) { steps.push({ label, ok: false, ms: Date.now() - t, info: String(e.message || e).split('\n')[0] }); console.log(`[${name}] ✗ ${label}: ${String(e.message || e).split('\n')[0]}`); throw e; }
+  };
+  const g = (fn, arg) => p.evaluate(fn, arg);
+  /** wait for the pop-up holding `sel`; any other pop-up queued in front of it (a place just discovered…) is closed */
+  const popup = (sel, timeout = 30000) => p.waitForFunction(sel => !!document.querySelector('.veil.on ' + sel) || (__game.ui.modals.filter(m => !m.veil.querySelector(sel)).forEach(m => m.close()), false), sel, { timeout, polling: 200 });
+  const touch = !!PROFILES[name].hasTouch;
+  try {
+    await step('boot', async () => { await p.goto(url + '?lang=id'); await p.waitForSelector('#sPlay', { timeout: 30000 }); });
+    await step('start a new world', async () => {
+      touch ? await p.tap('#sPlay') : await p.click('#sPlay');
+      await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+      // (a new world has a game day of its own; prayer moments come at the real times)
+      const day = await g(() => __game.settings.dayMinutes);
+      if (day !== 24) throw new Error('a new world should have a 24-minute game day, dayMinutes=' + day);
+      await p.waitForTimeout(1500);
+      // (a real prayer time during the run would pause the game on its card: the prayer-pause step turns it on)
+      await g(() => { __game.settings.prayPause = false; });
+      return await g(() => ({ chunks: __game.world.chunks.size, animals: __game.ents.animals.length, npcs: __game.ents.npcs?.length }));
+    });
+    await step('free part: letter 8, Iqro and archery show the Full BabyMo Craft card; free places stay open; then everything is opened for the tests', async () => {
+      const r = await g(() => {
+        const G = __game, out = {};
+        G.ui.closeAllModals(); G.setFull(false);
+        const keep = G.stats.letters.slice();
+        G.stats.letters = [0, 1, 2, 3, 4, 5, 6];
+        const sh = G.gen.shrines.find(s => !G.stats.letters.includes(s.letter));
+        G['collectLetter'](sh.letter, sh.x, sh.y, sh.z);
+        out.letters = G.stats.letters.length;
+        out.card = !!document.querySelector('.veil.on .unlockCard');
+        G.ui.closeAllModals();
+        out.iqro = (G.iqro.open(), !!document.querySelector('.veil.on .unlockCard') && !G.iqro.opened);
+        G.ui.closeAllModals();
+        out.archery = G.can('archery');
+        out.archeryCard = !!document.querySelector('.veil.on .unlockCard');
+        G.ui.closeAllModals();
+        out.free = ['race_track', 'fish_pond', 'orchard', 'camp'].every(id => G.can(id, true));
+        out.web = !document.querySelector('#ulBuy');
+        G.stats.letters = keep; G.setFull(true); out.full = G.full && G.can('archery') && G.can('letter');
+        return out;
+      });
+      if (r.letters !== 7 || !r.card || !r.iqro || r.archery || !r.archeryCard || !r.free || !r.full) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('family code (website): a wrong code is refused in the parent area', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.setFull(false); G.ui.parentsPanel(); });
+      await p.waitForSelector('.veil.on #pFam');
+      await g(() => { document.querySelector('.veil.on #pFam').value = 'MO-AAAA-AAAA'; document.querySelector('.veil.on #pFamGo').click(); });
+      await p.waitForTimeout(400);
+      const r = await g(() => ({ full: __game.full, stored: localStorage.getItem('mocraft-family'), field: !!document.querySelector('.veil.on #pFam') }));
+      await g(() => { __game.ui.closeAllModals(); __game.setFull(true); });
+      if (r.full || r.stored === '1' || !r.field) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('guide arrow: off by default; turned on in Settings, a glass arrow ahead of you points like the compass, and it can be turned off again', async () => {
+      const r = await p.evaluate(async () => {
+        const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
+        const tut0 = G.stats.tut, g0 = G.settings.guide; G.stats.tut = 99; // (after the tutorial: the arrow follows the compass)
+        const c = G.compass(); if (!c || c.dist <= 5) { G.stats.tut = tut0; return { skip: true }; }
+        await wait(600); const offByDefault = g0 === undefined && !(G.guide && G.guide.obj.visible);
+        G.settings.guide = true; await wait(1200);
+        const a = G.guide; const on = !!a && a.obj.visible;
+        const diff = a ? Math.abs(Math.atan2(Math.sin(a.obj.rotation.y - G.compass().ta), Math.cos(a.obj.rotation.y - G.compass().ta))) : 9;
+        G.settings.guide = false;
+        for (let i = 0; i < 40 && a.obj.visible; i++) await wait(150);
+        const off = !a.obj.visible;
+        G.settings.guide = g0; G.stats.tut = tut0;
+        return { offByDefault, on, off, diff };
+      });
+      if (r.skip) return r;
+      if (!r.offByDefault || !r.on || !r.off || r.diff > 0.3) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('touch controls shown only on touch devices', async () => {
+      const vis = await p.isVisible('#stick');
+      if (vis !== touch) throw new Error(`stick visible=${vis}, touch=${touch}`);
+    });
+    await step('walk', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals?.(); G.player.pos.set(0.5, 47, 3.5); G.player.yaw = 0; G.player.pitch = 0; });
+      await p.waitForTimeout(400);
+      const a = await g(() => [__game.player.pos.x, __game.player.pos.z]);
+      let anim;
+      if (touch) {
+        const box = await p.locator('#stick').boundingBox();
+        const cdp = await ctx.newCDPSession(p);
+        const c = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [c] });
+        for (let i = 1; i <= 5; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: c.x, y: c.y - i * 10 }] });
+        await p.waitForTimeout(1200);
+        anim = await g(() => __game.anim.loco);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } else {
+        // a slow CI machine can run the game at a few frames a second: walk again (longer) if the first try was short
+        for (let tryN = 0; tryN < 2; tryN++) {
+          await g(() => { __game.ui.closeAllModals?.(); document.activeElement?.blur?.(); });
+          await p.keyboard.down('KeyW'); await p.waitForTimeout(1200 + tryN * 1500); anim = await g(() => __game.anim.loco); await p.keyboard.up('KeyW');
+          const now = await g(() => [__game.player.pos.x, __game.player.pos.z]);
+          if (Math.hypot(now[0] - a[0], now[1] - a[1]) >= 0.5) break;
+        }
+      }
+      if (anim !== 'walk' && anim !== 'run') throw new Error('avatar animation while walking: ' + anim);
+      const b = await g(() => [__game.player.pos.x, __game.player.pos.z]);
+      const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (d < 0.5) throw new Error('player did not move: ' + d.toFixed(2));
+      return { moved: +d.toFixed(2), anim };
+    });
+    await step('mine a block (hold mine)', async () => {
+      // stand on top of solid ground and look straight down at it
+      const spot = await g(() => {
+        const G = __game, w = G.world;
+        let y = 100; while (y > 1 && !w.get(20, y, 20)) y--;
+        w.set(20, y, 20, 2); // dirt: quick to dig with bare hands
+        G.player.pos.set(20.5, y + 1.01, 20.5); G.player.vel?.set?.(0, 0, 0); G.player.pitch = -1.5; G.settings.cam = 'first';
+        G.inv.sel = 8; G.inv.slots[8] = null;
+        return { y, mined: G.stats.mined[2] || 0, have: G.inv.count(2) };
+      });
+      await p.waitForTimeout(500);
+      await g(() => { __game.input.mineHeld = true; });
+      await p.waitForFunction(() => __game.anim.action === 'mine', null, { timeout: 5000 });
+      await p.waitForFunction(y => __game.world.get(20, y, 20) === 0, spot.y, { timeout: 15000 });
+      await g(() => { __game.input.mineHeld = false; });
+      await p.waitForTimeout(300);
+      const after = await g(() => ({ mined: __game.stats.mined[2] || 0, have: __game.inv.count(2) }));
+      if (after.mined !== spot.mined + 1 || after.have < spot.have + 1) throw new Error(JSON.stringify({ spot, after }));
+      return after;
+    });
+    await step('place a block', async () => {
+      const r = await g(() => {
+        const G = __game, w = G.world;
+        const x = 20, z = 23; let y = 100; while (y > 1 && !w.get(x, y, z)) y--;
+        G.inv.slots[0] = { id: 20, n: 5 }; G.inv.sel = 0;
+        const before = G.stats.placed, had = G.inv.count(20);
+        G.useBlock({ x, y, z, id: w.get(x, y, z), nx: 0, ny: 1, nz: 0, dist: 2 });
+        return { placed: G.stats.placed - before, block: w.get(x, y + 1, z), used: had - G.inv.count(20) };
+      });
+      if (r.placed !== 1 || r.block !== 20 || r.used !== 1) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('place, turn and pick up furniture', async () => {
+      const r = await g(() => {
+        const G = __game, w = G.world, x = 22, z = 26; let y = 100; while (y > 1 && !w.get(x, y, z)) y--;
+        G.inv.slots[0] = { id: 231, n: 1 }; G.inv.sel = 0; // a table
+        G.useBlock({ x, y, z, id: w.get(x, y, z), nx: 0, ny: 1, nz: 0, dist: 2 });
+        const d = G.deco.at(x, y + 1, z); if (!d) return { placed: false };
+        const r0 = d.rot; G.turnDeco(d); const turned = d.rot === (r0 + 1) % 4;
+        G.pickUpDeco(d);
+        return { placed: true, turned, back: G.inv.count(231), gone: !G.deco.at(x, y + 1, z) };
+      });
+      if (!r.placed || !r.turned || r.back !== 1 || !r.gone) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step("Ibra's ideas: toy sword shoos a beetle, cooking game, power hat", async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.modals.slice().forEach(m => m.close());
+        G.inv.slots[2] = { id: 242, n: 1 }; G.inv.sel = 2; // a toy stone sword
+        let b = null; for (let k = 0; k < 5 && !b; k++) b = G.bugs.spawn(G.player.pos);
+        if (!b) return { bug: 'none spawned' };
+        let taps = 0; while (!b.caught && taps < 15) { G.attackCd = 0; G.attackBug(b); taps++; }
+        // a furnace to cook at, and an egg
+        const w = G.world, x = 21, z = 27; let y = 100; while (y > 1 && !w.get(x, y, z)) y--; w.set(x, y + 1, z, 32);
+        G.player.pos.set(x + 1.5, y + 1, z + 0.5); G.inv.add(216, 1);
+        return { caught: b.caught, taps, swordXp: G.skillXp('sword'), eggs: G.inv.count(250), started: G.craft(G.findRecipe(250)) };
+      });
+      if (r.bug || !r.caught || !r.started) throw new Error(JSON.stringify(r));
+      // play the three rounds (whatever the timing, the food is made), then take it
+      await p.waitForSelector('.veil.on #ckGo');
+      for (let k = 0; k < 4; k++) { await g(() => document.querySelector('.veil.on #ckGo')?.click()); await p.waitForTimeout(150); }
+      const after = await g(() => { const G = __game; const rods = G.inv.count(244); G.settings.outfit.hat = 'hat_fisher'; G.buildAvatar(); G.wearHat('hat_fisher'); return { friedEggs: G.inv.count(250), cooked: G.stats.cooked, rodGift: G.inv.count(244) - rods }; });
+      if (after.friedEggs <= r.eggs || after.cooked < 1 || after.rodGift !== 1) throw new Error(JSON.stringify({ r, after }));
+      return { taps: r.taps, ...after };
+    });
+    await step('new places: pearl cave, telescope star picture, Eid bazaar', async () => {
+      // the pearl cave under the reef: standing in its air pocket finds the secret spot
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals();
+        const reef = G.gen.landmarks.find(l => l.id === 'reef'), cave = reef.spots[0];
+        G.player.pos.set(cave.x, cave.y, cave.z); G.player.vel.set(0, 0, 0);
+        return { cave: [cave.x, cave.y, cave.z] };
+      });
+      for (let i = 0; i < 40; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => __game.stats.spots?.includes('pearl_cave') || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 });
+      // the telescope: join up the Summer Triangle by tapping its stars
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.telescope('stars'); });
+      await p.waitForSelector('.veil.on [data-c="triangle"]');
+      await g(() => document.querySelector('.veil.on [data-c="triangle"]').click());
+      // (the sheet springs in: measure the stars only once it has settled)
+      await g(() => Promise.all(document.querySelector('.veil.on .panel').getAnimations().map(a => a.finished)));
+      await p.waitForTimeout(150);
+      const pts = await g(() => { const cv = document.querySelector('.veil.on #scSky'); cv.scrollIntoView({ block: 'center' }); const b = cv.getBoundingClientRect(); return [[30, 22], [74, 16], [52, 78], [30, 22]].map(([x, y]) => [b.left + (20 + x / 100 * 300) * b.width / 340, b.top + (15 + y / 100 * 200) * b.height / 230]); });
+      for (const [x, y] of pts) { touch ? await p.touchscreen.tap(x, y) : await p.mouse.click(x, y); await p.waitForTimeout(120); }
+      const cons = await g(() => __game.stats.constellations || []);
+      if (!cons.includes('triangle')) throw new Error('star picture not joined: ' + JSON.stringify(cons));
+      // the Eid bazaar: open it, take food at the ketupat stall, greet a villager for an Eid envelope
+      const e = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.settings.eid = 'on'; G.eid.refresh(); G.stats.eidWelcome = true;
+        const s = G.eid.stalls.find(s => s.id === 'food'); G.player.pos.set(s.front.x, s.front.y, s.front.z); G.player.vel.set(0, 0, 0);
+        return { open: G.eid.open, food: G.inv.count(253) };
+      });
+      if (!e.open) throw new Error('bazaar did not open');
+      // another card (a discovery, a level up…) can pop up first: close it, then the stall opens by itself
+      try { await p.waitForFunction(() => { const G = __game; if (G.eid.atStall === 'food' && document.querySelector('.veil.on #dbtns button.gold')) return true; if (G.ui.isOpen() && G.eid.atStall !== 'food') G.ui.closeAllModals(); return false; }, null, { timeout: 15000, polling: 250 }); } catch (err) { throw new Error('the stall did not open: ' + JSON.stringify(await g(() => { const G = __game, s = G.eid.stalls.find(s => s.id === 'food'), pp = G.player.pos; return { open: G.ui.isOpen(), at: G.eid.atStall, d: Math.hypot(s.front.x - pp.x, s.front.z - pp.z), dy: pp.y - s.front.y, veils: [...document.querySelectorAll('.veil.on .who')].map(e => e.textContent), running: G.running, paused: G.paused }; }))); }
+      await g(() => document.querySelector('.veil.on #dbtns button.gold').click());
+      const f = await g(() => { const G = __game; G.ui.closeAllModals(); G.inv.slots[G.inv.sel] = null; G.talkNpc(G.ents.npcs.find(n => n.id === 'yusuf')); return { food: G.inv.count(253), angpao: G.inv.count(255) }; });
+      if (f.food < e.food + 2 || f.angpao < 1) throw new Error(JSON.stringify({ e, f }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.eid = 'auto'; G.eid.refresh(); G.player.pos.set(0.5, 47, 3.5); });
+      // back home, and wait until the village is loaded again for the steps that follow
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return { spot: 'pearl_cave', cons, ...f };
+    });
+    await step('raft ride down the river', async () => {
+      const r = await g(() => { const G = __game; G.ui.closeAllModals(); const l = G.gen.landmarks.find(l => l.id === 'river'); G.player.pos.set(l.at.dock[0] + 0.5, l.at.dock[1], l.at.dock[2] + 0.5); G.startRaft(); return { riding: G.fun.riding?.kind, mo: !!G.ents.mo.seat }; });
+      if (r.riding !== 'raft' || !r.mo) throw new Error(JSON.stringify(r));
+      // slow machines draw few frames a second: wait until it has floated a little (closing any pop-up that pauses the game)
+      await p.waitForFunction(() => (__game.fun.riding?.s ?? 0) > 0.5 || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 }).catch(() => {});
+      const moved = await g(() => __game.fun.riding?.s ?? 0);
+      if (!(moved > 0.5)) throw new Error('raft did not move: ' + moved);
+      await g(() => { const R = __game.fun.riding; R.s = R.cum[R.cum.length - 1] - 1; });
+      await p.waitForFunction(() => !__game.fun.riding || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 });
+      const end = await g(() => { const G = __game; G.ui.closeAllModals(); const out = { rides: G.stats.raftRides, seat: G.ents.mo.seat }; G.player.pos.set(0.5, 47, 3.5); return out; });
+      if (end.rides !== 1 || end.seat) throw new Error(JSON.stringify(end));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return { moved: +moved.toFixed(1), ...end };
+    });
+    await step('rescue a lost animal and feed it at the sanctuary', async () => {
+      const lost = await g(() => { const G = __game; G.ui.closeAllModals(); const l = G.sanctuary.lost[0]; G.player.pos.set(l.x + 3, G.gen.column(Math.floor(l.x + 3), Math.floor(l.z)).h + 1, l.z); return l; });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(id => [...__game.ents.animals].some(a => __game.sanctuary.owns(a) === id) || (__game.ui.closeAllModals(), false), lost.id, { timeout: 20000, polling: 300 });
+      await g(id => { const G = __game; const a = G.ents.animals.find(a => G.sanctuary.owns(a) === id); G.ui.closeAllModals(); G.sanctuary.befriend(a); G.ui.closeAllModals(); const pen = G.gen.landmarks.find(l => l.id === 'sanctuary').at.pen; G.player.pos.set(pen[0], pen[1], pen[2] + 1); }, lost.id);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(id => (__game.stats.rescued || []).includes(id) || (__game.ui.closeAllModals(), false), lost.id, { timeout: 20000, polling: 300 });
+      const fed = await g(() => { const G = __game; G.ui.closeAllModals(); G.inv.add(217, 1); G.inv.sel = G.inv.slots.findIndex(s => s && s.id === 217); const a = G.ents.animals.find(a => G.sanctuary.isHome(a)); a.petCd = 0; const ok = G.sanctuary.feed(a); G.ui.closeAllModals(); G.inv.sel = Math.max(0, G.inv.slots.findIndex((s, i) => i < 9 && !s)); G.player.pos.set(0.5, 47, 3.5); return { ok, fed: G.stats.fed, rescued: G.stats.rescued }; });
+      if (!fed.ok || fed.fed !== 1) throw new Error(JSON.stringify(fed));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return fed;
+    });
+    await step('make and fly a kite', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals();
+        const w = G.world, x = 3, z = 9; let y = 100; while (y > 1 && !w.get(x, y, z)) y--; w.set(x + 1, y + 1, z, 31); // a workbench
+        G.player.pos.set(x + 0.5, y + 1, z + 0.5);
+        G.inv.add(200, 2); G.inv.add(46, 2);
+        const made = G.craft(G.findRecipe(257));
+        const slot = G.inv.slots.findIndex(s => s && s.id === 257); G.inv.sel = slot;
+        G.ui.closeAllModals(); G.kites.toggle(257);
+        return { made, slot, flying: G.kites.flying };
+      });
+      if (!r.made || r.slot < 0 || r.flying !== 257) throw new Error(JSON.stringify(r));
+      // pop-ups (a level-up after crafting) pause the game: close them while the kite climbs
+      await p.waitForFunction(() => __game.kites.h > 1.55 || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 }).catch(() => {});
+      const h = await g(() => { const G = __game; const out = { flying: G.kites.flying, h: +G.kites.h.toFixed(3) }; G.kites.stop(); G.ui.closeAllModals(); return out; });
+      // it climbs from 1.5 towards its height
+      if (h.flying !== 257 || !(h.h > 1.55)) throw new Error(JSON.stringify(h));
+      return h;
+    });
+    await step('treasure map: four pieces, then dig up the great treasure', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals();
+        // the four scrolls, straight from the world generator's stamps
+        const found = [];
+        for (const list of G.gen.stamps.values()) for (const [x, y, z, id] of list) if (id === 65) found.push([x, y, z]);
+        for (const [x, y, z] of found) { G.player.pos.set(x + 0.5, y, z + 1.5); G.world.update(x, z, 40); G.treasure.collect(x, y, z); G.ui.closeAllModals(); }
+        return { scrolls: found.length, pieces: G.treasure.pieces.length, complete: G.treasure.complete, arrow: G.exploreTarget };
+      });
+      if (r.pieces !== 4 || !r.complete || r.arrow !== 'treasure') throw new Error(JSON.stringify(r));
+      await g(() => { const G = __game, t = G.gen.treasure; G.player.pos.set(t.x + 1.5, t.y + 4, t.z + 0.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const e = await g(() => { const G = __game, t = G.gen.treasure; const was = G.world.get(t.x, t.y, t.z); G.fun.openChest(t.x, t.y, t.z); G.ui.closeAllModals(); const out = { was, great: G.stats.greatTreasure, crown: G.fun.unlocked(G.OUTFITS_FOR_TEST ?? { level: 99, unlock: { test: s => !!s.greatTreasure } }) }; G.player.pos.set(0.5, 47, 3.5); G.exploreTarget = null; return out; });
+      if (e.was !== 52 || !e.great || !e.crown) throw new Error(JSON.stringify(e));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return { ...r, ...e };
+    });
+    await step('plant a mangrove seedling in shallow water', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); const l = G.gen.landmarks.find(l => l.id === 'mangrove'); const [x, y, z] = l.at.centre; G.player.pos.set(x, y + 1, z); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const r = await g(() => {
+        const G = __game; const l = G.gen.landmarks.find(l => l.id === 'mangrove'); const [x, y, z] = l.at.plant;
+        G.inv.add(69, 2); G.inv.sel = G.inv.slots.findIndex(s => s && s.id === 69);
+        const X = Math.floor(x) + 1, Z = Math.floor(z) + 1;
+        const dry = (() => { const before = G.stats.mangroves || 0; G.useBlock({ x: Math.floor(x) - 4, y: y, z: Math.floor(z), id: 20, nx: 0, ny: 1, nz: 0 }); return (G.stats.mangroves || 0) - before; })(); // on the boardwalk: refused
+        G.useBlock({ x: X, y: y - 1, z: Z, id: 70, nx: 0, ny: 1, nz: 0 });
+        const planted = G.world.get(X, y, Z);
+        G.ui.closeAllModals(); G.inv.sel = Math.max(0, G.inv.slots.findIndex((s, i) => i < 9 && !s)); G.player.pos.set(0.5, 47, 3.5);
+        return { dry, planted, mangroves: G.stats.mangroves };
+      });
+      if (r.dry !== 0 || r.planted !== 69 || r.mangroves !== 1) throw new Error(JSON.stringify(r));
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
+    await step('climb the hilltop masjid minaret', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); const m = G.gen.landmarks.find(l => l.id === 'hill_masjid'); const s = m.spots[0]; G.player.pos.set(s.x, s.y, s.z); G.player.vel.set(0, 0, 0); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => (__game.stats.spots || []).includes('minaret_top') || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 300 });
+      const r = await g(() => { const G = __game; G.ui.closeAllModals(); const out = { spot: true, y: Math.round(G.player.pos.y) }; G.player.pos.set(0.5, 47, 3.5); return out; });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
+    await step('pray together: villagers wait, the prayer starts in your place, coins at the end, then shop', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 46, -12.5); G.gameEvent = null; (p => { const G = __game, past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past; G.realTimes[p] = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick(); })('dhuhr'); });
+      await p.waitForFunction(() => !!__game.gameEvent || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
+      const before = await g(() => ({ coins: __game.stats.coins || 0, jamaah: __game.stats.jamaah }));
+      // the prayer waits for you
+      await p.waitForTimeout(1000);
+      if (await g(() => !!__game.jamaah)) throw new Error('started without you');
+      // in your place without wudu: the wudu pop-up opens first, and the prayer waits
+      await g(() => { const G = __game; G.wuduValid = false; G.ui.closeAllModals(); G.player.pos.set(0.5, 46, -18.5); G.player.vel.set(0, 0, 0); });
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .wudu') || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 15000, polling: 200 });
+      if (await g(() => !!__game.jamaah)) throw new Error('prayed without wudu');
+      for (let k = 0; k < 30 && await g(() => !!document.querySelector('.veil.on .ws.next')); k++) await g(() => document.querySelector('.veil.on #wTap').click()); // splash until every step is done (3 splashes for the 3× steps)
+      // the "Done!" button closes the wudu card at once (a child taps it — it used to do nothing)
+      const doneBtn = await g(() => { const b = document.querySelector('.veil.on .wudu #wTap'); const txt = b?.innerText || ''; b?.click(); return { txt, open: !!document.querySelector('.veil.on .wudu') }; });
+      if (doneBtn.open) throw new Error('the Done! button did not close the wudu card: ' + JSON.stringify(doneBtn));
+      // wudu done: the prayer starts
+      await p.waitForFunction(() => !!__game.jamaah || (__game.ui.modals.filter(m => !m.veil.querySelector('.wudu')).forEach(m => m.close()), false), null, { timeout: 20000, polling: 200 });
+      const hud = await g(() => document.querySelector('#jmHud').innerText);
+      // the row's movement is shown as a Baby Mo picture
+      await p.waitForFunction(() => /img\/poses\/s\d/.test(document.querySelector('#jmHud img.on')?.src || ''), null, { timeout: 5000 });
+      // skip ahead to the salam, then it finishes by itself
+      await g(() => { const j = __game.jamaah; j.i = j.plan.length - 1; j.t = 0; });
+      await p.waitForFunction(() => !__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
+      const after = await g(() => ({ coins: __game.stats.coins || 0, jamaah: __game.stats.jamaah, again: !!__game.jamaah }));
+      if (after.jamaah !== before.jamaah + 1 || after.coins < before.coins + 100 || after.again) throw new Error(JSON.stringify({ before, after, hud }));
+      // spend some at the village shop
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.deeds.maybeExtraChange = () => {}; G.ui.shop(); }); // the random extra-change test has its own check
+      await p.waitForSelector('.veil.on .shopRow');
+      // coins are counted right around the tap: a reward can arrive while the shop opens on a slow device
+      const bought = await g(() => {
+        const G = __game, d = G.inv.count(214), c = G.stats.coins;
+        document.querySelector('.veil.on [data-buy="0"]').click();
+        return { dates: G.inv.count(214) - d, paid: c - G.stats.coins, coins: G.stats.coins };
+      });
+      await g(() => __game.ui.closeAllModals());
+      if (bought.dates !== 5 || bought.paid !== 20) throw new Error(JSON.stringify(bought));
+      return { hud, coins: after.coins, shop: bought };
+    });
+    await step('today’s goals give coins, and finds can be sold', async () => {
+      const r = await g(() => {
+        const G = __game, s = G.stats; G.ui.closeAllModals();
+        const d = s.daily, c0 = s.coins || 0;
+        s.petted += 2; s.placed += 10; s.planted += 1; s.gave += 1; s.jamaah += 1; s.ate += 1; s.quiz += 3; s.cooked = (s.cooked || 0) + 1; s.fish = (s.fish || 0) + 1; s.letters.push(27);
+        s.mined[14] = (s.mined[14] || 0) + 5; s.mined[3] = (s.mined[3] || 0) + 5;
+        G.checkQuests(); G.ui.closeAllModals();
+        return { goals: d.goals, done: s.daily.done.length, gained: (s.coins || 0) - c0 };
+      });
+      if (r.goals.length !== 3 || r.done !== 3 || r.gained < 90) throw new Error(JSON.stringify(r));
+      await p.waitForFunction(() => __game.stats.daily.bonus && (__game.ui.closeAllModals(), true), null, { timeout: 10000 });
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.inv.add(252, 1); G.ui.shop(); });
+      // the shop waits in line behind any pop-up still queued: clear them until it shows
+      await p.waitForFunction(() => !!document.querySelector('.veil.on [data-mode="sell"]') || (__game.ui.modals.filter(m => !m.veil.querySelector('.shop')).forEach(m => m.close()), false), null, { timeout: 15000, polling: 200 });
+      const sold = await g(() => { const G = __game; const c0 = G.stats.coins; document.querySelector('.veil.on [data-mode="sell"]').click(); document.querySelector('.veil.on [data-sell="252"]').click(); const out = { gained: G.stats.coins - c0, pearls: G.inv.count(252) }; G.ui.closeAllModals(); return out; });
+      if (sold.gained !== 40) throw new Error(JSON.stringify(sold));
+      return { ...r, sold };
+    });
+    await step('water bottle: you and Baby Mo get thirsty, drink, and fill it at the well', async () => {
+      // Baby Mo hands it over once the tutorial is done and nothing else is showing
+      await g(() => { const G = __game; G.stats.tut = 99; G.ui.tutorial(null); });
+      await p.waitForFunction(() => __game.inv.count(261) === 1 || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      const r = await g(() => {
+        const G = __game, h = G.stats.hydr; G.ui.closeAllModals();
+        h.me = 100; G.thirst.update(60, true); const drained = 100 - h.me;
+        h.me = 10; h.mo = 10; h.sips = 4;
+        G.thirst.use(false); G.thirst.giveMo(); G.ui.closeAllModals();
+        const after = { me: h.me, mo: h.mo, sips: h.sips, gave: G.stats.amal.total.water };
+        G.player.pos.set(8.5, G.player.pos.y, 6.5); h.sips = 0; G.thirst.use(G.nearDrinkingWater());
+        const bars = document.querySelector('#twMe').style.height;
+        return { drained, after, refilled: h.sips, bars };
+      });
+      if (!(r.drained > 2) || r.after.me !== 50 || r.after.mo !== 50 || r.after.sips !== 2 || r.after.gave < 1 || r.refilled !== 4) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('fishing practice: Baby Mo coaches each step until the first catch', async () => {
+      const seen = [];
+      const now = () => g(() => __game.fishCoach.step);
+      const dump = () => g(() => { const G = __game, P = G.player.pos; return JSON.stringify({ step: G.fishCoach.step, fish: G.fishing.state, held: G.inv.held()?.id, pos: [P.x.toFixed(1), P.y.toFixed(1), P.z.toFixed(1)], ground: G.player.onGround, water: G.nearFishingWater(), ahead: !!G.waterAhead(), open: G.ui.isOpen(), paused: G.paused }); });
+      const until = (what, fn, ms) => p.waitForFunction(fn, null, { timeout: ms, polling: 200 }).catch(async () => { throw new Error(what + ': ' + (await dump()) + ' seen ' + seen.join(',')); });
+      // start in the middle of the village, away from the well (its water counts as water too)
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.player.vel.set(0, 0, 0); G.inv.remove(244, 9); G.stats.fishPractice = false; G.inv.sel = 0; G.ui.fishGuide(); });
+      await p.waitForSelector('.veil.on #fgPractice');
+      await g(() => document.querySelector('.veil.on #fgPractice').click());
+      await p.waitForFunction(() => __game.fishCoach.step === 'rod' || __game.fishCoach.step === 'water', null, { timeout: 5000 });
+      seen.push(await now());
+      // the rod's slot glows; tapping it moves on to the water
+      const glowed = await g(() => { const b = document.querySelector('#hotbar .slot.coachHi'); if (b) b.click(); else __game.inv.sel = __game.inv.slots.findIndex(s => s && s.id === 244); return !!b || __game.fishCoach.step === 'water'; });
+      if (!glowed) throw new Error('the rod’s slot did not glow');
+      await p.waitForFunction(() => __game.fishCoach.step === 'water', null, { timeout: 5000 }); seen.push('water');
+      // Baby Mo takes you to the beach
+      await g(() => { __game.ui.closeAllModals(); __game.fishCoach.toShore(); });
+      await p.waitForTimeout(900);
+      await p.waitForFunction(() => __game.nearFishingWater() || (__game.world.update(__game.player.pos.x, __game.player.pos.z, 40), __game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 }).catch(() => {});
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await until('at the water', () => __game.fishCoach.step === 'cast' || (__game.ui.closeAllModals(), false), 15000); seen.push('cast');
+      // a too-early tap: just throw again
+      await g(() => { __game.ui.closeAllModals(); __game.player.pitch = -0.5; __game.fishAction(); });
+      await p.waitForTimeout(900);
+      await g(() => __game.fishAction());
+      const early = await now();
+      // throw, wait for the dip, tap
+      await g(() => __game.fishAction());
+      // (game time is capped per frame, so on a slow software-rendered machine 3½ game seconds can take much longer)
+      await until('the bite', () => __game.fishCoach.step === 'bite' || (__game.ui.closeAllModals(), false), 45000); seen.push('bite');
+      const fish = await g(() => __game.stats.fish || 0);
+      await g(() => __game.fishAction());
+      const r = await g(f => ({ done: __game.stats.fishPractice, caught: (__game.stats.fish || 0) - f, step: __game.fishCoach.step, coachOn: document.body.classList.contains('coach-on') }), fish);
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (early !== 'cast' || !r.done || r.caught !== 1 || r.coachOn) throw new Error(JSON.stringify({ seen, early, r }));
+      return { seen, early, ...r };
+    });
+    await step('fishing pond: go there from the guide, villagers fishing, a quick bite and a catch', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'fish_pond'); return l && { x: l.x, z: l.z, spot: l.at.spot }; });
+      if (!L) throw new Error('no fishing pond in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.gameEvent = null; G.hour = G.schedule.dhuhr + 1; G.lastHour = G.hour; G.ui.fishGuide(); });
+      await p.waitForSelector('.veil.on #fgPond');
+      await g(() => document.querySelector('.veil.on #fgPond').click());
+      await p.waitForFunction(L => Math.hypot(__game.player.pos.x - L.spot[0], __game.player.pos.z - L.spot[2]) < 1, L, { timeout: 8000 });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => __game.fishers.count === 3 || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 300 });
+      const fish0 = await g(() => __game.stats.fish || 0);
+      await g(L => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(...L.spot); G.player.vel.set(0, 0, 0); G.player.yaw = 0; G.player.pitch = -0.4; G.inv.sel = G.inv.slots.findIndex(s => s && s.id === 244); G.fishAction(); }, L);
+      const cast = await g(() => __game.fishing.state);
+      // (the pond's bite comes after 1½–4 game seconds; slow software rendering stretches that)
+      await p.waitForFunction(() => __game.fishing.state === 'bite' || (__game.ui.closeAllModals(), false), null, { timeout: 45000, polling: 150 });
+      await g(() => __game.fishAction());
+      const r = await g(f => ({ caught: (__game.stats.fish || 0) - f, fishers: __game.fishers.count, near: __game.fishers.near(__game.player.pos) }), fish0);
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (cast === 'idle' || r.caught !== 1 || !r.near) throw new Error(JSON.stringify({ cast, ...r }));
+      return { cast, ...r };
+    });
+    await step('race track: the 🏁 button, countdown, driving round the track, and leaving the race', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'race_track'); return l && { entry: l.at.entry }; });
+      if (!L) throw new Error('no race track in this world');
+      // straight there from the map's fun places
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="race_track"]');
+      await g(() => document.querySelector('#vBook.on [data-go="race_track"]').click());
+      await p.waitForFunction(L => Math.hypot(__game.player.pos.x - L.entry[0], __game.player.pos.z - L.entry[2]) < 1, L, { timeout: 8000 });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => !document.querySelector('#bRace').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 300 });
+      await g(() => document.querySelector('#bRace').click());
+      await p.waitForFunction(() => __game.race.phase === 'go' || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 200 });
+      // after GO the kart drives by itself: it gets round the track
+      await p.waitForFunction(() => __game.race.total > 25 || (__game.ui.closeAllModals(), false), null, { timeout: 45000, polling: 300 });
+      const mid = await g(() => ({ karts: __game.race.karts.length, hud: document.querySelector('#raceHud').innerText.replace(/\s+/g, ' '), moSeat: !!__game.ents.mo.seat }));
+      await g(() => document.querySelector('#raceX').click());
+      const after = await g(() => ({ active: __game.race.active, karts: __game.race.karts.length, moSeat: !!__game.ents.mo.seat, hud: document.querySelector('#raceHud').classList.contains('hidden') }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (mid.karts !== 6 || !mid.moSeat || !/Lap|Putaran/.test(mid.hud) || after.active || after.karts || after.moSeat || !after.hud) throw new Error(JSON.stringify({ mid, after }));
+      return { mid, after };
+    });
+    await step('waterfall camp: go there from the map, the campfire grills like a furnace, a stream to fish in', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'camp'); return l && { entry: l.at.entry, fire: l.at.fire, stream: l.at.stream }; });
+      if (!L) throw new Error('no camp in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="camp"]');
+      await g(() => document.querySelector('#vBook.on [data-go="camp"]').click());
+      await p.waitForFunction(L => Math.hypot(__game.player.pos.x - L.entry[0], __game.player.pos.z - L.entry[2]) < 1, L, { timeout: 8000 });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const r = await g(L => {
+        const G = __game, f = L.fire.map(Math.floor), s = L.stream.map(Math.floor);
+        G.player.pos.set(L.fire[0] + 2, L.fire[1], L.fire[2] + 1.5);
+        return { fire: G.world.get(f[0], f[1], f[2]), stream: G.world.get(s[0], s[1], s[2]), grill: G.stations().has('furnace') };
+      }, L);
+      // tapping the fire opens cooking
+      await g(L => { const G = __game, f = L.fire.map(Math.floor); G.ui.closeAllModals(); G.useBlock({ x: f[0], y: f[1], z: f[2], id: 74, nx: 0, ny: 1, nz: 0 }); }, L);
+      const craft = await g(() => document.querySelector('#vBook')?.classList.contains('on') && __game.ui.tab === 'craft');
+      await g(() => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (r.fire !== 74 || r.stream !== 11 || !r.grill || !craft) throw new Error(JSON.stringify({ ...r, craft }));
+      return { ...r, craft };
+    });
+    await step('race track: the go-karts wait on the start line, and walking to the red kart starts a race', async () => {
+      const ok = await g(() => !!__game.race);
+      if (!ok) throw new Error('no race track in this world');
+      await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x, k.y + 0.5, k.z - 8); G.player.vel.set(0, 0, 0); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => __game.race.parked.length === 6 || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 }); // (a place found during the last race is shown now, after it)
+      await g(() => { const G = __game, k = G.race.myKart(); G.ui.closeAllModals(); G.player.pos.set(k.x + 0.3, k.y + 0.3, k.z); G.player.vel.set(0, 0, 0); });
+      await p.waitForFunction(() => __game.race.active || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 }).catch(async e => {
+        const st = await g(() => { const G = __game, k = G.race.myKart(); return { why: 'no race', armed: G.race.armed, d: Math.hypot(G.player.pos.x - k.x, G.player.pos.z - k.z).toFixed(2), riding: G.fun.riding?.kind ?? null, playing: G.playing?.id ?? null, tennis: !!G.tennis?.active, open: G.ui.isOpen(), paused: G.paused, kind: G.race.kind, races: G.races.map(r => r.kind + ':' + r.active) }; });
+        throw new Error(e.message + ' ' + JSON.stringify(st));
+      });
+      const r = await g(() => ({ active: __game.race.active, parked: __game.race.parked.length, karts: __game.race.karts.length }));
+      await g(() => { const G = __game; G.race.quit(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (!r.active || r.parked !== 0 || r.karts !== 6) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('Snow and Desert tracks: a mystery box gives a power-up, a banana spins a racer, a hijaiyah letter is read and zooms you, ice and sand, all the laps to the finish', async () => {
+      const out = {};
+      for (const kind of ['snow', 'desert']) {
+        await g(k => { const G = __game, r = G.races.find(r => r.kind === k); G.ui.closeAllModals(); G.player.pos.set(r.cx + 2, r.y + 1, r.cz + 4); G.player.vel.set(0, 0, 0); }, kind);
+        for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+        await g(k => { const G = __game; G.ui.closeAllModals(); G.races.find(r => r.kind === k).start(); }, kind);
+        await p.waitForFunction(k => __game.races.find(r => r.kind === k).phase === 'go' || (__game.ui.closeAllModals(), false), kind, { timeout: 30000, polling: 200 });
+        const r = await p.evaluate(async k => {
+          const G = __game, R = G.races.find(r => r.kind === k), wait = ms => new Promise(res => setTimeout(res, ms)), me = R.karts[0];
+          const res = { race: G.race === R, laps: R.laps };
+          // drive into the first mystery box: a power-up comes out after its little spin
+          const box = R.boxes[1]; me.x = box.mesh.position.x; me.z = box.mesh.position.z;
+          for (let i = 0; i < 50 && !R.item; i++) await wait(100); // (the box spins a moment first)
+          res.item = R.item; res.btn = !document.querySelector('#raceItem').classList.contains('hidden');
+          // a banana dropped right in front of a racer makes it spin
+          R.item = 'banana'; R.useItem();
+          // (just ahead of that racer on its line, so it drives into it)
+          const other = R.karts[2], peel = R.peels[0], q0 = R.tk.pointAt(other.s + 1.5, other.lane); peel.x = R.cx + q0.x; peel.z = R.cz + q0.z; peel.mesh.position.set(peel.x, peel.mesh.position.y, peel.z);
+          for (let i = 0; i < 20 && !((other.spin ?? 0) > 0); i++) { if (G.ui.isOpen()) G.ui.closeAllModals(); await wait(100); } // (a card popping up would pause the race)
+          res.spun = (other.spin ?? 0) > 0;
+          // the track's own hazard is under the wheels here
+          const pt = R.tk.patches[0], q = R.tk.pointAt(pt.s + pt.len / 2, (pt.lane0 + pt.lane1) / 2);
+          res.patch = !!R.tk.patchAt(R.tk.progressOf(q.x, q.z), R.tk.laneOf(q.x, q.z));
+          // nearly at the end of lap 3: the finish
+          // a letter tile: drive through it, hear it, and zoom
+          const L = R.letters[0], b0 = R.read; me.x = L.mesh.position.x; me.z = L.mesh.position.z;
+          for (let i = 0; i < 20 && R.read === b0; i++) await wait(100);
+          // its balloon carries it up, up and away … and pops
+          const y0 = R.y + 1.3; for (let i = 0; i < 60 && L.fly >= 0; i++) { if (G.ui.isOpen()) G.ui.closeAllModals(); if (L.mesh.position.y > y0 + 0.6) res.flew = true; await wait(100); } // (a card popping up would pause the race)
+          res.popped = L.fly === -1 && !L.mesh.visible;
+          res.read = R.read; res.set = R.set.slice(); res.said = window.__said; res.letters = R.letters.length;
+          R.total = R.laps * R.tk.LAP - 1; const fin = R.tk.pointAt(1, 0); me.x = R.cx + fin.x; me.z = R.cz + fin.z; R.prevS = R.tk.progressOf(fin.x - 0.01, fin.z) - 1.5; // (a step and a half back: the next frame carries you over the line, whether the kart rolls on or not)
+          for (let i = 0; i < 40 && R.phase !== 'done'; i++) { if (G.ui.isOpen() && R.phase !== 'done') G.ui.closeAllModals(); await wait(100); } // (a card popping up would pause the race)
+          res.done = R.phase === 'done';
+          res.dialog = (document.querySelector('.veil.on .who')?.textContent || '').slice(0, 40);
+          return res;
+        }, kind);
+        await g(() => { const G = __game; G.ui.closeAllModals(); });
+        const after = await g(k => { const R = __game.races.find(r => r.kind === k); return { active: R.active, boxes: R.boxes.length, item: R.item }; }, kind);
+        if (!r.race || !r.item || !r.btn || !r.spun || !r.patch || !r.done || after.active || after.boxes || r.read < 1 || !r.flew || !r.popped || r.letters !== 4 || r.set.length !== 4) throw new Error(JSON.stringify({ kind, r, after }));
+        out[kind] = { ...r, ...after };
+      }
+      // the next race brings the next four letters
+      if ((out.snow.set[0] + 4) % 28 !== out.desert.set[0]) throw new Error('letters did not move on: ' + JSON.stringify([out.snow.set, out.desert.set]));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return out;
+    });
+    await step('tennis: real court; menu; a drill shot, a serve into the box, and a game that can be left', async () => {
+      const ok = await g(() => !!__game.gen.landmarks.find(l => l.id === 'tennis'));
+      if (!ok) throw new Error('no tennis court in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="tennis"]');
+      await g(() => document.querySelector('#vBook.on [data-go="tennis"]').click());
+      await p.waitForTimeout(900);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => !document.querySelector('#bTennis').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 300 });
+      // the 🎾 button asks what to play
+      await g(() => { __game.ui.closeAllModals(); document.querySelector('#bTennis').click(); });
+      // the menu waits in line behind any pop-up still queued (a place just discovered nearby…): clear them until it shows
+      await p.waitForFunction(() => document.querySelectorAll('.veil.on #dbtns button').length >= 3 && /tenis|tennis/i.test(document.querySelector('.veil.on .dialog')?.textContent || '') || (__game.ui.modals.filter(m => !/tenis|tennis/i.test(m.veil.textContent || '')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 });
+      const menu = await g(() => document.querySelectorAll('.veil.on #dbtns button').length);
+      // drill: Baby Mo feeds, you hit it back in time
+      await g(() => document.querySelector('.veil.on #dbtns button').click());
+      const drill = await g(() => ({ active: __game.tennis.active, mode: __game.tennis.mode, mo: !!__game.ents.mo.stand }));
+      await p.waitForFunction(() => { const T = __game.tennis; __game.ui.closeAllModals(); return T.state === 'toMe' && (1 - T.t / T.T) * T.T < 0.3; }, null, { timeout: 60000, polling: 30 });
+      const hit = await g(() => { const T = __game.tennis, side = T.side; T.swing(); return { good: T.good, state: T.state, side, stroke: T.pose?.kind }; });
+      // serve practice: toss, then hit near the top: it goes in
+      await g(() => { const T = __game.tennis; T.quit(); __game.ui.closeAllModals(); T.start('serve'); T.swing(); });
+      await p.waitForFunction(() => __game.tennis.state === 'toss' && __game.tennis.t > 0.5, null, { timeout: 20000, polling: 10 });
+      const serve = await g(() => { const T = __game.tennis; T.swing(); return { state: T.state, call: document.querySelector('#raceMath').textContent, stroke: T.pose?.kind }; });
+      // a game: you serve; the score shows; leave with the button
+      await g(() => { const T = __game.tennis; T.quit(); __game.ui.closeAllModals(); T.start('match'); });
+      const match = await g(() => ({ state: __game.tennis.state, hud: document.querySelector('#tennisT').textContent }));
+      await g(() => document.querySelector('#tennisX').click());
+      const after = await g(() => ({ active: __game.tennis.active, mo: !!__game.ents.mo.stand, hud: document.querySelector('#tennisHud').classList.contains('hidden') }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      const r = { menu, drill, hit, serve, match, after };
+      if (menu < 3 || !drill.active || drill.mode !== 'drill' || !drill.mo || hit.good !== 1 || hit.state !== 'toMo' || !['fh', 'bh'].includes(hit.stroke) || serve.state !== 'toMo' || !/In|Masuk/.test(serve.call) || serve.stroke !== 'serve'
+        || match.state !== 'serveReady' || !/0 – 0/.test(match.hud) || after.active || after.mo || !after.hud) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('fruit orchard & English words: go there from the map, a tree says its name, pick a fruit, it is in My English Words and grows back', async () => {
+      const ok = await g(() => !!__game.gen.landmarks.find(l => l.id === 'orchard'));
+      if (!ok) throw new Error('no orchard in this world');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.openBook('map'); });
+      await p.waitForSelector('#vBook.on [data-go="orchard"]');
+      await g(() => document.querySelector('#vBook.on [data-go="orchard"]').click());
+      await p.waitForTimeout(900);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      // stand by the mango tree: its word card comes up
+      await g(() => { const G = __game, t = G.gen.landmarks.find(l => l.id === 'orchard').at.tree_mango; G.ui.closeAllModals(); G.player.pos.set(t[0] + 0.3, t[1], t[2] + 3.2); G.player.vel.set(0, 0, 0); G.english.shownAt = -1e9; });
+      await p.waitForFunction(() => document.querySelector('#wordCard .we')?.textContent === 'Mango' && !document.querySelector('#wordCard').classList.contains('hidden') || (__game.ui.closeAllModals(), __game.english.shownAt = -1e9, false), null, { timeout: 20000, polling: 300 });
+      // pick an orange: you get one, its word is said, and it grows back later
+      const r = await g(() => {
+        const G = __game, [tx, ty, tz] = G.gen.landmarks.find(l => l.id === 'orchard').at.tree_orange.map(Math.floor);
+        let f = null; for (let dx = -2; dx <= 2 && !f; dx++) for (let dz = -2; dz <= 2 && !f; dz++) for (let dy = 0; dy <= 4; dy++) if (G.world.get(tx + dx, ty + dy, tz + dz) === 77) { f = [tx + dx, ty + dy, tz + dz]; break; }
+        if (!f) return { f };
+        const had = G.inv.count(264); G.breakBlock(f[0], f[1], f[2], 77);
+        const gone = G.world.get(...f) === 0, word = document.querySelector('#wordCard .we')?.textContent;
+        G.stats.fruitPicked[G.stats.fruitPicked.length - 1][4] -= 4 * 60000; G.english.scanT = 0; G.english.update(0.1);
+        return { f, got: G.inv.count(264) - had, gone, word, back: G.world.get(...f) === 77, mango: G.stats.vocab?.Mango?.n, orange: G.stats.vocab?.Orange?.n };
+      });
+      await p.waitForTimeout(300);
+      await g(() => { __game.ui.closeAllModals(); __game.ui.openBook('letters'); });
+      const book = await g(() => [...document.querySelectorAll('#vBook.on .vocab .vw')].filter(e => !e.classList.contains('off')).map(e => e.textContent).join('|'));
+      await g(() => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      if (!r.f || r.got < 1 || !r.gone || r.word !== 'Orange' || !r.back || !r.mango || !r.orange || !/Orange/.test(book)) throw new Error(JSON.stringify({ r, book }));
+      return { ...r, book: book.length };
+    });
+    await step('English: colours, counting, wudu words, the sentence of the day, saying hello to a villager in English', async () => {
+      const card = () => document.querySelector('#wordCard .we')?.textContent;
+      const r = await g(() => {
+        const G = __game, E = G.english; G.ui.closeAllModals();
+        E.shownAt = -1e9; E.seenAt.clear(); E.placed(48); const colour = document.querySelector('#wordCard .we').textContent;
+        ((G.stats.vocab ??= {}).Egg ??= { cat: 'thing', n: 1, item: 216 }); E.shownAt = -1e9; E.seenAt.clear(); G.inv.add(216, 4 - G.inv.count(216)); G.collectFx(216, 1); const count = document.querySelector('#wordCard .we').textContent;
+        return { colour, count };
+      });
+      // wudu: each step says its body part
+      await g(() => { __game.ui.closeAllModals(); __game.ui.wudu(); });
+      await popup('.ws');
+      const wudu = await g(() => { const b = document.querySelectorAll('.veil.on .ws'); b[0].click(); b[1].click(); return { tag: b[4].querySelector('.wen')?.textContent, hands: __game.stats.vocab.Hands?.n }; });
+      // the sentence of the day: Baby Mo teaches it, "I said it!" gives coins
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.phraseDay = ''; G.english.bornAt = -1e9; G.english.scanT = 0; G.english.update(0.1); });
+      await p.waitForFunction(() => !document.querySelector('#phraseCard').classList.contains('hidden'), null, { timeout: 10000 });
+      const said = await g(() => { const G = __game, c0 = G.stats.coins, open = G.ui.isOpen(); document.querySelector('#phSaid').click(); return { coins: G.stats.coins - c0, day: G.stats.phraseDay === new Date().toDateString(), blocking: open, hidden: document.querySelector('#phraseCard').classList.contains('hidden') }; });
+      // hello in English from Grandpa's dialog
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.english.chat('Grandpa', '👴', false); });
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .phrase'), null, { timeout: 10000 });
+      await g(() => document.querySelector('.veil.on #dbtns button').click());
+      await p.waitForFunction(() => /Have a nice day/.test(document.querySelector('.veil.on .dialog')?.textContent || ''), null, { timeout: 10000 });
+      const chat = await g(() => { const v = __game.stats.vocab; __game.ui.closeAllModals(); return { fine: !!v['I’m fine, thank you!'], back: !!v['Great! Have a nice day!'] }; });
+      if (r.colour !== 'Blue' || r.count !== 'Four eggs!' || wudu.tag !== 'Face' || !wudu.hands || said.coins < 10 || !said.day || said.blocking || !said.hidden || !chat.fine || !chat.back) throw new Error(JSON.stringify({ r, wudu, said, chat }));
+      return { ...r, wudu, said, chat };
+    });
+    // the places to play: go there from the map, the place's button shows, and one go works
+    const goTo = async (id) => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.closeBook?.(); });
+      await g(id => __game.goPlace(id), id);
+      await p.waitForTimeout(900);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+    };
+    const act = (id) => `__game.activities.find(a => a.id === '${id}')`;
+    await step('archery: aim, shoot into the target, the points are added up; a good word shows', async () => {
+      await goTo('archery');
+      await p.waitForFunction(() => !document.querySelector('#bPlay').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 }).catch(async e => { throw new Error('no 🏹 button: ' + await g(() => { const G = __game, P = G.player.pos, A = G.activities.find(a => a.id === 'archery'); return JSON.stringify({ pos: [P.x, P.y, P.z].map(v => v.toFixed(1)), near: A?.near(P), lane: A?.lane, playing: G.playing?.id, riding: !!G.fun.riding, race: G.race?.active, tennis: G.tennis?.active, paused: G.paused }); })); });
+      const btn = await g(() => document.querySelector('#bPlay').textContent);
+      await g(() => { __game.ui.closeAllModals(); __game.activities.find(a => a.id === 'archery').start(0); });
+      const word = await g(() => document.querySelector('#dzikir .dsay')?.textContent);
+      // shoot when the aim is near the middle
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); const A = __game.activities.find(a => a.id === 'archery'); if (A.state !== 'aim') return false; const lv = { sway: 0.5, speed: 1.0 }, x = lv.sway * Math.sin(A.t * lv.speed * 1.7), y = lv.sway * 0.75 * Math.sin(A.t * lv.speed * 2.3 + 0.6); if (Math.hypot(x, y) < 0.3) { A.tap(); return true; } return false; }, null, { timeout: 30000, polling: 16 });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'archery').state !== 'fly'), null, { timeout: 15000 });
+      const r = await g(() => { const A = __game.activities.find(a => a.id === 'archery'); const out = { points: A.points, shot: A.shot, math: document.querySelector('#raceMath').textContent }; A.quit(); return out; });
+      if (!/Archery|Memanah/.test(btn) || word !== 'Bismillah!' || r.shot !== 1 || r.points < 10 || !/🎯/.test(r.math)) throw new Error(JSON.stringify({ btn, word, r }));
+      return { btn, word, ...r };
+    });
+    await step('big race: a 🏁 join button before the set time (nothing stops the game), and villagers on the grandstand', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.hour = 9.7; G.lastHour = 9.7; });
+      // the game clock stops while a pop-up is open, so close any that come up and help the clock past 9:45
+      await p.waitForFunction(() => { const G = __game; if (!document.querySelector('#bRaceSoon').classList.contains('hidden')) return true; G.ui.closeAllModals(); G.hour = Math.min(G.hour + 0.01, 9.9); return false; }, null, { timeout: 30000, polling: 100 });
+      // (the race notice must not open a card; another card can come up by itself right then —
+      // a level-up or a discovery that waited for the last game to end — so look for the race's own one)
+      const r = await g(() => ({ btn: document.querySelector('#bRaceSoon').textContent, open: [...document.querySelectorAll('.veil.on')].some(v => /10:00|balapan besar|big race/i.test(v.innerText)), others: [...document.querySelectorAll('.veil.on')].map(v => v.innerText.slice(0, 30)), watching: __game.race.watching }));
+      // it goes away by itself once the race time has passed
+      await g(() => { const G = __game; G.hour = 11.5; });
+      await p.waitForFunction(() => document.querySelector('#bRaceSoon').classList.contains('hidden'), null, { timeout: 10000, polling: 100 });
+      if (!/10:00/.test(r.btn) || r.open || r.watching < 8) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('Mini Stadium: the ⚽ button; a penalty (aim, power, kick); in goal (dive); penalty school; keepy-uppy', async () => {
+      await g(() => { const G = __game, S = G.activities.find(a => a.id === 'stadium'); G.ui.closeAllModals(); G.player.pos.set(S.centre.x + 3, S.centre.y + 1, S.centre.z + 2); G.player.vel.set(0, 0, 0); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await p.waitForFunction(() => document.querySelector('#bPlay .mi')?.textContent === '⚽' || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      const r = await p.evaluate(async () => {
+        const G = __game, S = G.activities.find(a => a.id === 'stadium'), wait = ms => new Promise(res => setTimeout(res, ms));
+        // (game time runs slower than real time on a slow machine: wait up to 20 s)
+        const until = async (f, ms = 20000) => { for (let i = 0; i < ms / 100 && !f(); i++) { if (G.ui.modals.length && S.phase !== 'done') G.ui.closeAllModals(); await wait(100); } return f(); };
+        const out = {};
+        // you kick: aim, power in the green, the run-up and the kick, then the result
+        S.start('shoot'); G.ui.closeAllModals();
+        await wait(300); S.tap(); await wait(100);
+        S.pt = 0.5 / 1.05; S.tap(); // (the power bar right in the middle)
+        out.kicked = await until(() => S.myKicks.length === 1);
+        out.board = !!S.boardMesh;
+        S.quit();
+        // you in goal: Baby Mo runs up, you dive, the result
+        S.start('keep'); G.ui.closeAllModals();
+        await until(() => S.phase === 'moRun');
+        S.dive(Math.abs(S.moShot.x) < 0.3 ? 0 : S.moShot.x > 0 ? 1 : -1); // (the right way — or stay for one down the middle)
+        out.kept = await until(() => S.moKicks.length === 1); out.moShot = +S.moShot.x.toFixed(2);
+        out.saves = S.saves; out.choices = !document.querySelector('#actChoices').classList.contains('hidden');
+        S.quit();
+        out.choicesGone = document.querySelector('#actChoices').classList.contains('hidden');
+        // penalty school: skip through the lesson to the practice kicks
+        S.start('school'); G.ui.closeAllModals();
+        for (let i = 0; i < 40 && S.phase === 'script'; i++) { S.tap(); await wait(120); }
+        out.school = S.phase === 'aim' && S.mode === 'school'; out.schoolDone = G.stats.stadiumSchool;
+        S.quit();
+        // keepy-uppy: tap when the ball comes down to the foot
+        S.start('juggle'); G.ui.closeAllModals();
+        for (let i = 0; i < 3; i++) { await until(() => S.juggleBall.v < 0 && S.juggleBall.y < 0.8 && S.juggleBall.y > 0.2, 6000); S.tap(); await wait(150); }
+        out.juggles = S.juggles;
+        S.quit(); G.ui.closeAllModals();
+        out.after = { active: S.active, ball: S.ball.visible, mo: !!G.ents.mo.stand };
+        return out;
+      });
+      if (!r.kicked || !r.kept || r.saves !== 1 || !r.choices || !r.choicesGone || !r.school || r.juggles < 1 || r.after.active || r.after.ball || r.after.mo) throw new Error(JSON.stringify(r));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
+    await step('sports park: a basket is added up, and a penalty kick at Baby Mo in goal', async () => {
+      await goTo('sports');
+      await g(() => { __game.ui.closeAllModals(); __game.activities.find(a => a.id === 'basketball').start(); });
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); const A = __game.activities.find(a => a.id === 'basketball'); if (A.state !== 'aim') return false; const k = (A.t * 0.8) % 2, pos = k < 1 ? k : 2 - k; if (pos > A.zone[0] + 0.04 && pos < A.zone[1] - 0.04) { A.tap(); return true; } return false; }, null, { timeout: 30000, polling: 16 });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'basketball').state !== 'fly'), null, { timeout: 15000 });
+      const bb = await g(() => { const A = __game.activities.find(a => a.id === 'basketball'); const o = { points: A.points, shot: A.shot, math: document.querySelector('#raceMath').textContent }; A.quit(); return o; });
+      await g(() => { __game.ui.closeAllModals(); __game.activities.find(a => a.id === 'soccer').start(); });
+      await p.waitForTimeout(300);
+      await g(() => __game.activities.find(a => a.id === 'soccer').tap());
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'soccer').state === 'pause'), null, { timeout: 15000 });
+      const sc = await g(() => { const A = __game.activities.find(a => a.id === 'soccer'); const o = { kick: A.kick, goals: A.goals, math: document.querySelector('#raceMath').textContent }; A.quit(); return o; });
+      if (bb.shot !== 1 || bb.points < 2 || !/🏀/.test(bb.math) || sc.kick !== 1 || !sc.math) throw new Error(JSON.stringify({ bb, sc }));
+      return { bb, sc };
+    });
+    await step('horse farm: find a horse, ride the course, jump a pole', async () => {
+      await goTo('horse_farm');
+      await g(() => { const G = __game, H = G.activities.find(a => a.id === 'horses'), h = H.horses[0]; G.ui.closeAllModals(); G.player.pos.set(h.x + 1.2, h.obj.position.y, h.z + 1.2); });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), /Ride|Tunggang/.test(document.querySelector('#bPlay').textContent) && !document.querySelector('#bPlay').classList.contains('hidden')), null, { timeout: 15000, polling: 200 });
+      await g(() => document.querySelector('#bPlay').click());
+      await p.waitForFunction(() => { const H = __game.activities.find(a => a.id === 'horses'), r = H.ride; __game.ui.closeAllModals(); if (!r) return false; const L = 87.7, lap = ((r.s % 1e9)); for (const hd of H.hurdles) { const per = 4 * 9 + 4 * 6 + 4 * Math.PI / 2 * 3, dd = ((hd.s - (r.s % per)) + per) % per; if (dd > 1.4 && dd < 2.8 && !r.jumpT) H.tap(); } return H.clear + H.knocked >= 2; }, null, { timeout: 60000, polling: 30 });
+      const r = await g(() => { const H = __game.activities.find(a => a.id === 'horses'); const o = { clear: H.clear, knocked: H.knocked, moSeat: !!__game.ents.mo.seat }; H.quit(); return o; });
+      if (r.clear < 1 || !r.moSeat) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('ice rink: rent skates at the booth (the sum shows), glide, and collect a snowflake', async () => {
+      await goTo('ice_rink');
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.coins = Math.max(G.stats.coins || 0, 100); G.stats.skates = undefined; });
+      await p.waitForFunction(() => !document.querySelector('#bPlay').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      await g(() => { __game.ui.closeAllModals(); document.querySelector('#bPlay').click(); });
+      // the booth waits in line behind any pop-up still queued (a place just discovered…): clear them until it shows
+      await p.waitForFunction(() => /Loket|Booth/.test(document.querySelector('.veil.on .dialog')?.textContent || '') || (__game.ui.modals.filter(m => !/Loket|Booth/.test(m.veil.textContent || '')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 });
+      const sum = await g(() => document.querySelector('.veil.on .dialog').textContent.match(/\d+ − 10 = \d+/)?.[0]);
+      // (read the coins right around the tap, so a reward arriving meanwhile doesn't count)
+      const paid = await g(() => { const c0 = __game.stats.coins; document.querySelector('.veil.on #dbtns button').click(); return c0 - __game.stats.coins; });
+      await p.waitForFunction(() => __game.activities.find(a => a.id === 'skating').active || (__game.ui.closeAllModals(), false), null, { timeout: 5000 });
+      // push forward (as if holding W / the joystick up) until you're gliding
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); __game.input.keys.add('KeyW'); const A = __game.activities.find(a => a.id === 'skating'); return Math.hypot(A.v.x, A.v.z) > 1.5; }, null, { timeout: 20000 }).catch(async () => { throw new Error('no glide: ' + await g(() => { const A = __game.activities.find(a => a.id === 'skating'); return JSON.stringify({ v: A.v, active: A.active, ax: __game.input.axis(), paused: __game.paused, open: __game.ui.isOpen() }); })); });
+      await g(() => { __game.input.keys.delete('KeyW'); });
+      await g(() => { const A = __game.activities.find(a => a.id === 'skating'), f = A.flakes.find(f => f.visible).position; A.pos.set(f.x, A.pos.y, f.z); A.v.x = 0; A.v.z = 0; });
+      await p.waitForFunction(() => (__game.ui.closeAllModals(), __game.activities.find(a => a.id === 'skating').got >= 1), null, { timeout: 10000 });
+      const r = await g(paid => { const A = __game.activities.find(a => a.id === 'skating'); const o = { paid, got: A.got, rented: __game.stats.skates === __game.day }; A.quit(); __game.ui.closeAllModals(); __game.player.pos.set(0.5, 47, 3.5); return o; }, paid);
+      if (!sum || r.paid !== 10 || r.got < 1 || !r.rented) throw new Error(JSON.stringify({ sum, ...r }));
+      return { sum, ...r };
+    });
+    await step('Iqro journey: after all 28 letters a lesson book appears, the compass points to it, a lesson and its quiz, then the next book', async () => {
+      const keep = await g(() => __game.stats.letters.slice());
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.letters = Array.from({ length: 28 }, (_, i) => i); G.stats.iqro = undefined; });
+      await p.waitForFunction(() => !!__game.iqro.stone || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 200 });
+      // (outside prayer time, when the compass points to the masjid first)
+      const compass = await g(() => { const G = __game; G.gameEvent = null; G.exploreTarget = null; G.hour = 9; G.lastHour = 9; return G.compass()?.landmark; });
+      await g(() => { const G = __game, s = G.iqro.stone; G.player.pos.set(s[0] + 3, s[1], s[2]); });
+      await p.waitForTimeout(400);
+      await g(() => { const G = __game, s = G.iqro.stone; G.ui.closeAllModals(); G.player.pos.set(s[0], s[1], s[2]); });
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .iqro') || (__game.ui.modals.filter(m => !m.veil.querySelector('.iqro')).forEach(m => m.close()), false), null, { timeout: 20000, polling: 200 });
+      const sylls = await g(() => document.querySelectorAll('.veil.on .iqGrid .iqS').length);
+      await g(() => document.querySelector('.veil.on #iqGo').click());
+      // answer the three questions (try each choice until the right one)
+      for (let q = 0; q < 3; q++) {
+        await popup('.iqO');
+        await g(() => new Promise(done => { const tryNext = i => { const b = document.querySelectorAll('.veil.on .iqO')[i]; if (!b) return done(0); b.click(); setTimeout(() => (document.querySelector('.veil.on .iqO.ok') ? done(1) : tryNext(i + 1)), 80); }; tryNext(0); }));
+        await p.waitForTimeout(900);
+      }
+      await popup('#iqDone');
+      const c0 = await g(() => __game.stats.coins);
+      // closed with ✕ on the star screen (not "Done"): the lesson still counts, and the next book can open
+      await g(() => document.querySelector('.veil.on #iqX').click());
+      const r = await g(c0 => ({ step: __game.iqro.step, gained: __game.stats.coins - c0, stone: __game.stats.iqro.stone, open: __game.iqro.opened }), c0);
+      // (a pop-up that comes up meanwhile pauses the game, and the next book isn't placed: close it)
+      await p.waitForFunction(() => !!__game.iqro.stone || (__game.ui.closeAllModals(), false), null, { timeout: 20000, polling: 200 });
+      await g(() => { __game.ui.closeAllModals(); __game.ui.openBook('letters'); });
+      const path = await g(() => document.querySelectorAll('#vBook .iqStage').length);
+      await g(keep => { const G = __game; G.ui.closeBook(); G.ui.closeAllModals(); G.stats.letters = keep; G.player.pos.set(0.5, 47, 3.5); }, keep);
+      if (compass !== '📖' || sylls !== 7 || r.step !== 1 || r.gained < 15 || r.open || path !== 5) throw new Error(JSON.stringify({ compass, sylls, ...r, path }));
+      return { compass, sylls, ...r, path };
+    });
+    await step('Iqro in the game: Dad’s exam and certificate, the imam reads a surah you learned, the three Quls at bedtime', async () => {
+      const all = await g(() => ({ keep: __game.stats.letters.slice(), iq: __game.stats.iqro }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.stats.letters = Array.from({ length: 28 }, (_, i) => i); G.stats.iqro = { n: 12, stars: { 29: 3, 31: 2, 32: 3 } }; const e = G.inv.slots.findIndex(s => !s); if (e >= 0) G.inv.sel = e; });
+      const dad = await g(() => { const G = __game, n = G.ents.npcs.find(n => n.id === 'ustadz'); G.talkNpc(n); return [...document.querySelectorAll('.veil.on #dbtns button')].map(b => b.textContent).join(' | '); });
+      const log = [];
+      // Dad's exam button is there; take the exam (once more if a question went wrong, as a child could)
+      for (let attempt = 0; attempt < 2 && !(await g(() => __game.stats.iqro?.exams?.includes(2))); attempt++) {
+        await g(() => { __game.ui.closeAllModals(); window.__said = ''; __game.iqroExam(2); });
+        for (let q = 0; q < 5; q++) {
+          await p.waitForFunction(() => !!document.querySelector('.veil.on .iqO') || (__game.ui.modals.filter(m => !m.veil.querySelector('.iqro')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 })
+            .catch(async () => { throw new Error('no exam question ' + q + ': ' + JSON.stringify({ dad, log, modals: await g(() => __game.ui.modals.map(m => m.veil.textContent.slice(0, 80))) })); });
+          // (pick the one that was just read out, first time)
+          await p.waitForFunction(() => !!window.__said && [...document.querySelectorAll('.veil.on .iqO')].some(b => b.dataset.ar === window.__said), null, { timeout: 10000, polling: 100 });
+          log.push(await g(() => { const bs = [...document.querySelectorAll('.veil.on .iqO')], said = window.__said; bs.find(b => b.dataset.ar === said).click(); window.__said = ''; return said + ':' + bs.map(b => b.dataset.ar).join(',') + ':' + !!document.querySelector('.veil.on .iqO.ok'); }));
+          await p.waitForTimeout(900);
+        }
+        await p.waitForFunction(() => !document.querySelector('.veil.on .iqO'), null, { timeout: 10000 }).catch(() => {});
+        log.push('exams:' + JSON.stringify(await g(() => __game.stats.iqro?.exams)));
+      }
+      await p.waitForFunction(() => !!document.querySelector('.veil.on .cert') || (__game.ui.modals.filter(m => !m.veil.querySelector('.cert')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 })
+        .catch(async () => { throw new Error('no certificate: ' + JSON.stringify(log) + await g(() => JSON.stringify({ exams: __game.stats.iqro?.exams, modals: __game.ui.modals.map(m => m.veil.textContent.slice(0, 80)) }))); });
+      const exam = await g(() => ({ exams: __game.stats.iqro.exams, cert: !!document.querySelector('.veil.on .cert') }));
+      await g(() => document.querySelector('.veil.on #cOk').click());
+      const imam = await g(() => { const G = __game; G.ui.closeAllModals(); G.jamaah = { step: { pose: 'qiyam', name: ['Berdiri', 'Standing'], rakaat: 1 }, total: 4 }; const r = G.imamReads(); G.jamaah = null; return r; });
+      const bed = await g(() => { const G = __game; G.ui.closeAllModals(); G.hour = G.schedule.isha + 0.5; G.sleep(); return document.querySelector('.veil.on #dbtns button')?.textContent; });
+      // (open the Quls without going to sleep afterwards, so the night doesn't pass under the next steps)
+      const quls = await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.reciteSurahs(G.iqroQuls(), 'test'); return document.querySelectorAll('.veil.on .ayah').length; });
+      await g(a => { const G = __game; G.ui.closeAllModals(); G.hour = 9; G.lastHour = 9; G.stats.letters = a.keep; G.stats.iqro = a.iq; }, all);
+      if (!/Iqro/.test(dad) || !exam.cert || !exam.exams?.includes(2) || !/Al-Fatihah \+ /.test(imam || '') || !/Qul|surah|surat/i.test(bed || '') || quls !== 15) throw new Error(JSON.stringify({ dad, exam, imam, bed, quls }));
+      return { dad, exam, imam, bed, quls };
+    });
+    await step('Grand Masjid: the 🕌 button at prayer time, go there, pray in the full men’s hall', async () => {
+      const L = await g(() => { const l = __game.gen.landmarks.find(l => l.id === 'grand_masjid'); return l && { x: l.x, z: l.z, men: l.at.men }; });
+      if (!L) throw new Error('no Grand Masjid in this world');
+      const state = () => g(() => { const G = __game, ev = G.gameEvent, P = G.player.pos; return JSON.stringify({ ev: ev && { p: ev.p, prayed: ev.prayed }, btn: !document.querySelector('#bMasjid').classList.contains('hidden'), open: G.ui.isOpen(), book: document.querySelector('#vBook')?.classList.contains('on'), modals: G.ui.modals.length, site: G.siteAt(P)?.id, riding: !!G.fun.riding, jam: !!G.jamaah, pos: [P.x.toFixed(1), P.y.toFixed(1), P.z.toFixed(1)], row: G.sites.find(x => x.id === 'grand')?.row(false).player.toArray(), paused: G.paused, locked: G.ui.locked, speed: G.player.speed }); });
+      const wait = (what, fn, arg, ms) => p.waitForFunction(fn, arg, { timeout: ms, polling: 200 }).catch(async e => { throw new Error(what + ': ' + (await state())); });
+      // far from any masjid when Asr comes: the 🕌 button and the golden arrow point the way
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(30.5, 70, 30.5); G.player.vel.set(0, 0, 0); G.gameEvent = null; (p => { const G = __game, past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past; G.realTimes[p] = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick(); })('asr'); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      await wait('🕌 button', () => !document.querySelector('#bMasjid').classList.contains('hidden') || (__game.ui.closeAllModals(), __game.ui.closeBook(), false), null, 15000);
+      const arrow = await g(() => __game.compass()?.masjid === true);
+      const why = await g(() => { const G = __game; return JSON.stringify({ ev: G.gameEvent, guide: !!G.masjidGuide, jam: !!G.jamaah, site: G.siteAt(G.player.pos)?.id, c: G.compass() }); });
+      // tap it and choose the Grand Masjid
+      await g(() => document.querySelector('#bMasjid').click());
+      await wait('picker', () => !!document.querySelector('.veil.on #dbtns button') || (__game.ui.closeAllModals(), __game.ui.masjidPicker(), false), null, 15000);
+      await g(() => [...document.querySelectorAll('.veil.on #dbtns button')].find(b => /Masjid Raya|Grand Masjid/.test(b.textContent)).click());
+      // (the trip there can take a while on a slow machine: the same 15 s as the other waits here)
+      await wait('travel', L => Math.hypot(__game.player.pos.x - L.x, __game.player.pos.z - L.z) < 25, L, 15000);
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      // into your place in the men's row: the prayer starts with a full masjid
+      await g(L => { const G = __game; G.ui.closeAllModals(); G.wuduDone(); G.player.pos.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); }, L);
+      // (a slow frame on a busy CI machine can drop you through the floor; step back into your place)
+      await wait('prayer start', L => { const G = __game, P = G.player.pos; if (G.jamaah) return true; G.ui.closeAllModals(); if (Math.hypot(P.x - L.men[0], P.z - L.men[2]) > 0.5 || Math.abs(P.y - L.men[1]) > 0.5) { P.set(L.men[0], L.men[1], L.men[2]); G.player.vel.set(0, 0, 0); } return false; }, L, 20000);
+      const mid = await g(() => ({ site: __game.jamaahSite.id, people: __game.congregation.count, jamaah: __game.stats.jamaah }));
+      await g(() => { const j = __game.jamaah; j.i = j.plan.length - 1; j.t = 0; });
+      await p.waitForFunction(() => !__game.jamaah || (__game.ui.closeAllModals(), false), null, { timeout: 30000, polling: 300 });
+      const after = await g(() => __game.stats.jamaah);
+      if (!arrow || mid.site !== 'grand' || mid.people < 15 || after !== mid.jamaah + 1) throw new Error(JSON.stringify({ arrow, why, mid, after }));
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      return { ...mid, after };
+    });
+    await step('Amal Book: wudu, tasbih, charity box, and a village project gets built', async () => {
+      const wudu0 = await g(() => __game.stats.amal?.total.wudu || 0); // (the prayer step already made wudu once)
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(8.5, 46, 11.5); G.useBlock({ x: 8, y: 46, z: 9, id: 4, nx: 0, ny: 0, nz: 1 }); });
+      await popup('.wudu');
+      for (let k = 0; k < 30 && await g(() => !!document.querySelector('.veil.on .ws.next')); k++) await g(() => document.querySelector('.veil.on #wTap').click()); // splash until every step is done (3 splashes for the 3× steps)
+      if (!(await g(() => document.querySelector('.veil.on #wPic img.on')?.src || '')).includes('w10')) throw new Error('no du’a picture after wudu');
+      const closed = await g(() => { document.querySelector('.veil.on .wudu #wTap').click(); return !document.querySelector('.veil.on .wudu'); });
+      if (!closed) throw new Error('Done! did not close the wudu card at the well');
+      // before a prayer, "I still have wudu" is a way through (and counts as wudu)
+      const still = await g(async () => { const G = __game; G.wuduValid = false; let went = false; G.ui.wudu(true, () => { went = true; }); await new Promise(r => setTimeout(r, 200)); document.querySelector('.veil.on #wStill').click(); await new Promise(r => setTimeout(r, 500)); return { went, valid: G.wuduValid, open: !!document.querySelector('.veil.on .wudu') }; });
+      if (!still.went || !still.valid || still.open) throw new Error('I still have wudu: ' + JSON.stringify(still));
+      // the picture guide for sholat: ten steps, each with a picture
+      await g(() => { __game.ui.closeAllModals(); __game.ui.poseGuide('sholat'); });
+      await p.waitForSelector('.veil.on .poseGuide #pgPic img.on');
+      const pg = await g(() => { document.querySelector('.veil.on #pgNext').click(); return { n: document.querySelectorAll('.veil.on .pgDots button').length, at: document.querySelector('.veil.on #pgN').textContent }; });
+      if (pg.n !== 10 || !pg.at.includes('2')) throw new Error(JSON.stringify(pg));
+      await g(() => { __game.ui.closeAllModals(); __game.ui.tasbih(); });
+      await p.waitForSelector('.veil.on #tsTap');
+      for (let k = 0; k < 33; k++) await g(() => document.querySelector('.veil.on #tsTap').click());
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.stats.coins = (G.stats.coins || 0) + 50;
+        G.player.pos.set(3.5, 46, -10.5); G.deeds.charityBox(); document.querySelector('.veil.on #dbtns button.gold').click(); G.ui.closeAllModals();
+        for (let i = 0; i < 20; i++) G.amal('animal');
+        G.ui.closeAllModals();
+        const t = G.stats.amal.total; return { wudu: t.wudu, dhikr: t.dhikr, sadaqah: t.sadaqah, built: G.stats.projects };
+      });
+      if (r.wudu !== wudu0 + 1 || r.dhikr !== 1 || r.sadaqah !== 1 || !r.built?.includes('fountain')) throw new Error(JSON.stringify(r));
+      await g(() => { __game.player.pos.set(12.5, 46, -2.5); });
+      await p.waitForFunction(() => (__game.stats.projectsPlaced || []).includes('fountain') || (__game.ui.closeAllModals(), false), null, { timeout: 15000, polling: 300 });
+      const block = await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); return G.world.get(16, 46, -3); });
+      if (block !== 11) throw new Error('fountain not built: ' + block);
+      return r;
+    });
+    await step('boat: the ⛵ button by the shore, a free boat, sailing with Baby Mo', async () => {
+      // shore spots from the generator; a landmark may have changed one, so try a few
+      const spots = await g(() => { const G = __game, out = []; G.ui.closeAllModals(); for (let r = 20; r < 600 && out.length < 6; r += 3) for (let a = 0; a < 6.28 && out.length < 6; a += 0.1) { const x = Math.round(Math.cos(a) * r), z = Math.round(Math.sin(a) * r); const c = G.gen.column(x, z); if (c.h >= 40 && c.h <= 42 && !G.gen.landmarks.some(l => Math.hypot(l.x - x, l.z - z) < 20) && !out.some(o => Math.hypot(o[0] - x, o[1] - z) < 25)) for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { const w1 = G.gen.column(x + dx, z + dz), w2 = G.gen.column(x + 2 * dx, z + 2 * dz); if (w1.h < 39 && w2.h < 39 && w1.snow <= 0.55 && w2.snow <= 0.55) { out.push([x, z, c.h]); break; } } } return out; });
+      if (!spots.length) return { skipped: 'no shore' };
+      let shown = false;
+      for (const spot of spots) {
+        await g(s => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(s[0] + 0.5, s[2] + 1, s[1] + 0.5); G.player.vel.set(0, 0, 0); }, spot);
+        for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+        shown = await p.waitForFunction(() => !document.querySelector('#bBoat').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 6000, polling: 300 }).then(() => true, () => false);
+        if (shown) break;
+      }
+      if (!shown) throw new Error('the ⛵ button never showed at ' + spots.length + ' shores');
+      await g(() => { const G = __game; G.inv.remove(220, G.inv.count(220)); document.querySelector('#bBoat').click(); });
+      // the boat gift waits in line behind any pop-up still queued (a place just discovered nearby…): clear them until it shows
+      await p.waitForFunction(() => !!document.querySelector('.veil.on #bgOk') || (__game.ui.modals.filter(m => !m.veil.querySelector('#bgOk')).forEach(m => m.close()), false), null, { timeout: 30000, polling: 200 });
+      await g(() => document.querySelector('.veil.on #bgOk').click());
+      await p.waitForFunction(() => __game.fun.riding?.kind === 'boat', null, { timeout: 10000 });
+      const r = await g(() => ({ mo: !!__game.ents.mo.seat, gift: __game.stats.boatGift }));
+      // a tap on the world (looking around) must not end the ride: only ✋ gets you off
+      await g(() => { __game.input.tapAt = { x: 200, y: 200 }; });
+      await p.waitForTimeout(400);
+      if (!(await g(() => __game.fun.riding?.kind === 'boat'))) throw new Error('a tap on the world ended the boat ride');
+      await g(() => { const G = __game; G.fun.riding.obj.position.set(G.player.pos.x, G.player.pos.y, G.player.pos.z); G.fun.dismount(); if (G.fun.riding) { G.scene.remove(G.fun.riding.obj); G.fun.riding = null; G.ents.mo.seat = null; G.inv.add(220, 1); } G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      const back = await g(() => __game.inv.count(220));
+      if (!r.mo || !r.gift || back < 1) throw new Error(JSON.stringify({ r, back }));
+      return { ...r, boatInBag: back };
+    });
+    await step('pet an animal (repeated taps count once)', async () => {
+      const r = await g(() => { const G = __game; const a = G.ents.animals.find(a => a.kind !== 'camel' && a !== G.fun.pet && !G.sanctuary.owns(a));
+        if (!a) return { skipped: true };
+        const s0 = G.stats.petted; for (let i = 0; i < 4; i++) G.useEntity(a); return { kind: a.kind, counted: G.stats.petted - s0 }; });
+      if (!r.skipped && r.counted !== 1) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('collect a hijaiyah letter', async () => {
+      await p.waitForTimeout(300);
+      await g(() => { const G = __game; G.ui.closeAllModals(); const s = G.gen.shrines[0]; G.collectLetter(s.letter, s.x, s.y, s.z); });
+      await p.waitForSelector('#lOk', { timeout: 5000 });
+      touch ? await p.tap('#lOk') : await p.click('#lOk');
+      return { letters: await g(() => __game.stats.letters.length) };
+    });
+    await step('hero suits: locked until all 28 letters, then ten to try on (with a chest symbol and a mask)', async () => {
+      const r = await g(async () => {
+        const G = __game, wait = ms => new Promise(res => setTimeout(res, ms)), before = G.stats.letters.slice(), shown = G.stats.suitsShown;
+        G.ui.closeAllModals(); G.ui.openBook('wardrobe'); await wait(200);
+        const locked = document.querySelectorAll('#book .wd.locked[data-slot="suit"]').length;
+        G.stats.letters = Array.from({ length: 28 }, (_, i) => i); G.ui.openBook('wardrobe'); await wait(200);
+        const open = document.querySelectorAll('#book .wd[data-slot="suit"]:not(.locked)').length;
+        document.querySelector('#book .wd[data-id="su_night"]').click(); await wait(200);
+        const worn = { suit: G.settings.outfit.suit, emblem: !!G.avatar.body.getObjectByName('emblem'), mask: !!G.avatar.head.getObjectByName('mask'), cape: !!G.avatar.body.getObjectByName('cape') };
+        G.ui.openBook('wardrobe'); await wait(150); document.querySelector('#book .wd[data-id="su_none"]').click(); await wait(150);
+        const off = { suit: G.settings.outfit.suit ?? null, emblem: !!G.avatar.body.getObjectByName('emblem') };
+        G.ui.closeBook(); G.ui.closeAllModals();
+        G.stats.letters = before; G.stats.suitsShown = shown;
+        return { locked, open, worn, off, girl: G.settings.avatar === 'girl' };
+      });
+      // (open: the 10 suits, "No suit", and the Spider Warrior, which is open from the start)
+      if (r.locked !== 10 || r.open !== 12 || r.worn.suit !== 'su_night' || !r.worn.emblem || (!r.worn.mask && !r.girl) || !r.worn.cape || r.off.suit || r.off.emblem) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('in a game the screen is clean; a race started from another game stops that game; nothing piles up race after race', async () => {
+      const r = await g(async () => {
+        const G = __game, wait = ms => new Promise(res => setTimeout(res, ms)), res = {};
+        const shown = sel => { const e = document.querySelector(sel); return !!e && getComputedStyle(e).display !== 'none' && !e.closest('.hidden'); };
+        G.ui.closeAllModals(); G.setFull?.(true);
+        res.before = { bag: shown('#hotbarWrap'), use: shown('#bUse') };
+        // the stadium, then a race straight from it: the stadium stops first
+        const S = G.activities.find(a => a.id === 'stadium'), R = G.races.find(x => x.kind === 'snow');
+        S.start('shoot'); await wait(200);
+        for (let i = 0; i < 30 && !document.body.classList.contains('acting'); i++) await wait(100); // (the screen mode follows on the next frame)
+        res.inStadium = { bag: shown('#hotbarWrap'), compass: shown('#compass'), use: shown('#bUse') };
+        R.start(); await wait(300);
+        for (let i = 0; i < 30 && !document.body.classList.contains('racing'); i++) await wait(100);
+        res.stadiumStopped = !S.active; res.race = R.active;
+        res.inRace = { bag: shown('#hotbarWrap'), use: shown('#bUse'), jump: shown('#bJump'), item: !!document.querySelector('#raceItem') };
+        // a race left and started again a few times: the scene doesn't keep growing
+        const count = () => { let n = 0; G.scene.traverse(() => n++); return n; };
+        R.quit(); G.ui.closeAllModals(); await wait(200);
+        // left behind = shapes still in memory but no longer in the world (before the fix: 30–40 more every race)
+        const orphans = () => { const u = new Set(); G.scene.traverse(o => { if (o.geometry) u.add(o.geometry.uuid); }); return G.renderer.info.memory.geometries - u.size; };
+        const o0 = orphans();
+        for (let i = 0; i < 3; i++) { R.start(); await wait(250); R.quit(); G.ui.closeAllModals(); await wait(150); }
+        res.geoGrew = orphans() - o0;
+        // the stadium twice: its crowd is made once
+        S.start('shoot'); await wait(150); S.quit(); const c1 = S.crowd.length; S.start('shoot'); await wait(150); S.quit(); res.crowdGrew = S.crowd.length - c1;
+        G.ui.closeAllModals();
+        for (let i = 0; i < 30 && document.body.classList.contains('acting'); i++) await wait(100); // (the screen mode follows on the next frame: slow under load)
+        res.after = { bag: shown('#hotbarWrap'), use: shown('#bUse'), mode: document.body.className, playing: G.playing?.id ?? null, race: !!G.race?.active, tennis: !!G.tennis?.active, anyRace: G.races.map(r => r.active), paused: G.paused };
+        return res;
+      });
+      if (!r.before.bag || r.inStadium.bag || r.inStadium.compass || !r.inStadium.use || !r.stadiumStopped || !r.race || r.inRace.bag || r.inRace.use || r.inRace.jump
+        || r.geoGrew > 30 || r.crowdGrew !== 0 || !r.after.bag || !r.after.use) throw new Error(JSON.stringify(r));
+      // back home for the next steps (the stadium leaves you by its pitch)
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.player.pos.set(0.5, 47, 3.5); G.player.vel.set(0, 0, 0); G.player.yaw = 0; G.ents.mo.pos.set(2, 47, 1.5); });
+      for (let i = 0; i < 60; i++) { const pend = await g(() => __game.world.update(__game.player.pos.x, __game.player.pos.z, 40)); if (pend === 0) break; await p.waitForTimeout(200); }
+      return r;
+    });
+    await step('a new day: yesterday’s bedtime screen goes by itself, play time starts again', async () => {
+      const r = await g(async () => {
+        const G = __game, wait = ms => new Promise(res => setTimeout(res, ms));
+        G.ui.closeAllModals(); G.stats.play = { day: 'yesterday', sec: 9999 };
+        G.ui.lockScreen(true); const locked = G.ui.locked;
+        G.dayKey = 'Mon Jan 01 2001'; G.checkNewDay(); await wait(50);
+        return { locked, after: G.ui.locked, paused: G.paused, sec: G.stats.play.sec, day: G.stats.play.day === new Date().toDateString() };
+      });
+      if (!r.locked || r.after || r.paused || r.sec > 1 || !r.day) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('Baby Mo’s recorded voice: a letter, a vowel mark and an English word play their clips (the device voice only without one)', async () => {
+      const r = await g(async () => {
+        const S = window.__speech;
+        const out = {};
+        for (const [k, fn] of [['letter', () => S.say('أَلِف', 'Alif')], ['ba', () => S.say('بَ', 'ba')], ['word', () => S.talk('Apple', 'en', true, 1)], ['none', () => S.say('ثَوْبٌ جَدِيدٌ', 'tsaubun jadidun')]]) {
+          window.__clip = null; S.stop(); fn(); out[k] = window.__clip;
+        }
+        out.ok = await fetch(out.letter).then(r => r.ok && /audio|mpeg/.test(r.headers.get('content-type') || ''), () => false);
+        S.stop();
+        return out;
+      });
+      if (!r.letter || !r.ba || !r.word || r.none || !r.ok) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('open every book tab', async () => {
+      const tabs = ['bag', 'craft', 'build', 'wardrobe', 'map', 'letters', 'quests', 'ramadhan', 'prayer', 'settings'];
+      const out = {};
+      for (const t of tabs) {
+        await g(t => __game.ui.openBook(t), t);
+        await p.waitForTimeout(150);
+        const len = await g(() => document.getElementById('book').innerText.trim().length);
+        if (len < 20) throw new Error(`tab ${t} looks empty`);
+        out[t] = len;
+      }
+      await g(() => __game.ui.closeBook());
+      return out;
+    });
+    await step('prayer times are shown', async () => {
+      await g(() => __game.ui.openBook('prayer'));
+      const txt = await g(() => document.getElementById('book').innerText);
+      await g(() => __game.ui.closeBook());
+      const times = txt.match(/\b\d{1,2}[:.]\d{2}\b/g) || [];
+      if (times.length < 5) throw new Error('found only ' + times.length + ' times');
+      return { times: times.slice(0, 6).join(' ') };
+    });
+    await step('save and reload keeps progress', async () => {
+      const before = await g(async () => { const G = __game; G.inv.add(213, 3); G.world.set(21, 60, 21, 25); await G.save(); return { seed: G.seed, crystal: G.inv.count(213), letters: G.stats.letters.length }; });
+      await p.reload();
+      await p.waitForSelector('#sPlay');
+      touch ? await p.tap('#sPlay') : await p.click('#sPlay');
+      await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+      await g(() => __game.setFull(true));
+      const after = await g(() => { const G = __game; return { seed: G.seed, crystal: G.inv.count(213), letters: G.stats.letters.length, block: G.world.get(21, 60, 21) }; });
+      if (after.seed !== before.seed || after.crystal !== before.crystal || after.letters !== before.letters || after.block !== 25) throw new Error(JSON.stringify({ before, after }));
+      return after;
+    });
+    if (name === 'desktop') {
+      const idb = (fn, arg) => p.evaluate(fn, arg);
+      // raw IndexedDB helpers that run in the page, independent of the game code
+      const KV = `(op, key, val) => new Promise(res => { const r = indexedDB.open('babymo-island-craft', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('kv');
+        r.onsuccess = () => { const tx = r.result.transaction('kv', op === 'get' ? 'readonly' : 'readwrite'); const st = tx.objectStore('kv');
+          if (op === 'get') { const q = st.get(key); q.onsuccess = () => res(q.result); } else { op === 'put' ? st.put(val, key) : st.delete(key); tx.oncomplete = () => res(true); } }; })`;
+      const kv = (op, key, val) => idb(([src, op, key, val]) => (0, eval)(src)(op, key, val), [KV, op, key, val]);
+      const restart = async () => {
+        await p.reload(); await p.waitForSelector('#sPlay'); await p.click('#sPlay');
+        await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+      };
+      await step('loads a V1 save (migration)', async () => {
+        const v1 = { v: 1, seed: 424242, hour: 18.25, day: 4, lang: 'en',
+          player: { x: 3.5, y: 46, z: -7.25, yaw: 1.2, pitch: -0.3, flying: false },
+          inv: { slots: [{ id: 213, n: 3 }, null, { id: 20, n: 12 }, ...new Array(33).fill(null)], sel: 2 },
+          stats: { letters: [0, 1, 3], mined: { 2: 10 }, talked: { mo: true }, stars: 40, days: [] },
+          questsDone: ['hello'], claimed: [1], saplings: [], settings: { sfx: false, music: false, avatar: 'girl', mode: 'adventure', outfitV2: true, outfitV3: true } };
+        await kv('put', 'meta', v1); await kv('put', 'edits', { '0,0': [0, 0] }); await kv('del', 'backup');
+        await restart();
+        const r = await g(() => { const G = __game; return { seed: G.seed, day: G.day, letters: G.stats.letters.length, crystal: G.inv.count(213), quests: [...G.questsDone], avatar: G.settings.avatar }; });
+        if (r.seed !== 424242 || r.day !== 4 || r.letters < 3 || r.crystal !== 3 || !r.quests.includes('hello') || r.avatar !== 'girl') throw new Error(JSON.stringify(r));
+        await g(() => __game.save());
+        const stored = await kv('get', 'meta');
+        if (stored.v !== 2 || !stored.savedAt) throw new Error('not re-saved as v2: ' + stored.v);
+        const backup = await kv('get', 'backup');
+        if (backup?.meta?.seed !== 424242) throw new Error('no session backup');
+        return { ...r, storedVersion: stored.v };
+      });
+      await step('recovers from a damaged save', async () => {
+        await kv('put', 'meta', { v: 2, seed: 'broken', hour: 'x' });
+        await restart();
+        const r = await g(() => ({ seed: __game.seed, toast: document.getElementById('toast').innerText }));
+        await p.waitForTimeout(2000);
+        const toast = await g(() => document.getElementById('toast').innerText);
+        const broken = await kv('get', 'broken');
+        if (r.seed !== 424242) throw new Error('did not recover: ' + JSON.stringify(r));
+        if (broken?.meta?.seed !== 'broken') throw new Error('broken save was not kept');
+        return { seed: r.seed, toast: toast.slice(0, 60) };
+      });
+      await step('save to file and open it again', async () => {
+        const text = await g(() => __game.exportSave());
+        const o = JSON.parse(text);
+        if (o.format !== 'babymo-island-craft-save' || o.meta.seed !== 424242) throw new Error('bad export');
+        const err = await g(() => __game.importSave('nonsense'));
+        if (!err) throw new Error('accepted a bad file');
+        return { bytes: text.length };
+      });
+      await step('a world from a newer version is never thrown away: a notice on the start screen, and it is kept as the previous world', async () => {
+        const cur = await kv('get', 'meta');
+        await kv('put', 'meta', { ...cur, v: 99, seed: 777 }); await kv('del', 'backup'); await kv('del', 'broken');
+        await p.reload(); await p.waitForSelector('#sPlay');
+        const warn = await g(() => document.querySelector('#startPanel .saveWarn')?.innerText || '');
+        if (!/newer|lebih baru/i.test(warn)) throw new Error('no notice: ' + warn);
+        await p.click('#sPlay');
+        await p.waitForFunction(() => window.__game?.running, null, { timeout: 120000 });
+        const prev = await kv('get', 'previous'), broken = await kv('get', 'broken');
+        if (prev?.meta?.v !== 99 || prev.meta.seed !== 777) throw new Error('not kept as previous: ' + JSON.stringify(prev?.meta?.v));
+        if (broken?.meta?.v !== 99 || !broken.edits) throw new Error('broken copy without the world');
+        await g(() => __game.setFull(true));
+        return { warn: warn.slice(0, 50) };
+      });
+    }
+    await step('grown-ups check before sharing a photo, using the location and choosing a photo', async () => {
+      const gate = async (open) => {
+        await g(open);
+        await p.waitForSelector('.gateScr #pgX', { timeout: 5000 });
+        await g(() => document.querySelector('.gateScr #pgX').click());
+        return true;
+      };
+      await g(() => __game.ui.closeAllModals());
+      await gate(() => __game.photo());
+      await gate(() => { __game.ui.closeAllModals(); __game.ui.citySheet(); document.querySelector('.veil.on #cityGps').click(); });
+      const city = await g(() => { const s = __game.settings; return s.city ?? s.location?.name ?? null; });
+      await g(() => { __game.ui.closeBook(); __game.ui.closeAllModals(); });
+      return { city };
+    });
+    await step('during the tutorial the guide arrow points to the tutorial step (Baby Mo), not the letter', async () => {
+      const r = await p.evaluate(async () => {
+        const G = window.__game; const wait = (ms) => new Promise(r => setTimeout(r, ms));
+        const g0 = G.settings.guide; G.settings.guide = true; // (the arrow is off by default: turned on for this check)
+        const tut0 = G.stats.tut, w0 = G.kid.walked; G.kid.walked = 0; G.stats.tut = 0; G.ui.closeAllModals(); // step 1 "walk to Baby Mo", not yet done
+        G.gameEvent = null; G.ents.mo.prayAt = null; G.hour = 9; G.lastHour = 9; // (outside prayer time: then Baby Mo is in his place in the row, not following you)
+        const mo = G.ents.mo, pp = G.player.pos;
+        const res = [];
+        for (let i = 0; i < 12; i++) {
+          mo.pos.set(pp.x + 9, pp.y, pp.z + 3); // Baby Mo a little way off (not so far that he hops straight back to you: that's at 14)
+          if (G.ui.isOpen()) G.ui.closeAllModals(); // (a pop-up pauses the game, and the arrow with it)
+          await wait(150);
+          const want = Math.atan2(mo.pos.x - pp.x, mo.pos.z - pp.z), got = G.guide.obj.rotation.y;
+          res.push({ vis: G.guide.obj.visible, diff: Math.abs(Math.atan2(Math.sin(got - want), Math.cos(got - want))) });
+        }
+        G.stats.tut = tut0; G.kid.walked = w0; G.ui.tutorial(null); G.settings.guide = g0;
+        return res[res.length - 1];
+      });
+      if (!r.vis || r.diff > 0.35) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('bedtime: evening and a sleepy Mo, sleep now, goodnight card, a grown-up adds time and Mo wakes', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.playLimit = 60; G.stats.play = { day: new Date().toDateString(), sec: 60 * 60 - 400 }; });
+      await p.waitForFunction(() => __game.bedtime.phase === 1 && !document.querySelector('#bedHud').classList.contains('hidden') || (__game.ui.closeAllModals(), false), null, { timeout: 10000, polling: 200 });
+      const coins = await g(() => __game.stats.coins || 0);
+      await g(() => { __game.ui.closeAllModals(); document.querySelector('#bedNow').click(); });
+      await p.waitForSelector('.veil.on #dbtns button.gold');
+      await g(() => document.querySelector('.veil.on #dbtns button.gold').click());
+      await p.waitForSelector('.lockScr.night', { timeout: 10000 });
+      const night = await g(c => ({ mo: __game.ents.mo.sleeping, slept: __game.stats.play.slept, paused: __game.paused, coins: (__game.stats.coins || 0) - c, dua: !!document.querySelector('.lockScr .nightDua') }), coins);
+      if (!night.mo || !night.slept || !night.paused || night.coins < 20 || !night.dua) throw new Error(JSON.stringify(night));
+      // a grown-up adds time: Mo wakes up and the day comes back
+      await g(() => document.querySelector('.lockScr #lkParent').click());
+      await p.waitForSelector('.gateScr #pgIn');
+      const ans = await g(() => { const t = document.querySelector('.gateScr .gateQ').innerText.match(/(\d+)\s*×\s*(\d+)/); return +t[1] * +t[2]; });
+      await p.fill('.gateScr #pgIn', String(ans)); await g(() => document.querySelector('.gateScr #pgOk').click());
+      await g(() => document.querySelector('.lockScr [data-add="15"]').click());
+      await p.waitForTimeout(600);
+      await g(() => __game.ui.closeAllModals()); // a reward pop-up from earlier play may open once the lock lifts
+      await p.waitForTimeout(200);
+      const woke = await g(() => ({ lock: !!document.querySelector('.lockScr'), mo: __game.ents.mo.sleeping, slept: __game.stats.play.slept, phase: __game.bedtime.phase, paused: __game.paused }));
+      if (woke.lock || woke.mo || woke.slept || woke.paused || woke.phase !== 0) throw new Error(JSON.stringify(woke));
+      await g(() => { __game.stats.play.sec = 0; __game.stats.play.extra = 0; });
+      return { night, woke };
+    });
+    await step('a mud trap: mud over a hole gives way when you step on it, and the mud goes back in the bag', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.leaveGames?.(); });
+      const r0 = await g(() => {
+        const G = __game, W = G.world, p = G.player, x = Math.floor(p.pos.x) + 3, z = Math.floor(p.pos.z);
+        const y = W.heightAt(x, z); // the top block
+        // a 3-deep hole with mud on top, and clear air above it
+        for (let yy = y - 2; yy <= y + 4; yy++) W.set(x, yy, z, 0);
+        W.set(x, y, z, 70);
+        p.flying = false; p.pos.set(x + 0.5, y + 1, z + 0.5); p.vel.set(0, 0, 0); p.visY = y + 1;
+        window.__trap = { x, y, z, mud: G.inv.count?.(70) ?? null };
+        return window.__trap;
+      });
+      // (a pop-up that comes up meanwhile pauses the game: close it while waiting)
+      await p.waitForFunction(() => { const t = __trap; if (__game.ui.isOpen()) __game.ui.closeAllModals(); return __game.world.get(t.x, t.y, t.z) === 0 && __game.player.pos.y < t.y; }, null, { timeout: 15000, polling: 100 });
+      return await g(() => ({ fellTo: +__game.player.pos.y.toFixed(2), top: __trap.y, mudBack: __game.inv.count?.(70) ?? null, before: __trap.mud }));
+    });
+    await step('Spider Warrior: the 🕸️ button with the suit; climb any wall; the web rope swings you over; the web catches a beetle at once and pulls in a mushroom', async () => {
+      const r = await g(async () => {
+        const G = __game, P = G.player, sleep = ms => new Promise(r => setTimeout(r, ms)), out = {};
+        const close = () => { if (G.ui.isOpen()) G.ui.closeAllModals(); };
+        // (wait for the game to run: a pop-up that came up pauses it)
+        const running = async () => { for (let i = 0; i < 30 && (close(), G.paused); i++) await sleep(100); };
+        close(); const keep = { ...G.settings.outfit }, cam = G.settings.cam, tip = G.stats.webTip;
+        out.offBefore = document.querySelector('#bWeb').classList.contains('hidden');
+        G.stats.webTip = 1; G.settings.outfit.suit = 'su_spider'; G.buildAvatar(); G.settings.cam = 'third';
+        await sleep(300); out.btn = !document.querySelector('#bWeb').classList.contains('hidden');
+        // a practice ground of our own, high in the sky outside the village (the same every run, whatever the world):
+        // a flat stone floor, and a stone wall at its far end
+        const ax = 60, az = 60, ay = 100; // (the world is 112 blocks high)
+        P.rope = null; P.pos.set(ax + 0.5, ay, az + 10.5); P.vel.set(0, 0, 0); P.flying = true;
+        for (let i = 0; i < 60 && G.world.update(ax, az, 40) > 0; i++) await sleep(50);
+        for (let x = -20; x <= 20; x++) for (let z = -20; z <= 20; z++) { G.world.set(ax + x, ay - 1, az + z, 1); for (let y = 0; y < 10; y++) G.world.set(ax + x, ay + y, az + z, 0); }
+        for (let y = 0; y < 7; y++) for (let x = -2; x <= 2; x++) G.world.set(ax + x, ay + y, az - 2, 1);
+        for (let i = 0; i < 20 && G.world.update(ax, az, 40) > 0; i++) await sleep(50);
+        P.flying = false;
+        // walk into the wall: you climb it
+        P.pos.set(ax + 0.5, ay, az + 0.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0; await running();
+        const y0 = P.pos.y; G.input.keys.add('KeyW');
+        // (a pop-up clears the keys held down: keep holding forward)
+        for (let i = 0; i < 40 && P.pos.y < y0 + 1.5; i++) { close(); G.input.keys.add('KeyW'); await sleep(100); }
+        G.input.keys.delete('KeyW'); out.climbed = +(P.pos.y - y0).toFixed(1);
+        // the web rope: aimed at the wall from further back, it pulls you over, then lets go
+        P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0; await running(); // (straight ahead, at the wall)
+        const z0 = P.pos.z; G.shootWeb(); out.rope = !!P.rope;
+        for (let i = 0; i < 30 && z0 - P.pos.z < 3; i++) { close(); await sleep(100); }
+        out.swung = +(z0 - P.pos.z).toFixed(1);
+        for (let i = 0; i < 40 && P.rope; i++) { close(); await sleep(100); }
+        out.letGo = !P.rope;
+        // a naughty beetle on the practice ground: one web and it's caught (no taps)
+        P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = 0; await running();
+        let b = null; for (let k = 0; k < 40 && !b; k++) b = G.bugs.spawn(P.pos);
+        if (b) {
+          // (placed right in front, then the web at once: a beetle flies about on its own)
+          // (and the camera has glided back behind you after the trip: the web aims along it)
+          const n0 = G.stats.bugs || 0; await running(); await sleep(900); await running();
+          const d = P.look(); b.pos.set(P.pos.x + d.x * 5, P.pos.y + 0.6, P.pos.z + d.z * 5); b.target = null; b.wait = 5;
+          const rope0 = !!P.rope; G.shootWeb(); await sleep(200);
+          out.caught = b.caught && (G.stats.bugs || 0) === n0 + 1;
+          if (!out.caught) out.why = { caught: b.caught, n: (G.stats.bugs || 0) - n0, rope0, can: G.canWeb(), d: +b.pos.distanceTo(P.pos).toFixed(1) };
+        } else out.caught = 'no beetle spawned';
+        // a glowing mushroom on the practice ground: the web snaps it up and pulls it into the bag
+        P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12;
+        G.world.set(ax, ay, az + 8, 71); G.world.update(ax, az, 40); await running(); await sleep(900); await running();
+        // (a slow phone's camera can still be gliding back: aim again and try once more, as a child would)
+        const m0 = G.inv.count(71);
+        for (let k = 0; k < 3 && G.world.get(ax, ay, az + 8) === 71; k++) { if (k) { G.ui.closeAllModals(); P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12; await running(); await sleep(600); } G.shootWeb(); await sleep(300); }
+        out.mushroom = G.world.get(ax, ay, az + 8) !== 71 && G.inv.count(71) === m0 + 1;
+        if (!out.mushroom) out.whyM = { block: G.world.get(ax, ay, az + 8), n: G.inv.count(71) - m0, pos: P.pos.toArray().map(v => +v.toFixed(1)), rope: !!P.rope };
+        // take it off: the button goes, and only trees can be climbed again
+        G.settings.outfit = keep; G.buildAvatar(); G.settings.cam = cam; G.stats.webTip = tip; await running(); await sleep(200);
+        out.offAfter = document.querySelector('#bWeb').classList.contains('hidden') && !P.wallClimb;
+        P.rope = null; P.pos.set(0.5, 47, 3.5); P.vel.set(0, 0, 0);
+        return out;
+      });
+      if (!r.offBefore || !r.btn || r.climbed < 1.5 || !r.rope || r.swung < 3 || !r.letGo || r.caught !== true || !r.mushroom || !r.offAfter) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('Sky City: a city of tall towers on the map (Full BabyMo Craft); flying through a golden ring gives a star, and without Full it shows the unlock card', async () => {
+      const r = await g(async () => {
+        const G = __game, sleep = ms => new Promise(res => setTimeout(res, ms)), P = G.player, out = {};
+        const l = G.gen.landmarks.find(l => l.id === 'sky_city');
+        out.city = !!l && !!G.skyRings && G.skyRings.rings.length === 12;
+        out.onMap = G.funPlaces().some(f => (f.id ?? f) === 'sky_city');
+        const r0 = l.at.ring0, r1 = l.at.ring1, keepPos = P.pos.clone(), fly = P.flying;
+        // without Full: the ring stays gold and the unlock card shows
+        G.ui.closeAllModals(); G.setFull(false); G.skyRings.lockedT = 0; P.flying = true;
+        P.pos.set(r1[0], r1[1] - 1, r1[2]); P.vel.set(0, 0, 0); await sleep(300);
+        out.lockedCard = !!document.querySelector('.unlockCard');
+        out.lockedGot = G.skyRings.got;
+        G.ui.closeAllModals(); G.setFull(true);
+        P.pos.set(l.x + 0.5, l.y + 60, l.z + 0.5); await sleep(200);
+        const s0 = G.stats.stars;
+        for (let i = 0; i < 10 && !G.skyRings.rings[0].got; i++) { G.ui.closeAllModals(); P.pos.set(r0[0], r0[1] - 1, r0[2]); P.vel.set(0, 0, 0); await sleep(100); }
+        out.got = G.skyRings.got; out.star = G.stats.stars > s0;
+        for (const x of G.skyRings.rings) x.got = false;
+        G.ui.closeAllModals(); P.flying = fly; P.pos.copy(keepPos); P.vel.set(0, 0, 0);
+        // back home: wait for the ground round home to load again (the next steps build on it)
+        for (let i = 0; i < 100 && [-16, 0, 16].some(dx => [-16, 0, 16].some(dz => !G.world.chunkAt(keepPos.x + dx, keepPos.z + dz))); i++) { G.world.update(keepPos.x, keepPos.z, 40); await sleep(50); }
+        return out;
+      });
+      if (!r.city || !r.onMap || !r.lockedCard || r.lockedGot !== 0 || r.got !== 1 || !r.star) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('a cape lets you fly: tap jump twice and you lift off; take it off and you land', async () => {
+      const r = await g(() => {
+        const G = __game, p = G.player; G.ui.closeAllModals();
+        G.inv.creative = false;
+        const o = G.settings.outfit; const before = o.cape; o.cape = 'c_none'; o.suit = undefined;
+        G.jumpTap(); G.jumpTap(); const noCape = p.flying;
+        o.cape = 'c_hero';
+        G.jumpTap(); G.jumpTap(); const withCape = p.flying;
+        window.__capeBefore = before;
+        return { noCape, withCape };
+      });
+      if (r.noCape || !r.withCape) throw new Error('flying: ' + JSON.stringify(r));
+      await p.waitForTimeout(400);
+      const up = await g(() => __game.player.vel.y >= 0 && __game.player.flying);
+      const off = await g(() => { const G = __game; G.settings.outfit.cape = 'c_none'; return true; });
+      await p.waitForFunction(() => !__game.player.flying, null, { timeout: 3000, polling: 100 });
+      await g(() => { const G = __game; G.settings.outfit.cape = window.__capeBefore ?? 'c_none'; G.inv.creative = G.settings.mode === 'creative'; });
+      return { ...r, up, off };
+    });
+    await step('water life: fish swim in a pool; a sheep that ends up in the water climbs out (land animals don\'t swim)', async () => {
+      await g(() => {
+        const G = __game, W = G.world, p = G.player, x0 = Math.floor(p.pos.x) - 12, z0 = Math.floor(p.pos.z) - 12, y = W.heightAt(x0, z0);
+        // fish are part of the full graphics (light graphics leaves them out): a machine with few cores starts in light graphics
+        window.__low = G.settings.lowGfx; G.settings.lowGfx = false; G.ui.closeAllModals();
+        if (!W.chunkAt(x0, z0) || !W.chunkAt(x0 + 8, z0 + 8)) throw new Error('the ground for the pool is not loaded');
+        for (let x = x0; x < x0 + 9; x++) for (let z = z0; z < z0 + 9; z++) { for (let yy = y - 3; yy <= y; yy++) W.set(x, yy, z, 11); for (let yy = y + 1; yy <= y + 4; yy++) W.set(x, yy, z, 0); }
+        const a = G.ents.animals.find(a => a.kind === 'sheep') ?? G.ents.animals[0];
+        a.pos.set(x0 + 4.5, y - 0.5, z0 + 4.5); a.target = null;
+        window.__pool = { a: G.ents.animals.indexOf(a), x0, z0, y };
+      });
+      await p.waitForFunction(() => { const G = __game, a = G.ents.animals[__pool.a]; return G.world.get(Math.floor(a.pos.x), Math.floor(a.pos.y + 0.3), Math.floor(a.pos.z)) !== 11; }, null, { timeout: 5000, polling: 100 });
+      await p.waitForFunction(() => __game.ambient.counts.fish > 0, null, { timeout: 30000, polling: 250 }).catch(async e => {
+        throw new Error('no fish: ' + JSON.stringify(await g(() => { const G = __game, P = __pool, W = G.world; return { en: G.ambient.enabled, low: G.settings.lowGfx, c: G.ambient.counts, pl: G.player.pos.toArray().map(Math.round), pool: P, top: W.get(P.x0 + 2, P.y, P.z0 + 2), h: W.heightAt(P.x0 + 2, P.z0 + 2), paused: G.paused }; })));
+      });
+      return await g(() => { const r = { fish: __game.ambient.counts.fish, sheep: __game.ents.animals[__pool.a].kind }; __game.settings.lowGfx = window.__low; return r; });
+    });
+    await step('play time: the sun by the clock shows the minutes left from the start, turns to a moon near bedtime, and a tap makes Baby Mo say it', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; });
+      // (a pop-up that comes up meanwhile pauses the game, and the sun isn't updated: close it)
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); return !document.querySelector('#playT').classList.contains('hidden') && document.querySelector('#playM').textContent === '60'; }, null, { timeout: 5000, polling: 100 });
+      const start = await g(() => ({ icon: document.querySelector('#playI').textContent, min: document.querySelector('#playM').textContent, line: __game.playLeftLine(true) }));
+      await g(() => { __game.stats.play.sec = 60 * 60 - 300; });
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); return document.querySelector('#playI').textContent === '🌙'; }, null, { timeout: 5000, polling: 100 });
+      const said = await g(() => { document.querySelector('#playT').click(); return document.querySelector('#bubbleTxt').textContent; });
+      if (!/5/.test(said)) throw new Error('Mo said: ' + said);
+      await g(() => { const G = __game; G.settings.playLimit = 0; });
+      await p.waitForFunction(() => { __game.ui.closeAllModals(); return document.querySelector('#playT').classList.contains('hidden'); }, null, { timeout: 5000, polling: 100 });
+      await g(() => { const G = __game; G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; G.bedtime.reset?.(); G.ui.dusk?.(0); });
+      return { ...start, said };
+    });
+    await step('letter card: the letter pops in, the vowel cards are tappable with a pointing finger, and play the cleaned-up clips', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.ui.letterCard(1, true, undefined); });
+      await popup('.lcard');
+      await p.waitForTimeout(500);
+      const before = await g(() => ({ pop: !!document.querySelector('.veil.on .lcard.isNew .tile3d'), cards: document.querySelectorAll('.veil.on .harakat.vcards:not(.small) .vc').length, finger: document.querySelector('.veil.on .finger').style.left }));
+      await g(() => document.querySelector('.veil.on .vc.v0').click());
+      await p.waitForTimeout(500);
+      const after = await g(() => ({ clip: window.__clip, said: window.__said, finger: document.querySelector('.veil.on .finger').style.left, hit: document.querySelector('.veil.on .vc.v0').classList.contains('hit') }));
+      if (!before.pop || before.cards !== 3 || !before.finger || after.finger === before.finger || !after.hit) throw new Error(JSON.stringify({ before, after }));
+      if (!/voice\/fix-hijaiyah-/.test(after.clip || '')) throw new Error('ba should play the trimmed clip: ' + after.clip);
+      await g(() => __game.ui.closeAllModals());
+      return { before, after };
+    });
+    await step('real clock: the island keeps the chosen city\'s time and its real prayer times; Makassar is an hour ahead of Jakarta', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.settings.dayMinutes = 0;
+        G.setLocation({ name: 'Jakarta', lat: -6.2088, lng: 106.8456 });
+        return { loc: G.loc.name };
+      });
+      // (as for Makassar below: wait for the island's hour, closing any pop-up that would pause the game)
+      await p.waitForFunction(() => { const G = __game, n = new Date(), want = (n.getUTCHours() + n.getUTCMinutes() / 60 + 7) % 24; G.ui.closeAllModals(); const d = Math.abs(G.hour - want); return Math.min(d, 24 - d) < 0.1; }, null, { timeout: 5000, polling: 100 }).catch(() => {});
+      const jkt = await g(() => { const G = __game, n = new Date(), want = ((n.getUTCHours() + n.getUTCMinutes() / 60 + 7) % 24); return { hour: G.hour, want, dhuhr: G.schedule.dhuhr, real: (G.realTimes.dhuhr.getUTCHours() + G.realTimes.dhuhr.getUTCMinutes() / 60 + 7) % 24 }; });
+      await g(() => __game.setLocation({ name: 'Makassar', lat: -5.1477, lng: 119.4327 }));
+      // (the island's hour follows on the next frames; a pop-up that came up meanwhile would pause the game: close it)
+      await p.waitForFunction(h => { const G = __game; G.ui.closeAllModals(); return Math.abs(((G.hour - h + 36) % 24) - 13) < 0.1; }, jkt.hour, { timeout: 5000, polling: 100 }).catch(() => {});
+      const mks = await g(() => ({ hour: __game.hour }));
+      const near = (a, b, e = 0.05) => Math.abs(((a - b + 36) % 24) - 12) < e || Math.abs(a - b) < e;
+      if (!near(jkt.hour, jkt.want) || !near(jkt.dhuhr, jkt.real, 0.02) || !near(mks.hour, (jkt.hour + 1) % 24, 0.05)) throw new Error(JSON.stringify({ jkt, mks }));
+      await g(() => { const G = __game; G.settings.dayMinutes = 24; G.setLocation({ name: 'Jakarta', lat: -6.2088, lng: 106.8456 }); G.hour = 9; G.lastHour = 9; });
+      return { jkt, mks };
+    });
+    await step('prayer place: search any town in the world (as in the Baby Mo app); its time zone and method come with it', async () => {
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.method = 'auto'; G.ui.citySheet(); });
+      await popup('#cityQ');
+      await p.waitForFunction(() => window.BMCitiesData && document.querySelectorAll('.veil.on .cityRow').length > 10, null, { timeout: 30000, polling: 200 });
+      const pickTown = async q => {
+        await g(q => { const i = document.querySelector('.veil.on #cityQ'); i.value = q; i.dispatchEvent(new Event('input')); }, q);
+        await p.waitForFunction(() => document.querySelector('.veil.on .cityRow[data-i]'), null, { timeout: 5000 });
+        await g(() => document.querySelector('.veil.on .cityRow[data-i]').click());
+        return await g(() => { const G = __game; return { name: G.loc.name, tz: G.loc.tz, cc: G.loc.cc, hour: +G.hour.toFixed(2), isha: +G.schedule.isha.toFixed(2) }; });
+      };
+      const bekasi = await pickTown('bekasi');
+      await g(() => __game.ui.citySheet()); await popup('#cityQ');
+      const makkah = await pickTown('mekah');
+      if (bekasi.name !== 'Bekasi' || bekasi.tz !== 'Asia/Jakarta' || bekasi.cc !== 'ID' || makkah.name !== 'Makkah' || makkah.tz !== 'Asia/Riyadh' || makkah.cc !== 'SA') throw new Error(JSON.stringify({ bekasi, makkah }));
+      // the method follows the country: Makkah's Isha is 90 min after Maghrib (Umm al-Qura)
+      const umm = await g(() => { const G = __game; return Math.round((+G.realTimes.isha - +G.realTimes.maghrib) / 60000); });
+      if (umm !== 90 && umm !== 120) throw new Error('Umm al-Qura Isha should be 90 (120 in Ramadan) minutes after Maghrib: ' + umm);
+      await g(() => { const G = __game; G.ui.closeAllModals(); G.setLocation({ name: 'Jakarta', lat: -6.2088, lng: 106.8456, tz: 'Asia/Jakarta', cc: 'ID' }); G.hour = 9; G.lastHour = 9; });
+      return { bekasi, makkah, umm };
+    });
+    await step('good words: three right in a row in the letter quiz brings "Masya Allah", a kind deed "Barakallahu fik" (with their Arabic)', async () => {
+      const r = await g(async () => {
+        const G = __game, sleep = ms => new Promise(r => setTimeout(r, ms));
+        // (with one letter found, the quiz's answer is that letter)
+        const keep = G.stats.letters; G.ui.closeAllModals(); G.stats.letters = [5]; G.ui.quizStreak = 0; G.dzAt = 0; G.dzLast = {};
+        for (let i = 0; i < 3; i++) {
+          G.ui.closeAllModals(); G.ui.quiz(); await sleep(60);
+          document.querySelector('.veil.on [data-o="5"]').click(); await sleep(30);
+        }
+        G.stats.letters = keep;
+        const pill = document.querySelector('#dzikir');
+        const streak = { say: pill.querySelector('.dsay').textContent, ar: pill.querySelector('.dar').textContent, n: G.ui.quizStreak };
+        G.ui.closeAllModals(); G.dzAt = 0; G.dzLast = {}; G.amal('plant');
+        const deed = { say: pill.querySelector('.dsay').textContent, ar: pill.querySelector('.dar').textContent };
+        G.ui.closeAllModals();
+        return { streak, deed };
+      });
+      if (!/Masya Allah/.test(r.streak.say) || !/مَا شَاءَ/.test(r.streak.ar) || !/Barakallahu fik/.test(r.deed.say) || !/بَارَكَ/.test(r.deed.ar)) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('prayer pause: a real prayer time pauses the game and the play timer on Baby Mo’s card, over a masjid where everyone prays; “I have prayed” opens after the wait, then play goes on with the same time left', async () => {
+      const a = await g(async () => {
+        const G = __game, sleep = ms => new Promise(r => setTimeout(r, ms));
+        G.ui.closeAllModals(); G.gameEvent = null; G.stats.prayHold = undefined; G.settings.prayPause = true; G.settings.playLimit = 60;
+        const past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past;
+        window.__pos0 = G.player.pos.toArray();
+        G.realTimes.maghrib = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick();
+        await sleep(300);
+        const scene = G.prayScene?.site.id, inMasjid = !!G.prayScene && G.prayScene.site.inside(G.player.pos), moRow = !!G.ents.mo.prayAt;
+        const card = document.querySelector('.veil.on .prayHold'), btn = document.querySelector('#phOk');
+        const sec0 = G.stats.play.sec, left0 = G.playLeft(); await sleep(1500);
+        return { card: !!card, title: card?.querySelector('h2')?.textContent, mo: card?.querySelector('.phMo')?.getAttribute('src'), disabled: btn?.disabled, wait: document.querySelector('#phWait')?.textContent,
+          paused: G.paused, timerStill: G.stats.play.sec === sec0 && G.playLeft() === left0, left0, scene, inMasjid, moRow };
+      });
+      // behind the card: inside a masjid (the village one or the Grand Masjid), praying in the row with Baby Mo
+      if (!/^(village|grand)$/.test(a.scene) || !a.inMasjid || !a.moRow) throw new Error('no prayer scene: ' + JSON.stringify(a));
+      if (!a.card || !/Maghrib/.test(a.title) || !/poses\/s0/.test(a.mo) || !a.disabled || !/\d:\d\d/.test(a.wait) || !a.paused || !a.timerStill) throw new Error(JSON.stringify(a));
+      // closed some other way, it comes back until the child has prayed
+      // (another pop-up that comes up meanwhile pauses the game, and the card waits behind it: close that one)
+      await g(() => __game.ui.closeAllModals());
+      await p.waitForFunction(() => { if (document.querySelector('.veil.on .prayHold')) return true; if (__game.ui.isOpen() && !__game.ui.prayHoldOpen()) __game.ui.closeAllModals(); return false; }, null, { timeout: 10000, polling: 200 }); // (the card just back, still fading in, is left alone)
+      // the wait is over: the button opens, and a tap lets play go on with the same time left
+      await g(() => { __game.stats.prayHold.openAt = Date.now() - 1; });
+      await p.waitForFunction(() => document.querySelector('#phOk') && !document.querySelector('#phOk').disabled, null, { timeout: 4000 });
+      const b = await g(async () => {
+        const G = __game, n0 = G.stats.prayedReal || 0;
+        document.querySelector('#phOk').click(); await new Promise(r => setTimeout(r, 400));
+        const p0 = window.__pos0, pp = G.player.pos;
+        const out = { paused: G.paused, hold: !!G.stats.prayHold, prayed: (G.stats.prayedReal || 0) - n0, card: !!document.querySelector('.veil.on .prayHold'), left: G.playLeft(),
+          scene: !!G.prayScene, back: Math.hypot(pp.x - p0[0], pp.z - p0[2]) < 1 };
+        G.settings.prayPause = false; G.gameEvent = null; G.ui.closeAllModals();
+        return out;
+      });
+      if (b.paused || b.hold || b.prayed !== 1 || b.card || b.scene || !b.back || Math.abs(b.left - a.left0) > 2) throw new Error(JSON.stringify({ a, b }));
+      return { wait: a.wait, left: Math.round(b.left), masjid: a.scene };
+    });
+    await step('prayer at the real time: the game day runs on its own, a real prayer time brings the prayer and the sky matches it; no iftar outside Ramadan', async () => {
+      const r = await g(() => {
+        const G = __game; G.ui.closeAllModals(); G.endPrayerTime?.(); G.gameEvent = null; G.settings.dayMinutes = 24; G.hour = 9; G.lastHour = 9;
+        G.ramadhan = { ...G.ramadhan, inRamadhan: false };
+        const past = new Date(Date.now() - 3 * 3600e3); for (const q of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) G.realTimes[q] = past;
+        // nothing due: the game clock passing the island's Asr doesn't bring a prayer any more
+        G.hour = G.schedule.asr - 0.01; G.lastHour = G.hour;
+        return { asr: G.schedule.asr };
+      });
+      await p.waitForTimeout(1500);
+      const none = await g(() => !!__game.gameEvent);
+      if (none) throw new Error('the game clock passing Asr should not start a prayer');
+      const m = await g(() => {
+        const G = __game; G.hour = 9; G.lastHour = 9;
+        G.realTimes.maghrib = new Date(Date.now() - 60e3); G.prayerSeen.clear(); G.realPrayerTick();
+        return { ev: G.gameEvent?.p, hour: +G.hour.toFixed(2), sky: +G.schedule.maghrib.toFixed(2), picnic: G.picnicToMasjid, said: document.querySelector('#bubbleTxt').textContent, quests: G.activeQuests().map(q => q.id) };
+      });
+      await p.waitForTimeout(1500);
+      const frozen = await g(() => +__game.hour.toFixed(2));
+      const pill = await g(() => document.querySelector('#clockP').textContent);
+      if (m.ev !== 'maghrib' || Math.abs(m.hour - m.sky) > 0.05 || m.picnic !== -1 || /iftar|berbuka/i.test(m.said) || m.quests.some(q => ['iftar', 'sahur', 'takjil'].includes(q)) || frozen !== m.hour) throw new Error(JSON.stringify({ m, frozen }));
+      await g(() => { const G = __game; G.endPrayerTime(); G.hour = 9; G.lastHour = 9; G.refreshTimes(); });
+      return { ...r, ...m, frozen, pill };
+    });
+    await step('free part, 7 letters found: the compass shows a free place, and no quests for locked letters', async () => {
+      const r = await g(() => {
+        const G = __game, keep = G.stats.letters, done = G.stats.freeLettersDone, disc = G.stats.discovered;
+        G.ui.closeAllModals(); G.setFull(false); G.stats.letters = [0, 1, 2, 3, 4, 5, 6]; G.stats.discovered = []; G.exploreTarget = null; G.gameEvent = null; G.masjidGuide = null;
+        const c = G.compass(), quests = G.activeQuests().map(q => q.id);
+        const lockedQuest = quests.some(q => q === 'letters10' || q === 'letters28');
+        G.stats.letters = keep; G.stats.discovered = disc; G.stats.freeLettersDone = done; G.setFull(true);
+        return { landmark: c?.landmark ?? null, lockedQuest };
+      });
+      if (!r.landmark || r.lockedQuest) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('audit batch 3: a new good deed is a chip (no card mid-play), the quiz asks missed letters more, far animals rest', async () => {
+      const r = await g(async () => {
+        const G = __game, sleep = ms => new Promise(r => setTimeout(r, ms));
+        G.ui.closeAllModals();
+        // a first-time good deed: a chip, and no pop-up opens
+        const log = G.stats.amal; G.stats.amal = undefined; G.amal('plant'); await sleep(200);
+        const chip = document.querySelector('.amalChip.new')?.textContent || '', modal = G.ui.isOpen();
+        G.stats.amal = log; document.querySelectorAll('.amalChip').forEach(e => e.remove()); G.ui.closeAllModals();
+        // missed letters: a letter missed 5 times is asked far more often than the others
+        const keep = G.stats.letters, miss = G.stats.quizMiss; G.stats.letters = [0, 1, 2, 3, 4, 5, 6]; G.stats.quizMiss = { 4: 5 };
+        let n4 = 0; const rnd = Math.random;
+        for (let i = 0; i < 60; i++) { G.ui.quiz(); document.querySelector('.veil.on #qSay').click(); const said = window.__said; if (said === 'جِيم') n4++; G.ui.closeAllModals(); }
+        G.stats.letters = keep; G.stats.quizMiss = miss;
+        // animals far beyond the view rest and aren't drawn
+        const far = G.ents.animals.filter(a => !a.follow && a.pos.distanceTo(G.player.pos) > G.ents.viewDist);
+        const hidden = far.every(a => !a.rig.root.visible);
+        return { chip, modal, n4, far: far.length, hidden };
+      });
+      if (!/Amal|good deed/i.test(r.chip) || r.modal || r.n4 < 15 || !r.hidden) throw new Error(JSON.stringify(r));
+      return r;
+    });
+    await step('a few seconds of play without errors', async () => { await p.waitForTimeout(3000); });
+    if (errors.length) throw new Error('errors: ' + errors.slice(0, 5).join(' | '));
+  } catch { failed++; }
+  results.push({ profile: name, steps, errors });
+  await ctx.close();
+}
+
+for (const n of profiles) await run(n);
+await browser.close();
+await server?.close();
+
+for (const r of results) {
+  console.log(`\n${r.profile}`);
+  for (const s of r.steps) console.log(`  ${s.ok ? '✓' : '✗'} ${s.label} (${s.ms} ms)${s.info ? ' ' + JSON.stringify(s.info) : ''}`);
+  for (const e of r.errors) console.log('  ! ' + e);
+}
+console.log(failed ? `\n${failed} profile(s) failed` : '\nall profiles passed');
+process.exit(failed ? 1 : 0);

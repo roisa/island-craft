@@ -1,0 +1,35 @@
+/* ===== Baby Mo peeks out from behind the text boxes =====
+   The box's glass is drawn on ::before above Mo, so his lower half sits behind the frosted box while
+   his head and hands pop out over the top edge. He rises in with a little bounce, then sways gently. */
+.moHost { isolation: isolate; overflow: visible !important; background: none !important; box-shadow: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.moHost::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.80) 0%, rgba(255,255,255,.62) 55%, rgba(255,255,255,.72) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(190%); backdrop-filter: blur(18px) saturate(190%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.75), inset 0 1.5px 0 #fff, 0 10px 26px -12px rgba(15,35,70,.5); }
+img.moPeek { position: absolute; z-index: -2;
+  /* he fades out just below the box's top edge, so he looks like he is standing behind it */
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 var(--fade, 66%), transparent calc(var(--fade, 66%) + 16%)); mask-image: linear-gradient(180deg, #000 0, #000 var(--fade, 66%), transparent calc(var(--fade, 66%) + 16%)); pointer-events: none; object-fit: contain; transform-origin: 50% 92%;
+  filter: drop-shadow(0 6px 10px rgba(20,40,70,.25)); animation: moRise .55s cubic-bezier(.3,1.5,.5,1) both, moSway 3.6s ease-in-out .55s infinite; }
+img.moPeek.again { animation: none; }
+@keyframes moRise { from { transform: translateY(38%) scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes moSway { 0%, 100% { transform: rotate(0) translateY(0); } 30% { transform: rotate(-2.5deg) translateY(-2px); } 65% { transform: rotate(2deg) translateY(0); } }
+@media (prefers-reduced-motion: reduce) { img.moPeek { animation: none; } }
+
+/* the speech bubble: Mo leans over its top-left corner, the text sits under him */
+#bubble.moHost { --mo: 108px; --up: .8; margin-top: calc(var(--mo) * var(--up) - 12px); }
+#bubble img.moPeek { --fade: 80%; width: var(--mo) !important; height: var(--mo) !important; left: 6px; top: calc(var(--mo) * var(--up) * -1); }
+#bubble.moHost > div { padding-left: 2px; }
+@media (max-height: 500px) { #bubble.moHost { --mo: 78px; } }
+@media (max-width: 560px) and (orientation: portrait) { #bubble.moHost { --mo: 86px; } }
+
+/* the "say it" phrase card: the same, a little smaller */
+#phraseCard.moHost { --mo: 78px; --up: .8; }
+#phraseCard img.moPeek { --fade: 80%; width: var(--mo) !important; height: var(--mo) !important; left: 6px; top: calc(var(--mo) * var(--up) * -1); display: block !important; }
+
+/* dialogs where Baby Mo talks: he leans over the top edge of the sheet */
+.moStage { position: relative; width: min(560px, 100%); margin-top: 96px; }
+.moStage > .panel { width: 100%; position: relative; z-index: 1; max-height: calc(100vh - 124px - var(--safe-t)); }
+.moStage > img.moPeek { --fade: 80%; z-index: 0; width: 136px; height: 136px; left: 18px; top: -110px; }
+@media (max-height: 500px) { .moStage { margin-top: 74px; } .moStage > img.moPeek { width: 104px; height: 104px; top: -84px; } .moStage > .panel { max-height: calc(100vh - 90px - var(--safe-t)); } }
+.moStage .dialog .who { padding-left: 2px; }
