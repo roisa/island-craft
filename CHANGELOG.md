@@ -5,6 +5,25 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### Kota Langit (Sky City): swing on the web from tower to tower
+
+- Ibra's idea: a city to swing through with the web. Kota Langit stands on open
+  land a good walk from home: 12 tall towers (22 to 46 blocks) in white marble,
+  sandstone, brick, stone and bright wool, with glass windows, glowing lantern
+  bands, and roofs with a fruit tree, glowing mushrooms or a water tower. Cobble
+  streets with lamps, a marble square with a bench, flowers and a chest, and a
+  small masjid with a gold dome and a minaret (to look at; prayer gatherings stay
+  at the village masjid and the Grand Masjid).
+- **12 golden rings** hang between the towers, round the city. Fly through one
+  (web rope, cape, or a jump off a roof) and it turns green with a ⭐ and a chime;
+  all 12 gives a bonus, fireworks and "Allahu Akbar!", then they light up again.
+- On the 🗺️ map's quick travel. Part of Full BabyMo Craft: the family code
+  already opens it on the website. Without Full, the city is there but a ring
+  shows the unlock card.
+- Tested: the smoke run checks the city and its 12 rings, the map entry, a ring
+  giving a star with Full, and staying gold without it; screenshots of the
+  streets and the view from above.
+
 ### The web pulls in fruit and mushrooms too
 
 - Ibra's idea: in the Spider Warrior suit, a 🕸️ web aimed at fruit on a tree

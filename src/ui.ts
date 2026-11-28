@@ -1634,6 +1634,7 @@ export class UI {
         <li>🔤 ${tr('Semua 28 huruf hijaiyah', 'All 28 hijaiyah letters')}</li>
         <li>📖 ${tr('Perjalanan Iqro sampai surat pendek, ujian dan sertifikat', 'The Iqro journey up to short surahs, exams and certificates')}</li>
         <li>⚽ 🏎️ ${tr('Stadion Mini, dan balapan di Sirkuit Salju & Gurun', 'The Mini Stadium, and racing on the Snow & Desert tracks')}</li>
+        <li>🏙️ ${tr('Kota Langit: berayun dengan jaring dari gedung ke gedung, dan cincin emas', 'Sky City: swing with the web from tower to tower, and the golden rings')}</li>
         <li>🎾 🏹 🏀 🐴 ⛸️ ${tr('Tenis, memanah, basket, berkuda, seluncur es', 'Tennis, archery, basketball, horse riding, ice skating')}</li>
         <li>🦸 ${tr('10 kostum pahlawan setelah menemukan 28 huruf', '10 hero suits when all 28 letters are found')}</li>
       </ul>

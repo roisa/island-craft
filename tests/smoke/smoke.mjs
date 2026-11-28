@@ -1249,6 +1249,30 @@ async function run(name) {
       if (!r.offBefore || !r.btn || r.climbed < 1.5 || !r.rope || r.swung < 3 || !r.letGo || r.caught !== true || !r.mushroom || !r.offAfter) throw new Error(JSON.stringify(r));
       return r;
     });
+    await step('Sky City: a city of tall towers on the map (Full BabyMo Craft); flying through a golden ring gives a star, and without Full it shows the unlock card', async () => {
+      const r = await g(async () => {
+        const G = __game, sleep = ms => new Promise(res => setTimeout(res, ms)), P = G.player, out = {};
+        const l = G.gen.landmarks.find(l => l.id === 'sky_city');
+        out.city = !!l && !!G.skyRings && G.skyRings.rings.length === 12;
+        out.onMap = G.funPlaces().some(f => (f.id ?? f) === 'sky_city');
+        const r0 = l.at.ring0, r1 = l.at.ring1, keepPos = P.pos.clone(), fly = P.flying;
+        // without Full: the ring stays gold and the unlock card shows
+        G.ui.closeAllModals(); G.setFull(false); G.skyRings.lockedT = 0; P.flying = true;
+        P.pos.set(r1[0], r1[1] - 1, r1[2]); P.vel.set(0, 0, 0); await sleep(300);
+        out.lockedCard = !!document.querySelector('.unlockCard');
+        out.lockedGot = G.skyRings.got;
+        G.ui.closeAllModals(); G.setFull(true);
+        P.pos.set(l.x + 0.5, l.y + 60, l.z + 0.5); await sleep(200);
+        const s0 = G.stats.stars;
+        for (let i = 0; i < 10 && !G.skyRings.rings[0].got; i++) { G.ui.closeAllModals(); P.pos.set(r0[0], r0[1] - 1, r0[2]); P.vel.set(0, 0, 0); await sleep(100); }
+        out.got = G.skyRings.got; out.star = G.stats.stars > s0;
+        for (const x of G.skyRings.rings) x.got = false;
+        G.ui.closeAllModals(); P.flying = fly; P.pos.copy(keepPos); P.vel.set(0, 0, 0);
+        return out;
+      });
+      if (!r.city || !r.onMap || !r.lockedCard || r.lockedGot !== 0 || r.got !== 1 || !r.star) throw new Error(JSON.stringify(r));
+      return r;
+    });
     await step('a cape lets you fly: tap jump twice and you lift off; take it off and you land', async () => {
       const r = await g(() => {
         const G = __game, p = G.player; G.ui.closeAllModals();

@@ -1198,6 +1198,93 @@ const SPECS = (): Spec[] => specs ??= [
       };
     },
   },
+  {
+    // Kota Langit (Sky City): tall towers close together for the Spider Warrior's web — swing from roof to roof,
+    // climb any tower, fly through the golden rings between them. Towers are hollow shells with a solid roof
+    // (climbing and the web only need the outside), so the city stays light for the world to load.
+    id: 'sky_city', icon: '🏙️', name: ['Kota Langit', 'Sky City'], biomes: [Biome.MEADOW, Biome.DESERT, Biome.BEACH], relaxed: [Biome.MEADOW, Biome.DESERT, Biome.BEACH, Biome.FOREST, Biome.SNOWY], dist: [90, 300], r: 34, loose: true, clear: 34,
+    ok: c => c.h > SEA + 1 && c.h < SEA + 14,
+    hint: ['Ada kota dengan gedung-gedung tinggi menjulang ke langit. Pakai baju Pendekar Laba-laba dan berayunlah dengan jaring dari gedung ke gedung!', 'There’s a city of tall towers reaching for the sky. Wear the Spider Warrior suit and swing with your web from tower to tower!'],
+    fact: ['Di Kota Langit, gedung-gedungnya berdekatan: tembakkan jaring 🕸️ ke gedung berikutnya, berayun, lalu lepaskan di udara! Terbang melewati cincin emas untuk mendapat bintang. Gedung tertinggi di dunia ada di Dubai, lebih dari 800 meter. Ingat, di atas sana tetap ucapkan Bismillah!', 'In Sky City the towers stand close together: shoot your web 🕸️ at the next tower, swing, and let go in mid-air! Fly through the golden rings for stars. The world’s tallest building is in Dubai, more than 800 metres high. Up there too, remember to say Bismillah!'],
+    loot: [[I.GOLD_INGOT, 2], [B.LANTERN, 4], [I.APPLE, 3]],
+    build(b, x, y, z) {
+      y = Math.max(y, SEA + 1);
+      const R = 30, top = H - 3;
+      foundation(b, x - R, z - R, x + R, z + R, y, B.DIRT);
+      // streets every 14 blocks (between the towers), pavements elsewhere; a marble square in the middle
+      b.box(x - R, y, z - R, x + R, y, z + R, (X, _Y, Z) => {
+        const dx = X - x, dz = Z - z;
+        if (Math.abs(dx) <= 6 && Math.abs(dz) <= 6) return (Math.abs(dx) + Math.abs(dz)) % 4 === 0 ? B.MOSAIC : B.MARBLE;
+        const road = (v: number) => [0, 14, -14, 28, -28].some(l => Math.abs(v - l) <= 1);
+        return road(dx) || road(dz) ? B.COBBLE : B.STONE;
+      });
+      b.box(x - R, y + 1, z - R, x + R, y + 6, z + R, B.AIR); // (bumps and trees out of the way at street level)
+      // 12 towers on a 4×4 grid (the middle four are the square)
+      const C = [-21, -7, 7, 21], HTS = [22, 30, 38, 26, 34, 44, 28, 40, 24, 36, 32, 46];
+      const SKIN = [B.BRICK, B.MARBLE, B.SANDSTONE, B.STONE, B.WOOL_BLUE, B.WOOL_WHITE, B.BRICK, B.MARBLE, B.WOOL_YELLOW, B.STONE, B.SANDSTONE, B.WOOL_BLUE];
+      const towers: { cx: number; cz: number; h: number }[] = [];
+      let n = 0;
+      for (const ox of C) for (const oz of C) {
+        if (Math.abs(ox) === 7 && Math.abs(oz) === 7) continue;
+        const cx = x + ox, cz = z + oz, h = Math.min(HTS[n], top - y - 2), skin = SKIN[n], hw = 4;
+        const x0 = cx - hw, x1 = cx + hw - 1, z0 = cz - hw, z1 = cz + hw - 1, yt = y + h;
+        // the walls: the tower's colour, windows (glass) in rows, a lit band (lanterns) every eighth floor
+        for (let Y = y + 1; Y <= yt; Y++) for (let X = x0; X <= x1; X++) for (let Z = z0; Z <= z1; Z++) {
+          const edge = X === x0 || X === x1 || Z === z0 || Z === z1; if (!edge) continue;
+          const corner = (X === x0 || X === x1) && (Z === z0 || Z === z1), fl = Y - y;
+          const along = X === x0 || X === x1 ? Z : X;
+          let id = skin;
+          if (!corner && fl % 8 === 0) id = B.LANTERN;
+          else if (!corner && fl % 2 === 0 && (along - (X === x0 || X === x1 ? z0 : x0)) % 2 === 1) id = B.GLASS;
+          b.stamp(X, Y, Z, id);
+        }
+        b.box(x0, yt + 1, z0, x1, yt + 1, z1, B.COBBLE); // the roof
+        for (const [px, pz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) b.stamp(px, yt + 2, pz, B.LANTERN);
+        // something on every roof: a little fruit garden, glowing mushrooms, or a water tower
+        const kind = n % 3, ry = yt + 2;
+        if (kind === 0) {
+          b.box(cx - 2, yt + 1, cz - 2, cx + 1, yt + 1, cz + 1, B.GRASS);
+          for (let k = 0; k < 3; k++) b.stamp(cx - 1, ry + k, cz - 1, B.OAK_LOG);
+          b.box(cx - 3, ry + 3, cz - 3, cx + 1, ry + 3, cz + 1, (X, _Y, Z) => (Math.abs(X - cx + 1) + Math.abs(Z - cz + 1) <= 3 ? B.OAK_LEAVES : null));
+          for (const [fx, fz] of [[cx - 3, cz - 1], [cx + 1, cz - 1], [cx - 1, cz - 3], [cx - 1, cz + 1]]) b.stamp(fx, ry + 2, fz, n % 2 ? B.FRUIT_MANGO : B.FRUIT_APPLE);
+        } else if (kind === 1) {
+          for (const [mx, mz] of [[cx - 2, cz - 2], [cx + 1, cz - 2], [cx - 2, cz + 1], [cx + 1, cz + 1], [cx, cz]]) b.stamp(mx, ry, mz, B.GLOW_MUSHROOM);
+        } else {
+          for (const [lx, lz] of [[cx - 1, cz - 1], [cx, cz - 1], [cx - 1, cz], [cx, cz]]) b.box(lx, ry, lz, lx, ry + 1, lz, B.PLANKS);
+          b.box(cx - 2, ry + 2, cz - 2, cx + 1, ry + 4, cz + 1, (X, Y, Z) => (Y === ry + 4 || X === cx - 2 || X === cx + 1 || Z === cz - 2 || Z === cz + 1 ? B.PLANKS : null));
+        }
+        towers.push({ cx, cz, h });
+        n++;
+      }
+      // street lamps at the crossings
+      for (const lx of [-14, 0, 14]) for (const lz of [-14, 14, 28, -28]) {
+        if (Math.abs(lx) <= 6 && Math.abs(lz) <= 6) continue;
+        const X = x + lx + 2, Z = z + lz + 2; b.box(X, y + 1, Z, X, y + 3, Z, B.BASALT); b.stamp(X, y + 4, Z, B.LANTERN);
+      }
+      // the square: a small masjid with a dome and a tall minaret
+      b.box(x - 3, y + 1, z - 5, x + 3, y + 4, z - 1, (X, Y, Z) => (X === x - 3 || X === x + 3 || Z === z - 5 || Z === z - 1 ? (Y === y + 3 && (X === x || Z === z - 3) ? B.GLASS : B.MARBLE) : B.AIR));
+      b.box(x - 1, y + 1, z - 1, x + 1, y + 2, z - 1, B.AIR); // the door
+      b.box(x - 3, y + 5, z - 5, x + 3, y + 5, z - 1, B.MARBLE);
+      for (let dy = 0; dy <= 3; dy++) { const r = 3 - dy; b.box(x - r, y + 6 + dy, z - 3 - r, x + r, y + 6 + dy, z - 3 + r, dy === 3 ? B.GOLD_TILE : B.MOSAIC); }
+      b.box(x + 5, y + 1, z - 5, x + 5, y + 16, z - 5, (_X, Y) => (Y % 5 === 0 ? B.GOLD_TILE : B.MARBLE));
+      b.stamp(x + 5, y + 17, z - 5, B.LANTERN);
+      // a bench, flowers and the treasure chest
+      b.box(x - 4, y + 1, z + 4, x - 1, y + 1, z + 4, B.PLANKS);
+      for (const [fx, fz] of [[x + 2, z + 3], [x + 3, z + 5], [x - 5, z + 2]]) b.stamp(fx, y + 1, fz, B.FLOWER_RED);
+      b.stamp(x + 4, y + 1, z + 4, B.CHEST);
+      // the golden rings: one between each pair of towers next to each other round the city, at a height
+      // both can reach with the web (most of the lower tower), in order round the loop
+      const loop = [[-21, -21], [-7, -21], [7, -21], [21, -21], [21, -7], [21, 7], [21, 21], [7, 21], [-7, 21], [-21, 21], [-21, 7], [-21, -7]];
+      const at: Record<string, [number, number, number]> = { centre: [x + 0.5, y + 1, z + 0.5], entry: [x + 0.5, y + 1, z + R - 1.5], square: [x + 0.5, y + 1, z + 3.5] };
+      const hOf = (ox: number, oz: number) => towers.find(t => t.cx === x + ox && t.cz === z + oz)?.h ?? 20;
+      loop.forEach(([ax, az], k) => {
+        const [bx, bz] = loop[(k + 1) % loop.length];
+        const h = Math.min(hOf(ax, az), hOf(bx, bz));
+        at['ring' + k] = [x + (ax + bx) / 2 + 0.5, y + Math.round(h * 0.6) + 0.5, z + (az + bz) / 2 + 0.5];
+      });
+      return { y: y + 1, at };
+    },
+  },
 ];
 
 /** is this column well away from the track (not on it, its kerb or its wall), with `m` blocks to spare? */

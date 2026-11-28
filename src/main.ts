@@ -32,6 +32,7 @@ import { matOf } from './game/materials';
 import { Ambient } from './game/ambient';
 import { Decor, cleanDeco, faceToward } from './game/deco';
 import { BugSwarm, type Bug } from './game/bugs';
+import { SkyRings } from './game/skyrings';
 import { Fishing } from './game/fishing';
 import { skillLevel, hitPower, catchFor, type Skill } from './game/skills';
 import { heldModel } from './game/held';
@@ -509,6 +510,8 @@ export class Game {
     if (ir?.at?.rink) this.activities.push(new IceRink(this, ir));
     const sd = this.gen.landmarks.find(l => l.id === 'stadium');
     if (sd?.at?.goal) this.activities.push(new Stadium(this, sd));
+    const sc = this.gen.landmarks.find(l => l.id === 'sky_city');
+    this.skyRings = sc?.at?.ring0 ? new SkyRings(this, sc) : null;
     this.eid = new Eid(this);
     this.eid.refresh();
     this.sky.setMoonPhase(moonPhase(new Date()));
@@ -824,7 +827,7 @@ export class Game {
     if (Math.random() < 0.15) this.fx.sparkle(f.x, f.y + 1.2, f.z, 1, 0x9a9a9a, 0.5);
   }
   /** the fun places you can go to straight away from the map (the ones that exist in this world) */
-  funPlaces() { return ['fish_pond', 'race_track', 'snow_track', 'desert_track', 'camp', 'tennis', 'orchard', 'archery', 'sports', 'horse_farm', 'ice_rink', 'stadium'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
+  funPlaces() { return ['fish_pond', 'race_track', 'snow_track', 'desert_track', 'camp', 'tennis', 'orchard', 'archery', 'sports', 'horse_farm', 'ice_rink', 'stadium', 'sky_city'].map(id => this.gen.landmarks.find(l => l.id === id)).filter((l): l is NonNullable<typeof l> => !!l); }
   /** quick travel to a place's entry point, with Baby Mo */
   goPlace(id: string) {
     if (id === 'fish_pond') return this.goToPond();
@@ -1258,6 +1261,8 @@ export class Game {
     return wearsCape(this.settings.outfit) && !this.fun?.riding && !this.race?.active && !this.tennis?.active && !this.playing;
   }
   /** the Spider Warrior's powers (not while riding, racing or in a game) */
+  /** Sky City's golden rings (null in a world without the city) */
+  skyRings: SkyRings | null = null;
   canWeb() { return wearsSpider(this.settings.outfit) && !this.fun?.riding && !this.race?.active && !this.tennis?.active && !this.playing; }
   /** the web strand from your hand to where it stuck (or to a beetle, for a moment): a thin white bar, so it shows */
   private webLine: THREE.Mesh | null = null;
@@ -1508,6 +1513,7 @@ export class Game {
       this.ui.say(tr('Pendekar Laba-laba! 🕷️ Jalan ke dinding untuk memanjat, ketuk ⬆️ untuk melompat turun. Ketuk 🕸️ untuk menembak jaring: berayun ke sana, atau tangkap kumbang nakal!', 'Spider Warrior! 🕷️ Walk into a wall to climb it, tap ⬆️ to jump off. Tap 🕸️ to shoot a web: swing over there, or catch a naughty beetle!'), 'idea', 9000);
     }
     this.webLineTick(dt);
+    this.skyRings?.update(dt, performance.now() / 1000);
     this.mudTrap(dt);
     this.ui.setFlying(p.flying || (p.inWater && !p.onGround && !this.fun.riding)); // ⬇️ also dives while swimming
     if (inp.jump() && p.onGround && !p.flying && p.vel.y === 0) { /* handled in physics */ }

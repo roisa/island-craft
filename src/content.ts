@@ -28,7 +28,9 @@ export interface Stats {
   skills?: Record<string, number>;
   bugs?: number; fish?: number;
   /** webs shot in the Spider Warrior suit, and whether Baby Mo explained it */
-  webs?: number; webTip?: number; cooked?: number; perfectCooks?: number;
+  webs?: number; webTip?: number;
+  /** Sky City: golden rings flown through, full runs of all 12, and whether Baby Mo explained them */
+  skyRings?: number; skyRuns?: number; skyRingTip?: number; cooked?: number; perfectCooks?: number;
   /** treetops reached (keys of ~4-block areas, so each tree counts once) */
   treetops?: string[];
   /** power hats whose matching item was already given */
