@@ -1270,6 +1270,8 @@ async function run(name) {
         out.got = G.skyRings.got; out.star = G.stats.stars > s0;
         for (const x of G.skyRings.rings) x.got = false;
         G.ui.closeAllModals(); P.flying = fly; P.pos.copy(keepPos); P.vel.set(0, 0, 0);
+        // back home: wait for the ground round home to load again (the next steps build on it)
+        for (let i = 0; i < 100 && [-16, 0, 16].some(dx => [-16, 0, 16].some(dz => !G.world.chunkAt(keepPos.x + dx, keepPos.z + dz))); i++) { G.world.update(keepPos.x, keepPos.z, 40); await sleep(50); }
         return out;
       });
       if (!r.city || !r.onMap || !r.lockedCard || r.lockedGot !== 0 || r.got !== 1 || !r.star) throw new Error(JSON.stringify(r));
@@ -1297,6 +1299,9 @@ async function run(name) {
     await step('water life: fish swim in a pool; a sheep that ends up in the water climbs out (land animals don\'t swim)', async () => {
       await g(() => {
         const G = __game, W = G.world, p = G.player, x0 = Math.floor(p.pos.x) - 12, z0 = Math.floor(p.pos.z) - 12, y = W.heightAt(x0, z0);
+        // fish are part of the full graphics (light graphics leaves them out): a machine with few cores starts in light graphics
+        window.__low = G.settings.lowGfx; G.settings.lowGfx = false; G.ui.closeAllModals();
+        if (!W.chunkAt(x0, z0) || !W.chunkAt(x0 + 8, z0 + 8)) throw new Error('the ground for the pool is not loaded');
         for (let x = x0; x < x0 + 9; x++) for (let z = z0; z < z0 + 9; z++) { for (let yy = y - 3; yy <= y; yy++) W.set(x, yy, z, 11); for (let yy = y + 1; yy <= y + 4; yy++) W.set(x, yy, z, 0); }
         const a = G.ents.animals.find(a => a.kind === 'sheep') ?? G.ents.animals[0];
         a.pos.set(x0 + 4.5, y - 0.5, z0 + 4.5); a.target = null;
@@ -1306,7 +1311,7 @@ async function run(name) {
       await p.waitForFunction(() => __game.ambient.counts.fish > 0, null, { timeout: 30000, polling: 250 }).catch(async e => {
         throw new Error('no fish: ' + JSON.stringify(await g(() => { const G = __game, P = __pool, W = G.world; return { en: G.ambient.enabled, low: G.settings.lowGfx, c: G.ambient.counts, pl: G.player.pos.toArray().map(Math.round), pool: P, top: W.get(P.x0 + 2, P.y, P.z0 + 2), h: W.heightAt(P.x0 + 2, P.z0 + 2), paused: G.paused }; })));
       });
-      return await g(() => ({ fish: __game.ambient.counts.fish, sheep: __game.ents.animals[__pool.a].kind }));
+      return await g(() => { const r = { fish: __game.ambient.counts.fish, sheep: __game.ents.animals[__pool.a].kind }; __game.settings.lowGfx = window.__low; return r; });
     });
     await step('play time: the sun by the clock shows the minutes left from the start, turns to a moon near bedtime, and a tap makes Baby Mo say it', async () => {
       await g(() => { const G = __game; G.ui.closeAllModals(); G.settings.playLimit = 60; G.stats.play = { day: G.dayKey, sec: 0 }; });
