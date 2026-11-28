@@ -1240,8 +1240,11 @@ async function run(name) {
         // a glowing mushroom on the practice ground: the web snaps it up and pulls it into the bag
         P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12;
         G.world.set(ax, ay, az + 8, 71); G.world.update(ax, az, 40); await running(); await sleep(900); await running();
-        const m0 = G.inv.count(71); G.shootWeb(); await sleep(300);
+        // (a slow phone's camera can still be gliding back: aim again and try once more, as a child would)
+        const m0 = G.inv.count(71);
+        for (let k = 0; k < 3 && G.world.get(ax, ay, az + 8) === 71; k++) { if (k) { G.ui.closeAllModals(); P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12; await running(); await sleep(600); } G.shootWeb(); await sleep(300); }
         out.mushroom = G.world.get(ax, ay, az + 8) !== 71 && G.inv.count(71) === m0 + 1;
+        if (!out.mushroom) out.whyM = { block: G.world.get(ax, ay, az + 8), n: G.inv.count(71) - m0, pos: P.pos.toArray().map(v => +v.toFixed(1)), rope: !!P.rope };
         // take it off: the button goes, and only trees can be climbed again
         G.settings.outfit = keep; G.buildAvatar(); G.settings.cam = cam; G.stats.webTip = tip; await running(); await sleep(200);
         out.offAfter = document.querySelector('#bWeb').classList.contains('hidden') && !P.wallClimb;
@@ -1418,7 +1421,7 @@ async function run(name) {
       // closed some other way, it comes back until the child has prayed
       // (another pop-up that comes up meanwhile pauses the game, and the card waits behind it: close that one)
       await g(() => __game.ui.closeAllModals());
-      await p.waitForFunction(() => { if (document.querySelector('.veil.on .prayHold')) return true; if (__game.ui.isOpen()) __game.ui.closeAllModals(); return false; }, null, { timeout: 10000, polling: 200 });
+      await p.waitForFunction(() => { if (document.querySelector('.veil.on .prayHold')) return true; if (__game.ui.isOpen() && !__game.ui.prayHoldOpen()) __game.ui.closeAllModals(); return false; }, null, { timeout: 10000, polling: 200 }); // (the card just back, still fading in, is left alone)
       // the wait is over: the button opens, and a tap lets play go on with the same time left
       await g(() => { __game.stats.prayHold.openAt = Date.now() - 1; });
       await p.waitForFunction(() => document.querySelector('#phOk') && !document.querySelector('#phOk').disabled, null, { timeout: 4000 });
