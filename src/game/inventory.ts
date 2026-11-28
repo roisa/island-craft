@@ -22,6 +22,12 @@ export class Inventory {
     this.onChange?.();
     return n; // leftover
   }
+  /** is there room for one more of this (a stack that isn't full, or an empty slot)? */
+  room(id: number): boolean {
+    if (this.creative) return true;
+    const max = maxStack(id);
+    return this.slots.some(s => !s || (s.id === id && s.n < max));
+  }
   remove(id: number, n = 1): boolean {
     if (this.creative) return true;
     if (this.count(id) < n) return false;

@@ -1232,8 +1232,9 @@ async function run(name) {
           // (placed right in front, then the web at once: a beetle flies about on its own)
           // (and the camera has glided back behind you after the trip: the web aims along it)
           const n0 = G.stats.bugs || 0; await running(); await sleep(900); await running();
-          const d = P.look(); b.pos.set(P.pos.x + d.x * 5, P.pos.y + 0.6, P.pos.z + d.z * 5); b.target = null; b.wait = 5;
-          const rope0 = !!P.rope; G.shootWeb(); await sleep(200);
+          // (a slow phone's camera may still be gliding: put the beetle back in front and try again, as a child would)
+          let rope0 = false;
+          for (let k = 0; k < 3 && !b.caught; k++) { if (k) { G.ui.closeAllModals(); P.rope = null; await running(); await sleep(500); } const d = P.look(); b.pos.set(P.pos.x + d.x * 5, P.pos.y + 0.6, P.pos.z + d.z * 5); b.target = null; b.wait = 5; rope0 = !!P.rope; G.shootWeb(); await sleep(200); }
           out.caught = b.caught && (G.stats.bugs || 0) === n0 + 1;
           if (!out.caught) out.why = { caught: b.caught, n: (G.stats.bugs || 0) - n0, rope0, can: G.canWeb(), d: +b.pos.distanceTo(P.pos).toFixed(1) };
         } else out.caught = 'no beetle spawned';
@@ -1244,17 +1245,26 @@ async function run(name) {
         G.world.set(ax, ay, az + 8, 71); G.world.update(ax, az, 40); await running(); await sleep(900); await running();
         out.mushroomPut = G.world.get(ax, ay, az + 8) === 71;
         // (a slow phone's camera can still be gliding back: aim again and try once more, as a child would)
+        // (the bag needs room: a full bag leaves the mushroom where it is)
+        const slotKeep = G.inv.slots.slice(-1)[0]; if (!G.inv.room(71)) G.inv.slots[G.inv.slots.length - 1] = null;
         const m0 = G.inv.count(71);
         for (let k = 0; k < 3 && G.world.get(ax, ay, az + 8) === 71; k++) { if (k) { G.ui.closeAllModals(); P.rope = null; P.pos.set(ax + 0.5, ay, az + 12.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12; await running(); await sleep(600); } G.shootWeb(); await sleep(300); }
         out.mushroom = G.world.get(ax, ay, az + 8) !== 71 && G.inv.count(71) === m0 + 1;
-        if (!out.mushroom) out.whyM = { block: G.world.get(ax, ay, az + 8), n: G.inv.count(71) - m0, pos: P.pos.toArray().map(v => +v.toFixed(1)), rope: !!P.rope };
+        if (!out.mushroom) out.whyM = { block: G.world.get(ax, ay, az + 8), n: G.inv.count(71) - m0, pos: P.pos.toArray().map(v => +v.toFixed(1)), rope: !!P.rope, room: G.inv.room(71) };
+        // a full bag: the web leaves a mushroom where it is (the bag says it's full)
+        G.world.set(ax, ay, az + 7, 71); const full = G.inv.slots.slice(); for (let i = 0; i < G.inv.slots.length; i++) G.inv.slots[i] = { id: 1, n: 64 };
+        P.pos.set(ax + 0.5, ay, az + 11.5); P.vel.set(0, 0, 0); P.yaw = 0; P.pitch = -0.12; await sleep(300);
+        out.fullBagRoom = G.inv.room(71); G.shootWeb(); await sleep(300); out.fullBagKept = G.world.get(ax, ay, az + 7) === 71;
+        for (let i = 0; i < full.length; i++) G.inv.slots[i] = full[i];
+        if (slotKeep && !G.inv.slots[G.inv.slots.length - 1]) G.inv.slots[G.inv.slots.length - 1] = slotKeep;
+        G.world.set(ax, ay, az + 7, 0); G.inv.onChange?.();
         // take it off: the button goes, and only trees can be climbed again
         G.settings.outfit = keep; G.buildAvatar(); G.settings.cam = cam; G.stats.webTip = tip; await running(); await sleep(200);
         out.offAfter = document.querySelector('#bWeb').classList.contains('hidden') && !P.wallClimb;
         P.rope = null; P.pos.set(0.5, 47, 3.5); P.vel.set(0, 0, 0);
         return out;
       });
-      if (!r.offBefore || !r.btn || r.climbed < 1.5 || !r.rope || r.swung < 3 || !r.letGo || r.caught !== true || !r.mushroom || !r.offAfter) throw new Error(JSON.stringify(r));
+      if (!r.offBefore || !r.btn || r.climbed < 1.5 || !r.rope || r.swung < 3 || !r.letGo || r.caught !== true || !r.mushroom || r.fullBagKept !== true || r.fullBagRoom !== false || !r.offAfter) throw new Error(JSON.stringify(r));
       return r;
     });
     await step('Sky City: a city of tall towers on the map (Full BabyMo Craft); flying through a golden ring gives a star, and without Full it shows the unlock card', async () => {

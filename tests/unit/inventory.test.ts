@@ -45,6 +45,18 @@ describe('inventory', () => {
   });
 });
 
+describe('room in the bag', () => {
+  it('has room with an empty slot or a stack that is not full, and none when every slot is full', () => {
+    const inv = new Inventory();
+    expect(inv.room(B.GLOW_MUSHROOM)).toBe(true);
+    for (let i = 0; i < SLOTS; i++) inv.slots[i] = { id: B.STONE, n: maxStack(B.STONE) };
+    expect(inv.room(B.GLOW_MUSHROOM)).toBe(false);
+    inv.slots[3] = { id: B.GLOW_MUSHROOM, n: 1 };
+    expect(inv.room(B.GLOW_MUSHROOM)).toBe(true);
+    expect(inv.add(B.STONE, 1)).toBe(1); // (a full bag hands back what doesn't fit)
+  });
+});
+
 describe('crafting', () => {
   it('every recipe uses and makes real items', () => {
     for (const r of RECIPES) {

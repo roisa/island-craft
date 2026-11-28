@@ -1321,6 +1321,9 @@ export class Game {
     const fr = this.webPickable(eye, dir, hit ? hit.dist + 0.6 : reach);
     if (fr) {
       const at = new THREE.Vector3(fr[0] + 0.5, fr[1] + 0.5, fr[2] + 0.5);
+      // a full bag: the fruit stays on the tree (it would be lost otherwise)
+      const def = BLOCKS[fr[3]], gets = (def?.drops ? def.drops(0.99) : [[fr[3], 1]]) as [number, number][];
+      if (!gets.every(([d]) => this.inv.room(d))) { this.webShow(at, 0.25); this.bagFull(); return; }
       this.webShow(at, 0.4);
       this.fx.sparkle(at.x, at.y, at.z, 10, 0xffffff, 1.2);
       this.breakBlock(fr[0], fr[1], fr[2], fr[3]); // (its fruit flies to your bag, grows back on the tree, and its English word shows)
@@ -1769,9 +1772,15 @@ export class Game {
    * know where they came from their icons fly there first; the bag counter and
    * the hotbar bump show on arrival.
    */
+  private bagFullAt = -1e9;
+  /** the bag is full: say so (not too often) */
+  bagFull() {
+    const now = performance.now(); if (now - this.bagFullAt < 8000) return; this.bagFullAt = now;
+    this.ui.toast(tr('🎒 Tasnya penuh! Taruh atau pakai sesuatu dulu ya.', '🎒 Your bag is full! Put something down or use it first.'), 3500);
+  }
   private give(drops: [number, number][], from?: THREE.Vector3) {
     for (const [d, n] of drops) {
-      this.inv.add(d, n);
+      if (this.inv.add(d, n) > 0) this.bagFull();
       this.stats.mined[d] = (this.stats.mined[d] || 0) + n;
       this.collectFx(d, n, from);
     }

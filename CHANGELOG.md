@@ -5,6 +5,15 @@ All notable changes to Baby Mo Island Craft. V2 work follows the plan in
 
 ## V2 — The Living Island (in progress)
 
+### A full bag keeps the fruit on the tree
+
+- With a full 🎒 bag, the web now leaves a fruit or mushroom where it is (it
+  used to snap it off and lose it), and the bag says it's full: "Your bag is
+  full! Put something down or use it first." Mining or picking with a full bag
+  says the same (once in a while, not every time).
+- Tested: a unit test for room in the bag; the smoke step webs a mushroom with a
+  full bag and it stays put.
+
 ### The guide arrow is off by default
 
 - The island looks nicer without it: the glass arrow to the mission now shows
